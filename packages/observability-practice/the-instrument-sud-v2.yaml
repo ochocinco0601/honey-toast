@@ -1,0 +1,1655 @@
+# SUD Questions v2 — Motivation Chain Capture
+#
+# Redesigned instrument: restructures questions from entity-type organization
+# (v1) to motivation-chain traversal order (v2). Same content, different
+# capture sequence. The PO's reasoning path — who cares, why they care,
+# what satisfies them, how we measure it — drives the question order.
+#
+# This is version 2 of the instrument.
+# v2 is validated independently alongside v1.
+#
+# Design: motivation-chain traversal.
+# viewpoint schema is grounding, not redesign
+# health dimension frameworks are altitude-specific
+#
+# Every question has:
+#   id:            Stable identifier (used by validators, skill references)
+#   bare:          The bare-bones question (what field needs answering)
+#   enhanced:      Prior-art-enhanced question (how to ask it well)
+#   prior_art:     Named source(s) that inform the enhanced form
+#   populates:     JSON field path(s) this answer fills
+#   schema_ahead:  true if no JSON field exists yet
+#   evidence:      Patterns that indicate this question was answered in a SUD
+
+# --- Instrument-Level Principles ---
+# These govern the AI agent's reasoning across ALL questions.
+# Applied before any individual enhanced field.
+# Carried forward verbatim from v1.
+
+# Provenance Discipline
+#
+# The AI agent operating this instrument must distinguish three evidence levels
+# for every claim in the SUD:
+#
+#   extracted:    Traceable to specific source material. The source said this.
+#   inferred:     Reasonable conclusion from patterns or context, but the sources
+#                 did not explicitly state it. Label as inferred. May be wrong.
+#   constructed:  Generated without source evidence. A best guess. Label as
+#                 constructed. Must be validated.
+#
+# When answering any question:
+#   1. Look for source evidence first. Where sources provide evidence, extract it.
+#   2. Where sources are silent, inference from context or patterns is acceptable
+#      but must be labeled as inferred — never presented as extracted.
+#   3. A SUD with honest provenance labeling is more trustworthy than one where
+#      every answer looks equally confident. "Inferred — sources did not describe
+#      fallback behavior" is better than a confident assertion from training knowledge.
+#
+# This discipline is not optional. The SUD's auditability depends on it.
+# A consumer must be able to ask "how do you know?" for any claim and get
+# a traceable answer.
+
+# Reasoning Grounding
+#
+# Enhanced fields should ground the AI agent's reasoning in named prior art,
+# defined criteria, or explicit examples — not vague instructions.
+#
+# Three forms of grounding:
+#   named_prior_art:    Reference established standards by name. The name
+#                       activates the agent's training knowledge about that
+#                       standard's full methodology, not just the name.
+#   defined_criteria:   Explicit distinctions the agent reasons from.
+#                       "CRITICAL = blocks core function" gives a decision
+#                       anchor. "With reasoning" gives nothing.
+#   explicit_examples:  Show what good output looks like or define when
+#                       each option applies. Distinguish, don't just list.
+#
+# The quality test: does the enhanced field produce reasoning good enough
+# that downstream questions can rely on it? Poor reasoning at one question
+# compounds into poor quality at every question that depends on it.
+#
+# Where an enhanced field references prior art, the agent's training
+# knowledge is activated. Where it doesn't, the agent reasons from vague
+# prompts. Grounding is the mechanism that makes reasoning GOOD.
+# Provenance is the mechanism that makes it HONEST. Both are required.
+
+schema_ground_truth: a reference fixture record
+json_schema: the record schema
+
+app_managed_fields:
+  - field: "contextId"
+    reason: "Auto-generated GUID on import"
+  - field: "sliId"
+    reason: "Auto-generated GUID on import"
+  - field: "impactId"
+    reason: "Auto-generated GUID on import"
+  - field: "mappingId"
+    reason: "Auto-generated GUID on import"
+  - field: "createdAt"
+    reason: "Set to import time"
+  - field: "modifiedAt"
+    reason: "Set to import time"
+  - field: "impactDefinitions[].observabilityLayer"
+    reason: "Always enforced to 'Business Impact'"
+  - field: "impactDefinitions[].signalType"
+    reason: "Always enforced to 'business_impact'"
+  - field: "operational.status"
+    reason: "Defaults to 'draft'"
+  - field: "operational.lastValidated"
+    reason: "Set by dedicated validation endpoint"
+  - field: "operational.dashboardUrl"
+    reason: "Populated after factory run"
+  - field: "operational.dashboardDescription"
+    reason: "Populated after factory run"
+  - field: "operational.runbookUrl"
+    reason: "Populated after factory run"
+  - field: "operational.runbookDescription"
+    reason: "Populated after factory run"
+  - field: "queryBuilder"
+    reason: "Placeholder — null in all current examples"
+  - field: "queryParams"
+    reason: "Placeholder — null in all current examples"
+  - field: "operational.notes"
+    reason: "Free text annotation"
+  - field: "operational.alertingConfigured"
+    reason: "Boolean state — not an understanding question"
+  - field: "operational.reviewDate"
+    reason: "Lifecycle metadata"
+  - field: "stakeholders[].serviceId"
+    reason: "Back-reference to parent service — set from service.serviceId"
+  - field: "sliDefinitions[].serviceId"
+    reason: "Back-reference to parent service — set from service.serviceId"
+  - field: "impactDefinitions[].serviceId"
+    reason: "Back-reference to parent service — set from service.serviceId"
+  - field: "operational.serviceId"
+    reason: "Back-reference to parent service — set from service.serviceId"
+
+# --- v2 Structural Concepts ---
+#
+# This instrument captures data in motivation-chain traversal order and
+# writes to the same flat JSON arrays (stakeholders[], sliDefinitions[],
+# impactDefinitions[], traceabilityMappings[]). The JSON is a serialization
+# format consumed by machines. The SUD is an elicitation instrument
+# encountered by humans and AI agents. These are different interfaces
+# serving different consumers.
+#
+# Five structural concepts new to v2:
+#
+# 1. parts replace sections as the top-level organizer
+#    Each part maps to an actor, an altitude, and a health dimension
+#    framework.
+#
+# 2. observability_layer on signal-bearing parts
+#    The agent writes this value to sliDefinitions[].observabilityLayer
+#    for every signal captured in that part. Never asked as a question.
+#    Replaces v1 q17 (eliminated — layer is structural).
+#
+# 3. repeat_per on parts and groups
+#    Indicates iteration. repeat_per: stakeholder on Part 2 means the
+#    entire chain repeats per stakeholder. repeat_per: signal means the
+#    signal block repeats within its scope.
+#
+# 4. chain with group entries
+#    Organizes questions by viewpoint traversal position within a
+#    repeating part. Groups are the motivation chain structure.
+#
+# 5. positions on groups
+#    Metadata documenting which viewpoint traversal positions (1-9)
+#    the group populates. Informational — not consumed by validators.
+#
+# Part ordering encodes the causal hierarchy:
+#   Part 1 (Service Context) → framing
+#   Part 2 (Business Health) → stakeholder symptoms (L3 anchor)
+#   Part 2b (Business Impact) → consequence quantification (L4)
+#   Part 3 (Process) → cause investigation (L2)
+#   Part 3a (Agent Decision) → decision-correctness investigation for
+#     agentic steps — CONDITIONAL, activates only when q44 flags a step
+#     that can be confidently wrong. A sibling diagnostic layer to
+#     Process: it answers "why is the business outcome wrong when Process
+#     and System are green?" See the Part 3a header for the full rationale.
+#   Part 4 (System) → infrastructure health (L1)
+#   Part 5 (Operational) → ownership and response
+#   The agent designs Business Health signals first (Part 2) because
+#   they anchor the causal model — Process, Agent Decision, and System
+#   signals exist to explain Business Health failures.
+
+eliminated_questions:
+  - id: q17
+    v1_section: signals
+    v1_bare: "What layer?"
+    reason: >
+      Structural — observabilityLayer determined by instrument position.
+      Every signal in Part 2 is Business Health, Part 3 is Process,
+      Part 4 is System. The reasoning guidance from q17's enhanced text
+      ("L3 is the anchor — design L3 first") becomes the structural
+      rationale for Part 2 preceding Parts 3-4.
+    prior_art_preserved: >
+      Four-layer observability model, Signal layer taxonomy, Causal
+      model rule (multi-signal pressure test) — encoded in part ordering
+      and observability_layer declarations.
+
+  - id: q29
+    v1_section: traceability
+    v1_bare: "Which stakeholder does each signal serve?"
+    reason: >
+      Structural — chain nesting IS traceability. In Part 2, each
+      signal nested under a stakeholder chain produces a
+      traceabilityMappings[] row with relationshipType "verifies".
+      In Part 2b, impact_driver_refs produces traceabilityMappings[]
+      rows with relationshipType "quantifies". The agent generates
+      mapping rows from structural nesting.
+    prior_art_preserved: >
+      RTM (IEEE 830) — bidirectional traceability encoded structurally.
+
+promoted_questions:
+  - from_id: q18
+    to_id: diagnostic_causal_ref
+    reason: >
+      Promoted from schema_ahead to structured field in Part 3.
+      v1 q18 asked generically about causal relationships across all
+      layers. diagnostic_causal_ref asks specifically "which Business
+      Health signals does this Process signal help explain?" — the
+      cause-investigation navigation path. schema_ahead changes
+      from true to false.
+
+# --- Shared Question Definitions ---
+# Questions appearing in multiple signal-bearing parts (Parts 2, 3, 4).
+# Defined once with YAML anchors, referenced via alias in each part.
+
+shared_questions:
+
+  - &q16
+    id: q16
+    bare: "What is this signal measuring?"
+    enhanced: "What question does this signal answer? State it as a stakeholder question."
+    prior_art: ["SRE SLO Document"]
+    populates: []
+    schema_ahead: true
+    evidence:
+      section_pattern: "(signal|SLO|SLI|L[1234])"
+      content_patterns:
+        - pattern: "(\\*\\*Question:\\*\\*|question.*does this signal)"
+          description: "signal question stated"
+
+  - &q16a
+    id: q16a
+    bare: "What is this signal called?"
+    enhanced: "Machine identifier (snake_case) and display name (human-readable)"
+    prior_art: []
+    populates: ["sliDefinitions[].signalName", "sliDefinitions[].signalDisplayName"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "(signal|SLI|L[123])"
+      content_patterns:
+        - pattern: "(signal.*name|_rate|_p\\d+|_success|_availability|_latency)"
+          description: "signal identifier present"
+        - pattern: "(### L[1234].*:.*Rate|### L[1234].*:.*Latency|### L[1234].*:.*Availability|### L[1234].*:.*Success)"
+          description: "signal display name in heading"
+
+  - &q16b
+    id: q16b
+    bare: "What telemetry platform?"
+    enhanced: "Data source type if known — may not be determined at onboarding time"
+    prior_art: ["SLODLC Discover §4.3 observability systems"]
+    populates: ["sliDefinitions[].dataSourceType"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "."
+      content_patterns:
+        - pattern: "(Prometheus|Splunk|Datadog|AppDynamics|datasource)"
+          description: "telemetry platform stated"
+
+  - &q16c
+    id: q16c
+    bare: "Who owns this signal?"
+    enhanced: "Per-signal technical owner — may differ from service owner by layer"
+    prior_art: ["SRE three-actor ownership model — ownership varies by observability layer"]
+    populates: ["sliDefinitions[].technicalOwner"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "."
+      content_patterns:
+        - pattern: "(Platform Team|technical owner|owned by|Platform.owned)"
+          description: "signal ownership stated"
+
+  - &q19
+    id: q19
+    bare: "What signal type?"
+    enhanced: "Ratio (good/total) or threshold (measurement vs limit)?"
+    prior_art: ["SRE SLO signal classification"]
+    populates: ["sliDefinitions[].signalType"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "(signal|SLI)"
+      content_patterns:
+        - pattern: "(sli_ratio|sli_threshold|ratio|threshold)"
+          description: "signal type stated"
+
+  - &q20
+    id: q20
+    bare: "What's the business description?"
+    enhanced: "Language a product owner would understand — no technical jargon"
+    prior_art: ["SLODLC Discover §1.3 business context"]
+    populates: ["sliDefinitions[].descriptionBusiness"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "(signal|SLI|L[123])"
+      content_patterns:
+        - pattern: "(percentage|rate of|time from|customers|purchases)"
+          description: "business-framed language present"
+
+  - &q21
+    id: q21
+    bare: "What's the technical description?"
+    enhanced: "Implementation — telemetry, queries, edge cases"
+    prior_art: ["SRE SLO Document SLI specification"]
+    populates: ["sliDefinitions[].descriptionTechnical"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "(signal|SLI|L[123])"
+      content_patterns:
+        - pattern: "(span|gRPC|Prometheus|PromQL|query|traces_)"
+          description: "technical implementation described"
+
+  - &q22
+    id: q22
+    bare: "What's the SLO target?"
+    enhanced: "The target AND why that number — error budget, relationship to other services. Where sources describe existing SLAs, contractual commitments, or historical reliability baselines, use them as the starting point for target reasoning. A target disconnected from existing commitments won't be trusted by the team operating the service."
+    prior_art: ["SRE SLO Document Rationale section", "SLODLC Discover §1.4 existing SLAs", "ISO 22301 BIA RTO-RPO"]
+    populates: ["sliDefinitions[].sloTarget", "sliDefinitions[].sloTargetRationale"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "(SLO|target|signal)"
+      content_patterns:
+        - pattern: "SLO target[:\\s]*\\d+"
+          description: "SLO target stated"
+        - pattern: "(because|reasoning|budget allows|rationale)"
+          description: "target rationale present"
+
+  - &q22a
+    id: q22a
+    bare: "Where does this requirement come from?"
+    enhanced: >
+      Provenance citation — the authority behind the target, not the
+      rationale for the number. Regulatory: "12 CFR 1026.19(f)(1)(ii)".
+      Contractual: "MSA §4.2 — 99.9% availability". Internal: "Platform
+      Engineering standard — a quarterly SLO review". If a URL to the source
+      document exists, capture it. Every requirement has a source — even
+      "team convention" is a valid provenance that makes the implicit
+      explicit.
+    prior_art: ["Dublin Core dcterms:source", "Dublin Core dcterms:references", "ISO/IEC/IEEE 29148 requirement attributes"]
+    populates: ["sliDefinitions[].requirementSource", "sliDefinitions[].requirementSourceUrl"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "(source|provenance|authority|requirement.*from)"
+      content_patterns:
+        - pattern: "(CFR|SLA|standard|internal|regulatory|contractual|convention)"
+          description: "requirement provenance cited"
+
+  - &q23
+    id: q23
+    bare: "What budgeting method?"
+    enhanced: "Occurrences or time_slices? With reasoning."
+    prior_art: ["SRE SLO error budget methodology"]
+    populates: ["sliDefinitions[].budgetingMethod"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "(budget|signal)"
+      content_patterns:
+        - pattern: "(occurrences|time.slices|budgeting)"
+          description: "budgeting method stated"
+
+  - &q24
+    id: q24
+    bare: "What time window?"
+    enhanced: "Measurement period — rolling or calendar-aligned?"
+    prior_art: ["SRE SLO Document"]
+    populates: ["sliDefinitions[].timeWindow", "sliDefinitions[].timeWindowType"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "."
+      content_patterns:
+        - pattern: "(30d|7d|rolling|calendar)"
+          description: "time window stated"
+
+  - &q24a
+    id: q24a
+    bare: "What are the health thresholds?"
+    enhanced: "Two-threshold health classification: at what level is the signal warning? At what level is it critical? These drive real-time dashboard tile color (healthy/warning/critical), distinct from SLO alerting thresholds which drive burn-rate alerts."
+    prior_art: ["Nagios two-threshold model (1999)", "two-threshold model addition"]
+    populates: ["sliDefinitions[].healthWarningThreshold", "sliDefinitions[].healthCriticalThreshold"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "(health|threshold|warning|critical)"
+      content_patterns:
+        - pattern: "(health.*threshold|warning.*threshold|critical.*threshold|tile color|dashboard.*color)"
+          description: "health thresholds stated"
+
+  - &q25
+    id: q25
+    bare: "What are the alerting and page thresholds?"
+    enhanced: "Warning and page levels — why those thresholds relative to SLO?"
+    prior_art: ["SRE alerting methodology", "SLODLC Discover §4.4 alerting"]
+    populates: ["sliDefinitions[].alertingThreshold", "sliDefinitions[].pageThreshold", "sliDefinitions[].alertSeverity", "sliDefinitions[].pageSeverity"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "."
+      content_patterns:
+        - pattern: "(alerting|page|warning|critical|threshold)"
+          description: "alerting thresholds stated"
+
+  - &q26
+    id: q26
+    bare: "What are the queries?"
+    enhanced: "Numerator/denominator for ratios, measurement/operator/value for thresholds"
+    prior_art: ["SRE SLO Document SLI measurement", "SLODLC Discover §4.3 SLI calculation methods"]
+    populates: ["sliDefinitions[].queryNumerator", "sliDefinitions[].queryDenominator", "sliDefinitions[].queryNumeratorDescription", "sliDefinitions[].queryDenominatorDescription", "sliDefinitions[].thresholdOperator", "sliDefinitions[].thresholdValue", "sliDefinitions[].thresholdUnit"]
+    schema_ahead: false
+    evidence:
+      section_pattern: "."
+      content_patterns:
+        - pattern: "(query|PromQL|sum\\(rate|histogram_quantile)"
+          description: "query present"
+
+# =====================================================================
+# PARTS — The five-part instrument structure
+# =====================================================================
+
+parts:
+
+  # =================================================================
+  # Part 1 — Service Context
+  # =================================================================
+  # Positions populated: 5 (Subject), 6 (Object)
+  # Actor: N/A — contextual framing
+  # No observability_layer — this part captures service identity,
+  # not signals.
+  # =================================================================
+
+  - part: service_context
+    description: "Service identity, dependencies, capabilities, processes"
+    questions:
+
+      # --- Sources ---
+      - id: sources
+        bare: "What sources are available for this service?"
+        enhanced: "Inventory all available sources with epistemological type (definitional/descriptive/behavioral)"
+        prior_art: ["RTM (IEEE 830)"]
+        populates: []
+        schema_ahead: false
+        evidence:
+          section_pattern: "(## Sources|Source|source.*type)"
+          content_patterns:
+            - pattern: "\\|.*S\\d+.*\\|"
+              description: "source table with IDs"
+
+      # --- Service identity ---
+      - id: q1
+        bare: "What does this service do?"
+        enhanced: "What does this service do, described in business terms a non-engineer stakeholder would understand?"
+        prior_art: ["SLODLC Discover Q1", "arc42 §1.1 requirements overview"]
+        populates: ["service.businessPurpose"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(what is this service|service context|what does it do)"
+          content_patterns:
+            - pattern: "(business purpose|business position)"
+              description: "business position stated"
+
+      - id: q2
+        bare: "What name?"
+        enhanced: ""
+        prior_art: ["ITIL CMDB CI identity"]
+        populates: ["service.displayName", "service.serviceName", "service.serviceId"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(service understanding|service id|# )"
+          content_patterns:
+            - pattern: "Service ID"
+              description: "service ID stated"
+
+      - id: q3
+        bare: "What tier?"
+        enhanced: "What is the service's criticality tier? Critical path or non-critical path? Evaluate based on what the service enables in its business context — not what the service does in isolation. Where source material describes dependent workflows, regulatory requirements, or business processes this service gates, use that evidence. If a CMDB criticality designation exists, treat it as a starting data point to validate against source evidence. Where sources are silent on business context, label the tier assessment as inferred."
+        prior_art: ["ISO 22301 BIA criticality rating", "IEC 60812 FMEA severity rating"]
+        populates: ["service.tier"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(critical.path|non.critical|business position|tier)"
+          content_patterns:
+            - pattern: "(critical.path|non.critical.path|revenue.influencing)"
+              description: "critical-path judgment stated"
+
+      - id: q4
+        bare: "What business unit?"
+        enhanced: ""
+        prior_art: ["ITIL CMDB CI organizational fields"]
+        populates: ["service.businessUnit"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "."
+          content_patterns:
+            - pattern: "(business unit|business.*unit)"
+              description: "business unit named"
+
+      - id: q5
+        bare: "What functional category?"
+        enhanced: "What kind of work does this service do? (Transaction Processing, Data Management, etc.)"
+        prior_art: ["BIAN service domain categorization"]
+        populates: ["service.functionalCategory"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "."
+          content_patterns:
+            - pattern: "(functional category|transaction processing|data management|customer interaction)"
+              description: "functional category stated"
+
+      - id: q6
+        bare: "Who owns it?"
+        enhanced: "Who is the product owner (business) and technical owner (engineering)?"
+        prior_art: ["SLODLC Discover §1.1-1.2 service owner", "ITIL CMDB CI ownership fields"]
+        populates: ["service.productOwner", "service.technicalOwner"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "."
+          content_patterns:
+            - pattern: "(product owner|technical owner|owned by|team)"
+              description: "ownership stated"
+
+      - id: q6a
+        bare: "What are the CMDB identifiers?"
+        enhanced: "What is the org ID and application ID in the enterprise CMDB, if known?"
+        prior_art: ["ITIL Configuration Management"]
+        populates: ["service.orgId", "service.appId"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "."
+          content_patterns:
+            - pattern: "(orgId|appId|CMDB|org.id|app.id)"
+              description: "CMDB identifiers stated"
+
+      - id: q6b
+        bare: "What tags categorize this service?"
+        enhanced: "Keywords/labels for domain, business function, and criticality path"
+        prior_art: []
+        populates: ["service.tags"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "."
+          content_patterns:
+            - pattern: "(tags|keywords|labels)"
+              description: "tags stated"
+
+      - id: q8
+        bare: "What custom telemetry already exists?"
+        enhanced: "What monitoring already exists for this service? Synthesize from whatever evidence the sources provide — documentation, dashboard configurations, alert definitions, instrumentation in code. What can existing monitoring tell you about this service's health, and what can't it?"
+        prior_art: ["SLODLC Discover §4.3 data sources", "arc42 §8 cross-cutting concepts", "IEC 60812 FMEA current detection controls"]
+        populates: []
+        schema_ahead: true
+        evidence:
+          section_pattern: "(telemetry|custom.*telemetry|span|metric)"
+          content_patterns:
+            - pattern: "(app\\.|counter|gauge|histogram|span.*attribute)"
+              description: "custom telemetry identified"
+
+      - id: q9
+        bare: "What are the dependencies?"
+        enhanced: "What calls this service, what does it call? Sync vs async? For each dependency: if it fails, does THIS service fail? Or does this service degrade gracefully? Where source material describes interaction patterns (sync/async), resilience mechanisms (circuit breakers, fallbacks, retry), or failure behavior, use that evidence to distinguish critical dependencies from resilient ones. Where sources are silent on resilience, label the criticality assessment as inferred."
+        prior_art: ["SLODLC Discover dependency analysis", "arc42 §3 technical context", "arc42 §5 building block view", "ITIL CMDB CI relationships"]
+        populates: ["operational.dependencyFlow"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(dependenc|upstream|downstream)"
+          content_patterns:
+            - pattern: "(→|->|depends on|calls|gRPC|HTTP)"
+              description: "dependency chain described"
+
+      # --- Structured dependency extraction ---
+      - id: q9a
+        bare: "Produce a structured dependency graph from the q9 analysis."
+        enhanced: >
+          Using the dependency analysis from q9 and the source material, produce
+          a structured dependency graph with two arrays: nodes[] and edges[].
+
+          **Nodes** — every component in the dependency picture:
+            - The service itself (type: service)
+            - Each dependency it calls (type: critical if failure = service failure;
+              type: degraded if failure = partial/silent impact)
+            - What calls it (type: upstream)
+            - What consumes from it (type: downstream)
+
+          For each node: name, type, protocol (HTTP/SQL/AMQP/gRPC/null),
+          failure_impact (what happens when unavailable, in consumer terms),
+          signals[] (signal_names that monitor this node's health), provenance.
+
+          **Edges** — directed relationships between nodes:
+            - from → to (must match node names exactly)
+            - protocol on the edge
+            - criticality: critical (source fails), degraded (source works but
+              impact propagates), informational (no direct impact on source)
+            - failure_impact (specific to this edge, if different from node-level)
+            - provenance
+
+          **Criticality classification** uses the Azure WAF Health Model:
+            - critical = synchronous, no fallback — if target fails, source fails
+            - degraded = async or partial — source continues but downstream impact
+              (may be silent to the user)
+            - informational = no direct service impact (upstream callers,
+              downstream consumers whose failure doesn't affect this service)
+
+          Source evidence required: cite the source IDs that justify each
+          classification. Where sources describe resilience mechanisms (circuit
+          breakers, retries, fallbacks), use them to distinguish critical from
+          degraded. Where sources are silent on resilience, label criticality
+          as inferred.
+
+          **Human review:** present the structured graph (nodes and edges with
+          their classifications) for confirmation before finalizing. The human
+          can correct misclassifications or add missing dependencies.
+
+          Schema: DependencyNode + DependencyEdge in the record schema.
+          Exemplar: see the dependencies_structured section of a worked example.
+        prior_art: ["C4 Model Level 2 (Simon Brown)", "Azure WAF Health Model", "arc42 §3 technical context", "arc42 §5 building block view"]
+        populates: ["service.dependencies_structured"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(dependencies_structured|dependency.*node|dependency.*edge)"
+          content_patterns:
+            - pattern: "(nodes:|edges:|type: critical|type: degraded|criticality:)"
+              description: "structured dependency graph present"
+
+      - id: q10
+        bare: "What are the failure modes?"
+        enhanced: "How does this service fail? Expected business behavior vs unexpected service failures? Where source material documents past outages or incidents, use them as grounding for failure modes. For each failure mode identified, note whether current monitoring can detect it — where sources describe existing detection controls or monitoring, reference them."
+        prior_art: ["SLODLC Discover system behavior assessment", "arc42 §10 quality scenarios", "arc42 §11 risks", "IEC 60812 FMEA failure mode identification", "SLODLC Discover §4.1-4.2 outage history"]
+        populates: []
+        schema_ahead: true
+        evidence:
+          section_pattern: "(failure|fail|fault)"
+          content_patterns:
+            - pattern: "(failure mode|when.*fails|expected.*behavior|feature flag)"
+              description: "failure modes identified"
+
+      # --- Business capability identity ---
+      - id: q34
+        bare: "What business capability does this service implement?"
+        enhanced: "Industry-standard name if one exists. The capability persists if the service is replaced."
+        prior_art: ["Service flow ontology", "BIAN service domains", "ISO 22301 BIA process inventory"]
+        populates: []
+        schema_ahead: true
+        evidence:
+          section_pattern: "(capability|business capability)"
+          content_patterns:
+            - pattern: "(business capability|industry|capability)"
+              description: "business capability named"
+
+      - id: q35
+        bare: "Is this the sole implementation?"
+        enhanced: "Does the capability span multiple services?"
+        prior_art: ["Service flow ontology — Type B flows"]
+        populates: []
+        schema_ahead: true
+        evidence:
+          section_pattern: "(capability|implementation)"
+          content_patterns:
+            - pattern: "(sole|shared|multiple services|span)"
+              description: "implementation scope stated"
+
+      - id: q36
+        bare: "What persists if the service changes?"
+        enhanced: "What transfers to a successor? Capability-tied vs implementation-tied understanding."
+        prior_art: ["MDE PIM/PSM"]
+        populates: []
+        schema_ahead: true
+        evidence:
+          section_pattern: "(persist|decompos|replac|successor)"
+          content_patterns:
+            - pattern: "(persist|transfer|capability|implementation)"
+              description: "persistence reasoning present"
+
+      # --- Flow participation ---
+      - id: q37
+        bare: "What business processes does this service participate in?"
+        enhanced: "Journeys, value streams — named in business terms, not technical"
+        prior_art: ["Business journey mapping architecture", "SLODLC Discover §2.2-2.4 user journeys", "ISO 22301 BIA process inventory", "ArchiMate Business Process"]
+        populates: ["service.process_participations[].process_name"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(process|journey|flow|value stream)"
+          content_patterns:
+            - pattern: "(journey|value stream|business process|flow)"
+              description: "business process participation stated"
+
+      - id: q38
+        bare: "What role in each process?"
+        enhanced: "What stage/function? What comes before/after? Critical path of the process?"
+        prior_art: ["Service flow ontology — Type B flow", "ArchiMate Serving relationship", "ArchiMate Triggering"]
+        populates: ["service.process_participations[].step_name", "service.process_participations[].blocking", "service.process_participations[].description"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(process|journey|role|stage)"
+          content_patterns:
+            - pattern: "(stage|before|after|critical path|step)"
+              description: "process role described"
+
+      - id: q39
+        bare: "What's the journey-level impact?"
+        enhanced: "Impact on the business process when this service degrades — may differ from per-service impact"
+        prior_art: ["Business journey mapping architecture", "Pathpoint health propagation", "ArchiMate Triggering — downstream impact"]
+        populates: ["service.process_participations[].downstream_impact"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(journey|process|impact)"
+          content_patterns:
+            - pattern: "(journey.*impact|process.*impact|propagat|bubbles up)"
+              description: "journey-level impact described"
+
+      # --- Structured process extraction ---
+      - id: q39a
+        bare: "Produce a structured process sequence from the q37-q39 analysis."
+        enhanced: >
+          Using the process participation answers (q37-q39), the source material,
+          and the arc42 §6 runtime views, produce a structured process sequence
+          for each business process this service participates in.
+
+          **Output:** an array of ProcessStructured objects (one per business
+          process), each with ordered steps[].
+
+          **Per step:**
+            - order: integer position in the sequence (1-based). Steps with the
+              same order execute in parallel.
+            - name: human-readable step name in business terms
+            - components: array of component names that realize this step (must
+              match DependencyNode names from dependencies_structured, or be
+              named inline for external components). Empty array for physical/
+              manual steps.
+            - blocking: true if the process halts when this step fails
+              (ArchiMate Triggering semantics)
+            - condition: string if this step only executes under a condition
+              (e.g., "internal transactions only"); null if it always executes
+            - signals: signal_names that monitor this step's health (may be
+              populated in a second pass after Phases 2-5 complete)
+            - description: what happens at this step, in consumer terms
+            - owned: true if this service owns/performs this step; false for
+              steps performed by other services or physical activities
+            - provenance: extracted/inferred/derived
+
+          **Include the full process, not just this service's steps.** The
+          consumer needs to see where this service sits in the sequence — what
+          comes before, what comes after. Steps owned by other services or
+          performed manually should be included with owned: false. Include
+          physical/manual steps (e.g., "mechanic performs the work") with
+          components: [] — these matter for the consumer's understanding of
+          the process even though no system mediates them.
+
+          **Component abstraction level:** list the service that performs the
+          step (e.g., WorkshopManagementAPI), not the infrastructure it uses
+          internally (not SQL Server, not RabbitMQ). Infrastructure components
+          belong in dependencies_structured; process steps reference the
+          service-level actor. Exception: if the step IS an infrastructure
+          interaction with no service mediating it, name the infrastructure
+          directly.
+
+          **Source evidence:** use arc42 §6 runtime views for step ordering,
+          arc42 §5 for component mapping, and the q37-q39 answers for process
+          identity and role. Cite source IDs.
+
+          **Human review:** present the ordered process (step names, component
+          mappings, blocking/non-blocking status) for confirmation before
+          finalizing. The human can reorder steps, add missing steps, or
+          correct component mappings.
+
+          Schema: ProcessStep + ProcessStructured in the record schema.
+          Exemplar: see the process_structured section of a worked example.
+        prior_art: ["arc42 §6 Runtime View", "BPMN / ISO 19510", "ArchiMate Triggering", "UML Sequence Diagram (ISO/IEC 19501)"]
+        populates: ["service.process_structured"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(process_structured|ProcessStep|process.*step)"
+          content_patterns:
+            - pattern: "(steps:|order:|blocking:|owned:|process_structured:)"
+              description: "structured process sequence present"
+
+      # --- Internal flow decomposition ---
+      - id: q40
+        bare: "Does this service have distinct sub-capabilities?"
+        enhanced: "Different stakeholders care about different operations?"
+        prior_art: ["Service flow ontology — Type A flow", "arc42 §5 building block view", "IEC 60812 FMEA focus element"]
+        populates: []
+        schema_ahead: true
+        evidence:
+          section_pattern: "(sub.capabilit|operation|decompos|internal)"
+          content_patterns:
+            - pattern: "(sub.capabilit|use case|operation|different stakeholder)"
+              description: "sub-capabilities identified"
+
+      - id: q41
+        bare: "What are the sub-capabilities?"
+        enhanced: "Named, with stakeholder expectations and signals scoped to each"
+        prior_art: ["Service flow ontology — flow as scoping mechanism"]
+        populates: []
+        schema_ahead: true
+        evidence:
+          section_pattern: "(sub.capabilit|operation)"
+          content_patterns:
+            - pattern: "(scop|scope|within|specific to)"
+              description: "scoping to sub-capabilities present"
+
+      - id: q42
+        bare: "Can telemetry distinguish the sub-capabilities?"
+        enhanced: "Span attributes, API endpoints that differentiate operations"
+        prior_art: ["IEC 60812 FMEA detection controls"]
+        populates: []
+        schema_ahead: true
+        evidence:
+          section_pattern: "(telemetry|distinguish|sub.capabilit)"
+          content_patterns:
+            - pattern: "(span.*attribute|endpoint|operation.*name|distinguish)"
+              description: "telemetry distinguishability assessed"
+
+      - id: q43
+        bare: "Does every identified sub-capability have a dedicated L3 signal?"
+        enhanced: "For each sub-capability with distinguishable telemetry, verify L3 signal coverage. If not, produce one. If intentionally aggregated, document rationale."
+        prior_art: ["IEEE 830 traceability analysis", "Signal coverage completeness — identified capability without signal = blind spot", "IEC 60812 FMEA detection rating"]
+        populates: []
+        schema_ahead: false
+        evidence:
+          section_pattern: "(sub.capabilit|signal|coverage|L3)"
+          content_patterns:
+            - pattern: "(per.sub.capability|dedicated.*signal|coverage.*check|Job Completion)"
+              description: "per-sub-capability signal coverage verified"
+
+      # --- Structured capability extraction ---
+      - id: q43a
+        bare: "Produce a structured capability decomposition from the q34-q43 analysis."
+        enhanced: >
+          Using the capability and sub-capability answers (q34-q43), produce a
+          structured capability decomposition as a CapabilityStructured object.
+
+          **Output:** a single CapabilityStructured object with:
+            - name: the top-level business capability (from q34), in industry
+              terms that persist if the service is replaced
+            - description: what this capability does, independent of implementation
+            - sub_capabilities[]: each individually named, individually
+              health-traceable sub-capability
+
+          **Per sub-capability:**
+            - name: business-language name the PO would recognize
+            - description: what this sub-capability does, in consumer terms
+            - signals: signal_names that monitor this sub-capability's health
+              (may be populated in a second pass after Phases 2-5)
+            - process_steps: step order numbers (from process_structured) this
+              sub-capability maps to
+            - stakeholders: stakeholder names who depend on this sub-capability
+            - provenance: extracted/inferred/derived
+
+          **Business language, not technical.** The capability map is the PO's
+          view — they should recognize their product's shape without translation.
+          Sub-capabilities are what the service DOES, not how it does it.
+
+          **Human review:** present the capability decomposition (capability
+          name, sub-capability names with descriptions) for confirmation.
+          The PO is the natural reviewer — they know whether the decomposition
+          matches how they think about their product.
+
+          Schema: SubCapability + CapabilityStructured in the record schema.
+          Exemplar: see the capability_structured section of a worked example.
+        prior_art: ["BIZBOK (Business Architecture Guild)", "BIAN service domains", "ArchiMate Business Function"]
+        populates: ["service.capability_structured"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(capability_structured|sub_capabilities|CapabilityStructured)"
+          content_patterns:
+            - pattern: "(capability_structured:|sub_capabilities:|capability.*name:)"
+              description: "structured capability decomposition present"
+
+      # --- Agentic decision identification (activation trigger for Part 3a) ---
+      # SCHEMA-AHEAD. This question decides whether the Agent Decision part
+      # (Part 3a) runs at all. It is the instrument's answer to the core
+      # gap this stratum addresses: a workflow step that is "software that
+      # can be confidently wrong".
+      - id: q44
+        bare: "Which steps or components make a decision that can be confidently wrong?"
+        enhanced: >
+          Walk the steps in process_structured (q39a) and the components in
+          dependencies_structured (q9a). Flag any realized by software that
+          produces a JUDGMENT or selects an ACTION which can be WRONG while the
+          step is up, fast, and error-free — an AI/ML model, an LLM agent, a
+          learned scorer, or a decision ruleset standing in for human judgment.
+
+          The test is correctness-of-decision as a first-class quality attribute:
+          deterministic software fails by erroring or slowing — already covered
+          by Process (Golden Signals) and System (USE) signals. An agentic step
+          can return HTTP 200, within latency budget, saturation nominal, and be
+          confidently mistaken. That failure is invisible to every classic
+          signal. It is a distinct quality attribute, and it is why this stratum
+          exists.
+
+          For each flagged step, name the decision it makes in consumer terms
+          ("determines whether the closing package is complete", "recommends
+          approve / refer / decline") and label provenance
+          (extracted | inferred | constructed).
+
+          If NO step qualifies, state that explicitly — Part 3a (Agent Decision
+          Signals) is then skipped, exactly as a service with no sub-capabilities
+          skips q41-q43. A service that participates in flows but decides nothing
+          is onboarded fully by Parts 1-5; the agent stratum is additional
+          questions, never a different unit.
+        prior_art: ["correctness-of-decision as a first-class quality attribute", "OpenInference AGENT span kind (Arize)", "NIST AI RMF — AI system inventory"]
+        populates: []
+        schema_ahead: true
+        evidence:
+          section_pattern: "(agentic|decision|confidently wrong|AI|model|agent)"
+          content_patterns:
+            - pattern: "(agentic step|decision.*wrong|model|LLM|agent|no agentic step)"
+              description: "agentic decision points identified, or explicitly none"
+
+  # =================================================================
+  # Part 2 — Stakeholder Motivation Chains
+  # =================================================================
+  # Positions populated: 1 (Stakeholder), 2 (Driver), 3 (Requirement),
+  #                      4 (Outcome)
+  # Defining actor: PO (determines what to measure, what targets to set)
+  # Contributing actor: Dev (provides technical description, query
+  #                     implementation, data source)
+  # Health dimension framework: APQC (Effectiveness, Efficiency,
+  #                             Adaptability)
+  # observability_layer: Business Health (structural)
+  # Repeats: once per stakeholder
+  #
+  # Each chain captures one stakeholder's complete motivation path:
+  # who they are → what concerns them → what requirements that concern
+  # creates → what signals measure those requirements.
+  #
+  # The agent writes observabilityLayer: "Business Health" to JSON for
+  # every signal captured in this part.
+  #
+  # Traceability is structural: each signal nested under a stakeholder
+  # produces a traceabilityMappings[] row with relationshipType "verifies".
+  # =================================================================
+
+  - part: stakeholder_chains
+    description: "One complete motivation chain per stakeholder"
+    repeat_per: stakeholder
+    observability_layer: "Business Health"
+    chain:
+
+      - group: stakeholder_identification
+        positions: [1]
+        questions:
+
+          - id: q11
+            bare: "Who are the stakeholders?"
+            enhanced: "Who is affected when this service degrades? Consider all four impact categories."
+            prior_art: ["SLODLC Discover Q2-Q3", "ISO 22301 BIA process inventory"]
+            populates: ["stakeholders[].stakeholder"]
+            schema_ahead: false
+            evidence:
+              section_pattern: "(who cares|stakeholder)"
+              content_patterns:
+                - pattern: "(customer_experience|financial|operational|legal_risk)"
+                  description: "impact categories considered"
+                - pattern: "(CRITICAL|HIGH|MEDIUM|LOW)"
+                  description: "priorities assigned"
+
+          - id: q12
+            bare: "What does each stakeholder expect?"
+            enhanced: "Stated as a testable expectation — something you could write a signal to verify"
+            prior_art: ["SLODLC Discover Q4", "SLODLC Discover §2.2-2.4 user journey expectations"]
+            populates: ["stakeholders[].expectationStatement"]
+            schema_ahead: false
+            evidence:
+              section_pattern: "(stakeholder|who cares|expect)"
+              content_patterns:
+                - pattern: "(expect|when.*fail|without errors|complete)"
+                  description: "expectation stated"
+
+          - id: q14
+            bare: "What's the priority?"
+            enhanced: "CRITICAL = blocks core function. HIGH = significant. MEDIUM = recoverable."
+            prior_art: ["SRE forced prioritization — CRITICAL/HIGH/MEDIUM with behavioral definitions", "IEC 60812 FMEA severity rating"]
+            populates: ["stakeholders[].priority"]
+            schema_ahead: false
+            evidence:
+              section_pattern: "(stakeholder|priority)"
+              content_patterns:
+                - pattern: "(CRITICAL|HIGH|MEDIUM|LOW)"
+                  description: "priority assigned"
+
+      - group: driver
+        positions: [2]
+        questions:
+
+          - id: q15a
+            bare: "What is the named concern (driver) for each stakeholder?"
+            enhanced: >
+              The Driver is the named condition that motivates this stakeholder's
+              expectations of this service. Not the expectation itself (that's q12),
+              not the damage when violated (that's q13), but the underlying concern:
+              "Customer Experience", "Revenue Integrity", "Service Reliability",
+              "Regulatory Compliance". One Driver per stakeholder-service pair.
+              Also document WHY this concern exists — the framing that connects
+              the stakeholder to the service's domain.
+            prior_art: ["ArchiMate 3.2 Driver element", "COSO ERM 2017 risk driver identification"]
+            populates: ["stakeholders[].driverName", "stakeholders[].driverDocumentation"]
+            schema_ahead: false
+            evidence:
+              section_pattern: "(driver|concern|motivation)"
+              content_patterns:
+                - pattern: "(Customer Experience|Revenue|Reliability|Compliance|concern|driver)"
+                  description: "named driver identified per stakeholder"
+
+          - id: q15
+            bare: "What impact category?"
+            enhanced: "customer_experience, financial, legal_risk, operational"
+            prior_art: ["ISO 22301 BIA impact categories"]
+            populates: ["stakeholders[].impactCategory"]
+            schema_ahead: false
+            evidence:
+              section_pattern: "(stakeholder|impact|category)"
+              content_patterns:
+                - pattern: "(customer_experience|financial|operational|legal_risk)"
+                  description: "impact category assigned"
+
+          - id: q13
+            bare: "What happens when the expectation is violated?"
+            enhanced: "Concrete business damage — specific and measurable. Quantify the damage in terms this stakeholder would use to describe it. Where sources provide evidence of scale — financial figures, customer volumes, regulatory deadlines, operational burden — use them. The goal is a number the stakeholder recognizes, not a generic damage statement."
+            prior_art: ["SLODLC Discover Q3", "ISO 22301 BIA impact analysis"]
+            populates: ["stakeholders[].impactDescription"]
+            schema_ahead: false
+            evidence:
+              section_pattern: "(impact|what happens|damage)"
+              content_patterns:
+                - pattern: "(impact.*description|when.*fail|degraded|lost|broken|unable|abandonment)"
+                  description: "failure impact described"
+
+      - group: coverage_gate
+        questions:
+
+          - id: q15b
+            bare: "Does every stakeholder expectation have a corresponding Business Health signal?"
+            enhanced: >
+              For each stakeholder expectation defined in q12, verify that at least
+              one Business Health (L3) signal will measure whether that expectation
+              is being met. This is the bridge between stakeholder context and signal
+              design — without it, signal creation defaults to whatever the service's
+              API behavior suggests rather than what stakeholders need to know.
+
+              The signal vocabulary is altitude-specific. Business Health
+              signals use APQC dimensions — Effectiveness (did the right outcome
+              occur?), Efficiency (did it occur within acceptable time/cost?),
+              Adaptability (can it handle changing conditions?). These are the PO's
+              natural vocabulary. Golden Signals (latency, errors, traffic,
+              saturation) apply at Process layer. USE (utilization, saturation,
+              errors) applies at System layer.
+
+              For each stakeholder expectation, state:
+                1. Which Business Health signal will verify it (existing or to be created)
+                2. Which APQC dimension the expectation maps to
+                3. If no signal is needed, document why (with reasoning)
+
+              Common gap: expectations that don't look like API success/failure
+              get skipped. "Records accurate for reconciliation" is APQC
+              Effectiveness. "Order transmitted within 5 minutes" is APQC
+              Efficiency. These are valid Business Health signals even though
+              they have no Golden Signal equivalent.
+            prior_art: ["APQC PCF — Effectiveness/Efficiency/Adaptability dimensions", "altitude-specific health dimension frameworks", "IEEE 830 RTM — bidirectional traceability", "SLODLC Discover — L3 anchor-first design"]
+            populates: []
+            schema_ahead: false
+            evidence:
+              section_pattern: "(stakeholder.*signal|coverage|expectation.*L3|Business Health.*for)"
+              content_patterns:
+                - pattern: "(verif|Business Health.*for|signal.*for each|expectation.*signal|APQC)"
+                  description: "stakeholder-to-signal coverage verified"
+
+      - group: signals
+        positions: [3, 4]
+        repeat_per: signal
+        questions:
+
+          # --- Requirement (position 3) ---
+          - *q16
+          - *q19
+          - *q22
+          - *q22a
+          - *q24a
+          - *q25
+
+          - id: apqc_dimension
+            bare: "Which APQC dimension does this signal measure?"
+            enhanced: "Effectiveness (did the right outcome occur?), Efficiency (did it occur within acceptable time/cost?), Adaptability (can it handle changing conditions?). The PO's expectation maps to an APQC dimension — this is the altitude-specific health vocabulary for Business Health signals."
+            prior_art: ["APQC PCF", "altitude-specific health dimension frameworks"]
+            populates: ["sliDefinitions[].healthDimensionFramework", "sliDefinitions[].healthDimension"]
+            schema_ahead: false
+            evidence:
+              section_pattern: "(APQC|dimension|effectiveness|efficiency|adaptability)"
+              content_patterns:
+                - pattern: "(Effectiveness|Efficiency|Adaptability|APQC)"
+                  description: "APQC dimension assigned"
+
+          # --- Outcome (position 4) ---
+          - *q16a
+          - *q20
+          - *q21
+          - *q16b
+          - *q26
+          - *q24
+          - *q23
+
+  # =================================================================
+  # Part 2b — Business Impact Assessments
+  # =================================================================
+  # Positions populated: 2 (Driver → Assessment) at L4 altitude
+  # Actor: PO
+  # observability_layer: Business Impact (structural)
+  #
+  # After all motivation chains: "Given the drivers above, what are
+  # the quantified business consequences?"
+  #
+  # Impact signals are ArchiMate Assessments of Drivers, not Outcomes
+  # of Requirements. They answer "what's the damage?" not "is the
+  # requirement met?" One impact can reference multiple Drivers.
+  #
+  # Traceability: impact_driver_refs produces traceabilityMappings[]
+  # rows with relationshipType "quantifies", linking impact signals
+  # to stakeholders via their Drivers.
+  # =================================================================
+
+  - part: business_impact
+    description: "Assessments of Drivers — quantified business consequences"
+    observability_layer: "Business Impact"
+    repeat_per: impact_signal
+    questions:
+
+      - id: q27a
+        bare: "What is this impact signal called?"
+        enhanced: "Machine identifier and display name for this impact metric"
+        prior_art: []
+        populates: ["impactDefinitions[].signalName", "impactDefinitions[].signalDisplayName"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(impact|L4)"
+          content_patterns:
+            - pattern: "(revenue.at.risk|customers.affected|failed)"
+              description: "impact signal named"
+
+      - id: impact_driver_refs
+        bare: "Which drivers does this impact assess?"
+        enhanced: "Reference by stakeholder name + driver name from Part 2. One impact can assess multiple drivers — e.g., revenue_at_risk assesses both the Customer Experience driver (Online Shoppers) and the Revenue Integrity driver (Finance). Each reference produces a traceabilityMappings[] row with relationshipType 'quantifies'."
+        prior_art: ["ArchiMate 3.2 Assessment-Driver relationship"]
+        populates: ["traceabilityMappings[].stakeholderName", "traceabilityMappings[].impactName"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(impact|driver|assess)"
+          content_patterns:
+            - pattern: "(assesses.*driver|driver.*reference|Customer Experience|Revenue Integrity|Operational Continuity)"
+              description: "impact-to-driver references stated"
+
+      - id: q28
+        bare: "What impact category?"
+        enhanced: "Which stakeholder impact category does this quantify?"
+        prior_art: ["ISO 22301 BIA impact categories"]
+        populates: ["impactDefinitions[].impactCategory"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(impact)"
+          content_patterns:
+            - pattern: "(customer_experience|financial|operational|legal_risk)"
+              description: "impact category assigned"
+
+      - id: q27
+        bare: "What's the impact signal?"
+        enhanced: "How to quantify damage — what unit measures harm? Given what the impact analysis established about how this stakeholder experiences damage — which measurable unit best represents that? Where sources provide dollar amounts, revenue percentages, or customer volumes, derive the impact rate from those figures. If source material describes how impact escalates over time (1 hour vs 4 hours vs 1 day), capture that reasoning."
+        prior_art: ["ISO 22301 BIA financial loss quantification", "SLODLC Discover §1.3 business impact"]
+        populates: ["impactDefinitions[].impactUnit", "impactDefinitions[].descriptionBusiness"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(impact|L4|Business Impact)"
+          content_patterns:
+            - pattern: "(customers/hour|\\$/hour|orders/hour|impact unit)"
+              description: "impact unit stated"
+
+  # =================================================================
+  # Part 3 — Developer Diagnostic Signals
+  # =================================================================
+  # Positions populated: 3-4 at Process layer, grounded to position 5
+  # Actor: Dev
+  # Health dimension framework: choose per signal — Golden Signals
+  #   (Latency, Errors, Traffic, Saturation) or RED (Rate, Errors,
+  #   Duration — Wilkie) — per BOK IN-23.
+  #   RED is the natural fit for request-driven services
+  #   (RED ≈ Golden Signals minus Saturation); Golden Signals is the
+  #   general-purpose default. Answer exactly one dimension question
+  #   (golden_signal_dimension OR red_dimension) per Process signal.
+  # observability_layer: Process (structural — not asked)
+  #
+  # Signals the Dev actor defines for cause investigation. These exist
+  # to answer "why is Business Health red?" (cause investigation).
+  #
+  # No stakeholder chain. Process signals are grounded to the service's
+  # sub-capabilities (Part 1, q40-q43), not to stakeholder expectations.
+  # =================================================================
+
+  - part: developer_diagnostics
+    description: "Process-layer signals for cause investigation"
+    observability_layer: "Process"
+    repeat_per: signal
+    questions:
+
+      - *q16a
+      - *q19
+      - *q16
+
+      - id: diagnostic_sub_capability
+        bare: "Which sub-capability does this signal measure?"
+        enhanced: "Links to the internal decomposition from q40-q43. Names the specific sub-capability this Process signal monitors — e.g., 'Payment Processing' or 'Order Preparation'. Grounds the signal to the service's functional decomposition."
+        prior_art: ["Service flow ontology — Type A flow", "arc42 §5 building block view"]
+        populates: ["sliDefinitions[].subCapability"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(sub.capabilit|decompos|Process)"
+          content_patterns:
+            - pattern: "(sub.capability|measures.*within|scope.*to|payment|order preparation)"
+              description: "sub-capability reference stated"
+
+      - id: diagnostic_causal_ref
+        bare: "Which Business Health signals does this help explain?"
+        enhanced: "The diagnostic navigation path — when a Business Health signal (L3) is red, this Process signal (L2) helps investigate the cause. Reference Business Health signals by name from Part 2. Example: Payment Validation Rate helps explain Checkout Completion Rate failures."
+        prior_art: ["cause investigation", "Google SRE Ch.6 symptom/cause", "Distributed tracing causal model (Ben Sigelman)"]
+        populates: ["sliDefinitions[].causalLinks"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(causal|explains|diagnostic|Business Health)"
+          content_patterns:
+            - pattern: "(explains.*failures|when L3|helps investigate|causal|helps explain)"
+              description: "causal relationship to Business Health signals stated"
+
+      - id: golden_signal_dimension
+        bare: "Which Golden Signal dimension?"
+        enhanced: "Latency, Errors, Traffic, or Saturation. Altitude-specific health vocabulary for Process-layer signals — the general-purpose default. Answer this OR red_dimension for each Process signal: prefer RED for request-driven services (RED ≈ Golden Signals minus Saturation). Example: Payment Validation Rate is a Golden Signals Errors dimension signal."
+        prior_art: ["Google SRE Golden Signals", "altitude-specific health dimension frameworks"]
+        populates: ["sliDefinitions[].healthDimensionFramework", "sliDefinitions[].healthDimension"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(Golden Signal|dimension|latency|errors|traffic|saturation)"
+          content_patterns:
+            - pattern: "(Latency|Errors|Traffic|Saturation|Golden Signal)"
+              description: "Golden Signal dimension assigned"
+
+      - id: red_dimension
+        bare: "Which RED dimension?"
+        enhanced: "Rate, Errors, or Duration. Alternative Process-layer health vocabulary, strongest fit for request-driven services — saturation belongs to the resource, not the request, so RED ≈ Golden Signals minus Saturation. Answer this OR golden_signal_dimension for each Process signal, whichever vocabulary fits the signal family. Example: Payment Submission Error Ratio is a RED Errors dimension signal."
+        prior_art: ["RED method (Tom Wilkie)", "altitude-specific health dimension frameworks", "BOK IN-23"]
+        populates: ["sliDefinitions[].healthDimensionFramework", "sliDefinitions[].healthDimension"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(RED|dimension|rate|errors|duration)"
+          content_patterns:
+            - pattern: "(Rate|Errors|Duration|RED)"
+              description: "RED dimension assigned"
+
+      - *q20
+      - *q21
+      - *q16b
+      - *q22
+      - *q22a
+      - *q24a
+      - *q25
+      - *q26
+      - *q24
+      - *q23
+      - *q16c
+
+  # =================================================================
+  # Part 3a — Agent Decision Signals   [CONDITIONAL]
+  # =================================================================
+  # Positions populated: 3-4 at the Agent Workflow layer, grounded to
+  #   position 5 (the service) and to an agentic decision point (q44).
+  # Defining actor: the agent's accountable owner (PO + model/agent
+  #   owner). Contributing actors: Dev, Platform. The precise role
+  #   name is an org fact — an org-facts question for the domain owner,
+  #   not asserted here (never fabricate org facts).
+  # Health dimension framework: "Agent Decision" — treated as
+  #   EXPLICITLY PROVISIONAL: Correctness, Grounding, Traceability,
+  #   Drift (candidate 5th: Escalation/Autonomy, held pending the first
+  #   real agent onboarding). Unlike USE / Golden Signals / APQC, this
+  #   is NOT a settled external canonical. The agent stratum is the ONE
+  #   layer industry has not pre-answered, so its vocabulary is
+  #   chain-DERIVED from converging work (OTel GenAI semconv,
+  #   OpenInference span kinds, NIST AI RMF, Arize eval taxonomy).
+  # observability_layer: "Agent Workflow" — structural. IN SCHEMA: the
+  #   layer enum and the agent fields
+  #   (agentDecisionPoint, decisionProvenance, evalVantage,
+  #   evalReference, healthDimensionFramework, healthDimension) are in
+  #   the record schema. Agent signals
+  #   serialize into sliDefinitions[] like any other signal.
+  #
+  # CONDITIONAL ACTIVATION: runs only when q44 flagged one or more
+  #   agentic decision points. No agentic step → skip this Part.
+  #
+  # WHY A LAYER, NOT JUST A DIMENSION: correctness-of-decision is a new
+  #   quality attribute. A step can be green on
+  #   every USE/Golden signal and still decide wrong; classic Process/
+  #   System diagnostics structurally cannot surface it. The "layer tell"
+  #   — neither SUD nor BOK has an agent-workflow layer, the slot is
+  #   empty and waiting — is the design signal for a distinct layer. (The
+  #   alternative reading — a cross-cutting quality attribute tag on
+  #   existing-layer signals — was weighed and declined.)
+  #
+  # UPWARD LINK: an agentic step's correctness surfaces AS a Business
+  #   Health signal (APQC Effectiveness — "did the right outcome occur?")
+  #   in Part 2. These Agent-layer signals are its diagnostic descent;
+  #   they reference those Business Health signals by name via
+  #   diagnostic_causal_ref, exactly as Process signals do.
+  #
+  # EXEMPLAR: none is hand-authored here. Per the authored-separately-they-drift rule
+  #   and the positive-only rule, the
+  #   worked example renders from a REAL onboarding of a service with an
+  #   agentic decision step, never from constructed content.
+  # =================================================================
+
+  - part: agent_decision
+    description: "Agent Workflow-layer signals for decision correctness — activates when a step can be confidently wrong (q44)"
+    observability_layer: "Agent Workflow"
+    activation: "q44 identified one or more agentic decision points"
+    schema_ahead_layer: false
+    repeat_per: signal
+    questions:
+
+      - *q16a
+      - *q19
+      - *q16
+
+      - id: agent_decision_point
+        bare: "Which agentic decision point does this signal measure?"
+        enhanced: >
+          Names the specific step from q44 (and process_structured) whose
+          decision this signal watches — e.g., "Closing-package completeness
+          determination" or "Approve / refer / decline recommendation". Grounds
+          the signal to the agentic step the way diagnostic_sub_capability grounds
+          a Process signal to a sub-capability. One decision point usually carries
+          several Agent-layer signals — one per dimension (see agent_dimension).
+        prior_art: ["OpenInference AGENT / CHAIN span kinds", "arc42 §5 building block view", "Service flow ontology — Type A flow"]
+        populates: ["sliDefinitions[].agentDecisionPoint"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(agentic|decision point|Agent Workflow)"
+          content_patterns:
+            - pattern: "(decision point|agentic step|determination|recommendation|classification)"
+              description: "agentic decision point named"
+
+      # Reused from Part 3 (Process) — the upward causal link. NOT schema-ahead;
+      # writes to the same causalLinks the descent assembly reads.
+      - id: diagnostic_causal_ref
+        bare: "Which Business Health signals does this help explain?"
+        enhanced: >
+          The diagnostic navigation path for the confidently-wrong case: when a
+          Business Health correctness signal (APQC Effectiveness — e.g.,
+          "Closing-package accuracy rate") is red but Process and System signals
+          are green, this Agent-layer signal helps investigate whether the
+          DECISION was wrong. Reference the Business Health signal(s) by name from
+          Part 2. This is how correctness-of-decision links upward to
+          business-health signals — the descent has a business-owned top, not a
+          free-floating model metric.
+        prior_art: ["cause investigation", "Google SRE Ch.6 symptom/cause", "OpenInference decision trace / span tree"]
+        populates: ["sliDefinitions[].causalLinks"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(causal|explains|diagnostic|Business Health)"
+          content_patterns:
+            - pattern: "(explains|helps explain|when L3|helps investigate|correctness)"
+              description: "causal link to a Business Health correctness signal stated"
+
+      - id: agent_dimension
+        bare: "Which Agent Decision dimension does this signal measure?"
+        enhanced: >
+          The altitude-specific vocabulary for the Agent Workflow layer — the
+          agent stratum's answer to what USE / Golden Signals / APQC do at the
+          other layers. PROPOSED set (ratification is pending — see the
+          Part 3a header):
+            - Correctness: is the decision right? Measured by evals (see
+              eval_vantage). Ground: NIST AI RMF "Valid & Reliable"; Arize
+              LLM-as-judge; correctness-of-decision as a first-class quality attribute.
+            - Grounding: is the output faithful to and supported by its inputs,
+              not fabricated? Ground: Traceloop / OpenInference faithfulness &
+              relevance evaluators; RAG groundedness.
+            - Traceability: can the decision be reconstructed — model/prompt/
+              ruleset version, inputs, reasoning path? Ground: OTel gen_ai.*
+              semconv; OpenInference span tree; NIST "Accountable & Transparent".
+            - Drift: has the input mix or the decision distribution moved from the
+              validated baseline? Ground: Arize drift detection; input-mix and
+              decision-rate monitoring.
+          Candidate 5th (deferred): Escalation/Autonomy — does the agent
+          abstain / defer when uncertain or out of policy, and at what rate?
+          Ground: OpenInference GUARDRAIL span kind; NIST "Safe".
+
+          Unlike the other layers, DO NOT present this as a settled canonical:
+          name the dimension, and label the choice inferred | constructed — the
+          set is derived and provisional.
+        prior_art: ["NIST AI RMF trustworthiness characteristics", "OTel GenAI semantic conventions", "OpenInference semantic conventions (Arize)", "correctness-of-decision as a first-class quality attribute"]
+        populates: ["sliDefinitions[].healthDimensionFramework", "sliDefinitions[].healthDimension"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(Agent Decision|Correctness|Grounding|Traceability|Drift|dimension)"
+          content_patterns:
+            - pattern: "(Correctness|Grounding|Traceability|Drift|Escalation)"
+              description: "Agent Decision dimension assigned"
+
+      - id: decision_provenance
+        bare: "What produces this decision, and can each decision be pinned to a version?"
+        enhanced: >
+          The provenance of the DECISION itself — distinct from q22a, which is the
+          provenance of the SLO target. Capture the deciding mechanism and the
+          version identifiers a single decision can be pinned to: model id +
+          version, prompt/template version, ruleset/policy version, and the
+          retrieval/context source when the decision is grounded in retrieved
+          data. This is what turns a wrong decision from mysterious into
+          investigable — "which model, which prompt, on what input, decided
+          this?" Label provenance of the capture itself:
+          extracted (from the agent's config/telemetry) | inferred | constructed.
+        prior_art: ["OTel GenAI gen_ai.request.model + gen_ai.* attributes", "OpenInference PROMPT & LLM span kinds", "NIST AI RMF Accountable & Transparent"]
+        populates: ["sliDefinitions[].decisionProvenance"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(provenance|model version|prompt version|ruleset)"
+          content_patterns:
+            - pattern: "(model|prompt|ruleset|version|gen_ai)"
+              description: "decision provenance captured"
+
+      - id: eval_vantage
+        bare: "How is this signal's correctness checked — offline, online, or both?"
+        enhanced: >
+          The vantage split, which for the agent stratum IS
+          the offline-evals vs online-evals distinction:
+            - offline: a known-answer / golden set scored per release (a pre-prod
+              gate) — "on the labelled set, the agent agrees with ground truth N%".
+            - online: sampled re-checks of live decisions (LLM-as-judge or human)
+              producing an agreement / disagreement rate on real traffic.
+          Correctness and Grounding signals usually need at least an online vantage
+          — offline alone cannot catch drift on live input mix. State which
+          vantage(s) this signal uses. A signal with neither is an unmeasured
+          claim, not a signal — record it as a gap in q33, never fabricate a value.
+        prior_art: ["evaluation vantage (offline/online evals)", "Arize offline vs online evaluation", "Digital Experience Monitoring — synthetics vs RUM"]
+        populates: ["sliDefinitions[].evalVantage"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(offline|online|eval|vantage)"
+          content_patterns:
+            - pattern: "(offline|online|known.answer|golden set|disagreement rate|sampled)"
+              description: "eval vantage stated"
+
+      - id: eval_reference
+        bare: "What reference supplies 'right' for this signal?"
+        enhanced: >
+          The concrete artifact that defines correctness for this signal: the
+          known-answer / golden set (name, size, who curates it, refresh cadence)
+          for an offline vantage; the judge configuration or human-review protocol
+          for an online vantage. A correctness signal is only as trustworthy as
+          its reference — capture it so a consumer can ask "graded against what?"
+          If no reference exists yet, that is a real readiness gap (q33), not a
+          value to invent.
+        prior_art: ["Arize eval datasets / LLM-as-judge configuration", "NIST AI RMF Measure function", "GQM — metric definition traceability"]
+        populates: ["sliDefinitions[].evalReference"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(known.answer|golden set|judge|reference|eval set)"
+          content_patterns:
+            - pattern: "(golden set|known.answer|judge|labelled|holdout|reference)"
+              description: "eval reference captured"
+
+      # --- shared signal fields — the same machinery as Parts 2-4 ---
+      - *q20
+      - *q21
+      - *q16b
+      - *q22
+      - *q22a
+      - *q24a
+      - *q25
+      - *q26
+      - *q24
+      - *q23
+      - *q16c
+
+  # =================================================================
+  # Part 4 — Platform Infrastructure Signals
+  # =================================================================
+  # Positions populated: 3-4 at System layer, grounded to position 5
+  # Actor: Platform
+  # Health dimension framework: USE (Utilization, Saturation, Errors)
+  # observability_layer: System (structural — not asked)
+  #
+  # Same shape as Part 3, different actor and altitude.
+  # No causal relationship field — System signals help explain Process
+  # signals, but the causal link is typically generic.
+  # =================================================================
+
+  - part: platform_infrastructure
+    description: "System-layer signals for infrastructure health"
+    observability_layer: "System"
+    repeat_per: signal
+    questions:
+
+      - *q16a
+      - *q19
+      - *q16
+
+      - id: use_dimension
+        bare: "Which USE dimension?"
+        enhanced: "Utilization, Saturation, or Errors. The altitude-specific health vocabulary for System-layer signals. Example: Checkout Service Availability is a USE Errors dimension signal."
+        prior_art: ["Brendan Gregg USE Method", "altitude-specific health dimension frameworks"]
+        populates: ["sliDefinitions[].healthDimensionFramework", "sliDefinitions[].healthDimension"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(USE|dimension|utilization|saturation|errors)"
+          content_patterns:
+            - pattern: "(Utilization|Saturation|Errors|USE)"
+              description: "USE dimension assigned"
+
+      - *q20
+      - *q21
+      - *q16b
+      - *q22
+      - *q22a
+      - *q24a
+      - *q25
+      - *q26
+      - *q24
+      - *q23
+      - *q16c
+
+  # =================================================================
+  # Descent Links Assembly (runs after all signals are defined)
+  # =================================================================
+  # This is not an extraction — it cross-references the instrument's own
+  # output from Phases 1-5 to assemble the signal-to-structure traceability.
+  # IEEE 830 RTM: each signal maps to the structural element it measures.
+  # =================================================================
+
+  - part: descent_assembly
+    description: "Signal-to-structure traceability — IEEE 830 RTM"
+    questions:
+
+      - id: descent_assembly
+        bare: "Assemble descent links from all signals and structured data."
+        enhanced: >
+          Using all signals (from Phases 2-5), process_structured (from q39a),
+          capability_structured (from q43a), and dependencies_structured (from
+          q9a), assemble the descent_links array.
+
+          **Per signal, produce one DescentLink:**
+            - signal: the signal_name
+            - layer: Business Health / Process / Agent Workflow / System (from
+              the signal's observability layer). Agent Workflow signals (Part 3a)
+              are diagnostic descent for Business Health correctness
+              signals — they slot beside Process signals under the Business Health
+              signal they explain via diagnostic_causal_ref.
+            - process_steps: which step order number(s) this signal measures
+              (from process_structured)
+            - sub_capability: which sub-capability this signal monitors
+              (from capability_structured). Null for infrastructure signals.
+            - component: which component produces this signal (must match a
+              DependencyNode name from dependencies_structured)
+            - endpoint: the specific endpoint or mechanism (e.g.,
+              "POST /api/...", "AMQP publish", "/hc health check"). Null if
+              not applicable.
+            - diagnostic_signals: which lower-layer signals to check when
+              this signal degrades (from causal_model / diagnostic_causal_ref)
+            - when_diagnostics_healthy: what to consider when all diagnostic
+              signals are healthy but this signal is still degraded. Null
+              for infrastructure-baseline signals.
+            - provenance: "derived" (these are assembled, not extracted)
+
+          **The descent chain is the spine of the triage descent.** When a business health
+          signal degrades, the consumer follows the descent links: signal →
+          process step → component → diagnostic signals. This is the
+          investigation path.
+
+          **Cross-reference integrity:** every signal must map to at least
+          one component. Every Business Health signal should map to a
+          sub-capability. Component names must match dependency nodes.
+          Flag any signal that can't be mapped — it's a structural gap.
+
+          **Human review:** present the descent links table (signal, layer,
+          component, diagnostic signals) for verification. The on-call
+          engineer is the natural reviewer — they know whether the
+          investigation path matches how they actually diagnose issues.
+
+          Schema: DescentLink in the record schema.
+          Exemplar: see the descent_links section of a worked example.
+        prior_art: ["IEEE 830 Traceability Matrix", "SRE diagnostic path", "Google SRE Ch.6 symptom/cause gap"]
+        populates: ["service.descent_links"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(descent_links|DescentLink|traceability)"
+          content_patterns:
+            - pattern: "(descent_links:|diagnostic_signals:|when_diagnostics_healthy:)"
+              description: "descent links present"
+
+  # =================================================================
+  # Part 5 — Operational Context
+  # =================================================================
+  # Positions populated: 7 (BusinessRole), 8 (BusinessActor), 9 (Runbook)
+  # Currently flat and service-level. This viewpoint identifies
+  # structured ownership expansion (ITIL RACI, ISA-18.2 runbooks) as
+  # a future additive change.
+  # =================================================================
+
+  - part: operational
+    description: "Ownership, escalation, alert routing"
+    questions:
+
+      - id: q30
+        bare: "What's the dependency flow?"
+        enhanced: "Full diagram — callers, callees, protocols, ports, async dependencies"
+        prior_art: ["SLODLC Discover dependency map", "arc42 §3 technical context", "arc42 §6 runtime view", "ITIL CMDB CI relationships"]
+        populates: ["operational.dependencyFlow"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(dependenc|operational)"
+          content_patterns:
+            - pattern: "(→|->|gRPC|HTTP|Kafka)"
+              description: "dependency flow diagrammed"
+
+      - id: q31
+        bare: "What's the escalation policy?"
+        enhanced: "Who gets called in what order? Time-based escalation ladder."
+        prior_art: ["ITIL incident management"]
+        populates: ["operational.escalationPolicy"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(escalat|operational)"
+          content_patterns:
+            - pattern: "(P1|escalat|on.call|15min|30min)"
+              description: "escalation policy stated"
+
+      - id: q32
+        bare: "Where do alerts go?"
+        enhanced: "Channel/queue/team for alerts"
+        prior_art: ["SLODLC Discover §4.4 alerting channels", "ITIL incident management notification"]
+        populates: ["operational.alertNotificationTargets"]
+        schema_ahead: false
+        evidence:
+          section_pattern: "(alert|operational)"
+          content_patterns:
+            - pattern: "(#.*-alerts|alert.*channel|notification)"
+              description: "alert routing stated"
+
+  # =================================================================
+  # Gaps
+  # =================================================================
+
+  - part: gaps
+    description: "Unanswered questions, uncovered failure modes, gaps"
+    questions:
+
+      - id: q33
+        bare: "What's missing?"
+        enhanced: "Unanswered questions, uncovered failure modes, unidentified stakeholders, failure modes without detection signals"
+        prior_art: ["SLODLC gap identification", "RTM completeness analysis", "IEC 60812 FMEA detection gap analysis"]
+        populates: []
+        schema_ahead: false
+        evidence:
+          section_pattern: "(## Gap)"
+          content_patterns:
+            - pattern: "^-\\s+.+"
+              description: "gap items listed"

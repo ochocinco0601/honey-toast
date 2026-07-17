@@ -1,0 +1,1290 @@
+# Observability Body of Knowledge (O-BOK)
+# Structural definition — machine-readable, agent-consumable
+#
+# Prior art: Follows the Body of Knowledge structural pattern used by
+# SWEBOK (software engineering), PMBOK (project management),
+# DMBOK (data management), BABOK (business analysis), ITIL 4 (service management).
+#
+# Each of these organizes a professional domain into Knowledge Areas (KAs)
+# so that any topic resolves to a known location. This artifact does the
+# same for the observability domain.
+#
+# Scope: Reference pattern for enterprise observability practice.
+# Not bespoke to any organization. Implementable by any enterprise
+# pursuing observability maturity.
+#
+# Design principles:
+#   1. Lifecycle-aligned core — the observability lifecycle (Define → Respond)
+#      is the structural spine. Core Practice KAs map 1:1 to lifecycle stages.
+#   2. Cross-cutting enablers — Platform, Integration, and Governance span
+#      all lifecycle stages. They make core practices possible.
+#   3. Management practices surround — Strategy, Stakeholders, People,
+#      Adoption, and Improvement govern and sustain the whole.
+#   4. Structure over prose — boundary rules, cross-KA relationships, and
+#      content states are declared explicitly so any topic resolves to a
+#      known location with a known state.
+#
+# Structural anatomy (from established BOK prior art):
+#   - Knowledge Areas: major divisions of the domain (this file)
+#   - Topics: subdivisions within each KA (nested below)
+#   - Cross-KA relationships: declared interaction points
+#   - Boundary rules: where ambiguous topics land
+#   - Role mappings: which roles own which KAs
+#   - Maturity indicators: what capability looks like at each level
+#
+# Machine-readable companion to the human-readable markdown pages. An AI
+# session can load this file directly to resolve a topic to KA coordinates,
+# navigate cross-KA dependencies, and classify ambiguous items against the
+# boundary rules — without loading the full markdown.
+
+version: "0.2.0"
+status: draft
+name: "Observability Body of Knowledge"
+short_name: "O-BOK"
+
+# =============================================================================
+# CATEGORIES
+# =============================================================================
+# Three categories, following ITIL 4's pattern of separating
+# core/enabling/management practices. Each category serves a
+# different audience and operates at a different level.
+
+categories:
+  core-practice:
+    name: "Core Practice"
+    description: >
+      The observability lifecycle — what practitioners do, stage by stage.
+      Lifecycle-aligned: each KA maps to one stage. The dependency chain
+      is structural — you cannot observe what you haven't instrumented,
+      cannot instrument what you haven't defined.
+    audience: "Practitioners (Product Owners, Developers, SREs)"
+    organizes_by: "Lifecycle stage"
+
+  enabling-practice:
+    name: "Enabling Practice"
+    description: >
+      Cross-cutting capabilities that make core practices possible.
+      These span all lifecycle stages. Technology decisions, architectural
+      integration, and data governance don't belong to one stage — they
+      serve all of them.
+    audience: "Platform teams, Architecture, Engineering leadership"
+    organizes_by: "Capability domain"
+
+  management-practice:
+    name: "Management Practice"
+    description: >
+      How the observability practice is led, sustained, and improved.
+      Strategy, stakeholder engagement, people, adoption, and continuous
+      improvement. These govern the whole system.
+    audience: "Leadership, Program management, Practice leads"
+    organizes_by: "Organizational function"
+
+# =============================================================================
+# KNOWLEDGE AREAS
+# =============================================================================
+
+knowledge_areas:
+
+  # ---------------------------------------------------------------------------
+  # CORE PRACTICE — Lifecycle-Aligned
+  # ---------------------------------------------------------------------------
+
+  ka01-business-context:
+    id: "KA01"
+    name: "Business Context & Service Definition"
+    category: core-practice
+    lifecycle_stage: "Define"
+    primary_owner: "Product Owner"
+    description: >
+      What matters to the business. Defining stakeholder expectations,
+      business functions, service boundaries, and impact categories.
+      The foundation that everything else depends on — without business
+      context, signals are just data.
+    question: "What does 'healthy' mean in business terms?"
+    topics:
+      - id: "KA01.1"
+        name: "Stakeholder Identification & Expectations"
+        description: "Who cares, what they need, how they define success"
+      - id: "KA01.2"
+        name: "Business Function Mapping"
+        description: "What the business does, decomposed into observable functions"
+      - id: "KA01.3"
+        name: "Service Definition & Boundaries"
+        description: "Scoping the unit of observability — what constitutes a service"
+      - id: "KA01.4"
+        name: "Impact Category Classification"
+        description: "Revenue, regulatory, customer experience, operational risk"
+      - id: "KA01.5"
+        name: "Service Profile Construction"
+        description: "The structured artifact that captures business context for a service"
+      - id: "KA01.6"
+        name: "SLO Definition & Error Budget Allocation"
+        description: >
+          Translating stakeholder expectations into quantitative targets (SLOs)
+          and allocating error budgets that make reliability trade-offs explicit.
+          SLOs are stakeholder expectations made measurable. SLIs are the signals
+          that measure them (cross-ref KA02). Error budgets are the decision
+          framework for balancing velocity and reliability (cross-ref KA09).
+          Prior art: Google SRE, Alex Hidalgo 'Implementing SLOs'.
+    cross_ka:
+      - target: "KA02"
+        relationship: "feeds"
+        description: "Business context determines what signals to design"
+      - target: "KA08"
+        relationship: "informs"
+        description: "Business context determines data governance requirements"
+      - target: "KA05"
+        relationship: "feeds"
+        description: "Business context determines incident severity and triage priority"
+      - target: "KA12"
+        relationship: "implemented_by"
+        description: "Adoption & enablement operationalizes business-context definitions in team practice"
+      - target: "KA13"
+        relationship: "feeds"
+        description: "Service Understanding Documents capture schema-ahead understanding — the growth signal continuous improvement acts on"
+      - target: "KA07"
+        relationship: "depends_on"
+        description: "CMDB, service registry, and enterprise service-hierarchy data provide the raw material for service identification"
+      - target: "KA09"
+        relationship: "informs"
+        description: "Aggregate business context across services feeds strategic prioritization"
+      - target: "KA04"
+        relationship: "feeds"
+        description: "Business context determines dashboard content — expectations, impact categories, targets"
+
+  ka02-signal-design:
+    id: "KA02"
+    name: "Signal Design & Instrumentation"
+    category: core-practice
+    lifecycle_stage: "Implement"
+    primary_owner: "Developer"
+    description: >
+      How business context becomes measurable. Signal types, signal
+      hierarchy, instrumentation strategy, semantic conventions, and
+      the signal-to-function mapping that connects technical telemetry
+      to business meaning.
+    question: "How do we instrument the signals that matter?"
+    topics:
+      - id: "KA02.1"
+        name: "Signal Type Taxonomy"
+        description: "Four-layer model: System, Application, Business Health, Business Impact"
+      - id: "KA02.2"
+        name: "Signal-to-Function Mapping"
+        description: "Semantic binding between signals and business functions they serve"
+      - id: "KA02.3"
+        name: "Instrumentation Strategy"
+        description: "Where and how signals are emitted — code-level, pipeline, agent-based"
+      - id: "KA02.4"
+        name: "Signal Hierarchy & Dependencies"
+        description: "How signals relate — leading/lagging, upstream/downstream, composite"
+      - id: "KA02.5"
+        name: "Semantic Conventions"
+        description: "Naming, tagging, attribute standards that carry business context with telemetry"
+      - id: "KA02.6"
+        name: "Telemetry Pillars — Metrics, Logs, Traces, Profiles"
+        description: >
+          The industry-standard signal categories: metrics (aggregated numeric
+          measurements), logs (discrete event records), traces (distributed
+          request flows), profiles (resource consumption snapshots). Each pillar
+          has distinct instrumentation patterns, storage characteristics, and
+          query models. The four-layer model (KA02.1) classifies by business
+          meaning; the pillars classify by data shape.
+      - id: "KA02.7"
+        name: "Data Cardinality & Dimensionality"
+        description: >
+          High-cardinality data (unique user IDs, request IDs, trace IDs) enables
+          investigative observability — the ability to ask novel questions about
+          specific cohorts, transactions, or paths. Also drives cost (cross-ref
+          KA06). The tension between cardinality and economics is a defining
+          challenge of observability at scale. Prior art: Charity Majors,
+          Ben Sigelman on high-cardinality observability.
+    cross_ka:
+      - target: "KA01"
+        relationship: "depends_on"
+        description: "Cannot design signals without business context"
+      - target: "KA06"
+        relationship: "depends_on"
+        description: "Signal designs are operationalized through platform tooling"
+      - target: "KA03"
+        relationship: "feeds"
+        description: "Signal designs become the basis for quality standards"
+      - target: "KA04"
+        relationship: "feeds"
+        description: "Implemented signals become the data for dashboards and monitoring"
+    boundary_rules:
+      - rule: "Design decision vs implementation"
+        guidance: >
+          'We will use OTel semantic conventions for service identity' is KA02
+          (design decision). 'Configure the OTel Collector processor to enrich
+          with these attributes' is KA06 (platform implementation).
+
+  ka03-standards-quality:
+    id: "KA03"
+    name: "Standards & Quality Assurance"
+    category: core-practice
+    lifecycle_stage: "Enforce"
+    primary_owner: "Platform / Engineering"
+    description: >
+      How observability standards are enforced before production.
+      Quality gates, compliance checks, metadata validation, and the
+      mechanisms that prevent observability debt from accumulating.
+    question: "How do we ensure standards before production?"
+    topics:
+      - id: "KA03.1"
+        name: "Quality Gates & Pipeline Integration"
+        description: "CI/CD gates that enforce observability metadata requirements"
+      - id: "KA03.2"
+        name: "Observability Readiness Criteria"
+        description: "What 'production-ready' means for observability — NFR integration"
+      - id: "KA03.3"
+        name: "Compliance & Regulatory Alignment"
+        description: "Permit-to-operate, regulatory frameworks, audit requirements"
+      - id: "KA03.4"
+        name: "Template & Blueprint Standards"
+        description: "Reusable patterns teams follow — the 'standards and guidance' ask"
+      - id: "KA03.5"
+        name: "Validation & Verification"
+        description: "Automated checks that observability artifacts meet schema and quality"
+    cross_ka:
+      - target: "KA02"
+        relationship: "depends_on"
+        description: "Standards enforce what signal design specifies"
+      - target: "KA07"
+        relationship: "enables"
+        description: "Quality gates integrate into CI/CD and enterprise architecture"
+      - target: "KA08"
+        relationship: "governs"
+        description: "Standards are the enforcement arm of governance"
+      - target: "KA04"
+        relationship: "feeds"
+        description: "Quality-validated signals reach production dashboards"
+
+  ka04-monitoring-visualization:
+    id: "KA04"
+    name: "Monitoring, Visualization & Correlation"
+    category: core-practice
+    lifecycle_stage: "Observe"
+    primary_owner: "Platform / SRE"
+    description: >
+      How signals become visible and actionable. Dashboards, real-time
+      monitoring, cross-signal correlation, topology awareness, and the
+      presentation layer that makes business health observable.
+    question: "What views make health visible?"
+    topics:
+      - id: "KA04.1"
+        name: "Dashboard Design & Standards"
+        description: "Consistent visualization patterns — executive, operational, team-level"
+      - id: "KA04.2"
+        name: "Real-Time Monitoring"
+        description: "Continuous observation of signal streams, threshold alerting"
+      - id: "KA04.3"
+        name: "Cross-Signal Correlation"
+        description: "Connecting signals across services, layers, and tools to surface patterns"
+      - id: "KA04.4"
+        name: "Topology & Dependency Visualization"
+        description: "Making service relationships and infrastructure dependencies visible"
+      - id: "KA04.5"
+        name: "Business Health Views"
+        description: "Aggregate views showing business outcome health, not just system metrics"
+      - id: "KA04.6"
+        name: "Exploratory Analysis & Hypothesis-Driven Investigation"
+        description: >
+          The capability that distinguishes observability from monitoring: asking
+          novel questions about system behavior without pre-defining the queries.
+          Slice-and-dice across high-cardinality dimensions. Investigating WHY,
+          not just detecting THAT. Prior art: Charity Majors on observability
+          vs. monitoring, Ben Sigelman on distributed tracing for understanding.
+    cross_ka:
+      - target: "KA02"
+        relationship: "depends_on"
+        description: "Visualization depends on instrumented signals"
+      - target: "KA06"
+        relationship: "depends_on"
+        description: "Dashboards and monitoring are built on platform tooling"
+      - target: "KA05"
+        relationship: "feeds"
+        description: "Monitoring surfaces the events that trigger incident response"
+      - target: "KA01"
+        relationship: "depends_on"
+        description: "Business context determines dashboard content"
+      - target: "KA03"
+        relationship: "depends_on"
+        description: "Quality gates ensure only validated signals reach production dashboards"
+      - target: "KA09"
+        relationship: "informs"
+        description: "Portfolio health views and coverage metrics inform strategic decisions"
+
+  ka05-incident-response:
+    id: "KA05"
+    name: "Incident Management & Response"
+    category: core-practice
+    lifecycle_stage: "Respond"
+    primary_owner: "SRE / Ops"
+    description: >
+      What happens when things break. Triage, escalation, severity
+      determination, playbook execution, postmortems, and the feedback
+      loop that turns incidents into improved definitions.
+    question: "When something fails, what do we do?"
+    topics:
+      - id: "KA05.1"
+        name: "Triage & Severity Determination"
+        description: "Business-context-aware triage — knowing which signals matter"
+      - id: "KA05.2"
+        name: "Escalation & Team Composition"
+        description: "Who gets called, role-based response, communication protocols"
+      - id: "KA05.3"
+        name: "Playbook Design & Execution"
+        description: "Pre-built response procedures tied to signal patterns and business context"
+      - id: "KA05.4"
+        name: "Postmortem & Learning"
+        description: "Structured incident review, root cause analysis, improvement actions"
+      - id: "KA05.5"
+        name: "Feedback to Definition"
+        description: "Incidents reveal gaps in business context — the lifecycle feedback loop"
+    cross_ka:
+      - target: "KA04"
+        relationship: "depends_on"
+        description: "Response depends on monitoring detecting the problem"
+      - target: "KA01"
+        relationship: "feeds_back"
+        description: "Incidents reveal business context gaps — completes the lifecycle loop"
+      - target: "KA11"
+        relationship: "depends_on"
+        description: "Effective response requires the right people with the right skills"
+
+  # ---------------------------------------------------------------------------
+  # ENABLING PRACTICE — Cross-Cutting
+  # ---------------------------------------------------------------------------
+      - target: "KA13"
+        relationship: "feeds"
+        description: "Incident learnings feed continuous improvement — postmortem findings become practice changes"
+
+  ka06-platform-tooling:
+    id: "KA06"
+    name: "Platform & Tooling"
+    category: enabling-practice
+    description: >
+      The technology landscape that makes observability possible.
+      Tool selection and lifecycle, pipeline architecture, collector
+      configuration, consolidation vs. best-of-breed decisions, and
+      the operational management of the observability platform itself.
+    topics:
+      - id: "KA06.1"
+        name: "Tool Landscape & Selection"
+        description: "Evaluating, selecting, and managing observability tools"
+      - id: "KA06.2"
+        name: "Telemetry Pipeline Architecture"
+        description: "Collection, routing, enrichment, storage — the data flow"
+      - id: "KA06.3"
+        name: "Consolidation vs. Best-of-Breed"
+        description: "Enterprise platform strategy — single vendor vs. specialized tools"
+      - id: "KA06.4"
+        name: "Platform Operations"
+        description: "Running the observability platform itself — availability, capacity, cost"
+      - id: "KA06.5"
+        name: "Observability-as-Code"
+        description: "Infrastructure-as-code patterns for observability configuration"
+      - id: "KA06.6"
+        name: "Observability Economics & Cost Optimization"
+        description: >
+          The financial dimension of observability platform management. Data
+          volume costs, tool licensing, storage retention policies, sampling
+          strategies, and cost-per-signal economics. Directly connected to
+          cardinality decisions (KA02.7) — high-cardinality data enables
+          investigation but drives cost. FinOps practices applied to the
+          observability stack. Prior art: FinOps Foundation, Gartner
+          observability cost management research.
+          Cross-ref: KA09 for investment justification at leadership level.
+    cross_ka:
+      - target: "KA02"
+        relationship: "implements"
+        description: "Platform implements signal design decisions"
+      - target: "KA04"
+        relationship: "enables"
+        description: "Platform provides the tools for monitoring and visualization"
+      - target: "KA07"
+        relationship: "enables"
+        description: "Platform must integrate with enterprise architecture"
+      - target: "KA12"
+        relationship: "enables"
+        description: "Tool selection knowledge underpins self-service tool discovery in onboarding"
+
+  ka07-integration-architecture:
+    id: "KA07"
+    name: "Integration & Architecture"
+    category: enabling-practice
+    description: >
+      How observability connects to adjacent enterprise systems and
+      initiatives. CMDB, CI/CD pipelines, regulatory frameworks,
+      business service frameworks, and the architectural decisions that
+      determine whether observability fits into the enterprise or sits
+      beside it.
+    topics:
+      - id: "KA07.1"
+        name: "CMDB & Service Registry Integration"
+        description: "Connecting observability to configuration management data"
+      - id: "KA07.2"
+        name: "CI/CD Pipeline Integration"
+        description: "Embedding observability into the software delivery pipeline"
+      - id: "KA07.3"
+        name: "Regulatory & Compliance Frameworks"
+        description: "Alignment with enterprise critical products, permit-to-operate, audit"
+      - id: "KA07.4"
+        name: "Adjacent Initiative Alignment"
+        description: "Business service frameworks, enterprise architecture programs"
+      - id: "KA07.5"
+        name: "Enterprise Architecture Positioning"
+        description: "Where observability sits in the enterprise architecture — BIAN, TOGAF alignment"
+    cross_ka:
+      - target: "KA03"
+        relationship: "enables"
+        description: "Architectural integration makes quality gate enforcement possible"
+      - target: "KA08"
+        relationship: "informs"
+        description: "Integration points determine governance scope"
+      - target: "KA09"
+        relationship: "constrains"
+        description: "Enterprise architecture constrains strategic options"
+      - target: "KA06"
+        relationship: "enabled_by"
+        description: "Platform and tooling provide the runtime that makes integration architecture executable"
+      - target: "KA01"
+        relationship: "feeds"
+        description: "CMDB and service-hierarchy data provide the raw material for service identification"
+
+  ka08-data-governance:
+    id: "KA08"
+    name: "Data Management & Governance"
+    category: enabling-practice
+    description: >
+      How the observability practice maintains data coherence at scale.
+      Capability registry, naming standards, service catalog, data
+      quality, and the organizational mechanisms that keep the knowledge
+      base current — the hardest problem in any registry effort.
+    topics:
+      - id: "KA08.1"
+        name: "Service Catalog & Capability Registry"
+        description: "Central inventory of services, capabilities, and their metadata"
+      - id: "KA08.2"
+        name: "Naming Standards & Conventions"
+        description: "Enterprise-wide naming for services, signals, dashboards"
+      - id: "KA08.3"
+        name: "Data Quality & Currency"
+        description: "Keeping the knowledge base current — the evergreen challenge"
+      - id: "KA08.4"
+        name: "Schema Management"
+        description: "Data model evolution, versioning, migration, consistency"
+      - id: "KA08.5"
+        name: "Ownership & Accountability"
+        description: "Who maintains what — preventing the stale service catalog problem"
+      - id: "KA08.6"
+        name: "Telemetry Security, Privacy & Access Control"
+        description: >
+          Security and privacy governance for observability data. Telemetry can
+          contain PII (user IDs in logs, request parameters), sensitive business
+          data, and regulated information. Covers: log sanitization/redaction,
+          dashboard and alert access control, data residency for telemetry in
+          regulated industries, audit trail requirements. In banking context,
+          this intersects with regulatory compliance (cross-ref KA07.3).
+          Prior art: DMBOK Data Security KA, ITIL Information Security Management.
+    cross_ka:
+      - target: "KA01"
+        relationship: "governs"
+        description: "Governance ensures business context definitions stay coherent"
+      - target: "KA03"
+        relationship: "depends_on"
+        description: "Standards enforce governance decisions"
+      - target: "KA13"
+        relationship: "informs"
+        description: "Governance health is a key practice metric"
+
+  # ---------------------------------------------------------------------------
+  # MANAGEMENT PRACTICE — Organizational
+  # ---------------------------------------------------------------------------
+      - target: "KA07"
+        relationship: "informed_by"
+        description: "Integration architecture patterns shape data governance requirements"
+
+  ka09-strategy-program:
+    id: "KA09"
+    name: "Strategy & Program Management"
+    category: management-practice
+    description: >
+      How observability aligns with enterprise direction. Program
+      structure, theme prioritization, operating model design, roadmap
+      management, and the altitude cascade from enterprise strategy
+      to team-level execution.
+    topics:
+      - id: "KA09.1"
+        name: "Enterprise Alignment"
+        description: "Connecting observability to business strategy, OKRs, executive priorities"
+      - id: "KA09.2"
+        name: "Program Structure & Governance"
+        description: "Working groups, steering committees, decision rights, meeting cadence"
+      - id: "KA09.3"
+        name: "Theme Prioritization"
+        description: "Identifying, evaluating, and sequencing strategic themes"
+      - id: "KA09.4"
+        name: "Operating Model Design"
+        description: "How the observability function operates — centralized, federated, hybrid"
+      - id: "KA09.5"
+        name: "Roadmap & Altitude Cascade"
+        description: "Translating strategy through division goals to team-level actions (Hoshin Kanri)"
+      - id: "KA09.6"
+        name: "Assumption-Based Planning"
+        description: "Load-bearing assumptions, signposts, hedging actions, scenario management"
+      - id: "KA09.7"
+        name: "Investment Justification & Value Demonstration"
+        description: >
+          Making the business case for observability investment. Connecting
+          observability outcomes to business value — reduced MTTR to dollar
+          savings, faster detection to avoided revenue loss, proactive
+          identification to risk reduction. Dimensional decomposition
+          applies: honest attribution of which specific dimension the
+          investment moves, not claiming credit for aggregate metrics.
+          Cross-ref: KA06.6 for cost side, KA13.1 for practice metrics.
+    cross_ka:
+      - target: "KA10"
+        relationship: "depends_on"
+        description: "Strategy requires stakeholder engagement to land"
+      - target: "KA12"
+        relationship: "feeds"
+        description: "Strategic decisions drive adoption priorities"
+      - target: "KA07"
+        relationship: "constrains"
+        description: "Strategy operates within enterprise architecture constraints"
+      - target: "KA11"
+        relationship: "constrained_by"
+        description: "Organizational capability maturity bounds what strategy can commit to"
+      - target: "KA13"
+        relationship: "informed_by"
+        description: "Improvement findings adjust strategic direction"
+      - target: "KA01"
+        relationship: "informed_by"
+        description: "Aggregate business context feeds strategic prioritization"
+      - target: "KA04"
+        relationship: "informed_by"
+        description: "Portfolio health views inform strategic decisions"
+
+  ka10-stakeholder-engagement:
+    id: "KA10"
+    name: "Stakeholder Engagement & Communication"
+    category: management-practice
+    description: >
+      How the observability practice engages with stakeholders across
+      altitudes. Champions, facilitation, cross-altitude framing, advocacy,
+      and the communication that connects enterprise intent to team-level
+      understanding. The PE's unique integration function lives here.
+    topics:
+      - id: "KA10.1"
+        name: "Champion Networks"
+        description: "Identifying, enabling, and sustaining observability champions"
+      - id: "KA10.2"
+        name: "Cross-Altitude Communication"
+        description: "Framing the same work for enterprise, division, and team audiences"
+      - id: "KA10.3"
+        name: "Facilitation & Meeting Design"
+        description: "Running effective governance meetings, workshops, decision sessions"
+      - id: "KA10.4"
+        name: "Advocacy & Positioning"
+        description: "Building organizational support, demonstrating value, managing perception"
+      - id: "KA10.5"
+        name: "Campaign Intelligence"
+        description: "Understanding the organizational landscape — who's doing what, how it relates"
+    cross_ka:
+      - target: "KA09"
+        relationship: "enables"
+        description: "Stakeholder engagement makes strategy executable"
+      - target: "KA12"
+        relationship: "enables"
+        description: "Engagement creates the pull that adoption needs"
+      - target: "KA11"
+        relationship: "informs"
+        description: "Stakeholder needs inform organizational capability requirements"
+
+  ka11-organizational-capability:
+    id: "KA11"
+    name: "Organizational Capability"
+    category: management-practice
+    description: >
+      The people dimension. Roles, team structure, skills, staffing,
+      culture, and the organizational design that determines whether
+      the practice can deliver. Includes the operating model question
+      of how teams are organized to do observability work.
+    topics:
+      - id: "KA11.1"
+        name: "Role Definitions & Responsibilities"
+        description: "PO, Developer, SRE, Platform, PE — what each role owns in the practice"
+      - id: "KA11.2"
+        name: "Team Structure & Interaction"
+        description: "How teams are organized, how they interact, cognitive load (Team Topologies)"
+      - id: "KA11.3"
+        name: "Skills & Competency Development"
+        description: "What people need to know, how they learn it, growth paths"
+      - id: "KA11.4"
+        name: "Staffing & Capacity"
+        description: "Resource allocation, capacity planning for the practice itself"
+      - id: "KA11.5"
+        name: "Culture & Mindset"
+        description: "Shifting from reactive to proactive, business-outcome orientation"
+    cross_ka:
+      - target: "KA05"
+        relationship: "enables"
+        description: "Right people with right skills enable effective incident response"
+      - target: "KA12"
+        relationship: "enables"
+        description: "Organizational capability determines adoption ceiling"
+      - target: "KA09"
+        relationship: "constrains"
+        description: "Available capability constrains strategic ambition"
+      - target: "KA10"
+        relationship: "informed_by"
+        description: "Stakeholder engagement insights reveal where capability building is needed"
+
+  ka12-adoption-enablement:
+    id: "KA12"
+    name: "Adoption & Enablement"
+    category: management-practice
+    description: >
+      How teams adopt and sustain observability practices. Onboarding
+      flows, transfer packages, piloting methodology, scaling patterns,
+      training materials, and the AI-agent-mediated distribution that
+      makes practice adoption possible without extensive training
+      programs.
+    topics:
+      - id: "KA12.1"
+        name: "Onboarding & First Experience"
+        description: "What a team does on day one — the PO's first service profile"
+      - id: "KA12.2"
+        name: "Transfer Packages & Enablement Kits"
+        description: "Self-contained artifacts teams can adopt — LOB-portable"
+      - id: "KA12.3"
+        name: "Pilot Design & Execution"
+        description: "How to run a controlled pilot — scope, success criteria, feedback"
+      - id: "KA12.4"
+        name: "Scaling Patterns"
+        description: "Moving from pilot to division to enterprise — what changes at each scale"
+      - id: "KA12.5"
+        name: "AI-Mediated Practice Distribution"
+        description: "Using AI agents to embed methodology in tools people already use"
+    cross_ka:
+      - target: "KA01"
+        relationship: "implements"
+        description: "Adoption is how business context definition reaches teams"
+      - target: "KA10"
+        relationship: "depends_on"
+        description: "Adoption requires stakeholder pull created by engagement"
+      - target: "KA11"
+        relationship: "depends_on"
+        description: "Adoption ceiling is set by organizational capability"
+      - target: "KA09"
+        relationship: "depends_on"
+        description: "Strategic decisions drive adoption priorities — which teams, which services, what order"
+      - target: "KA06"
+        relationship: "depends_on"
+        description: "Tool selection knowledge is prerequisite for self-service tool discovery onboarding"
+      - target: "KA13"
+        relationship: "feeds"
+        description: "Adoption metrics are key practice health indicators"
+
+  ka13-continuous-improvement:
+    id: "KA13"
+    name: "Continuous Improvement"
+    category: management-practice
+    description: >
+      How the observability practice evolves. Practice-level metrics,
+      maturity assessment, feedback mechanisms that go beyond the
+      operational lifecycle loop, and the discipline of measuring
+      whether the practice itself is getting better.
+    topics:
+      - id: "KA13.1"
+        name: "Practice Metrics & KPIs"
+        description: "Measuring the observability practice itself — adoption rate, time-to-value, coverage"
+      - id: "KA13.2"
+        name: "Maturity Assessment"
+        description: "Where are we on the journey — structured evaluation across KAs"
+      - id: "KA13.3"
+        name: "Lessons Learned & Knowledge Capture"
+        description: "Systematic capture of what works, what doesn't, and why"
+      - id: "KA13.4"
+        name: "Benchmarking & External Reference"
+        description: "Comparing against industry peers, standards, and reference implementations"
+      - id: "KA13.5"
+        name: "Evolution & Adaptation"
+        description: "How the practice adapts to changing technology, organizational, and business context"
+    cross_ka:
+      - target: "KA05"
+        relationship: "feeds_back"
+        description: "Postmortems feed improvement — the operational learning loop"
+      - target: "KA09"
+        relationship: "informs"
+        description: "Practice metrics inform strategic decisions"
+      - target: "KA08"
+        relationship: "informs"
+        description: "Data governance health is a key improvement indicator"
+      - target: "KA12"
+        relationship: "informed_by"
+        description: "Adoption metrics reveal where the practice needs improvement"
+
+# =============================================================================
+# LIFECYCLE INTEGRATION
+# =============================================================================
+# The observability lifecycle is the structural spine of the Core Practice
+# category. This section makes the lifecycle→KA mapping explicit and
+# declares the dependency chain.
+      - target: "KA01"
+        relationship: "depends_on"
+        description: "Business context supplies the understanding that improvement acts on"
+
+lifecycle:
+  name: "Observability Lifecycle"
+  stages:
+    - stage: "Define"
+      ka: "KA01"
+      depends_on: null
+      feeds: "Implement"
+      feedback_from: "Respond"
+    - stage: "Implement"
+      ka: "KA02"
+      depends_on: "Define"
+      feeds: "Enforce"
+    - stage: "Enforce"
+      ka: "KA03"
+      depends_on: "Implement"
+      feeds: "Observe"
+    - stage: "Observe"
+      ka: "KA04"
+      depends_on: "Enforce"
+      feeds: "Respond"
+    - stage: "Respond"
+      ka: "KA05"
+      depends_on: "Observe"
+      feeds_back_to: "Define"
+  principle: >
+    The dependency chain is structural: you cannot observe what you haven't
+    instrumented, cannot instrument what you haven't defined. The feedback
+    loop from Respond back to Define makes the lifecycle iterative, not
+    linear.
+
+# =============================================================================
+# BOUNDARY RULES
+# =============================================================================
+# When a topic could belong to multiple KAs, these rules determine
+# primary placement. Cross-references handle secondary relevance.
+
+boundary_rules:
+  - name: "Design vs. Implementation"
+    rule: >
+      Design decisions (what to do, which approach) belong in Core Practice KAs.
+      Implementation details (how to configure, which tool settings) belong in
+      Enabling Practice KAs. Example: 'Use OTel semantic conventions' = KA02.
+      'Configure OTel Collector enrichment processor' = KA06.
+
+  - name: "Standard vs. Governance"
+    rule: >
+      A specific standard or template belongs in KA03 (Standards & QA).
+      The organizational process of maintaining standards coherence at scale
+      belongs in KA08 (Data Management & Governance). Example: 'Signal naming
+      convention' = KA03. 'Who approves changes to the naming convention' = KA08.
+
+  - name: "Strategy vs. Stakeholder"
+    rule: >
+      Strategic decisions about direction, prioritization, and operating model
+      belong in KA09 (Strategy). The work of communicating, advocating, and
+      facilitating stakeholder engagement belongs in KA10. Example: 'Prioritize
+      Theme 1 over Theme 3' = KA09. 'Frame Theme 1 for the champions-group
+      audience' = KA10.
+
+  - name: "Adoption vs. Organizational Capability"
+    rule: >
+      Mechanisms for teams to adopt the practice (packages, pilots, training)
+      belong in KA12 (Adoption). The organizational structure, roles, and
+      skills that determine adoption capacity belong in KA11 (Org Capability).
+      Example: 'Transfer package for LOB pilot' = KA12. 'Do we have POs who
+      can fill service profiles?' = KA11.
+
+  - name: "Cross-cutting topics"
+    rule: >
+      When a topic genuinely spans multiple KAs (e.g., a queue-depth metric
+      spanning KA01, KA02, KA04, KA08), assign primary KA based on where the
+      OPEN QUESTION lives. If the open question is correlation (how does anyone
+      know THIS queue spike means LOAN PROCESSING is impacted?), primary = KA04.
+      Cross-reference to the other KAs involved.
+
+# =============================================================================
+# RELATIONSHIP TYPE VOCABULARY
+# =============================================================================
+# Controlled vocabulary for cross-KA relationship types. Every cross_ka
+# declaration must use one of these types. Agents use these to reason about
+# dependency direction, impact analysis, and navigation.
+
+relationship_types:
+  depends_on:
+    description: "Cannot function without the target KA's outputs"
+    direction: "source requires target"
+    example: "KA02 depends_on KA01 — cannot design signals without business context"
+
+  feeds:
+    description: "Produces outputs consumed by the target KA"
+    direction: "source produces for target"
+    example: "KA01 feeds KA02 — business context feeds signal design"
+
+  enables:
+    description: "Makes the target KA's work possible but is not a hard dependency"
+    direction: "source supports target"
+    example: "KA06 enables KA04 — platform provides tools for monitoring"
+
+  implements:
+    description: "Operationalizes decisions made in the target KA"
+    direction: "source realizes target's designs"
+    example: "KA06 implements KA02 — platform operationalizes signal designs"
+
+  constrains:
+    description: "Limits or shapes options available to the target KA"
+    direction: "source bounds target"
+    example: "KA07 constrains KA09 — enterprise architecture constrains strategy"
+
+  governs:
+    description: "Sets rules and standards that the target KA must follow"
+    direction: "source regulates target"
+    example: "KA08 governs KA01 — governance ensures definitions stay coherent"
+
+  informs:
+    description: "Provides information that influences but does not determine the target"
+    direction: "source advises target"
+    example: "KA13 informs KA09 — practice metrics inform strategic decisions"
+
+  feeds_back:
+    description: "Returns learning/signal to an upstream KA, completing a loop"
+    direction: "source returns to target"
+    example: "KA05 feeds_back KA01 — incidents reveal business context gaps"
+
+  enabled_by:
+    description: "Mirror of enables — the target KA makes this KA's work possible without being a hard dependency"
+    direction: "source supported by target"
+    example: "KA07 enabled_by KA06 — platform makes integration architecture executable"
+
+  informed_by:
+    description: "Mirror of informs — the target KA provides information that influences but does not determine this KA"
+    direction: "source advised by target"
+    example: "KA08 informed_by KA07 — integration patterns shape governance requirements"
+
+  constrained_by:
+    description: "Mirror of constrains — the target KA limits or shapes this KA's options"
+    direction: "source bounded by target"
+    example: "KA09 constrained_by KA11 — capability maturity bounds strategy"
+
+  implemented_by:
+    description: "Mirror of implements — the target KA operationalizes decisions made in this KA"
+    direction: "source realized by target"
+    example: "KA01 implemented_by KA12 — adoption operationalizes business-context definitions"
+
+# =============================================================================
+# MATURITY MODEL (DECLARED, NOT YET CALIBRATED)
+# =============================================================================
+# Every established BOK has or references a maturity model. This section
+# declares the structure; calibration requires real assessment data.
+# Target: v0.3 with maturity indicators populated per KA.
+#
+# Follows CMMI-style levels adapted for observability:
+#   Level 1 — Initial: ad hoc, person-dependent, no standard practice
+#   Level 2 — Managed: documented practices exist, applied inconsistently
+#   Level 3 — Defined: standardized across the organization, measured
+#   Level 4 — Quantitatively Managed: data-driven decisions, predictive
+#   Level 5 — Optimizing: continuous improvement from data, adaptive
+
+maturity_model:
+  status: "declared — not yet calibrated"
+  target_version: "0.3.0"
+  levels:
+    - level: 1
+      name: "Initial"
+      description: "Ad hoc, person-dependent, no standard practice"
+    - level: 2
+      name: "Managed"
+      description: "Documented practices exist, applied inconsistently"
+    - level: 3
+      name: "Defined"
+      description: "Standardized across the organization, measured"
+    - level: 4
+      name: "Quantitatively Managed"
+      description: "Data-driven decisions, predictive capability"
+    - level: 5
+      name: "Optimizing"
+      description: "Continuous improvement from data, adaptive"
+  note: >
+    Per-KA maturity assessment is the primary use case. Each KA gets a current
+    level and target level. The gap between current and target drives
+    investment prioritization (KA09) and improvement planning (KA13).
+
+# =============================================================================
+# PRACTICE INSTRUMENTS CATALOG
+# =============================================================================
+# Concrete tools, templates, assessments, and models that practitioners use.
+# Peer structure alongside Knowledge Areas — instruments organize what
+# practitioners DO; KAs organize what practitioners KNOW.
+#
+# Pattern: BABOK v3 Techniques Chapter (IIBA). Instruments cataloged
+# independently from KAs, cross-referenced bidirectionally.
+# Added: design iteration from build.
+#
+# Instrument pages: observability-bok/instruments/
+# Catalog index: observability-bok/instruments/README.md
+
+practice_instruments:
+
+  instrument_types:
+    assessment:
+      name: "Assessment"
+      description: "Measurement and evaluation — where are we?"
+    definition:
+      name: "Definition"
+      description: "Capture and specification — what do I fill out?"
+    production:
+      name: "Production"
+      description: "Artifact generation — what gets produced?"
+    adoption:
+      name: "Adoption"
+      description: "Onboarding and scaling — how do teams get started?"
+    communication:
+      name: "Communication"
+      description: "Stakeholder visibility — how do we show progress?"
+
+  instruments:
+    # --- Assessment ---
+    - id: "IN-01"
+      name: "Service Maturity Model"
+      type: assessment
+      state: current
+      lifecycle_position: ["Define", "Implement", "Enforce", "Observe"]
+      draws_from: ["KA01", "KA02", "KA03", "KA04", "KA09", "KA13"]
+      page: "instruments/in-01-service-maturity-model.md"
+
+    - id: "IN-02"
+      name: "Industry Maturity Arc"
+      type: assessment
+      state: seeded
+      lifecycle_position: []  # cross-cutting organizational
+      draws_from: ["KA09", "KA11", "KA13"]
+      page: "instruments/in-02-industry-maturity-arc.md"
+
+    - id: "IN-03"
+      name: "Division Maturity Assessment"
+      type: assessment
+      state: seeded
+      lifecycle_position: []  # cross-cutting division-level
+      draws_from: ["KA09", "KA11", "KA13"]
+      page: "instruments/in-03-division-maturity-assessment.md"
+
+    # --- Definition ---
+    - id: "IN-04"
+      name: "Service Profile Template"
+      type: definition
+      state: current
+      lifecycle_position: ["Define"]
+      draws_from: ["KA01", "KA07", "KA08"]
+      page: "instruments/in-04-service-profile-template.md"
+
+    - id: "IN-05"
+      name: "Signal Definition Template"
+      type: definition
+      state: current
+      lifecycle_position: ["Define", "Implement"]
+      draws_from: ["KA01", "KA02"]
+      page: "instruments/in-05-signal-definition-template.md"
+
+    - id: "IN-06"
+      name: "Stakeholder Expectation Template"
+      type: definition
+      state: current
+      lifecycle_position: ["Define"]
+      draws_from: ["KA01", "KA05", "KA10"]
+      page: "instruments/in-06-stakeholder-expectation-template.md"
+
+    - id: "IN-07"
+      name: "Health Signal Template"
+      type: definition
+      state: current
+      lifecycle_position: ["Define", "Implement"]
+      draws_from: ["KA02", "KA06"]
+      page: "instruments/in-07-health-signal-template.md"
+
+    - id: "IN-08"
+      name: "Service Status Template"
+      type: definition
+      state: current
+      lifecycle_position: ["Enforce", "Observe"]
+      draws_from: ["KA03", "KA06"]
+      page: "instruments/in-08-service-status-template.md"
+
+    - id: "IN-09"
+      name: "Signal Specification Format"
+      type: definition
+      state: current
+      lifecycle_position: ["Define", "Implement"]
+      draws_from: ["KA01", "KA02"]
+      page: "instruments/in-09-signal-specification-format.md"
+
+    # --- Production ---
+    - id: "IN-10"
+      name: "Story Factory"
+      type: production
+      state: seeded
+      lifecycle_position: ["Define", "Implement"]
+      draws_from: ["KA01", "KA02"]
+      page: "instruments/in-10-story-factory.md"
+
+    - id: "IN-11"
+      name: "Dashboard Factory"
+      type: production
+      state: seeded
+      lifecycle_position: ["Observe"]
+      draws_from: ["KA04"]
+      page: "instruments/in-11-dashboard-factory.md"
+
+    - id: "IN-12"
+      name: "Alert Factory"
+      type: production
+      state: seeded
+      lifecycle_position: ["Observe", "Respond"]
+      draws_from: ["KA02", "KA04", "KA05"]
+      page: "instruments/in-12-alert-factory.md"
+
+    - id: "IN-13"
+      name: "Playbook Factory"
+      type: production
+      state: seeded
+      lifecycle_position: ["Respond"]
+      draws_from: ["KA01", "KA02", "KA05"]
+      page: "instruments/in-13-playbook-factory.md"
+
+    - id: "IN-14"
+      name: "Documentation Factory"
+      type: production
+      state: seeded
+      lifecycle_position: []  # cross-cutting
+      draws_from: ["KA08", "KA10"]
+      page: "instruments/in-14-documentation-factory.md"
+
+    - id: "IN-15"
+      name: "Dashboard Generation Methodology"
+      type: production
+      state: seeded
+      lifecycle_position: ["Observe"]
+      draws_from: ["KA03", "KA04"]
+      page: "instruments/in-15-dashboard-generation-methodology.md"
+
+    # --- Adoption ---
+    - id: "IN-16"
+      name: "Onboarding Simulation"
+      type: adoption
+      state: current
+      lifecycle_position: ["Define"]
+      draws_from: ["KA01", "KA12"]
+      page: "instruments/in-16-onboarding-simulation.md"
+
+    - id: "IN-17"
+      name: "Transfer Packages"
+      type: adoption
+      state: seeded
+      lifecycle_position: []  # cross-cutting
+      draws_from: ["KA12"]
+      page: "instruments/in-17-transfer-packages.md"
+
+    - id: "IN-18"
+      name: "Friction Logging Protocol"
+      type: adoption
+      state: seeded
+      lifecycle_position: []  # cross-cutting
+      draws_from: ["KA12", "KA13"]
+      page: "instruments/in-18-friction-logging-protocol.md"
+
+    - id: "IN-19"
+      name: "Discovery Dialogue Protocol"
+      type: adoption
+      state: seeded
+      lifecycle_position: ["Define"]
+      draws_from: ["KA01", "KA12"]
+      page: "instruments/in-19-discovery-dialogue-protocol.md"
+
+    # --- Communication ---
+    - id: "IN-20"
+      name: "Portfolio Maturity View"
+      type: communication
+      state: current
+      lifecycle_position: []  # cross-cutting
+      draws_from: ["KA09", "KA10", "KA13"]
+      page: "instruments/in-20-portfolio-maturity-view.md"
+
+    - id: "IN-21"
+      name: "Terrain Presentation"
+      type: communication
+      state: seeded
+      lifecycle_position: []  # cross-cutting
+      draws_from: ["KA09", "KA10"]
+      page: "instruments/in-21-terrain-presentation.md"
+
+    - id: "IN-22"
+      name: "Executive Dashboard Patterns"
+      type: communication
+      state: current
+      lifecycle_position: ["Observe"]
+      draws_from: ["KA04", "KA10"]
+      page: "instruments/in-22-executive-dashboard-patterns.md"
+
+    - id: "IN-23"
+      name: "Observability Standard (One Content, Three Forms)"
+      type: definition
+      state: current  # agent-workflow section + regulated-domain worked example pending
+      lifecycle_position: ["Define", "Enforce", "Respond"]
+      draws_from: ["KA01", "KA02", "KA03", "KA04", "KA05"]
+      page: "instruments/in-23-observability-standard.md"
+
+# =============================================================================
+# PERSPECTIVES
+# =============================================================================
+# Platform-type and context-type lenses that bend how Knowledge Areas and
+# Practice Instruments apply. Third peer structural element alongside KAs
+# and Instruments. Where KAs organize what practitioners UNDERSTAND and
+# Instruments organize what practitioners DO, Perspectives organize how
+# both VARY by platform context.
+#
+# Pattern: BABOK v3 Perspectives Chapter (IIBA, 2015). Perspectives are not
+# Knowledge Areas (they don't own distinct knowledge) and not Instruments
+# (they don't do one thing). They're lenses that bend the existing KAs for
+# specific contexts.
+# Added: design iteration 3.
+#
+# Perspective pages: observability-bok/perspectives/
+# Catalog index: observability-bok/perspectives/README.md
+#
+# ASYMMETRY: Perspectives point INTO KAs (via ka_variations). KAs do NOT
+# enumerate perspectives back. This keeps KAs perspective-invariant —
+# adding a new perspective doesn't require modifying any KA.
+
+perspectives:
+
+  - id: "PERSP-CLOUD-NATIVE"
+    name: "Cloud-Native"
+    state: seeded
+    description: >
+      Container platforms, service mesh, OpenTelemetry-native instrumentation.
+      The context where the observability industry's center of gravity sits.
+    ka_variations: ["KA02", "KA04", "KA05", "KA06", "KA07"]
+    page: "perspectives/cloud-native.md"
+
+  - id: "PERSP-MAINFRAME"
+    name: "Mainframe"
+    state: seeded
+    description: >
+      Z/OS and distributed mainframe environments, CICS/IMS transaction
+      monitors, batch-processing workloads, SMF and RMF record feeds.
+      The context the observability industry's mainstream literature
+      rarely addresses directly.
+    ka_variations: ["KA02", "KA04", "KA05", "KA06", "KA07"]
+    page: "perspectives/mainframe.md"
+
+  - id: "PERSP-HYBRID"
+    name: "Hybrid / Integration-Oriented"
+    state: seeded
+    description: >
+      Multi-platform business flows where transactions cross cloud,
+      mainframe, SaaS, and third-party boundaries. The "seam problem" —
+      cross-platform correlation, metadata parity, trace propagation
+      across technology boundaries.
+    ka_variations: ["KA02", "KA04", "KA05", "KA07", "KA08"]
+    page: "perspectives/hybrid-integration.md"
+
+  - id: "PERSP-SAAS"
+    name: "SaaS / Third-Party"
+    state: seeded
+    description: >
+      Observed systems operated by someone else. Salesforce, Workday,
+      payment processors, fraud-detection vendors, identity providers.
+      Observation without code access.
+    ka_variations: ["KA02", "KA04", "KA05", "KA06", "KA07"]
+    page: "perspectives/saas-third-party.md"
+
+  - id: "PERSP-AGENTIC"
+    name: "Agentic"
+    state: current
+    description: >
+      Services containing an agentic step — software that makes a judgment
+      call and can be confidently wrong: up, fast, error-free, and mistaken.
+      The conditional Agent Workflow stratum (provisional vocabulary),
+      decision-quality signals, and the answer-key obligation. Workload-type
+      context lens; vocabulary iterates with industry convergence.
+    ka_variations: ["KA01", "KA02", "KA05"]
+    page: "perspectives/agentic.md"
+
+# =============================================================================
+# ROLE MAPPING
+# =============================================================================
+# Which roles have primary ownership and contributing roles per KA.
+# Follows the category→audience alignment:
+#   Core Practice → Practitioners
+#   Enabling Practice → Platform/Architecture
+#   Management Practice → Leadership/PE
+
+role_mapping:
+  product_owner:
+    primary: ["KA01"]
+    contributing: ["KA02", "KA05", "KA12"]
+  developer:
+    primary: ["KA02"]
+    contributing: ["KA03", "KA06"]
+  sre_ops:
+    primary: ["KA05"]
+    contributing: ["KA04", "KA06"]
+  platform_engineering:
+    primary: ["KA03", "KA04", "KA06"]
+    contributing: ["KA02", "KA07"]
+  architecture:
+    primary: ["KA07"]
+    contributing: ["KA06", "KA08", "KA09"]
+  practice_lead_pe:
+    primary: ["KA09", "KA10", "KA13"]
+    contributing: ["KA01", "KA08", "KA11", "KA12"]
+  leadership:
+    primary: ["KA09", "KA11"]
+    contributing: ["KA10", "KA13"]
+
+# =============================================================================
+# PRIOR ART ATTRIBUTION
+# =============================================================================
+# Named sources for the structural patterns used in this BOK.
+# The structure is adopted, not invented. The content is domain-specific.
+
+prior_art:
+  bok_pattern:
+    sources:
+      - "SWEBOK v4 — IEEE/ISO (software engineering, 15 KAs)"
+      - "PMBOK 7th Ed — PMI (project management, 8 performance domains)"
+      - "DMBOK 2 — DAMA International (data management, 11 KAs)"
+      - "BABOK v3 — IIBA (business analysis, 6 KAs)"
+      - "ITIL 4 — Axelos (service management, 34 practices in 3 categories)"
+    principle: >
+      Every major professional domain organizes into a Body of Knowledge with
+      knowledge areas, processes, roles, vocabulary, and maturity models.
+      This artifact follows that established pattern for the observability domain.
+
+  category_pattern:
+    source: "ITIL 4 — three practice categories (General, Service, Technical)"
+    adaptation: "Renamed to Core/Enabling/Management to match observability domain"
+
+  lifecycle_pattern:
+    source: "Business Observability Lifecycle (Define → Implement → Enforce → Observe → Respond)"
+    note: "Lifecycle predates and validates KA structure — the alignment is by design"
+
+  altitude_management:
+    sources:
+      - "Hoshin Kanri — strategy deployment with X-matrix (Toyota, Akao)"
+      - "ABP — Assumption-Based Planning (RAND Corporation, Dewar et al.)"
+    application: "KA09 topics include altitude cascade and assumption tracking"
+
+  reference_implementation:
+    source: "GitLab Handbook — public repo implementing full strategy-to-operations in one system"
+    note: >
+      GitLab is not a BOK but demonstrates the information architecture
+      pattern where any topic resolves to a known location with explicit
+      connections. The O-BOK adopts this navigability property.
