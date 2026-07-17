@@ -13,6 +13,7 @@ Reusable GitHub Copilot skills and agents for structured thinking, writing, and 
 | **editorial** | Editorial governance for human-facing content — tone/style, production standards, writing craft. |
 | **html** | Produce interactive, self-contained HTML shaped for a specific job (understand, brief, present, orient, reference). Includes 20 worked examples. |
 | **information-surface-design** | Design or evaluate any information surface so it collapses need → uncertainty → decision. Includes a worked observability-panel instance. |
+| **prior-art-check** | Check whether something you built already exists as established practice — a named practice, a standard artifact, or a framework — or is genuinely novel. Judges by function rather than by name, and reconciles what it finds against your own record of adopted practice. Ships with the definition it judges against. |
 | **prune-instructions** | Restructure an overgrown instructions file via the residency-test method (GATE / FACT / CONDUCT). |
 | **requirements** | Elicit and structure requirements before work begins — functional requirements, quality attributes, stakeholder analysis, failure definition. |
 | **right-thing-right-way** | Two-altitude diagnostic: am I solving the right problem? am I solving it the right way? |
@@ -25,7 +26,9 @@ Reusable GitHub Copilot skills and agents for structured thinking, writing, and 
 
 | Agent | What it does |
 |-------|-------------|
+| **apparatus-auditor** | Audit whether something has the operating apparatus it needs to actually work — what guarantees it gets written, what guarantees it gets read — or whether it is a prop that will die in a drawer. Reads your operating model as the yardstick, and grades against your real scale rather than a borrowed one. |
 | **independent-discipline-reviewer** | Cold, fresh-eyes review of an artifact against one or more named discipline skills, run in its own context. It holds only independence — it loads the disciplines you name as review lenses, and writes a findings report rather than editing the artifact. |
+| **prior-art-checker** | A deliberately blind evaluator. It receives only a functional description — never the artifact, its name, or what you think it matches — and names the established practice with the same function, with an honest account of what does not fit. "No match" is a valid, valuable answer. The blindness is the point: an evaluator told what you believe can only agree with you. |
 
 ## Reference packages (`packages/`)
 
@@ -44,7 +47,7 @@ Copy a skill folder into your environment's skills directory:
 your-repo/.github/skills/<skill-name>/SKILL.md
 ```
 
-Some skills include a `references/` subfolder — copy that too.
+Some skills include extra files — a `references/` subfolder, or a companion document. Copy the whole folder.
 
 Agents go in the agents directory:
 
