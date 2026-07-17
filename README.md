@@ -32,6 +32,7 @@ Reusable GitHub Copilot skills and agents for structured thinking, writing, and 
 | Package | What it is |
 |---------|-----------|
 | **observability-practice** | An observability Body of Knowledge (13 knowledge areas, 23 instruments, domain perspectives), plus a practice system and the SUD v2 instrument. |
+| **observability-capability-gap.md** | A worked articulation of a platform capability gap against an observability standard — why dependency, producer, and internal errors fall outside a common APM metric model, and what that costs. |
 | **meeting-delegate** | A package for the meeting-delegate practice (start-here, the practice, acceptance test). |
 | **portfolio-coverage-operating-perspective.md** | An operating perspective for reasoning about observability coverage across a service portfolio. |
 
