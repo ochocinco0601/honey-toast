@@ -1,6 +1,6 @@
 ---
 name: prior-art-check
-description: Run a blind, independent prior-art check on a structure this repo built — is it established practice, or did we reinvent (or genuinely invent) it? Use when the user asks whether something is real/established, whether we're reinventing a wheel, whether a structure has prior art, or says a structure feels off in a way that suggests it may already exist in a real discipline. Triggers on "prior-art check", "prior art check this", "is this established", "did we reinvent this", "has this been solved", "does this already exist", "what discipline already does this", "check this against prior art", "is this novel". Also fires when a session is about to claim something is novel, or is about to add an entry to the activated prior-art inventory. This skill owns the whole loop and is the ONE DOOR — the user invokes this and nothing else: it writes the blinded description, dispatches the cold prior-art-checker agent, then on any STRONG/PARTIAL match automatically chains to the apparatus-auditor ("we matched the form — did we adopt the apparatus that makes it work?"), reconciles findings against the environment's activated prior-art inventory behind an encode gate, and briefs the principal in outcome terms. The user never invokes the apparatus audit separately and must never be asked to. Do NOT use this to review whether an artifact serves its reader — that is independent-discipline-reviewer.
+description: Run a blind, independent prior-art check on a structure this repo built — is it established practice, or did we reinvent (or genuinely invent) it? Use when the user asks whether something is real/established, whether we're reinventing a wheel, whether a structure has prior art, or says a structure feels off in a way that suggests it may already exist in a real discipline. Triggers on "prior-art check", "prior art check this", "is this established", "did we reinvent this", "has this been solved", "does this already exist", "what discipline already does this", "check this against prior art", "is this novel". Also fires when a session is about to claim something is novel, or is about to add an entry to the activated prior-art inventory. This skill owns the whole loop and is the ONE DOOR — the user invokes this and nothing else: it writes the blinded description, dispatches the cold prior-art-checker agent, then on any STRONG/PARTIAL match automatically chains to the apparatus-auditor ("we matched the form — did we adopt the apparatus that makes it work?"), reconciles findings against the environment's activated prior-art inventory behind an encode gate, and briefs the operator in outcome terms. The user never invokes the apparatus audit separately and must never be asked to. Do NOT use this to review whether an artifact serves its reader — that is independent-discipline-reviewer.
 ---
 
 # Prior-Art Check
@@ -104,12 +104,12 @@ is a gate nobody is operating.
 ## Step 6 — Chain to the apparatus audit (automatic — do not ask)
 
 **On every STRONG or PARTIAL match, dispatch `apparatus-auditor`.** Do not ask
-whether to. Do not wait to be told. The principal's design is explicit: **one door.**
-He invokes the check; he must never have to remember that a second question exists.
-The chain is the machinery's job, not his memory's.
+whether to. Do not wait to be told. The design is explicit: **one door.**
+The operator invokes the check and must never have to remember that a second
+question exists. The chain is the machinery's job, not the operator's memory.
 
 Pass it: the artifact's function, the matched practice(s), and a report path. **Do
-not pass it your view of whether our apparatus is adequate** — that is the claim it
+not pass it your view of whether the environment's apparatus is adequate** — that is the claim it
 audits, not evidence for it.
 
 It asks the question this skill cannot: **we matched the form — did we adopt the
@@ -122,19 +122,21 @@ document states how work moves and what guarantees it — whose core claim holds
 **Skip only on an all-NONE result.** Nothing was borrowed, so there is no borrowed
 apparatus to have missed.
 
-## Step 7 — Brief the principal in outcome terms
+## Step 7 — Brief the operator in outcome terms
 
-**He gets the answer, not the findings file.** Handing him a report to adjudicate is
-a role inversion — he holds intent, judgment and taste, not craft adjudication.
+**The operator gets the answer, not the findings file.** Handing them a report to
+adjudicate is a role inversion — the operator holds intent, judgment and taste, not
+craft adjudication.
 
-Brief him with:
-- **the answer to what he asked** — is it real, or did we reinvent it;
+Brief them with:
+- **the answer to what they asked** — is it real, or was it reinvented;
 - what it turned out to be, in one line, and the honest delta;
-- **what's genuinely novel**, if anything — this is usually the part he wants;
+- **what's genuinely novel**, if anything — usually the part they want;
 - what you encoded, and what you rejected at the gate.
 
-**Route to him only what is his:** if a finding implies work — we copied a form and
-skipped its apparatus, we over-claimed somewhere — the **priority call** is his.
+**Route to the operator only what is theirs:** if a finding implies work — a form
+copied without its apparatus, an over-claim somewhere — the **priority call** is the
+operator's.
 Ask it as one question. Resolve everything else yourself.
 
 ---
@@ -148,6 +150,6 @@ Ask it as one question. Resolve everything else yourself.
 - **The apparatus *judgment* is not yours — but the apparatus *dispatch* is.**
   "Did we adopt the practice's operating apparatus or copy its form?" is
   `apparatus-auditor`'s question, and Step 6 fires it automatically. You do not
-  answer it yourself, and you do not make the principal ask for it.
+  answer it yourself, and you do not make the operator ask for it.
 - **Never let the table reach the agent.** Not in the prompt, not as context, not as
   a "for reference." The whole value is that it does not know what we already think.

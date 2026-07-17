@@ -241,7 +241,7 @@ knowledge_areas:
         description: "Permit-to-operate, regulatory frameworks, audit requirements"
       - id: "KA03.4"
         name: "Template & Blueprint Standards"
-        description: "Reusable patterns teams follow — the 'standards and guidance' ask"
+        description: "Reusable patterns teams follow — the recurring organizational ask for standards and guidance"
       - id: "KA03.5"
         name: "Validation & Verification"
         description: "Automated checks that observability artifacts meet schema and quality"
@@ -574,7 +574,7 @@ knowledge_areas:
       How the observability practice engages with stakeholders across
       altitudes. Champions, facilitation, cross-altitude framing, advocacy,
       and the communication that connects enterprise intent to team-level
-      understanding. The PE's unique integration function lives here.
+      understanding.
     topics:
       - id: "KA10.1"
         name: "Champion Networks"
@@ -926,7 +926,8 @@ maturity_model:
 #
 # Pattern: BABOK v3 Techniques Chapter (IIBA). Instruments cataloged
 # independently from KAs, cross-referenced bidirectionally.
-# Added: design iteration from build.
+# The gap that motivated this: the service maturity model could not be
+# located within the KA structure — instruments needed their own catalog.
 #
 # Instrument pages: observability-bok/instruments/
 # Catalog index: observability-bok/instruments/README.md
@@ -1153,7 +1154,6 @@ practice_instruments:
 # Knowledge Areas (they don't own distinct knowledge) and not Instruments
 # (they don't do one thing). They're lenses that bend the existing KAs for
 # specific contexts.
-# Added: design iteration 3.
 #
 # Perspective pages: observability-bok/perspectives/
 # Catalog index: observability-bok/perspectives/README.md

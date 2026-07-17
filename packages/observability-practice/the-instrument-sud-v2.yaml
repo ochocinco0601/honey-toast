@@ -1,4 +1,4 @@
-# SUD Questions v2 — Motivation Chain Capture
+# SUD (Service Understanding Document) Questions v2 — Motivation Chain Capture
 #
 # Redesigned instrument: restructures questions from entity-type organization
 # (v1) to motivation-chain traversal order (v2). Same content, different
@@ -9,7 +9,11 @@
 # v2 is validated independently alongside v1.
 #
 # Design: motivation-chain traversal.
-# viewpoint schema is grounding, not redesign
+# The "viewpoint" referenced throughout is the instrument's 9-position
+# motivation-element traversal — grounded in the ArchiMate 3.2 motivation
+# viewpoint (public prior art): 1 Stakeholder, 2 Driver, 3 Requirement,
+# 4 Outcome, 5 Subject, 6 Object, 7 BusinessRole, 8 BusinessActor,
+# 9 Runbook. The viewpoint schema is grounding, not redesign.
 # health dimension frameworks are altitude-specific
 #
 # Every question has:
@@ -376,7 +380,7 @@ shared_questions:
     id: q24a
     bare: "What are the health thresholds?"
     enhanced: "Two-threshold health classification: at what level is the signal warning? At what level is it critical? These drive real-time dashboard tile color (healthy/warning/critical), distinct from SLO alerting thresholds which drive burn-rate alerts."
-    prior_art: ["Nagios two-threshold model (1999)", "two-threshold model addition"]
+    prior_art: ["Nagios two-threshold model (1999)"]
     populates: ["sliDefinitions[].healthWarningThreshold", "sliDefinitions[].healthCriticalThreshold"]
     schema_ahead: false
     evidence:
@@ -608,7 +612,7 @@ parts:
           can correct misclassifications or add missing dependencies.
 
           Schema: DependencyNode + DependencyEdge in the record schema.
-          Exemplar: see the dependencies_structured section of a worked example.
+          Exemplar: the dependencies_structured section of any completed SUD shows the target shape.
         prior_art: ["C4 Model Level 2 (Simon Brown)", "Azure WAF Health Model", "arc42 §3 technical context", "arc42 §5 building block view"]
         populates: ["service.dependencies_structured"]
         schema_ahead: false
@@ -760,7 +764,7 @@ parts:
           correct component mappings.
 
           Schema: ProcessStep + ProcessStructured in the record schema.
-          Exemplar: see the process_structured section of a worked example.
+          Exemplar: the process_structured section of any completed SUD shows the target shape.
         prior_art: ["arc42 §6 Runtime View", "BPMN / ISO 19510", "ArchiMate Triggering", "UML Sequence Diagram (ISO/IEC 19501)"]
         populates: ["service.process_structured"]
         schema_ahead: false
@@ -853,7 +857,7 @@ parts:
           matches how they think about their product.
 
           Schema: SubCapability + CapabilityStructured in the record schema.
-          Exemplar: see the capability_structured section of a worked example.
+          Exemplar: the capability_structured section of any completed SUD shows the target shape.
         prior_art: ["BIZBOK (Business Architecture Guild)", "BIAN service domains", "ArchiMate Business Function"]
         populates: ["service.capability_structured"]
         schema_ahead: false
@@ -1302,10 +1306,10 @@ parts:
   #   they reference those Business Health signals by name via
   #   diagnostic_causal_ref, exactly as Process signals do.
   #
-  # EXEMPLAR: none is hand-authored here. Per the authored-separately-they-drift rule
-  #   and the positive-only rule, the
-  #   worked example renders from a REAL onboarding of a service with an
-  #   agentic decision step, never from constructed content.
+  # EXEMPLAR: none is hand-authored here. Exemplars authored separately from
+  #   their source drift out of sync, and a constructed example is not a real
+  #   positive instance — so the worked example renders from a REAL onboarding
+  #   of a service with an agentic decision step, never from constructed content.
   # =================================================================
 
   - part: agent_decision
@@ -1575,7 +1579,7 @@ parts:
           investigation path matches how they actually diagnose issues.
 
           Schema: DescentLink in the record schema.
-          Exemplar: see the descent_links section of a worked example.
+          Exemplar: the descent_links section of any completed SUD shows the target shape.
         prior_art: ["IEEE 830 Traceability Matrix", "SRE diagnostic path", "Google SRE Ch.6 symptom/cause gap"]
         populates: ["service.descent_links"]
         schema_ahead: false
@@ -1589,9 +1593,9 @@ parts:
   # Part 5 — Operational Context
   # =================================================================
   # Positions populated: 7 (BusinessRole), 8 (BusinessActor), 9 (Runbook)
-  # Currently flat and service-level. This viewpoint identifies
-  # structured ownership expansion (ITIL RACI, ISA-18.2 runbooks) as
-  # a future additive change.
+  # Ownership capture here is flat and service-level; structured
+  # ownership (ITIL RACI, ISA-18.2 runbooks) would be an additive
+  # change.
   # =================================================================
 
   - part: operational

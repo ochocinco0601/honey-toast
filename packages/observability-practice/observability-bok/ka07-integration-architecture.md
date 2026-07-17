@@ -29,7 +29,7 @@ This KA covers how observability connects to adjacent enterprise systems and ini
 
 The CMDB application ID is the primary join key between the business observability catalog and enterprise systems. Every service entry has an `app_id` field (required, FK) that ties it to the CMDB entry.
 
-**The CMDB granularity problem:** A single CMDB application ID often contains 50-100 separate code repositories spanning multiple business capabilities. The application sunrise process is so painful that teams historically deployed new capabilities inside existing app IDs. This means "restore Application X" in a critical-path inventory may encompass 6 distinct business capabilities — only one of which is actually critical.
+**The CMDB granularity problem:** In large enterprises, a single CMDB application ID commonly aggregates dozens of separate code repositories spanning multiple business capabilities. Application sunrise — registering a new application — is often burdensome enough that teams deploy new capabilities inside existing app IDs instead. As a result, "restore Application X" in a critical-path inventory may encompass several distinct business capabilities — only some of which are actually critical.
 
 Business observability addresses this through service definition pattern #2 ("Capability within an Application") — defining health at the business capability level even when the CMDB entry is at the monolithic application level. The business observability service registry complements the CMDB, not duplicates it.
 
@@ -39,7 +39,7 @@ IT service management integration (e.g., ServiceNow) is documented for one refer
 
 Embedding observability into the software delivery pipeline. The quality gate concept ([KA03.1](ka03-standards-quality.md#quality-gates-pipeline-integration)) provides the mechanism: the Service Status evaluation could be integrated into CI/CD as a deployment gate — "this service's observability score must be above N before deploying to production."
 
-Pipeline integration draws on OpenTelemetry CI/CD patterns and observability-as-code practice. The industry OaC pattern — *generated monitoring artifacts* (alert rules, dashboard configs) versioned alongside application code, changed through the same review process, deployed through the same pipeline — is the target architecture, not established practice here (this page's own audit marks pipeline integration as a gap). The pattern's scope matters: it applies to the generated operational artifacts. The observability *definitions* themselves (expectations, signals, business context) live in the PO-owned system of record and change through the definition workflow — that separate, PO-driven path is by design, not a gap the pipeline closes.
+Pipeline integration draws on OpenTelemetry CI/CD patterns and observability-as-code practice. The industry OaC pattern — *generated monitoring artifacts* (alert rules, dashboard configs) versioned alongside application code, changed through the same review process, deployed through the same pipeline — is the target architecture; in the reference implementation, pipeline integration is not yet established (KA07.2 is audited Missing below). The pattern's scope matters: it applies to the generated operational artifacts. The observability *definitions* themselves (expectations, signals, business context) live in the PO-owned system of record and change through the definition workflow — that separate, PO-driven path is by design, not a gap the pipeline closes.
 
 ### Regulatory & Compliance Frameworks
 
@@ -153,10 +153,10 @@ These instruments operationalize KA07 knowledge — a practitioner doing integra
 
 | Topic | State | Notes |
 | ------- | ------- | ------- |
-| [KA07.1](ka07-integration-architecture.md#cmdb-service-registry-integration) CMDB & Service Registry Integration | **Current** | Real ServiceNow integration. System-of-record mapping tables. CMDB granularity problem documented. |
+| [KA07.1](ka07-integration-architecture.md#cmdb-service-registry-integration) CMDB & Service Registry Integration | **Current** | The reference implementation documents a working ServiceNow integration and registry mapping tables. CMDB granularity problem documented on-page. |
 | [KA07.2](ka07-integration-architecture.md#cicd-pipeline-integration) CI/CD Pipeline Integration | **Missing** | Quality gate concept exists but no pipeline integration design. External: OTel CI/CD patterns. |
-| [KA07.3](ka07-integration-architecture.md#regulatory-compliance-frameworks) Regulatory & Compliance Frameworks | **Seeded** | BIAN evaluation done. Business service framework pattern documented. A reusable compliance-mapping methodology has not yet been authored. |
-| [KA07.4](ka07-integration-architecture.md#adjacent-initiative-alignment) Adjacent Initiative Alignment | **Seeded** | Business service frameworks and journey mapping discussed strategically. Not operationalized into integration design. |
+| [KA07.3](ka07-integration-architecture.md#regulatory-compliance-frameworks) Regulatory & Compliance Frameworks | **Seeded** | A BIAN evaluation exists in the reference implementation. Business service framework pattern documented on-page. A reusable compliance-mapping methodology has not yet been authored. |
+| [KA07.4](ka07-integration-architecture.md#adjacent-initiative-alignment) Adjacent Initiative Alignment | **Seeded** | Business service frameworks and journey mapping are treated strategically on-page. Not yet operationalized into integration design. |
 | [KA07.5](ka07-integration-architecture.md#enterprise-architecture-positioning) Enterprise Architecture Positioning | **Current** | BIAN, ITIL, COBIT, TOGAF positioning documented. |
 
 **KA07 summary:** 2/5 Current, 2 Seeded, 1 Missing. [KA07.2](ka07-integration-architecture.md#cicd-pipeline-integration) (CI/CD Pipeline Integration) is the Missing topic — the mechanism to embed observability quality gates into the delivery pipeline.

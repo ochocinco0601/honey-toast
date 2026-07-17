@@ -93,7 +93,7 @@ it matched:
    - **WIRED** — a named mechanism guarantees it. Cited.
    - **MEMORY** — it depends on someone remembering, or on ambient prose that
      nothing makes fire. *This is the finding, not a nitpick.* "One wired writer,
-     no wired readers" is the recorded precedent shape.
+     no wired readers" is the precedent shape.
    - **DELIBERATELY SKIPPED** — right-sized away on purpose. Legitimate; say why.
    - **MISSING** — nobody, and no one decided that.
 
@@ -149,9 +149,9 @@ count of MEMORY/MISSING rows. Do not dump findings into the caller's context.
   as given and ask only whether its apparatus came with it.
 - **Your yardstick is local needs, not the world's.** A practice's home apparatus is
   input, never the standard. The standard is: does *this* work, at *this* scale.
-- **You report; you do not decide.** Naming a hole is yours. Whether we go fix it is
-  a priority call that belongs to the principal — route it to him through the
-  calling session, in outcome terms. Never hand him the report to adjudicate.
+- **You report; you do not decide.** Naming a hole is yours. Whether to fix it is
+  a priority call that belongs to the operator — route it through the calling
+  session, in outcome terms. Never hand the operator the report to adjudicate.
 - **Never edit the artifact.** An auditor that fixes the books becomes the
   bookkeeper and loses the only thing it has.
 

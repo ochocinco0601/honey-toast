@@ -51,7 +51,7 @@ State the discovered job before proceeding. If genuinely ambiguous, name the two
 | **Assess risk** | Pre-mortem structure (Gary Klein) | Failure modes, risks, assumptions promoted to top; risk stats in overview |
 | **Brief** | Minto Pyramid — situation, complication, resolution | Executive summary first, recommendations prominent, detail subordinated |
 | **Present** | Duarte/Reynolds minimal-text principles | Key messages, visual weight, sparse content, large type |
-| **Orient** | Chief-of-staff terrain model | Status, obligations, constraints, next actions; temporal grouping |
+| **Orient** | Situation-report (SITREP) structure | Status, obligations, constraints, next actions; temporal grouping |
 | **Reference** | Diataxis reference type | Sidebar for non-linear consultation, consistent section format, search-optimized |
 
 This table is a starting vocabulary, not a closed set. Content may surface a job not listed here — name it, name the shaping approach by analogy, proceed.
@@ -98,8 +98,8 @@ Six named moves discovered through spike testing. Apply the ones the job require
 
 ### Move 1: Insight-driven overview
 The overview synthesizes, it doesn't summarize. State what matters and why — not counts or labels.
-- BAD: "7 stages, 26 components, 10+ services"
-- GOOD: "One judgment step everything depends on. If the capture is wrong, every downstream artifact is wrong."
+- BAD: "5 sections, 12 endpoints, 3 services"
+- GOOD: "One middleware everything trusts. If verifyToken is wrong, every route behind it is wrong."
 
 Include a "things to know" callout — 2-4 sentences that give the reader a mental model in 15 seconds.
 
@@ -117,7 +117,7 @@ Reorganize content by meaning, not by source structure. Name the groups as quest
 
 ### Move 4: Synthesis leads
 One italic sentence at the top of each section body that tells the section's story before the detail. The reader gets the point without reading the table.
-- "Most failures are caught by validators. The dangerous one — wrong but schema-valid understanding — can only be caught by human review."
+- "Most requests never touch the database — the cache absorbs them. The dangerous case is the stale session another worker serves for up to 60 seconds."
 
 ### Move 5: Cross-linking
 Connect related content across sections. Clicking a component name in the failure modes table opens and scrolls to the components section. Trivial in HTML, impossible in markdown. Use `<a class="xref" onclick="openSection('sN')">` pattern.

@@ -119,7 +119,7 @@ A new KA is a significant structural change. Before adding, confirm the candidat
 
 3. **Hub README entry** in the appropriate category section.
 
-4. **mkdocs.yml nav entry** in the appropriate category group.
+4. **mkdocs.yml nav entry** in the appropriate category group. *(`mkdocs.yml` is the site nav config — this and every nav step below apply where your deployment publishes the BOK as a rendered site.)*
 
 5. **Cross-reference updates** in every KA named in the new KA's Section 6. Bidirectional links are mandatory — if KANN says it feeds KA02, KA02's Section 6 must say KANN feeds it.
 
@@ -474,7 +474,7 @@ These verify the BOK's internal consistency. All are scriptable.
 - **Pass:** All state values are canonical.
 - **Fail remediation:** Reconcile the non-canonical state to one of the three. "Needs Fix" is not a state — it describes the current Current content that needs revision; should stay Current but with a remediation note.
 
-**T1.7 — mkdocs nav correspondence**
+**T1.7 — mkdocs nav correspondence** *(applies only where the deployment publishes the BOK as a rendered site with `mkdocs.yml`)*
 - **Check:** Every nav entry in `mkdocs.yml` points to an existing file. Every markdown file in the BOK tree is reachable from the nav (no orphan pages).
 - **Procedure:** Parse `mkdocs.yml` nav. For each entry, confirm the file exists. For each `.md` file in the BOK tree, confirm it's referenced in the nav.
 - **Pass:** Bidirectional coverage.
@@ -678,9 +678,9 @@ For each test executed, report: test ID, status (Pass / Fail / N/A), evidence (s
 **Automation scope:**
 Categories 1, 4 can be fully scripted (shell + YAML parsing + grep). Categories 2, 3 require an AI agent reading content. Categories 5, 6 are best performed by an AI agent executing the walk and reporting findings.
 
-A mechanical validation script can implement Categories 1 and 4, the Part XI count checks, an identifier-resolvability check (every backticked file reference must resolve inside the BOK tree), and instrument state correspondence (page header vs. YAML registry). It exits nonzero on any finding and also emits report-only warnings (e.g., Section 6 rows without matching YAML edges). Run it after any structural change and before any external sharing. T4.2 stays manual — the instance-vs-category judgment cannot be scripted without enumerating names, which would defeat itself.
+A mechanical validation pass is worth scripting in any deployment: Categories 1 and 4, the Part XI count checks, an identifier-resolvability check (every backticked file reference must resolve inside the BOK tree), and instrument state correspondence (page header vs. YAML registry) are all mechanically checkable. Such a script should exit nonzero on any finding and can also emit report-only warnings (e.g., Section 6 rows without matching YAML edges); run it after any structural change and before any external sharing. T4.2 stays manual — the instance-vs-category judgment cannot be scripted without enumerating names, which would defeat itself.
 
-A second capability — a link-checking script — enforces the *Every page is page one* linking convention (Part II): pages must link the frames they lean on, not leave bare codes that force manual navigation. It wraps bare `KAnn` / `KAnn.m` / `IN-nn` codes and meta-page names as markdown links — to the topic's exact heading anchor (generated with the site's own slugify and verified to exist on the target page) or the page top as fallback — skipping tokens already inside a link or code span, so runs are idempotent. Run it after content edits to relink new references, and run its check mode in the same cadence as the mechanical pass; the check mode exits nonzero if any bare linkable reference has crept back in. It skips this guide, which names codes as instructional examples. Without this guard the corpus drifts back to bare codes on every edit — the reason the convention needed mechanical enforcement, not just a stated rule.
+A second pass worth scripting enforces the *Every page is page one* linking convention (Part II): pages must link the frames they lean on, not leave bare codes that force manual navigation. Such a link pass wraps bare `KAnn` / `KAnn.m` / `IN-nn` codes and meta-page names as markdown links — to the topic's exact heading anchor (generated with the site's own slugify and verified to exist on the target page) or the page top as fallback — skipping tokens already inside a link or code span, so runs are idempotent. Run it after content edits to relink new references, and run a check mode in the same cadence as the mechanical pass, exiting nonzero if any bare linkable reference has crept back in. It should skip this guide, which names codes as instructional examples. Without this guard the corpus drifts back to bare codes on every edit — the reason the convention needed mechanical enforcement, not just a stated rule.
 
 ---
 

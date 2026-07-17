@@ -37,7 +37,7 @@ One row per signal. Core fields:
 
 Type-specific measurement fields follow the signal type: ratio signals need a numerator and denominator, threshold signals need an operator, value, and unit — validated at update time, not creation time (three-actor progressive enrichment: the Product Owner creates the stub, the Developer fills in measurement, Platform configures alerting).
 
-**Per-layer health dimensions.** The current capture model additionally classifies every signal by a layer-native dimension framework — APQC (Effectiveness / Efficiency / Adaptability) at Business Health; Golden Signals or RED as a per-signal fit choice at Process (RED for request-driven services); USE (Utilization / Saturation / Errors) at System. The framework follows from the layer; the dimension within it is a judgment call by the signal's owner, captured at onboarding and carried in the pipeline record (`healthDimensionFramework`, `healthDimension`). These fields travel with the signal definition from onboarding forward.
+**Per-layer health dimensions.** The current capture model additionally classifies every signal by a layer-native dimension framework — APQC (Effectiveness / Efficiency / Adaptability) at Business Health; Golden Signals or RED as a per-signal fit choice at Application (RED for request-driven services); USE (Utilization / Saturation / Errors) at System. The framework follows from the layer; the dimension within it is a judgment call by the signal's owner, captured at onboarding and carried in the pipeline record (`healthDimensionFramework`, `healthDimension`). These fields travel with the signal definition from onboarding forward.
 
 ## Outputs
 
