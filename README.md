@@ -1,6 +1,6 @@
 # Copilot Skills, Agents & Reference Packages
 
-Reusable GitHub Copilot skills and agents for structured thinking, writing, and analysis, plus a set of reference packages on observability practice.
+Reusable GitHub Copilot skills and agents for structured thinking, writing, and analysis, plus a set of reference packages on observability and engineering practice.
 
 ## Skills (`skills/`)
 
@@ -38,6 +38,7 @@ Reusable GitHub Copilot skills and agents for structured thinking, writing, and 
 | **observability-capability-gap.md** | A worked articulation of a platform capability gap against an observability standard — why dependency, producer, and internal errors fall outside a common APM metric model, and what that costs. |
 | **meeting-delegate** | A package for the meeting-delegate practice (start-here, the practice, acceptance test). |
 | **portfolio-coverage-operating-perspective.md** | An operating perspective for reasoning about observability coverage across a service portfolio. |
+| **ai-credit-cap-justification.md** | Argument architecture for justifying an AI-assistant credit-cap increase — the answer-with-context method, per-question structure, candidate framings, and cautions. |
 
 ## Install
 
