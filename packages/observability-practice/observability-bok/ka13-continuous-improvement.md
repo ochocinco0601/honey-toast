@@ -1,7 +1,9 @@
 # KA13 — Continuous Improvement
 
 **Category:** Management Practice
+
 **Primary owner:** Practice Lead
+
 **Question this KA answers:** Is the observability practice itself getting better?
 
 ---
@@ -11,6 +13,7 @@
 This KA covers how the observability practice evolves. Practice metrics, maturity assessment, lessons learned, benchmarking, and adaptation. KA13 closes the management loop — measuring whether the practice is healthy and driving improvement when it isn't. The observability lifecycle ([KA01](ka01-business-context.md)-[KA05](ka05-incident-response.md)) makes services observable. KA13 makes the practice itself observable.
 
 **What's in scope:**
+
 - Practice metrics and KPIs — measuring the practice: adoption rate, time-to-value, coverage
 - Maturity assessment — where are we on the journey? Structured evaluation across dimensions
 - Lessons learned and knowledge capture — systematic capture of what works and what doesn't
@@ -18,6 +21,7 @@ This KA covers how the observability practice evolves. Practice metrics, maturit
 - Evolution and adaptation — how the practice adapts to changing context
 
 **What's out of scope:**
+
 - Incident-level improvement ([KA05](ka05-incident-response.md)) — postmortems improve specific services; KA13 improves the practice
 - Strategic direction ([KA09](ka09-strategy-program.md)) — KA13 measures, [KA09](ka09-strategy-program.md) directs
 - Tool-level improvement ([KA06](ka06-platform-tooling.md)) — KA13 assesses the whole practice, not specific platform capabilities
@@ -30,9 +34,9 @@ This KA covers how the observability practice evolves. Practice metrics, maturit
 
 A reference program's annual OKR set defines quantified practice metrics:
 
-- **KR1:** Methodology validation — business observability framework proven on N real services
-- **KR2:** Implementation — N services instrumented across all 4 layers
-- **KR3:** Cross-org adoption — N lines of business using the methodology
+- **KR1:** Methodology validation — business observability framework proven on real services
+- **KR2:** Implementation — services instrumented across all 4 layers
+- **KR3:** Cross-org adoption — lines of business using the methodology
 - **KR4:** Enterprise integration — business observability positioned within enterprise architecture
 
 Each KR has measures that track practice health, not just service health. The Service Status evaluation ([KA03](ka03-standards-quality.md)) measures individual services. KR metrics measure the portfolio.
@@ -44,7 +48,7 @@ Each KR has measures that track practice health, not just service health. The Se
 A division-level maturity assessment provides a structured evaluation framework:
 
 - **2-dimension matrix:** technical maturity × organizational maturity
-- **Applied at portfolio scale** — hundreds of applications assessed in the reference implementation
+- **Applied at portfolio scale** — across a division's full application inventory
 - **Industry backing:** 11 maturity models from AWS, Grafana, Splunk, New Relic, Honeycomb, Dynatrace, DORA, and others converge on the same maturity arc
 
 The four stages (Identified → Contextualized → Instrumented → Operationalized) map to who does the work:
@@ -62,7 +66,7 @@ Two capture mechanisms exist:
 - **Friction logging** — real-time capture during onboarding simulations ([KA12](ka12-adoption-enablement.md)). Issues logged as they happen: what didn't work, context, workaround, recommendation. Forward momentum — capture and continue, analyze after.
 - **Working-session insights** — knowledge discovered during AI-assisted work that has cross-session value, captured in durable notes rather than left in conversation history.
 
-The contributions queue (KA-specific) stages validated knowledge from other workstreams for inclusion in KA pages — a knowledge capture mechanism that prevents both premature inclusion and loss.
+The contributions queue (KA-specific) stages validated knowledge for inclusion in KA pages — a knowledge capture mechanism that prevents both premature inclusion and loss.
 
 ### Benchmarking & External Reference
 
@@ -105,7 +109,7 @@ Evolution practices are typically embedded in how work gets done — schema chan
 
 ## 4. Roles & Responsibilities
 
-| Activity | Practice Lead / PE | Leadership | Team Leads |
+| Activity | Practice Lead | Leadership | Team Leads |
 |----------|:---:|:---:|:---:|
 | Define practice metrics | **Own** | Approve | Contribute (team-level metrics) |
 | Run maturity assessments | **Own** | Consume results | Participate |

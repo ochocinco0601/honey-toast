@@ -1,7 +1,9 @@
 # KA09 — Strategy & Program Management
 
 **Category:** Management Practice
+
 **Primary owner:** Leadership / Practice Lead
+
 **Question this KA answers:** How does observability align with enterprise direction?
 
 ---
@@ -11,6 +13,7 @@
 This KA covers how observability aligns with enterprise strategy. Program structure, theme prioritization, operating model design, roadmap management, assumption-based planning, and investment justification. KA09 is where "what we're building" connects to "why the enterprise cares."
 
 **What's in scope:**
+
 - Enterprise alignment — connecting observability to business strategy, OKRs
 - Program structure and governance — working groups, decision rights, cadence
 - Theme prioritization — identifying and sequencing strategic themes
@@ -20,6 +23,7 @@ This KA covers how observability aligns with enterprise strategy. Program struct
 - Investment justification — making the business case for observability
 
 **What's out of scope:**
+
 - Stakeholder engagement tactics ([KA10](ka10-stakeholder-engagement.md)) — KA09 sets strategy, [KA10](ka10-stakeholder-engagement.md) engages people
 - Organizational capability ([KA11](ka11-organizational-capability.md)) — KA09 plans, [KA11](ka11-organizational-capability.md) builds capability
 - Adoption execution ([KA12](ka12-adoption-enablement.md)) — KA09 prioritizes, [KA12](ka12-adoption-enablement.md) delivers
@@ -30,7 +34,7 @@ This KA covers how observability aligns with enterprise strategy. Program struct
 
 ### Enterprise Alignment
 
-One workable cascade structure — the reference program's — uses four Key Results:
+One workable cascade structure uses four Key Results:
 
 - **KR1:** Methodology validation — framework proven on real services
 - **KR2:** Implementation — services instrumented across layers
@@ -57,13 +61,13 @@ A factory model for business observability practice defines how work is produced
 - **3 input personas:** PO (business context), Developer (technical), Platform (operational)
 - **1 PO action → 5+ automated outputs** — the scale multiplier
 
-For the business-observability practice itself, the operating-model shape is decided along two separate architectures: **production is central** — one shared factory produces every team's artifacts, CI/CD-shaped (nobody argues each team should run its own build infrastructure) — and **adoption is franchise** — each line of business takes on the practices, contributes its own inputs, and is validated against the spec before going live. Collapsing the two into a single centralized-vs-federated axis is the documented trap.
+For the business-observability practice itself, the operating-model shape is decided along two separate architectures: **production is central** — one shared factory produces every team's artifacts, CI/CD-shaped (nobody argues each team should run its own build infrastructure) — and **adoption is franchise** — each line of business takes on the practices, contributes its own inputs, and is validated against the spec before going live. Collapsing the two into a single centralized-vs-federated axis is the trap to avoid.
 
 For the *enterprise observability landscape* beyond the practice, a candidate operating-model pattern is **service-provider federation**: named providers own specific capabilities across the enterprise (e.g., one provider owns business-service mapping, another owns holistic views, a third owns anomaly detection as a service). This is one candidate among several; what tends to land across operating-model debates is the principle **"common where possible, custom where needed"** — capabilities teams can share go in the common platform, with LOB specificity carried in the outputs.
 
 ### Roadmap & Altitude Cascade
 
-Hoshin Kanri provides the cascade mechanism: enterprise strategy → division goals → team actions. In the reference program, annual objectives cascade into quarterly milestones.
+Hoshin Kanri provides the cascade mechanism: enterprise strategy → division goals → team actions. Annual objectives cascade into quarterly milestones.
 
 ### Assumption-Based Planning
 
@@ -73,11 +77,11 @@ Prior art: ABP (Dewar, *Assumption-Based Planning*) — identify assumptions, cl
 
 ### Investment Justification & Value Demonstration
 
-Making the business case: connecting observability outcomes to business value. A worked case study in the reference implementation (a credit-check service) demonstrates the pattern — faster business-impact assessment during incidents expressed in dollar terms, faster detection in customer impact terms.
+Making the business case: connecting observability outcomes to business value. The pattern: connect one named dimension — business-impact assessment speed, detection speed — to a statement in dollar or customer-impact terms.
 
 Published industry maturity models provide ROI benchmarks. The dimensional decomposition approach: attribute value to the specific dimension the investment moves, not claiming credit for aggregate metrics.
 
-Dimensional value attribution is the discipline: claim value for the specific dimension the investment moves, not the aggregate metric the entire organization contributes to. MTTR is the canonical counter-example — a multi-phase aggregate (detection, diagnosis, impact assessment, resolution, communication) that no single initiative honestly claims. Business observability's honest dimension within it is **business-impact assessment speed** ("which customers are affected, what revenue is at risk, what to prioritize" — from >30 minutes to <10). Other honest dimensions: detection latency to avoided impact, proactive identification to risk reduction. "Reduce MTTR" as a claimed outcome is the dishonest form — it claims phases the investment doesn't touch.
+Dimensional value attribution is the discipline: claim value for the specific dimension the investment moves, not the aggregate metric the entire organization contributes to. MTTR is the canonical counter-example — a multi-phase aggregate (detection, diagnosis, impact assessment, resolution, communication) that no single initiative honestly claims. Business observability's honest dimension within it is **business-impact assessment speed** ("which customers are affected, what revenue is at risk, what to prioritize"). Other honest dimensions: detection latency to avoided impact, proactive identification to risk reduction. "Reduce MTTR" as a claimed outcome is the dishonest form — it claims phases the investment doesn't touch.
 
 ---
 
@@ -102,7 +106,7 @@ Dimensional value attribution is the discipline: claim value for the specific di
 
 ## 4. Roles & Responsibilities
 
-| Activity | Practice Lead / PE | Leadership (MD/VP) | Platform Lead |
+| Activity | Practice Lead | Leadership (MD/VP) | Platform Lead |
 |----------|:---:|:---:|:---:|
 | Enterprise alignment | **Own** | Validate + sponsor | Contribute |
 | Program governance design | Contribute | **Own** | Contribute |
@@ -185,4 +189,4 @@ These instruments operationalize KA09 knowledge — a practitioner doing strateg
 | [KA09.6](ka09-strategy-program.md#assumption-based-planning) Assumption-Based Planning | **Seeded** | One ABP instance. Not reusable methodology. |
 | [KA09.7](ka09-strategy-program.md#investment-justification-value-demonstration) Investment Justification | **Seeded** | Evidence assembled. Not organized as reusable methodology. |
 
-**KA09 summary:** 2/7 Current, 5 Seeded. Strategic content is rich but instance-specific. The consistent gap: real strategic work has been done but hasn't been extracted into reusable methodology.
+**KA09 summary:** 2/7 Current, 5 Seeded. Strategic content is rich but instance-specific. The consistent gap: the strategic content is not yet extracted into reusable methodology.

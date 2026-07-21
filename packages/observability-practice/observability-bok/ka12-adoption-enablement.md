@@ -1,7 +1,9 @@
 # KA12 — Adoption & Enablement
 
 **Category:** Management Practice
-**Primary owner:** Practice Lead / PE
+
+**Primary owner:** Practice Lead
+
 **Question this KA answers:** How do teams actually adopt and sustain observability practices?
 
 ---
@@ -11,13 +13,15 @@
 This KA covers the gap between "the methodology exists" and "teams are using it." A body of knowledge that isn't adopted is an artifact. Adoption is how structured observability practice reaches teams — through onboarding flows, transfer packages, pilot programs, scaling patterns, and AI-mediated distribution.
 
 **What's in scope:**
+
 - First experience and onboarding — what a team does on day one
-- Transfer packages that teams can adopt without the PE in the room
+- Transfer packages that teams can adopt without a principal engineer in the room
 - Pilot design — how to run a controlled test with success criteria and feedback
 - Scaling from pilot to division to enterprise
 - AI agents as the distribution mechanism for methodology (practice distribution)
 
 **What's out of scope:**
+
 - The methodology itself ([KA01](ka01-business-context.md)-[KA05](ka05-incident-response.md)) — KA12 distributes it, doesn't define it
 - Stakeholder engagement and organizational politics ([KA10](ka10-stakeholder-engagement.md)) — KA12 depends on [KA10](ka10-stakeholder-engagement.md) creating the pull
 - Organizational capability and team structure ([KA11](ka11-organizational-capability.md)) — KA12 is constrained by [KA11](ka11-organizational-capability.md)'s ceiling
@@ -40,14 +44,14 @@ The first interaction a team has with business observability determines whether 
 
 The layer of every signal is structural — derived from where in the chain it is captured, never asked as a question — and traceability is produced by the capture nesting itself, never reconnected afterward. A conditional stratum activates only when a workflow step is software that can be *confidently wrong* (an agentic decision point). Verification is mandatory, not optional: cross-reference integrity checks, a generated entity page, and an independent content check against the sources, all before the result reaches human review.
 
-An earlier browser-based onboarding tool implements capture as an 8-step form workflow (service basics → stakeholder expectations → business signals and SLO configuration → technical signals → impact → preview and CSV export). Its capture flow predates the motivation-chain restructuring; it remains the interactive training surface ([IN-16](instruments/in-16-onboarding-simulation.md)), with two modes worth keeping by design:
+The training surface walks the same capture content in an entity-by-entity step order (service basics → stakeholder expectations → business signals and SLO configuration → technical signals → impact → preview and export). That order predates the motivation-chain restructuring ([IN-16](instruments/in-16-onboarding-simulation.md)), and two of its modes are worth keeping by design:
 
 - **Learn mode** — progressive disclosure with explanations, "why this matters" content, good/bad examples at each step. For POs encountering the methodology for the first time.
 - **Fast mode** — minimized instructional content for experienced users. Same forms, less guidance.
 
-A worked example service is built into the tool — a Product Owner can load it with one click to see what a completed service looks like before filling in their own.
+A worked example service should ship with the capture surface, loadable in one step, so a Product Owner sees what a completed service looks like before filling in their own.
 
-The first service profile takes approximately 15 minutes with AI-assisted pre-population. The methodology proves itself through use — the PO who completes one profile understands the four-layer model because they just applied it, not because they read about it.
+A first service profile is a short session with AI-assisted pre-population. The methodology proves itself through use — the PO who completes one profile understands the four-layer model because they just applied it, not because they read about it.
 
 **Self-service tool discovery** is a recurring enterprise onboarding gap. The practitioner framing: "I have an app ID — tell me which tools apply, what's configured, what's missing." App owners face fragmented documentation and cannot self-serve into the right observability tool. This is an unmet sub-topic within onboarding — a navigation/discovery layer that requires [KA06.1](ka06-platform-tooling.md#tool-landscape-selection) (Tool Landscape & Selection) to supply the underlying content.
 
@@ -56,23 +60,27 @@ The first service profile takes approximately 15 minutes with AI-assisted pre-po
 A transfer package is a self-contained artifact set that a team can adopt without the methodology author present. The portfolio includes:
 
 **CSV-based transfer:**
+
 - 5 structured CSV templates (services, stakeholder expectations, signal definitions, impact signals, operational metadata) that capture a service profile
 - Templates match the system-of-record format — data entered here flows directly into the pipeline
 - Filled examples alongside blank templates so teams can see what good data looks like
 
 **Batch metadata extraction:**
+
 - For services with existing batch jobs or scheduled processes, a specialized extraction package captures business observability metadata from existing documentation
 - Includes SOP (standard operating procedure) for batch job onboarding
-- Piloted with general-ledger reconciliation batch jobs
+- Applicable to scheduled and reconciliation batch workloads
 
 **Domain context transfer for AI agents:**
+
 - A comprehensive onboarding document that brings an AI agent to practitioner-level understanding of the business observability domain
 - Written for the instruction-following level typical of enterprise AI-assistant environments
 - Covers: four-layer model, semantic flow, factory model, lifecycle, stakeholder context, terminology
 - The agent reads this once and can then reason about observability conversations, not just retrieve facts
 
 **AI-assistant capability transfer:**
-- Portable skills (editorial governance, right-thing-right-way, systems analysis, requirements, value analysis, and others) packaged for enterprise AI-assistant adoption
+
+- Portable skills (editorial governance, systems analysis, requirements, value analysis, and others) packaged for enterprise AI-assistant adoption
 - Each skill includes a SETUP.md — imperative instructions the receiving AI agent reads and executes
 - Evaluation methodology for assessing which skills transfer well and which lose too much capability
 
@@ -81,18 +89,21 @@ A transfer package is a self-contained artifact set that a team can adopt withou
 A pilot is a controlled test of the methodology with a specific team or service, producing structured feedback. Two pilot approaches have been documented:
 
 **Simulation protocol:**
-- A repeatable guided walkthrough using the onboarding tool with real services
-- Uses browser DevTools integration for AI-assisted observation and assistance in real time
+
+- A repeatable guided walkthrough run against real services
+- Supports AI-assisted observation and assistance during the session
 - Produces: CSV data files, session checkpoints (for resume), friction logs (what didn't work)
 - Friction logging is real-time — issues are captured as they arise, not reconstructed afterward
 - Triage during simulation: workaround and continue (log it) > complete blocker (pause and discuss) > need user context (ask, capture, continue)
 
 **Batch-reconciliation pilot:**
-- Batch job metadata pilot using real general-ledger reconciliation processes
-- Produced: dashboard panels (HTML + Grafana JSON), metadata YAML, SQL records, alert definitions, playbooks, filled example CSVs, onboarding SOP
-- Demonstrated the full artifact chain: PO input → factory output (dashboard, alerts, playbook)
+
+- A batch-metadata extraction pattern for scheduled and reconciliation workloads
+- Produces: dashboard panels, metadata definitions, structured records, alert definitions, playbooks, filled example CSVs, an onboarding SOP
+- Exercises the full artifact chain: PO input → factory output (dashboard, alerts, playbook)
 
 **What a pilot measures:**
+
 - Time to complete first service profile (target: <30 minutes for PO sections)
 - Friction points — where the workflow confused or blocked the user
 - Data quality — did the PO produce stakeholder expectations and signals that are specific and actionable?
@@ -105,7 +116,8 @@ Moving from pilot to division to enterprise requires different mechanisms at eac
 A typical annual target set references double-digit teams adopting the methodology, transitioning from practice-lead-embedded support to team-independent adoption. The scaling constraint: embedded-support models don't scale — teams need to adopt independently using transfer packages and AI-mediated tools.
 
 **Scaling principles:**
-- **Production is central; adoption is franchise.** Two different architectures, not one centralized-vs-federated axis. One shared factory produces every team's artifacts — CI/CD-shaped, the way nobody argues each team should run its own build infrastructure. Each line of business adopts franchise-style: it learns the practices, owns its inputs (service context, expectations), plugs into the central machinery, and is validated against the spec before its services go live. Collapsing the two — "give each LOB their own packaged instance to run locally" — is the documented trap.
+
+- **Production is central; adoption is franchise.** Two different architectures, not one centralized-vs-federated axis. One shared factory produces every team's artifacts — CI/CD-shaped, the way nobody argues each team should run its own build infrastructure. Each line of business adopts franchise-style: it learns the practices, owns its inputs (service context, expectations), plugs into the central machinery, and is validated against the spec before its services go live. Collapsing the two — "give each LOB their own packaged instance to run locally" — is the trap to avoid.
 - **Common where possible, custom where needed.** The methodology core is common across teams; the service-specific content is custom per team — carried in the outputs, not in per-team production machinery.
 - **Self-serve over standing training programs.** The scaling question is not "how do we train 500 POs" but "how do we make the methodology self-serve." Franchise adoption still includes learning the practices — enablement kits and AI-mediated tools are how that learning scales without classroom dependency.
 
@@ -118,9 +130,9 @@ The core insight: instead of training people in a methodology and hoping they ap
 **How this works in practice:**
 
 1. **Domain context transfer** — the AI agent reads a comprehensive onboarding document and achieves practitioner-level understanding of the business observability domain
-2. **Portable skills** — methodology is encoded as agent skills (right-thing-right-way, requirements, systems analysis, editorial governance) that the agent executes during normal work
+2. **Portable skills** — methodology is encoded as agent skills (requirements, systems analysis, editorial governance) that the agent executes during normal work
 3. **Pre-population** — the agent drafts service profiles from existing Confluence and Jira content, marked "NEEDS PO VALIDATION." The PO reviews and adjusts rather than writing from scratch.
-4. **In-workflow guidance** — the onboarding tool includes an AI-assistant prompt generator that produces context-specific prompts. The PO clicks a button, gets a prompt that includes their service name and entered data, pastes it into the AI assistant, and gets a draft.
+4. **In-workflow guidance** — a capture surface can generate a context-specific AI prompt pre-filled with the service name and the data already entered. The PO takes that prompt to an AI assistant and gets a draft back, needing no prompt-engineering skill.
 
 **Patterns in practice:**
 1. **Methodology-as-agent-skills** — portable skills transfer (AI coding assistants), onboarding agents, domain context transfer documents
@@ -170,7 +182,7 @@ KA12 owns steps 2-7. Step 1 is [KA10](ka10-stakeholder-engagement.md) (Stakehold
 
 ## 4. Roles & Responsibilities
 
-| Activity | PE / Practice Lead | Product Owner | Developer | Platform/SRE |
+| Activity | Principal engineer / Practice Lead | Product Owner | Developer | Platform/SRE |
 |----------|:---:|:---:|:---:|:---:|
 | Design onboarding workflow | **Own** | Validate (usability) | — | — |
 | Create transfer packages | **Own** | Review (content) | Review (tech) | Review (ops) |
@@ -179,7 +191,7 @@ KA12 owns steps 2-7. Step 1 is [KA10](ka10-stakeholder-engagement.md) (Stakehold
 | Configure AI agents for the enterprise environment | **Own** | — | — | — |
 | Scale to new teams | **Initiate** | **Own** (for their team) | — | — |
 
-The PE is the primary actor for designing and enabling adoption. Once a team adopts, the PO owns ongoing use within their service portfolio. The scaling shift: from PE-facilitated to PO-independent.
+The principal engineer is the primary actor for designing and enabling adoption. Once a team adopts, the PO owns ongoing use within their service portfolio. The scaling shift: from principal-engineer-facilitated to PO-independent.
 
 ---
 
@@ -211,10 +223,10 @@ These instruments operationalize KA12 knowledge — a practitioner doing adoptio
 ### Techniques
 
 - **Two-mode onboarding** — Learn mode (progressive disclosure) for first time, Fast mode for experienced users. Same tool, different information density.
-- **Example-first** — Built-in Credit Check Service example that loads with one click. POs see the finished product before filling in their own.
+- **Example-first** — a worked example that loads in one step. POs see the finished product before filling in their own.
 - **Friction logging** — Real-time capture during pilots: issue, context, workaround, recommendation. 30 seconds per entry. Analyzed after completion, not during.
 - **AI agent onboarding (SETUP.md pattern)** — AI-consumable setup documents the receiving agent reads and executes. Imperative steps, explicit branching, validation tests, troubleshooting.
-- **AI-assistant prompt generator** — In-tool button that produces context-specific AI prompts including the user's already-entered data. No prompt engineering skill required from the PO.
+- **AI-assistant prompt generator** — produces context-specific AI prompts including the user's already-entered data. No prompt engineering skill required from the PO.
 
 ---
 
@@ -250,8 +262,8 @@ These instruments operationalize KA12 knowledge — a practitioner doing adoptio
 | ------- | ------- | ------- |
 | [KA12.1](ka12-adoption-enablement.md#onboarding-first-experience) Onboarding & First Experience | **Current** | Motivation-chain instrument documented as the active process (structural layers, coverage gates, mandatory verification); earlier 8-step tool workflow retained as the training surface. Gap: self-service tool discovery sub-topic. |
 | [KA12.2](ka12-adoption-enablement.md#transfer-packages-enablement-kits) Transfer Packages & Enablement Kits | **Current** | CSV export, batch extraction, domain context transfer, AI-assistant capability transfer. Multiple packages across different adoption scenarios. |
-| [KA12.3](ka12-adoption-enablement.md#pilot-design-execution) Pilot Design & Execution | **Current** | Simulation protocol with friction logging. GL reconciliation pilot documented with full artifact chain. Two domains tested. |
-| [KA12.4](ka12-adoption-enablement.md#scaling-patterns) Scaling Patterns | **Seeded** | Annual program targets double-digit team adoption. Scaling constraint identified (embedded-support model doesn't scale). The adoption architecture is decided (production central / adoption franchise; five design surfaces named) — what doesn't exist is its enterprise instantiation, the operational playbook. **This is the primary gap in KA12.** |
+| [KA12.3](ka12-adoption-enablement.md#pilot-design-execution) Pilot Design & Execution | **Current** | Simulation protocol with friction logging. A batch-metadata pilot pattern documented with the full artifact chain, across multiple workload domains. |
+| [KA12.4](ka12-adoption-enablement.md#scaling-patterns) Scaling Patterns | **Seeded** | A typical annual target set references double-digit team adoption. Scaling constraint identified (embedded-support model doesn't scale). The adoption architecture is decided (production central / adoption franchise; five design surfaces named) — what doesn't exist is its enterprise instantiation, the operational playbook. **This is the primary gap in KA12.** |
 | [KA12.5](ka12-adoption-enablement.md#ai-mediated-practice-distribution) AI-Mediated Practice Distribution | **Current** | Multiple mechanisms documented. Two enterprise-scale patterns in view: methodology-as-agent-skills and crowdsourced agent libraries. |
 
 **KA12 summary:** 4/5 topics Current, 1 Seeded. The gap is [KA12.4](ka12-adoption-enablement.md#scaling-patterns) (Scaling Patterns) — the principles exist but the operational playbook for enterprise scaling doesn't.

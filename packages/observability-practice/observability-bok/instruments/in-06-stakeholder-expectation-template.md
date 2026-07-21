@@ -1,7 +1,9 @@
 # IN-06 — Stakeholder Expectation Template
 
 **Type:** Definition
+
 **State:** Current
+
 **Lifecycle position:** Define
 
 ---
@@ -58,11 +60,13 @@ One row per expectation. Fields:
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - Immediately after service registration ([IN-04](in-04-service-profile-template.md)) — this is the Product Owner's next action
 - During discovery dialogues ([IN-19](in-19-discovery-dialogue-protocol.md)) — the conversation produces expectation rows
 - When stakeholder needs change — expectations are evergreen, updated when the business changes
 
 **Related instruments:**
+
 - [IN-04 Service Profile Template](in-04-service-profile-template.md) — service must exist before expectations can be captured
 - [IN-05 Signal Definition Template](in-05-signal-definition-template.md) — signals measure whether expectations are met
 - [IN-19 Discovery Dialogue Protocol](in-19-discovery-dialogue-protocol.md) — the facilitation guide for the conversation that produces these rows

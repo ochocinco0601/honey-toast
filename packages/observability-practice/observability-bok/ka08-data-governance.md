@@ -1,7 +1,9 @@
 # KA08 — Data Management & Governance
 
 **Category:** Enabling Practice
+
 **Primary owner:** Practice Lead / Data Governance
+
 **Question this KA answers:** How do we maintain data coherence at scale?
 
 ---
@@ -11,6 +13,7 @@
 This KA covers how the observability practice maintains data coherence at scale. Service catalog, naming standards, data quality, schema management, ownership accountability, and telemetry security. The hardest problem in any registry effort is keeping it current — KA08 is where that challenge lives.
 
 **What's in scope:**
+
 - Service catalog and capability registry — central inventory of services and metadata
 - Naming standards and conventions — enterprise-wide naming consistency
 - Data quality and currency — keeping the knowledge base current
@@ -19,6 +22,7 @@ This KA covers how the observability practice maintains data coherence at scale.
 - Telemetry security, privacy, and access control
 
 **What's out of scope:**
+
 - Enforcement mechanisms ([KA03](ka03-standards-quality.md)) — KA08 defines governance, [KA03](ka03-standards-quality.md) enforces it
 - Platform data storage ([KA06](ka06-platform-tooling.md)) — KA08 governs what's stored, [KA06](ka06-platform-tooling.md) manages how
 
@@ -45,7 +49,7 @@ Key naming conventions:
 
 ### Data Quality & Currency
 
-In the reference implementation, the system of record tracks schema evolution through versioned migrations. Enhancement logs document what changed and why. CSV quality validation catches format issues at import.
+The system of record tracks schema evolution through versioned migrations. Enhancement logs document what changed and why. CSV quality validation catches format issues at import.
 
 **The currency challenge:** Service profiles degrade over time — stakeholders change, SLO targets need adjustment, new failure modes emerge. The Service Status evaluation ([KA03](ka03-standards-quality.md)) measures completeness at a point in time; keeping profiles current over time requires a separate mechanism. This is the "stale service catalog" problem every registry effort faces.
 
@@ -58,10 +62,10 @@ Complete schema lifecycle documented:
 - **Versioned DDL:** Schema definitions in SQL with version numbers
 - **Migration scripts:** Transition scripts between schema versions
 - **ORM layer:** Object-relational mapping for programmatic access
-- **Propagation:** Schema changes must propagate to 7 artifacts (DDL, migrations, ORM, CSV, forms, dashboards, docs)
-- **Next-version design:** Proposed next-generation schema with expanded capabilities
+- **Propagation:** Schema changes must propagate to every downstream artifact — DDL, migrations, data access, import format, capture surfaces, dashboards, docs
+- **Successor schema:** a designed next-generation schema is part of the lifecycle
 
-The `ui_field_metadata` table is the source of truth for field definitions — schema changes require metadata regeneration.
+A field-metadata registry is the source of truth for field definitions — schema changes require metadata regeneration.
 
 ### Ownership & Accountability
 
@@ -129,7 +133,7 @@ These instruments operationalize KA08 knowledge — a practitioner doing data go
 | Schema migration history | Versioned evolution of the data model with rationale for each change |
 | Data quality validation rules | Known quality patterns, conditional validation, schema enforcement |
 | Enhancement log | Schema change history with rationale |
-| Schema evolution proposal | Next-generation schema design under review |
+| Schema evolution proposal | A designed successor schema as part of the lifecycle |
 
 ---
 
@@ -159,7 +163,7 @@ These instruments operationalize KA08 knowledge — a practitioner doing data go
 
 | Topic | State | Notes |
 | ------- | ------- | ------- |
-| [KA08.1](ka08-data-governance.md#service-catalog-capability-registry) Service Catalog & Capability Registry | **Current** | Real service catalog with 15+ field schema. |
+| [KA08.1](ka08-data-governance.md#service-catalog-capability-registry) Service Catalog & Capability Registry | **Current** | Service catalog with a 15+ field schema. |
 | [KA08.2](ka08-data-governance.md#naming-standards-conventions) Naming Standards & Conventions | **Current** | Controlled vocabulary, practitioner-referenceable. |
 | [KA08.3](ka08-data-governance.md#data-quality-currency) Data Quality & Currency | **Current** | Schema versioning, CSV quality validation, enhancement logging. |
 | [KA08.4](ka08-data-governance.md#schema-management) Schema Management | **Current** | Complete schema lifecycle: DDL, migrations, ORM, propagation rules, next-version proposal. |

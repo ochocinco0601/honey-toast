@@ -1,8 +1,11 @@
 # KA04 — Monitoring, Visualization & Correlation
 
 **Category:** Core Practice
+
 **Lifecycle stage:** Observe
+
 **Primary owner:** Platform / SRE
+
 **Question this KA answers:** What views make health visible?
 
 ---
@@ -12,6 +15,7 @@
 This KA covers how signals become visible and actionable. Once business context is defined ([KA01](ka01-business-context.md)), signals are designed ([KA02](ka02-signal-design.md)), and standards are enforced ([KA03](ka03-standards-quality.md)), KA04 is where health becomes observable — through dashboards, real-time monitoring, cross-signal correlation, and the investigation workflows that turn alerts into understanding.
 
 **What's in scope:**
+
 - Dashboard design — consistent patterns across executive, operational, and team views
 - Real-time monitoring — continuous observation of signal streams, threshold alerting
 - Cross-signal correlation — connecting signals across services, layers, and tools
@@ -20,6 +24,7 @@ This KA covers how signals become visible and actionable. Once business context 
 - Exploratory analysis — the hypothesis-driven investigation that distinguishes observability from monitoring
 
 **What's out of scope:**
+
 - Signal design and instrumentation ([KA02](ka02-signal-design.md)) — KA04 visualizes what [KA02](ka02-signal-design.md) produces
 - Standards enforcement and quality gates ([KA03](ka03-standards-quality.md))
 - Incident response and triage procedures ([KA05](ka05-incident-response.md)) — KA04 surfaces the signals, [KA05](ka05-incident-response.md) acts on them
@@ -59,6 +64,7 @@ This order reflects early-adoption reality: most services have operational signa
 *Known divergence:* the canonical four-layer model orders dashboard content Business Health first among signal layers. This Service Detail sequencing deliberately departs from that for the early-adoption case (the business-first intent is carried by stakeholder expectations leading the view). Whether the canonical order gains an explicit adoption-phase exception or this sequencing conforms is an open reconciliation decision — until it is ruled, this page names the divergence instead of hiding it.
 
 **Signal trust hierarchy:**
+
 - **SLI (highest)** — actual measurement of user-facing service health. This IS what's happening.
 - **Operational signals (high)** — component health measurements. These components ARE functioning/failing.
 - **Business impact estimates (lower)** — calculated from assumptions. Directionally useful, not perfectly accurate. Must communicate uncertainty: prefix with "~", use "Estimated Impact" not "Current Impact."
@@ -88,6 +94,7 @@ Business observability is not the monitoring tool. It produces the blueprints �
 Correlation connects signals across services, layers, and tools to surface patterns that no single signal reveals. This is where the [four-layer model](the-methodology.md)'s value becomes operational — a Business Health miss correlated with System/Application degradation points to root cause; a Business Health miss without System/Application degradation points to a business logic problem.
 
 **What correlation answers:**
+
 - When Business Health drops, which System/Application signals moved? (mechanism identification)
 - When multiple services degrade simultaneously, is there a shared dependency? (blast radius)
 - When an alert fires, what changed in the last 30 minutes? (change correlation)
@@ -100,10 +107,10 @@ Correlation connects signals across services, layers, and tools to surface patte
 | All Clear | all healthy | Baseline — no action |
 | Silent Business Failure | System/Application healthy, Business Health degraded | The pattern that justifies business observability — invisible to traditional monitoring. Investigate business logic, configuration, upstream data |
 | Infrastructure Noise | System degraded, nothing propagated | Real alert, no incident — monitor, don't escalate |
-| Infrastructure Cascade | System degradation propagating to Process and Business Health | Root cause in infrastructure — classic incident response |
-| Process Failure | Process degraded, System healthy | Application defect — mechanism broken, platform fine |
+| Infrastructure Cascade | System degradation propagating to Application and Business Health | Root cause in infrastructure — classic incident response |
+| Application Failure | Application degraded, System healthy | Application defect — mechanism broken, platform fine |
 | Multi-Layer Degradation | multiple layers degraded | Major incident — prioritize by Business Impact |
-| Contained Process Issue | Process degraded, Business Health still healthy | Defect absorbed by redundancy — fix without escalation |
+| Contained Application Issue | Application degraded, Business Health still healthy | Defect absorbed by redundancy — fix without escalation |
 
 What remains unsolved is the cross-**service**, cross-**tool** half: correlating signals across service boundaries and platforms. Most enterprises lack a unified methodology there; the operational symptom is multi-tool triage — responders pivoting across dashboards and platforms to correlate what should be a single view. Event correlation draws on the SLI triage investigation framework and pathpoint patterns for hierarchical navigation.
 
@@ -126,6 +133,7 @@ Aggregate views showing business outcome health, not just system metrics. This i
 A business health view hierarchy (product lines → products → services) is itself a presentation pattern: at the top, a product line shows aggregate status across all its products; a product shows aggregate status across its services. Color coding (healthy/degraded/critical) with short-horizon sparklines gives trend at a glance.
 
 **Key design principles for business health views:**
+
 - Status dots and color coding must reflect business health (Business Health layer signals), not system health (System layer signals)
 - Coverage metrics (e.g., "N of M services have definitions") show how much of the portfolio has observability definitions — making gaps visible
 - Sparklines show trend, not just current state — a service that's been degraded for 6 hours is different from one that just turned red
@@ -145,6 +153,7 @@ The capability that distinguishes observability from monitoring: asking novel qu
 For services onboarded with the current capture instrument, investigation starts from the signal's **descent link** — the structural investigation path (signal → process step → sub-capability → component → diagnostics) assembled at definition time ([KA05](ka05-incident-response.md#playbook-design-execution)) — with the failure-mode templates below supplying what to check along it.
 
 **Investigation templates by failure mode:**
+
 - **Sudden drop** — circuit breaker patterns, dependency failures. Look for: change events, deployment timestamps, upstream service health.
 - **Gradual degradation** — resource exhaustion, data growth. Look for: trend lines, capacity thresholds, queue depths.
 - **Intermittent issues** — network problems, race conditions. Look for: error distribution patterns, time-of-day correlation, geographic distribution.

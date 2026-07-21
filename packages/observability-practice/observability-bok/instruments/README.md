@@ -7,8 +7,9 @@ This is the **Act** axis of the BOK. See [How the BOK is Organized](../how-the-b
 **Pattern:** Adapted from BABOK v3 Techniques Chapter (IIBA) — instruments cataloged independently from Knowledge Areas, cross-referenced bidirectionally.
 
 **How to use this catalog:**
+
 - **PO looking for "what do I fill out?"** → Browse [Definition Instruments](#definition-instruments)
-- **PE measuring portfolio state** → Browse [Assessment Instruments](#assessment-instruments)
+- **A principal engineer measuring portfolio state** → Browse [Assessment Instruments](#assessment-instruments)
 - **Platform lead setting up production artifacts** → Browse [Production Instruments](#production-instruments)
 - **Team onboarding to the practice** → Browse [Adoption Instruments](#adoption-instruments)
 - **Preparing stakeholder communications** → Browse [Communication Instruments](#communication-instruments)

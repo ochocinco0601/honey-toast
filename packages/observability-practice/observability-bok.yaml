@@ -614,7 +614,7 @@ knowledge_areas:
     topics:
       - id: "KA11.1"
         name: "Role Definitions & Responsibilities"
-        description: "PO, Developer, SRE, Platform, PE — what each role owns in the practice"
+        description: "PO, Developer, SRE, Platform, Principal Engineer — what each role owns in the practice"
       - id: "KA11.2"
         name: "Team Structure & Interaction"
         description: "How teams are organized, how they interact, cognitive load (Team Topologies)"
@@ -929,8 +929,8 @@ maturity_model:
 # The gap that motivated this: the service maturity model could not be
 # located within the KA structure — instruments needed their own catalog.
 #
-# Instrument pages: observability-bok/instruments/
-# Catalog index: observability-bok/instruments/README.md
+# Instrument pages: instruments/
+# Catalog index: instruments/README.md
 
 practice_instruments:
 
@@ -1136,7 +1136,7 @@ practice_instruments:
     - id: "IN-23"
       name: "Observability Standard (One Content, Three Forms)"
       type: definition
-      state: current  # agent-workflow section + regulated-domain worked example pending
+      state: current  # agent-workflow vocabulary provisional
       lifecycle_position: ["Define", "Enforce", "Respond"]
       draws_from: ["KA01", "KA02", "KA03", "KA04", "KA05"]
       page: "instruments/in-23-observability-standard.md"
@@ -1155,8 +1155,8 @@ practice_instruments:
 # (they don't do one thing). They're lenses that bend the existing KAs for
 # specific contexts.
 #
-# Perspective pages: observability-bok/perspectives/
-# Catalog index: observability-bok/perspectives/README.md
+# Perspective pages: perspectives/
+# Catalog index: perspectives/README.md
 #
 # ASYMMETRY: Perspectives point INTO KAs (via ka_variations). KAs do NOT
 # enumerate perspectives back. This keeps KAs perspective-invariant —
@@ -1224,7 +1224,7 @@ perspectives:
 # Follows the category→audience alignment:
 #   Core Practice → Practitioners
 #   Enabling Practice → Platform/Architecture
-#   Management Practice → Leadership/PE
+#   Management Practice → Leadership/Principal Engineer
 
 role_mapping:
   product_owner:
@@ -1242,7 +1242,7 @@ role_mapping:
   architecture:
     primary: ["KA07"]
     contributing: ["KA06", "KA08", "KA09"]
-  practice_lead_pe:
+  practice_lead_principal_engineer:
     primary: ["KA09", "KA10", "KA13"]
     contributing: ["KA01", "KA08", "KA11", "KA12"]
   leadership:

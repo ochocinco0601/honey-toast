@@ -1,7 +1,9 @@
 # IN-15 — Dashboard Generation Methodology
 
 **Type:** Production
+
 **State:** Seeded
+
 **Lifecycle position:** Observe
 
 ---
@@ -34,11 +36,13 @@ A platform team needs to produce dashboards that follow consistent standards —
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - Building new dashboards — follow the methodology for consistency
 - Reviewing existing dashboards — validate against the methodology
 - Updating dashboard standards — changes land in this methodology so factory output and manual builds stay aligned
 - Training teams on dashboard creation
 
 **Related instruments:**
+
 - [IN-11 Dashboard Factory](in-11-dashboard-factory.md) — the factory that applies this methodology
 - [IN-22 Executive Dashboard Patterns](in-22-executive-dashboard-patterns.md) — executive-specific design patterns within this methodology

@@ -11,6 +11,7 @@ Each question in sections I–IV should reach a substantive answer through the B
 These are the "what is X?" class. The BOK should answer these from the content itself.
 
 **Methodology questions**
+
 - What is business observability? How does it differ from monitoring?
 - What's the Four-Layer Model and why is it organized that way?
 - When a workflow step is software that can be *confidently wrong* — up, fast, error-free, and mistaken — what does observability owe it? When does the Agent Workflow stratum *(conditional; provisional vocabulary)* activate?
@@ -19,18 +20,21 @@ These are the "what is X?" class. The BOK should answer these from the content i
 - What's the difference between a signal and a metric?
 
 **Role and accountability questions**
+
 - Who owns defining stakeholder expectations? Who validates them?
 - What's the Developer's role in signal design vs. the Product Owner's?
 - Who owns alert configuration? Who owns escalation policy?
 - What's the three-actor ownership model and where does it apply?
 
 **Process / workflow questions**
+
 - How do I construct a service profile?
 - How do I write a stakeholder expectation that's measurable?
 - What makes a signal production-ready?
 - What's the incident response sequence when a business health signal fires?
 
 **Taxonomy / location questions**
+
 - Where does "quality gates in CI/CD" belong?
 - Is capacity planning observability or platform engineering?
 - Is this a signal problem ([KA02](ka02-signal-design.md)) or a monitoring problem ([KA04](ka04-monitoring-visualization.md))?
@@ -43,12 +47,14 @@ These are the "what is X?" class. The BOK should answer these from the content i
 Organized by who's asking and when. Each entry points to the KA/instrument that should be reached.
 
 **Product Owner onboarding a new service**
+
 - Who cares about this service? ([KA01.1](ka01-business-context.md#stakeholder-identification-expectations) + [IN-06](instruments/in-06-stakeholder-expectation-template.md))
 - What happens to the business if it fails? ([KA01.4](ka01-business-context.md#impact-category-classification))
 - What should I set as an SLO? ([KA01.6](ka01-business-context.md#slo-definition-error-budget-allocation))
 - Where do I start? ([IN-16](instruments/in-16-onboarding-simulation.md) Onboarding Simulation)
 
 **Developer implementing instrumentation**
+
 - What signals should I instrument for this expectation? ([KA02.1](ka02-signal-design.md#signal-type-taxonomy) + [KA02.2](ka02-signal-design.md#signal-to-function-mapping))
 - My service contains an agentic step — what additional signals does it need, and graded against what reference? ([Agentic perspective](perspectives/agentic.md) + [KA02.1](ka02-signal-design.md#signal-type-taxonomy) + [IN-23](instruments/in-23-observability-standard.md))
 - Where should the signal be emitted? ([KA02.3](ka02-signal-design.md#instrumentation-strategy))
@@ -56,47 +62,55 @@ Organized by who's asking and when. Each entry points to the KA/instrument that 
 - How do I avoid high cardinality costs? ([KA02.7](ka02-signal-design.md#data-cardinality-dimensionality) + [KA06.6](ka06-platform-tooling.md#observability-economics-cost-optimization))
 
 **Platform Engineer / SRE responding to an incident**
+
 - What does this alert mean in business terms? ([KA05.1](ka05-incident-response.md#triage-severity-determination) + [KA01.4](ka01-business-context.md#impact-category-classification))
 - Who do I escalate to? ([KA05.2](ka05-incident-response.md#escalation-team-composition) + [KA08.5](ka08-data-governance.md#ownership-accountability))
 - What playbook applies? ([KA05.3](ka05-incident-response.md#playbook-design-execution) + [IN-13](instruments/in-13-playbook-factory.md))
 - What do we learn from this? ([KA05.4](ka05-incident-response.md#postmortem-learning))
 
 **Platform Lead evaluating tools**
+
 - Which tool is right for this signal type? ([KA06.1](ka06-platform-tooling.md#tool-landscape-selection))
 - Should we consolidate or specialize? ([KA06.3](ka06-platform-tooling.md#consolidation-vs-best-of-breed))
 - How do we control observability cost? ([KA06.6](ka06-platform-tooling.md#observability-economics-cost-optimization))
 - How does this fit into our enterprise architecture? ([KA07.5](ka07-integration-architecture.md#enterprise-architecture-positioning))
 
 **Practice lead planning adoption**
+
 - How do we onboard the next team? ([KA12.1](ka12-adoption-enablement.md#onboarding-first-experience) + [IN-16](instruments/in-16-onboarding-simulation.md))
 - What's in a transfer package? ([KA12.2](ka12-adoption-enablement.md#transfer-packages-enablement-kits) + [IN-17](instruments/in-17-transfer-packages.md))
 - How do we scale from 5 teams to 50? ([KA12.4](ka12-adoption-enablement.md#scaling-patterns))
 - Where's the friction? ([KA12.3](ka12-adoption-enablement.md#pilot-design-execution) + [IN-18](instruments/in-18-friction-logging-protocol.md))
 
 **Architect integrating with the enterprise**
+
 - How does observability connect to CMDB? ([KA07.1](ka07-integration-architecture.md#cmdb-service-registry-integration))
 - Where does this fit in BIAN/ITIL/TOGAF? ([KA07.5](ka07-integration-architecture.md#enterprise-architecture-positioning))
 - How does it integrate with CI/CD? ([KA07.2](ka07-integration-architecture.md#cicd-pipeline-integration))
 - What about regulatory and compliance alignment? ([KA07.3](ka07-integration-architecture.md#regulatory-compliance-frameworks))
 
 **Executive / Leadership reviewing portfolio**
+
 - What's our observability maturity? ([IN-01](instruments/in-01-service-maturity-model.md) + [IN-02](instruments/in-02-industry-maturity-arc.md) + [IN-03](instruments/in-03-division-maturity-assessment.md))
 - What's the state of the portfolio? ([IN-20](instruments/in-20-portfolio-maturity-view.md))
 - Where should we invest? ([KA09.3](ka09-strategy-program.md#theme-prioritization) + [KA09.7](ka09-strategy-program.md#investment-justification-value-demonstration))
 - How does this map to strategic priorities? ([KA09.1](ka09-strategy-program.md#enterprise-alignment) + [KA09.5](ka09-strategy-program.md#roadmap-altitude-cascade))
 
 **Stakeholder / Communicator landing the message**
+
 - How do I frame observability for this audience? ([KA10.2](ka10-stakeholder-engagement.md#cross-altitude-communication))
 - What do executives need to see? ([KA04.5](ka04-monitoring-visualization.md#business-health-views) + [IN-22](instruments/in-22-executive-dashboard-patterns.md))
 - Who are our champions? ([KA10.1](ka10-stakeholder-engagement.md#champion-networks))
 - How do we position this to a new LOB? ([KA10.4](ka10-stakeholder-engagement.md#advocacy-positioning) + [IN-21](instruments/in-21-terrain-presentation.md))
 
 **New practitioner learning the practice**
-- Where do I start? (Start Here → The Methodology)
+
+- Where do I start? (the hub README → The Methodology)
 - What should I read first? ([the-methodology](the-methodology.md) → [KA01](ka01-business-context.md) → [KA02](ka02-signal-design.md))
 - What does good look like? ([IN-04](instruments/in-04-service-profile-template.md) with worked example)
 
 **Practitioner facing platform-specific variation**
+
 - How does this apply to mainframe? (Mainframe perspective → variations)
 - How does this apply to cloud-native? (Cloud-Native perspective)
 - How do I handle cross-platform correlation? (Hybrid perspective)
@@ -146,25 +160,30 @@ These ask the BOK about itself — what does it cover, where are the gaps, what'
 Scope clarity matters. The BOK should explicitly not try to answer:
 
 **Tactical vendor-specific implementation**
+
 - What's the Splunk SPL query for a ratio signal? (Vendor documentation, not BOK)
 - How do I configure a Prometheus exporter for mainframe telemetry? (Product docs)
 - What's the Grafana panel JSON for the product and product-line rollup views? (Dashboard implementation notes)
 
 **Real-time operational data**
+
 - Is service X healthy right now? (Monitoring platform, not BOK)
 - What's the SLO burn rate this week? (Observability platform)
 - Which services are alerting? (Alert management)
 
 **Incident-specific investigation**
+
 - Why is service X slow? (Investigation using the BOK's methods, but the answer is in the data, not the BOK)
 - What caused the outage at 3 AM? (Postmortem artifact, informed by [KA05.4](ka05-incident-response.md#postmortem-learning))
 
 **Organizational specifics**
+
 - Who's on the on-call rotation? (Team roster, not BOK)
 - What's our OKR target this quarter? (OKR system)
 - Which team owns this service? (Service catalog, referenced from BOK but not owned by it)
 
 **Policy decisions**
+
 - Should we buy tool X? (Decision made by an architecture team using BOK frameworks, not decided by the BOK)
 - What's our cost target for observability? (Finance + FinOps decision, BOK frames the tradeoff)
 

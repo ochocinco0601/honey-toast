@@ -1,7 +1,9 @@
 # KA10 — Stakeholder Engagement & Communication
 
 **Category:** Management Practice
-**Primary owner:** Practice Lead / PE
+
+**Primary owner:** Practice Lead
+
 **Question this KA answers:** How do we engage stakeholders across altitudes?
 
 ---
@@ -11,6 +13,7 @@
 This KA covers how the observability practice engages with stakeholders across altitudes. Champion networks, cross-altitude communication, facilitation, advocacy, and campaign intelligence. KA10 creates the organizational pull that makes adoption ([KA12](ka12-adoption-enablement.md)) possible — without engagement creating demand, enablement kits sit on a shelf.
 
 **What's in scope:**
+
 - Champion networks — identifying, enabling, and sustaining advocates
 - Cross-altitude communication — framing the same work for executive, director, and team audiences
 - Facilitation and meeting design — running effective governance sessions and workshops
@@ -18,6 +21,7 @@ This KA covers how the observability practice engages with stakeholders across a
 - Campaign intelligence — understanding the organizational landscape
 
 **What's out of scope:**
+
 - Strategy and program management ([KA09](ka09-strategy-program.md)) — KA10 enables, [KA09](ka09-strategy-program.md) directs
 - Adoption execution ([KA12](ka12-adoption-enablement.md)) — KA10 creates pull, [KA12](ka12-adoption-enablement.md) delivers the product
 - Organizational capability building ([KA11](ka11-organizational-capability.md)) — KA10 communicates, [KA11](ka11-organizational-capability.md) builds
@@ -40,14 +44,14 @@ The same work must be framed differently for different audiences:
 |----------|----------|----------------------|
 | Enterprise (CIO / technology leadership) | Executive leadership | Business outcomes: faster business-impact assessment during incidents (who is affected, what's at risk — the dimension this work directly moves), change confidence, regulatory compliance |
 | Director (MD/VP) | Senior line leadership | Operational outcomes: team efficiency, the adoption model (central production, franchise-style adoption), service-provider accountability |
-| LOB (Leads/POs) | Product teams | Practical value: "here's what this does for YOUR service in 15 minutes" |
+| LOB (Leads/POs) | Product teams | Practical value: "here's what this does for YOUR service, in one short session" |
 | IC (Dev/SRE) | Individual contributors | Technical integration: "here's how your signals connect to the business" |
 
-A pattern observed in practice: compact framings can land at director altitude (verbatim adoption of a crisp phrase in a leader's own artifact) while the underlying structural model lands more slowly at enterprise altitude — acknowledged but not yet structurally adopted. The altitudes propagate on different clocks.
+Altitudes propagate on different clocks: a compact framing can be picked up verbatim at director altitude while the structural model behind it takes longer to land at enterprise altitude.
 
 ### Facilitation & Meeting Design
 
-Two facilitation artifact patterns are established in the reference implementation:
+Two facilitation artifact patterns:
 
 - **Recurring champions-group agenda template** — meeting structure with agenda framing, participant tracking, contribution documentation
 - **FMEA facilitation script** — a 2-hour facilitation script for failure mode and effects analysis sessions with development teams
@@ -94,7 +98,7 @@ Campaign intelligence accumulates as instance-specific artifacts — one extract
 
 ## 4. Roles & Responsibilities
 
-| Activity | Practice Lead / PE | Leadership | Champions |
+| Activity | Practice Lead | Leadership | Champions |
 |----------|:---:|:---:|:---:|
 | Champion identification | **Own** | Sponsor | — |
 | Cross-altitude framing | **Own** | Review (exec altitude) | Adapt (LOB altitude) |
@@ -124,7 +128,7 @@ These instruments operationalize KA10 knowledge — a practitioner doing stakeho
 |--------------|-----------------|
 | Campaign documentation | Stakeholder-engagement strategy, champion roster, framing constraints |
 | Meeting extractions | Room readings, contribution tracking, commitment tracking across recurring sessions |
-| FMEA facilitation guide | 2-hour facilitation script for failure mode sessions with dev teams |
+| FMEA facilitation guide | A facilitation script for failure-mode sessions with dev teams |
 | Domain context transfer | Cross-altitude domain framing in a self-contained form |
 | Training package orchestration | Persona × domain coverage matrix |
 | Scope boundary framing | Reusable framing for "what business observability is and isn't" conversations |
@@ -168,9 +172,9 @@ These instruments operationalize KA10 knowledge — a practitioner doing stakeho
 | [KA10.2](ka10-stakeholder-engagement.md#cross-altitude-communication) Cross-Altitude Communication | **Seeded** | Multiple altitude framing instances. Not extracted into reusable guidance. |
 | [KA10.3](ka10-stakeholder-engagement.md#facilitation-meeting-design) Facilitation & Meeting Design | **Current** | Recurring-meeting agenda template + FMEA 2-hour facilitation script. Practitioner-actionable. |
 | [KA10.4](ka10-stakeholder-engagement.md#advocacy-positioning) Advocacy & Positioning | **Seeded** | "Service not advocacy" posture documented. No reusable positioning methodology. |
-| [KA10.5](ka10-stakeholder-engagement.md#campaign-intelligence) Campaign Intelligence | **Seeded** | Rich analysis locked in specific contexts. Analytical approach not extracted. |
+| [KA10.5](ka10-stakeholder-engagement.md#campaign-intelligence) Campaign Intelligence | **Seeded** | Analysis is present but the analytical approach is not yet extracted. |
 
-**KA10 summary:** 1/5 Current, 4 Seeded. Campaign intelligence is rich but instance-locked. The consistent pattern: real engagement work has produced valuable artifacts, but the methodology behind the work hasn't been extracted into reusable form.
+**KA10 summary:** 1/5 Current, 4 Seeded. Campaign intelligence is present as analysis but not yet extracted into reusable methodology.
 
 ### Adjacent Technique — Consequence Before Capability
 

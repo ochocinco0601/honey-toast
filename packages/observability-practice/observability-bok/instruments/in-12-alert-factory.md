@@ -1,7 +1,9 @@
 # IN-12 — Alert Factory
 
 **Type:** Production
+
 **State:** Seeded
+
 **Lifecycle position:** Observe → Respond
 
 ---

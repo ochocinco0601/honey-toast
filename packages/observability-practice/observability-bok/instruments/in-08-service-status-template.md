@@ -1,7 +1,9 @@
 # IN-08 — Service Status Template
 
 **Type:** Definition
+
 **State:** Current
+
 **Lifecycle position:** Enforce → Observe
 
 ---
@@ -57,11 +59,13 @@ One row per service — the fill-in half:
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - Before declaring a service "production-ready" for observability
 - During periodic service health reviews
 - When an incident reveals operational gaps (missing runbook, misconfigured alerts)
 
 **Related instruments:**
+
 - [IN-04 Service Profile Template](in-04-service-profile-template.md) — the service must exist
 - [IN-05 Signal Definition Template](in-05-signal-definition-template.md) — signal definitions drive four of the five score dimensions
 - [IN-01 Service Maturity Model](in-01-service-maturity-model.md) — a complete Service Status evaluation contributes to reaching Operationalized stage

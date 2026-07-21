@@ -1,7 +1,9 @@
 # KA07 — Integration & Architecture
 
 **Category:** Enabling Practice
+
 **Primary owner:** Architecture / Platform
+
 **Question this KA answers:** How does observability connect to enterprise systems?
 
 ---
@@ -11,6 +13,7 @@
 This KA covers how observability connects to adjacent enterprise systems and initiatives. CMDB, CI/CD pipelines, regulatory frameworks, business service frameworks, and the architectural decisions that determine whether observability fits into the enterprise or sits beside it. KA07 is the integration surface — where the business observability practice meets the rest of the enterprise.
 
 **What's in scope:**
+
 - CMDB and service registry integration — connecting observability to configuration management
 - CI/CD pipeline integration — embedding observability into software delivery
 - Regulatory and compliance frameworks — alignment with permit-to-operate, audit
@@ -18,6 +21,7 @@ This KA covers how observability connects to adjacent enterprise systems and ini
 - Enterprise architecture positioning — where observability sits in TOGAF, BIAN, ITIL
 
 **What's out of scope:**
+
 - Internal platform architecture ([KA06](ka06-platform-tooling.md)) — KA07 is about external integration, [KA06](ka06-platform-tooling.md) is about internal platform
 - Data governance ([KA08](ka08-data-governance.md)) — KA07 is the integration surface, [KA08](ka08-data-governance.md) is the governance model
 
@@ -33,7 +37,7 @@ The CMDB application ID is the primary join key between the business observabili
 
 Business observability addresses this through service definition pattern #2 ("Capability within an Application") — defining health at the business capability level even when the CMDB entry is at the monolithic application level. The business observability service registry complements the CMDB, not duplicates it.
 
-IT service management integration (e.g., ServiceNow) is documented for one reference implementation. An org-hierarchy reference table provides the organizational context — product line, product, service — for every service.
+IT service management integration — ServiceNow and equivalents — is the common join point. An org-hierarchy reference table provides the organizational context — product line, product, service — for every service.
 
 ### CI/CD Pipeline Integration
 
@@ -153,9 +157,9 @@ These instruments operationalize KA07 knowledge — a practitioner doing integra
 
 | Topic | State | Notes |
 | ------- | ------- | ------- |
-| [KA07.1](ka07-integration-architecture.md#cmdb-service-registry-integration) CMDB & Service Registry Integration | **Current** | The reference implementation documents a working ServiceNow integration and registry mapping tables. CMDB granularity problem documented on-page. |
+| [KA07.1](ka07-integration-architecture.md#cmdb-service-registry-integration) CMDB & Service Registry Integration | **Current** | ITSM integration pattern and registry mapping tables documented on-page, with the CMDB granularity problem. |
 | [KA07.2](ka07-integration-architecture.md#cicd-pipeline-integration) CI/CD Pipeline Integration | **Missing** | Quality gate concept exists but no pipeline integration design. External: OTel CI/CD patterns. |
-| [KA07.3](ka07-integration-architecture.md#regulatory-compliance-frameworks) Regulatory & Compliance Frameworks | **Seeded** | A BIAN evaluation exists in the reference implementation. Business service framework pattern documented on-page. A reusable compliance-mapping methodology has not yet been authored. |
+| [KA07.3](ka07-integration-architecture.md#regulatory-compliance-frameworks) Regulatory & Compliance Frameworks | **Seeded** | Business service framework pattern documented on-page. A reusable compliance-mapping methodology has not yet been authored. |
 | [KA07.4](ka07-integration-architecture.md#adjacent-initiative-alignment) Adjacent Initiative Alignment | **Seeded** | Business service frameworks and journey mapping are treated strategically on-page. Not yet operationalized into integration design. |
 | [KA07.5](ka07-integration-architecture.md#enterprise-architecture-positioning) Enterprise Architecture Positioning | **Current** | BIAN, ITIL, COBIT, TOGAF positioning documented. |
 

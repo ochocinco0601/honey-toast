@@ -1,7 +1,9 @@
 # IN-03 — Division Maturity Assessment
 
 **Type:** Assessment
+
 **State:** Seeded
+
 **Lifecycle position:** Cross-cutting (division-level assessment combining service and organizational maturity)
 
 ---
@@ -45,12 +47,14 @@ The two dimensions are independent — a division can have technically mature se
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - Annual or semi-annual division-level maturity reviews
 - Investment planning — justifying observability resources based on assessed gaps
 - Cross-division comparison — showing relative maturity across technology divisions
 - Enterprise rollup — aggregating division assessments into an enterprise maturity picture
 
 **Related instruments:**
+
 - [IN-01 Service Maturity Model](in-01-service-maturity-model.md) — provides the technical maturity dimension data
 - [IN-02 Industry Maturity Arc](in-02-industry-maturity-arc.md) — provides the organizational maturity framework
 - [IN-20 Portfolio Maturity View](in-20-portfolio-maturity-view.md) — visualizes the assessment output for stakeholders

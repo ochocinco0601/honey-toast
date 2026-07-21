@@ -1,8 +1,11 @@
 # KA01 — Business Context & Service Definition
 
 **Category:** Core Practice
+
 **Lifecycle stage:** Define
+
 **Primary owner:** Product Owner
+
 **Question this KA answers:** What does "healthy" mean in business terms?
 
 ---
@@ -12,6 +15,7 @@
 This KA covers the foundational layer of observability: defining what matters to the business before any signal is designed, any dashboard is built, or any alert is configured. Without business context, signals are just data. With it, every metric connects to a stakeholder, an expectation, and a consequence.
 
 **What's in scope:**
+
 - Identifying who depends on a service and what they expect
 - Mapping business functions into observable units
 - Defining service boundaries (what constitutes "a service" for observability)
@@ -20,6 +24,7 @@ This KA covers the foundational layer of observability: defining what matters to
 - Defining SLOs and error budgets that translate expectations into quantitative targets
 
 **What's out of scope:**
+
 - Signal design and instrumentation ([KA02](ka02-signal-design.md)) — KA01 defines WHAT to measure, [KA02](ka02-signal-design.md) defines HOW
 - Platform tooling and data source selection ([KA06](ka06-platform-tooling.md))
 - Live monitoring and dashboards ([KA04](ka04-monitoring-visualization.md)) — those consume KA01's output
@@ -114,7 +119,7 @@ A profile captures:
 
 Completeness is measured by the Service Status evaluation — a computed score (0-100) across five dimensions: layer coverage, signal completeness, threshold coverage, traceability coverage, and operational readiness (definitions and weights in [KA03](ka03-standards-quality.md)). A score below threshold means the profile has known gaps; the score always reflects current state.
 
-In the reference implementation, the first profile for a service takes approximately 15 minutes with AI-assisted pre-population from existing team documentation; subsequent profiles are faster because the patterns are established and team familiarity compounds.
+With AI-assisted pre-population from existing team documentation, a first profile is well under an hour; subsequent profiles are faster because the patterns are established and team familiarity compounds.
 
 ### SLO Definition & Error Budget Allocation
 

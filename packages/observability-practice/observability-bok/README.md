@@ -1,97 +1,87 @@
 # Observability Body of Knowledge (O-BOK)
 
-An opinionated map of the observability domain, organized around business observability — defining business health first and deriving signals from it.
+A map of the observability domain built on one commitment: **define what business health means first, then derive the signals from it.**
 
-**Current working version — opinionated starting point, not canonical.**
-
-**New here?** → [Start Here](start-here.md) routes you by need; the mental model lives in [How the BOK is Organized](how-the-bok-is-organized.md) and a worked traversal example in [How to Walk a Question](how-to-walk-a-question.md).
-
-**What questions is this useful for?** → [Questions the BOK Answers](questions-the-bok-answers.md) — full scope, plus explicit scope boundaries.
-
-**Other entry points:** [About](about.md) (prior art and rationale) · [Contributing](contribute.md) (practitioners) · [Maintaining the BOK](maintaining-the-bok.md) (stewards)
+It's a reference to look things up in — a working draft, not a finished standard. Every page states what's filled in and what isn't.
 
 ---
 
-## Knowledge Areas
+## Start with your question
 
-13 KAs across three categories. Core Practice runs the observability lifecycle — *Define → Implement → Enforce → Observe → Respond.*
+### Running the practice
 
-### Core Practice — lifecycle stages
+*Define → Implement → Enforce → Observe → Respond. Responding feeds back into defining.*
 
-| KA | Name | Stage | Primary Owner |
-|----|------|-----------|---------------|
-| [KA01](ka01-business-context.md) | Business Context & Service Definition | Define | Product Owner |
-| [KA02](ka02-signal-design.md) | Signal Design & Instrumentation | Implement | Developer |
-| [KA03](ka03-standards-quality.md) | Standards & Quality Assurance | Enforce | Platform / Engineering |
-| [KA04](ka04-monitoring-visualization.md) | Monitoring, Visualization & Correlation | Observe | Platform / SRE |
-| [KA05](ka05-incident-response.md) | Incident Management & Response | Respond | SRE / Ops |
+| Your question | Where it's answered | Usually owned by |
+|---|---|---|
+| What does "healthy" mean in business terms? | [Business Context & Service Definition](ka01-business-context.md) | Product Owner |
+| How do we instrument the signals that matter? | [Signal Design & Instrumentation](ka02-signal-design.md) | Developer |
+| How do we ensure standards before production? | [Standards & Quality Assurance](ka03-standards-quality.md) | Platform / Engineering |
+| What views make health visible? | [Monitoring, Visualization & Correlation](ka04-monitoring-visualization.md) | Platform / SRE |
+| When something fails, what do we do? | [Incident Management & Response](ka05-incident-response.md) | SRE / Ops |
 
-### Enabling Practice — cross-cutting infrastructure
+### Making it possible
 
-| KA | Name |
-|----|------|
-| [KA06](ka06-platform-tooling.md) | Platform & Tooling |
-| [KA07](ka07-integration-architecture.md) | Integration & Architecture |
-| [KA08](ka08-data-governance.md) | Data Management & Governance |
-
-### Management Practice — organizational layer
-
-| KA | Name |
-|----|------|
-| [KA09](ka09-strategy-program.md) | Strategy & Program Management |
-| [KA10](ka10-stakeholder-engagement.md) | Stakeholder Engagement & Communication |
-| [KA11](ka11-organizational-capability.md) | Organizational Capability |
-| [KA12](ka12-adoption-enablement.md) | Adoption & Enablement |
-| [KA13](ka13-continuous-improvement.md) | Continuous Improvement |
-
----
-
-## Practice Instruments Catalog
-
-**[Browse the full catalog →](instruments/README.md)** — 23 instruments in 5 types.
-
-| Type | Count | Question |
-|------|-------|----------|
-| [Assessment](instruments/README.md#assessment-instruments) | 3 | Where are we? |
-| [Definition](instruments/README.md#definition-instruments) | 7 | What do I fill out? |
-| [Production](instruments/README.md#production-instruments) | 6 | What gets produced? |
-| [Adoption](instruments/README.md#adoption-instruments) | 4 | How do teams get started? |
-| [Communication](instruments/README.md#communication-instruments) | 3 | How do we show progress? |
-
-Instruments are peers of Knowledge Areas, not children. Each KA page Section 5 lists the instruments that operationalize its knowledge. Each instrument page lists the KAs it draws from.
-
----
-
-## Perspectives
-
-**[Browse Perspectives →](perspectives/README.md)** — platform-type and context-type lenses that bend how KAs and Instruments apply.
-
-| Perspective | Covers |
+| Your question | Where it's answered |
 |---|---|
-| [Cloud-Native](perspectives/cloud-native.md) | Container platforms, service mesh, OTel-native instrumentation |
-| [Mainframe](perspectives/mainframe.md) | SMF/RMF records, batch telemetry, transaction monitors |
-| [Hybrid / Integration](perspectives/hybrid-integration.md) | Cross-platform correlation, the seam problem |
-| [SaaS / Third-Party](perspectives/saas-third-party.md) | API-level observability, vendor telemetry ingestion |
-| [Agentic](perspectives/agentic.md) | Services with a judgment-making software step — the conditional Agent Workflow stratum *(provisional)*, decision-quality signals |
+| What technology makes observability possible? | [Platform & Tooling](ka06-platform-tooling.md) |
+| How does observability connect to enterprise systems? | [Integration & Architecture](ka07-integration-architecture.md) |
+| How do we maintain data coherence at scale? | [Data Management & Governance](ka08-data-governance.md) |
 
-Perspectives are the third peer alongside KAs and Instruments. Pattern: BABOK v3 Perspectives chapter.
+### Making it stick
 
----
-
-## How to find what you need
-
-| Want to... | Go to |
+| Your question | Where it's answered |
 |---|---|
-| Understand a concept | KA page — start with Section 1 (Purpose & Scope) |
-| Find a tool for a task | [Instruments](instruments/README.md) — browse by type |
-| Trace dependencies | KA page Section 6 (Connected KAs) |
-| Check what's filled in | KA page Section 7 (Content State & Gaps) |
-| See who owns what | KA page Section 4 (Roles & Responsibilities) |
-
-For the mental model behind the structure, see [How the BOK is Organized](how-the-bok-is-organized.md); for a worked traversal example, see [How to Walk a Question](how-to-walk-a-question.md).
+| How does observability align with enterprise direction? | [Strategy & Program Management](ka09-strategy-program.md) |
+| How do we engage stakeholders across altitudes? | [Stakeholder Engagement & Communication](ka10-stakeholder-engagement.md) |
+| Do we have the right people, skills, and structure? | [Organizational Capability](ka11-organizational-capability.md) |
+| How do teams adopt and sustain observability practices? | [Adoption & Enablement](ka12-adoption-enablement.md) |
+| Is the observability practice itself getting better? | [Continuous Improvement](ka13-continuous-improvement.md) |
 
 ---
 
-## Underneath
+## Or pick up a tool
 
-**Structural YAML:** [`observability-bok.yaml`](../observability-bok.yaml) — machine-readable definitions, cross-KA relationships, boundary rules, instrument registry.
+The pages above explain what you need to understand. These are what you fill out and use — **[23 instruments in the full catalog →](instruments/README.md)**
+
+| Your question | What you'll find |
+|---|---|
+| Where are we? | [Assessment](instruments/README.md#assessment-instruments) — 3 maturity models and assessments |
+| What do I fill out? | [Definition](instruments/README.md#definition-instruments) — 6 templates plus the written standard |
+| What gets produced? | [Production](instruments/README.md#production-instruments) — 6 generators for dashboards, alerts, playbooks |
+| How do teams get started? | [Adoption](instruments/README.md#adoption-instruments) — 4 onboarding and pilot tools |
+| How do we show progress? | [Communication](instruments/README.md#communication-instruments) — 3 stakeholder reporting tools |
+
+---
+
+## Or start from your platform
+
+Same knowledge, bent by where your workload runs. **[Browse all →](perspectives/README.md)**
+
+| If you work on... | Read |
+|---|---|
+| Container platforms, service mesh, OTel-native instrumentation | [Cloud-Native](perspectives/cloud-native.md) |
+| SMF/RMF records, batch telemetry, transaction monitors | [Mainframe](perspectives/mainframe.md) |
+| Cross-platform correlation — and the seam between platforms | [Hybrid / Integration](perspectives/hybrid-integration.md) |
+| API-level observability and vendor telemetry you ingest | [SaaS / Third-Party](perspectives/saas-third-party.md) |
+| Services with a judgment-making software step | [Agentic](perspectives/agentic.md) — decision-quality signals *(provisional)* |
+
+---
+
+## New to this?
+
+| You want to... | Go to |
+|---|---|
+| Meet the approach — the four-layer model, the semantic chain | [The Methodology](the-methodology.md) — in plain terms |
+| See one real question answered end to end | [How to Walk a Question](how-to-walk-a-question.md) — a worked example |
+| Check whether this covers what you need | [Questions the BOK Answers](questions-the-bok-answers.md) — full scope, and what's out of scope |
+| Know why it's built this way | [About](about.md) — prior art and rationale |
+| Add something | [Contributing](contribute.md) — where contributions land |
+
+## Producing something for an audience
+
+This is source material, not a deliverable. Don't hand a Knowledge Area to a stakeholder. Take the depth from here, then cut the form that fits who's receiving it — see the companion [The Practice System](../the-practice-system.md).
+
+## Maintaining it
+
+Structure, editing rules, how elements are added and retired, and a test suite an agent can run: [Maintaining the BOK](maintaining-the-bok.md) · the mental model behind the three-part structure: [How the BOK is Organized](how-the-bok-is-organized.md) · machine-readable registry: [`observability-bok.yaml`](../observability-bok.yaml)

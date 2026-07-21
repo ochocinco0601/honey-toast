@@ -1,8 +1,11 @@
 # KA02 — Signal Design & Instrumentation
 
 **Category:** Core Practice
+
 **Lifecycle stage:** Implement
+
 **Primary owner:** Developer
+
 **Question this KA answers:** How do we instrument the signals that matter?
 
 ---
@@ -12,6 +15,7 @@
 This KA covers how business context becomes measurable. [KA01](ka01-business-context.md) defines what "healthy" means. KA02 translates that into signals — the specific measurements that tell you whether expectations are being met. Signal design is the bridge between business intent and technical telemetry.
 
 **What's in scope:**
+
 - Signal type taxonomy — the four-layer model applied to signal classification
 - Signal-to-function mapping — semantic binding between signals and the business functions they serve
 - Instrumentation strategy — where and how signals are emitted
@@ -21,6 +25,7 @@ This KA covers how business context becomes measurable. [KA01](ka01-business-con
 - Data cardinality and dimensionality — the tension between investigative power and cost
 
 **What's out of scope:**
+
 - Defining what to measure ([KA01](ka01-business-context.md)) — KA02 assumes business context exists
 - Platform tooling and pipeline architecture ([KA06](ka06-platform-tooling.md)) — KA02 designs signals, [KA06](ka06-platform-tooling.md) implements the collection infrastructure
 - Quality enforcement ([KA03](ka03-standards-quality.md)) — KA02 produces signal designs, [KA03](ka03-standards-quality.md) validates them
@@ -42,6 +47,7 @@ The four-layer model ([KA01](ka01-business-context.md)) classifies signals by bu
 | System | `sli_ratio`, `sli_threshold` | Infrastructure metrics: uptime %, latency, CPU, memory |
 
 **Two measurement types for Business Health, Application, and System:**
+
 - **sli_ratio** — good events / total events. "99.5% of page loads complete in < 2 seconds." Requires a numerator query (good events) and denominator query (total events).
 - **sli_threshold** — metric vs. absolute limit. "Average response time stays below 500ms." Requires a measurement query, operator (lt/gt/lte/gte/eq), value, and unit.
 
@@ -74,7 +80,7 @@ Some services contain an **agentic step**: software that makes a judgment call �
 
 Most of this is familiar machinery under new names: offline vs. online evals are synthetics vs. real-user monitoring; decision provenance is deploy versioning applied to the decider; drift is baseline monitoring where the watched quantity is a decision distribution instead of CPU. The genuinely new obligation is the answer key — **the practice must now supply the reference that determinism used to supply for free.** An agent correctness signal is otherwise an ordinary `sli_ratio` ("agreement ≥ 98% on the labelled set") that sits as diagnostic descent under the Business Health signal it explains, exactly like an Application signal.
 
-**Status honesty (deliberate, not an oversight).** The stratum activates conditionally — most services never have a qualifying step. Its name and its dimension set are explicitly provisional: the industry sources (OpenTelemetry GenAI semantic conventions, NIST AI Risk Management Framework, evaluation taxonomies) are converging, not converged. Two questions are held open on purpose, to be ruled as real evidence accrues — onboardings and the operational history that follows them: whether the decision-quality set is **complete** (Escalation/Autonomy is the named candidate; policy/authorization scope a known edge), and whether agent-**operational** concerns — per-decision cost, content refusals (a refusal is a decision, not a machinery error), model fallbacks (a fallback changes the decider) — need an operational vocabulary beside the decision-quality one. Until then, no worked examples appear in the BOK (exemplars render from real onboardings, never constructed), and the stratum's machinery advances unevenly by design: the onboarding instrument elicits it and the interview record serializes it, while monitoring surfaces and the production data model do not yet accept the layer.
+**Status honesty (deliberate, not an oversight).** The stratum activates conditionally — most services never have a qualifying step. Its name and its dimension set are explicitly provisional: the industry sources (OpenTelemetry GenAI semantic conventions, NIST AI Risk Management Framework, evaluation taxonomies) are converging, not converged. Two questions are held open on purpose, to be ruled as real evidence accrues — onboardings and the operational history that follows them: whether the decision-quality set is **complete** (Escalation/Autonomy is the named candidate; policy/authorization scope a known edge), and whether agent-**operational** concerns — per-decision cost, content refusals (a refusal is a decision, not a machinery error), model fallbacks (a fallback changes the decider) — need an operational vocabulary beside the decision-quality one. Until then, no worked examples appear in the BOK (exemplars render from onboarded records rather than constructed content), and the stratum's machinery advances unevenly by design: the onboarding instrument elicits it and the interview record serializes it; adopting the layer downstream requires extending monitoring surfaces and data models to accept it.
 
 ### Signal-to-Function Mapping
 
@@ -156,7 +162,7 @@ Prior art: Charity Majors (Honeycomb) on high-cardinality observability, Ben Sig
 2. Choose signal type    → sli_ratio or sli_threshold for Business Health; business_impact for Business Impact
 3. Define measurement    → What query, what data source, what formula
 4. Link the chain        → Business Health signals carry structural traceability from their
-                           stakeholder chain (KA01); Process/System signals link causally to
+                           stakeholder chain (KA01); Application/System signals link causally to
                            the Business Health signals they help explain, and Application signals
                            ground to the sub-capability they diagnose
 5. Validate quality      → KA03 gates: does the signal meet standards?
@@ -187,7 +193,7 @@ Prior art: Charity Majors (Honeycomb) on high-cardinality observability, Ben Sig
 | Choose signal type (ratio/threshold) | Advise | **Own** | — |
 | Write queries and identify data sources | — | **Own** | Advise |
 | Set up telemetry pipeline | — | — | **Own** |
-| Link Process/System signals to the Business Health signals they explain | Review | **Own** | — |
+| Link Application/System signals to the Business Health signals they explain | Review | **Own** | — |
 | Configure alert/page thresholds | — | — | **Own** |
 
 The Developer is the primary actor for KA02. The PO provides the "what and why" ([KA01](ka01-business-context.md)). The Developer provides the "how." Platform provides the infrastructure.
@@ -260,7 +266,7 @@ These instruments operationalize KA02 knowledge — a practitioner doing signal 
 
 | Topic | State | Notes |
 | ------- | ------- | ------- |
-| [KA02.1](ka02-signal-design.md#signal-type-taxonomy) Signal Type Taxonomy | **Current** | Complete four-layer taxonomy with examples, ownership, ordering, and per-layer health-dimension frameworks (APQC / Golden Signals-RED / USE). Conditional Agent Workflow stratum added with provisional Agent Decision vocabulary — completeness challenges stay open; real onboardings and operational history can refute or extend the set, not prove it. |
+| [KA02.1](ka02-signal-design.md#signal-type-taxonomy) Signal Type Taxonomy | **Current** | Complete four-layer taxonomy with examples, ownership, ordering, and per-layer health-dimension frameworks (APQC / Golden Signals-RED / USE). Conditional Agent Workflow stratum added with provisional Agent Decision vocabulary — completeness challenges stay open; onboardings and operational history can refute or extend the set, not prove it. |
 | [KA02.2](ka02-signal-design.md#signal-to-function-mapping) Signal-to-Function Mapping | **Current** | Semantic binding documented: Business Health→verifies, Business Impact→quantifies. Traceability spec. |
 | [KA02.3](ka02-signal-design.md#instrumentation-strategy) Instrumentation Strategy | **Seeded** | Spec defines fields but no practitioner guide for choosing an approach. |
 | [KA02.4](ka02-signal-design.md#signal-hierarchy-dependencies) Signal Hierarchy & Dependencies | **Seeded** | Hierarchy implied in four-layer model. No explicit dependency guidance. |

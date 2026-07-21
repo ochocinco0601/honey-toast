@@ -1,19 +1,15 @@
-# SUD (Service Understanding Document) Questions v2 — Motivation Chain Capture
+# SUD Questions v2 — Motivation Chain Capture
 #
 # Redesigned instrument: restructures questions from entity-type organization
 # (v1) to motivation-chain traversal order (v2). Same content, different
 # capture sequence. The PO's reasoning path — who cares, why they care,
 # what satisfies them, how we measure it — drives the question order.
 #
-# This is version 2 of the instrument.
-# v2 is validated independently alongside v1.
+# This is version 2 of the instrument. Version 1's question ordering is
+# superseded.
 #
 # Design: motivation-chain traversal.
-# The "viewpoint" referenced throughout is the instrument's 9-position
-# motivation-element traversal — grounded in the ArchiMate 3.2 motivation
-# viewpoint (public prior art): 1 Stakeholder, 2 Driver, 3 Requirement,
-# 4 Outcome, 5 Subject, 6 Object, 7 BusinessRole, 8 BusinessActor,
-# 9 Runbook. The viewpoint schema is grounding, not redesign.
+# the viewpoint schema is grounding, not a redesign
 # health dimension frameworks are altitude-specific
 #
 # Every question has:
@@ -77,8 +73,8 @@
 # prompts. Grounding is the mechanism that makes reasoning GOOD.
 # Provenance is the mechanism that makes it HONEST. Both are required.
 
-schema_ground_truth: a reference fixture record
-json_schema: the record schema
+schema_ground_truth: the adopter's reference fixture record
+json_schema: the adopter's record schema
 
 app_managed_fields:
   - field: "contextId"
@@ -165,16 +161,16 @@ app_managed_fields:
 #   Part 1 (Service Context) → framing
 #   Part 2 (Business Health) → stakeholder symptoms (L3 anchor)
 #   Part 2b (Business Impact) → consequence quantification (L4)
-#   Part 3 (Process) → cause investigation (L2)
+#   Part 3 (Application) → cause investigation (L2)
 #   Part 3a (Agent Decision) → decision-correctness investigation for
 #     agentic steps — CONDITIONAL, activates only when q44 flags a step
 #     that can be confidently wrong. A sibling diagnostic layer to
-#     Process: it answers "why is the business outcome wrong when Process
+#     Application: it answers "why is the business outcome wrong when Application
 #     and System are green?" See the Part 3a header for the full rationale.
 #   Part 4 (System) → infrastructure health (L1)
 #   Part 5 (Operational) → ownership and response
 #   The agent designs Business Health signals first (Part 2) because
-#   they anchor the causal model — Process, Agent Decision, and System
+#   they anchor the causal model — Application, Agent Decision, and System
 #   signals exist to explain Business Health failures.
 
 eliminated_questions:
@@ -183,13 +179,13 @@ eliminated_questions:
     v1_bare: "What layer?"
     reason: >
       Structural — observabilityLayer determined by instrument position.
-      Every signal in Part 2 is Business Health, Part 3 is Process,
+      Every signal in Part 2 is Business Health, Part 3 is Application,
       Part 4 is System. The reasoning guidance from q17's enhanced text
       ("L3 is the anchor — design L3 first") becomes the structural
       rationale for Part 2 preceding Parts 3-4.
     prior_art_preserved: >
       Four-layer observability model, Signal layer taxonomy, Causal
-      model rule (multi-signal pressure test) — encoded in part ordering
+      model rule (signal-coverage pressure test) — encoded in part ordering
       and observability_layer declarations.
 
   - id: q29
@@ -212,7 +208,7 @@ promoted_questions:
       Promoted from schema_ahead to structured field in Part 3.
       v1 q18 asked generically about causal relationships across all
       layers. diagnostic_causal_ref asks specifically "which Business
-      Health signals does this Process signal help explain?" — the
+      Health signals does this Application signal help explain?" — the
       cause-investigation navigation path. schema_ahead changes
       from true to false.
 
@@ -337,7 +333,7 @@ shared_questions:
       Provenance citation — the authority behind the target, not the
       rationale for the number. Regulatory: "12 CFR 1026.19(f)(1)(ii)".
       Contractual: "MSA §4.2 — 99.9% availability". Internal: "Platform
-      Engineering standard — a quarterly SLO review". If a URL to the source
+      Engineering standard — Q3 2025 SLO review". If a URL to the source
       document exists, capture it. Every requirement has a source — even
       "team convention" is a valid provenance that makes the implicit
       explicit.
@@ -612,7 +608,6 @@ parts:
           can correct misclassifications or add missing dependencies.
 
           Schema: DependencyNode + DependencyEdge in the record schema.
-          Exemplar: the dependencies_structured section of any completed SUD shows the target shape.
         prior_art: ["C4 Model Level 2 (Simon Brown)", "Azure WAF Health Model", "arc42 §3 technical context", "arc42 §5 building block view"]
         populates: ["service.dependencies_structured"]
         schema_ahead: false
@@ -638,7 +633,7 @@ parts:
       - id: q34
         bare: "What business capability does this service implement?"
         enhanced: "Industry-standard name if one exists. The capability persists if the service is replaced."
-        prior_art: ["Service flow ontology", "BIAN service domains", "ISO 22301 BIA process inventory"]
+        prior_art: ["Service flow decomposition", "BIAN service domains", "ISO 22301 BIA process inventory"]
         populates: []
         schema_ahead: true
         evidence:
@@ -650,7 +645,7 @@ parts:
       - id: q35
         bare: "Is this the sole implementation?"
         enhanced: "Does the capability span multiple services?"
-        prior_art: ["Service flow ontology — Type B flows"]
+        prior_art: ["Service flow decomposition —Type B flows"]
         populates: []
         schema_ahead: true
         evidence:
@@ -675,7 +670,7 @@ parts:
       - id: q37
         bare: "What business processes does this service participate in?"
         enhanced: "Journeys, value streams — named in business terms, not technical"
-        prior_art: ["Business journey mapping architecture", "SLODLC Discover §2.2-2.4 user journeys", "ISO 22301 BIA process inventory", "ArchiMate Business Process"]
+        prior_art: ["Business journey mapping", "SLODLC Discover §2.2-2.4 user journeys", "ISO 22301 BIA process inventory", "ArchiMate Business Process"]
         populates: ["service.process_participations[].process_name"]
         schema_ahead: false
         evidence:
@@ -687,7 +682,7 @@ parts:
       - id: q38
         bare: "What role in each process?"
         enhanced: "What stage/function? What comes before/after? Critical path of the process?"
-        prior_art: ["Service flow ontology — Type B flow", "ArchiMate Serving relationship", "ArchiMate Triggering"]
+        prior_art: ["Service flow decomposition — Type B flow", "ArchiMate Serving relationship", "ArchiMate Triggering"]
         populates: ["service.process_participations[].step_name", "service.process_participations[].blocking", "service.process_participations[].description"]
         schema_ahead: false
         evidence:
@@ -699,7 +694,7 @@ parts:
       - id: q39
         bare: "What's the journey-level impact?"
         enhanced: "Impact on the business process when this service degrades — may differ from per-service impact"
-        prior_art: ["Business journey mapping architecture", "Pathpoint health propagation", "ArchiMate Triggering — downstream impact"]
+        prior_art: ["Business journey mapping", "Pathpoint health propagation", "ArchiMate Triggering — downstream impact"]
         populates: ["service.process_participations[].downstream_impact"]
         schema_ahead: false
         evidence:
@@ -764,7 +759,6 @@ parts:
           correct component mappings.
 
           Schema: ProcessStep + ProcessStructured in the record schema.
-          Exemplar: the process_structured section of any completed SUD shows the target shape.
         prior_art: ["arc42 §6 Runtime View", "BPMN / ISO 19510", "ArchiMate Triggering", "UML Sequence Diagram (ISO/IEC 19501)"]
         populates: ["service.process_structured"]
         schema_ahead: false
@@ -778,7 +772,7 @@ parts:
       - id: q40
         bare: "Does this service have distinct sub-capabilities?"
         enhanced: "Different stakeholders care about different operations?"
-        prior_art: ["Service flow ontology — Type A flow", "arc42 §5 building block view", "IEC 60812 FMEA focus element"]
+        prior_art: ["Service flow decomposition — Type A flow", "arc42 §5 building block view", "IEC 60812 FMEA focus element"]
         populates: []
         schema_ahead: true
         evidence:
@@ -790,7 +784,7 @@ parts:
       - id: q41
         bare: "What are the sub-capabilities?"
         enhanced: "Named, with stakeholder expectations and signals scoped to each"
-        prior_art: ["Service flow ontology — flow as scoping mechanism"]
+        prior_art: ["Service flow decomposition —flow as scoping mechanism"]
         populates: []
         schema_ahead: true
         evidence:
@@ -857,7 +851,6 @@ parts:
           matches how they think about their product.
 
           Schema: SubCapability + CapabilityStructured in the record schema.
-          Exemplar: the capability_structured section of any completed SUD shows the target shape.
         prior_art: ["BIZBOK (Business Architecture Guild)", "BIAN service domains", "ArchiMate Business Function"]
         populates: ["service.capability_structured"]
         schema_ahead: false
@@ -883,7 +876,7 @@ parts:
 
           The test is correctness-of-decision as a first-class quality attribute:
           deterministic software fails by erroring or slowing — already covered
-          by Process (Golden Signals) and System (USE) signals. An agentic step
+          by Application (Golden Signals) and System (USE) signals. An agentic step
           can return HTTP 200, within latency budget, saturation nominal, and be
           confidently mistaken. That failure is invisible to every classic
           signal. It is a distinct quality attribute, and it is why this stratum
@@ -1044,7 +1037,7 @@ parts:
               occur?), Efficiency (did it occur within acceptable time/cost?),
               Adaptability (can it handle changing conditions?). These are the PO's
               natural vocabulary. Golden Signals (latency, errors, traffic,
-              saturation) apply at Process layer. USE (utilization, saturation,
+              saturation) apply at Application layer. USE (utilization, saturation,
               errors) applies at System layer.
 
               For each stakeholder expectation, state:
@@ -1176,7 +1169,7 @@ parts:
   # =================================================================
   # Part 3 — Developer Diagnostic Signals
   # =================================================================
-  # Positions populated: 3-4 at Process layer, grounded to position 5
+  # Positions populated: 3-4 at Application layer, grounded to position 5
   # Actor: Dev
   # Health dimension framework: choose per signal — Golden Signals
   #   (Latency, Errors, Traffic, Saturation) or RED (Rate, Errors,
@@ -1184,19 +1177,19 @@ parts:
   #   RED is the natural fit for request-driven services
   #   (RED ≈ Golden Signals minus Saturation); Golden Signals is the
   #   general-purpose default. Answer exactly one dimension question
-  #   (golden_signal_dimension OR red_dimension) per Process signal.
-  # observability_layer: Process (structural — not asked)
+  #   (golden_signal_dimension OR red_dimension) per Application signal.
+  # observability_layer: Application (structural — not asked)
   #
   # Signals the Dev actor defines for cause investigation. These exist
   # to answer "why is Business Health red?" (cause investigation).
   #
-  # No stakeholder chain. Process signals are grounded to the service's
+  # No stakeholder chain. Application signals are grounded to the service's
   # sub-capabilities (Part 1, q40-q43), not to stakeholder expectations.
   # =================================================================
 
   - part: developer_diagnostics
-    description: "Process-layer signals for cause investigation"
-    observability_layer: "Process"
+    description: "Application-layer signals for cause investigation"
+    observability_layer: "Application"
     repeat_per: signal
     questions:
 
@@ -1206,8 +1199,8 @@ parts:
 
       - id: diagnostic_sub_capability
         bare: "Which sub-capability does this signal measure?"
-        enhanced: "Links to the internal decomposition from q40-q43. Names the specific sub-capability this Process signal monitors — e.g., 'Payment Processing' or 'Order Preparation'. Grounds the signal to the service's functional decomposition."
-        prior_art: ["Service flow ontology — Type A flow", "arc42 §5 building block view"]
+        enhanced: "Links to the internal decomposition from q40-q43. Names the specific sub-capability this Application signal monitors — e.g., 'Payment Processing' or 'Order Preparation'. Grounds the signal to the service's functional decomposition."
+        prior_art: ["Service flow decomposition —Type A flow", "arc42 §5 building block view"]
         populates: ["sliDefinitions[].subCapability"]
         schema_ahead: false
         evidence:
@@ -1218,7 +1211,7 @@ parts:
 
       - id: diagnostic_causal_ref
         bare: "Which Business Health signals does this help explain?"
-        enhanced: "The diagnostic navigation path — when a Business Health signal (L3) is red, this Process signal (L2) helps investigate the cause. Reference Business Health signals by name from Part 2. Example: Payment Validation Rate helps explain Checkout Completion Rate failures."
+        enhanced: "The diagnostic navigation path — when a Business Health signal (L3) is red, this Application signal (L2) helps investigate the cause. Reference Business Health signals by name from Part 2. Example: Payment Validation Rate helps explain Checkout Completion Rate failures."
         prior_art: ["cause investigation", "Google SRE Ch.6 symptom/cause", "Distributed tracing causal model (Ben Sigelman)"]
         populates: ["sliDefinitions[].causalLinks"]
         schema_ahead: false
@@ -1230,7 +1223,7 @@ parts:
 
       - id: golden_signal_dimension
         bare: "Which Golden Signal dimension?"
-        enhanced: "Latency, Errors, Traffic, or Saturation. Altitude-specific health vocabulary for Process-layer signals — the general-purpose default. Answer this OR red_dimension for each Process signal: prefer RED for request-driven services (RED ≈ Golden Signals minus Saturation). Example: Payment Validation Rate is a Golden Signals Errors dimension signal."
+        enhanced: "Latency, Errors, Traffic, or Saturation. Altitude-specific health vocabulary for Application-layer signals — the general-purpose default. Answer this OR red_dimension for each Application signal: prefer RED for request-driven services (RED ≈ Golden Signals minus Saturation). Example: Payment Validation Rate is a Golden Signals Errors dimension signal."
         prior_art: ["Google SRE Golden Signals", "altitude-specific health dimension frameworks"]
         populates: ["sliDefinitions[].healthDimensionFramework", "sliDefinitions[].healthDimension"]
         schema_ahead: false
@@ -1242,7 +1235,7 @@ parts:
 
       - id: red_dimension
         bare: "Which RED dimension?"
-        enhanced: "Rate, Errors, or Duration. Alternative Process-layer health vocabulary, strongest fit for request-driven services — saturation belongs to the resource, not the request, so RED ≈ Golden Signals minus Saturation. Answer this OR golden_signal_dimension for each Process signal, whichever vocabulary fits the signal family. Example: Payment Submission Error Ratio is a RED Errors dimension signal."
+        enhanced: "Rate, Errors, or Duration. Alternative Application-layer health vocabulary, strongest fit for request-driven services — saturation belongs to the resource, not the request, so RED ≈ Golden Signals minus Saturation. Answer this OR golden_signal_dimension for each Application signal, whichever vocabulary fits the signal family. Example: Payment Submission Error Ratio is a RED Errors dimension signal."
         prior_art: ["RED method (Tom Wilkie)", "altitude-specific health dimension frameworks", "BOK IN-23"]
         populates: ["sliDefinitions[].healthDimensionFramework", "sliDefinitions[].healthDimension"]
         schema_ahead: false
@@ -1287,13 +1280,16 @@ parts:
   #   evalReference, healthDimensionFramework, healthDimension) are in
   #   the record schema. Agent signals
   #   serialize into sliDefinitions[] like any other signal.
+  #   REMAINING BOUNDARY: adopting this layer requires extending
+  #   monitoring surfaces and data models to accept it. Agent signals
+  #   serialize and validate independently of that work.
   #
   # CONDITIONAL ACTIVATION: runs only when q44 flagged one or more
   #   agentic decision points. No agentic step → skip this Part.
   #
   # WHY A LAYER, NOT JUST A DIMENSION: correctness-of-decision is a new
   #   quality attribute. A step can be green on
-  #   every USE/Golden signal and still decide wrong; classic Process/
+  #   every USE/Golden signal and still decide wrong; classic Application/
   #   System diagnostics structurally cannot surface it. The "layer tell"
   #   — neither SUD nor BOK has an agent-workflow layer, the slot is
   #   empty and waiting — is the design signal for a distinct layer. (The
@@ -1304,12 +1300,11 @@ parts:
   #   Health signal (APQC Effectiveness — "did the right outcome occur?")
   #   in Part 2. These Agent-layer signals are its diagnostic descent;
   #   they reference those Business Health signals by name via
-  #   diagnostic_causal_ref, exactly as Process signals do.
+  #   diagnostic_causal_ref, exactly as Application signals do.
   #
-  # EXEMPLAR: none is hand-authored here. Exemplars authored separately from
-  #   their source drift out of sync, and a constructed example is not a real
-  #   positive instance — so the worked example renders from a REAL onboarding
-  #   of a service with an agentic decision step, never from constructed content.
+  # EXEMPLAR: none is hand-authored here. Worked examples render from
+  #   onboarded records rather than constructed content, so that the
+  #   example cannot drift from the instrument.
   # =================================================================
 
   - part: agent_decision
@@ -1331,9 +1326,9 @@ parts:
           decision this signal watches — e.g., "Closing-package completeness
           determination" or "Approve / refer / decline recommendation". Grounds
           the signal to the agentic step the way diagnostic_sub_capability grounds
-          a Process signal to a sub-capability. One decision point usually carries
+          a Application signal to a sub-capability. One decision point usually carries
           several Agent-layer signals — one per dimension (see agent_dimension).
-        prior_art: ["OpenInference AGENT / CHAIN span kinds", "arc42 §5 building block view", "Service flow ontology — Type A flow"]
+        prior_art: ["OpenInference AGENT / CHAIN span kinds", "arc42 §5 building block view", "Service flow decomposition —Type A flow"]
         populates: ["sliDefinitions[].agentDecisionPoint"]
         schema_ahead: false
         evidence:
@@ -1342,14 +1337,14 @@ parts:
             - pattern: "(decision point|agentic step|determination|recommendation|classification)"
               description: "agentic decision point named"
 
-      # Reused from Part 3 (Process) — the upward causal link. NOT schema-ahead;
+      # Reused from Part 3 (Application) — the upward causal link. NOT schema-ahead;
       # writes to the same causalLinks the descent assembly reads.
       - id: diagnostic_causal_ref
         bare: "Which Business Health signals does this help explain?"
         enhanced: >
           The diagnostic navigation path for the confidently-wrong case: when a
           Business Health correctness signal (APQC Effectiveness — e.g.,
-          "Closing-package accuracy rate") is red but Process and System signals
+          "Closing-package accuracy rate") is red but Application and System signals
           are green, this Agent-layer signal helps investigate whether the
           DECISION was wrong. Reference the Business Health signal(s) by name from
           Part 2. This is how correctness-of-decision links upward to
@@ -1483,7 +1478,7 @@ parts:
   # observability_layer: System (structural — not asked)
   #
   # Same shape as Part 3, different actor and altitude.
-  # No causal relationship field — System signals help explain Process
+  # No causal relationship field — System signals help explain Application
   # signals, but the causal link is typically generic.
   # =================================================================
 
@@ -1542,10 +1537,10 @@ parts:
 
           **Per signal, produce one DescentLink:**
             - signal: the signal_name
-            - layer: Business Health / Process / Agent Workflow / System (from
+            - layer: Business Health / Application / Agent Workflow / System (from
               the signal's observability layer). Agent Workflow signals (Part 3a)
               are diagnostic descent for Business Health correctness
-              signals — they slot beside Process signals under the Business Health
+              signals — they slot beside Application signals under the Business Health
               signal they explain via diagnostic_causal_ref.
             - process_steps: which step order number(s) this signal measures
               (from process_structured)
@@ -1579,7 +1574,6 @@ parts:
           investigation path matches how they actually diagnose issues.
 
           Schema: DescentLink in the record schema.
-          Exemplar: the descent_links section of any completed SUD shows the target shape.
         prior_art: ["IEEE 830 Traceability Matrix", "SRE diagnostic path", "Google SRE Ch.6 symptom/cause gap"]
         populates: ["service.descent_links"]
         schema_ahead: false
@@ -1593,9 +1587,8 @@ parts:
   # Part 5 — Operational Context
   # =================================================================
   # Positions populated: 7 (BusinessRole), 8 (BusinessActor), 9 (Runbook)
-  # Ownership capture here is flat and service-level; structured
-  # ownership (ITIL RACI, ISA-18.2 runbooks) would be an additive
-  # change.
+  # Currently flat and service-level. Structured ownership (ITIL RACI,
+  # ISA-18.2 runbooks) is a natural additive extension.
   # =================================================================
 
   - part: operational

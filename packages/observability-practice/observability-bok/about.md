@@ -1,6 +1,6 @@
 # About This BOK
 
-**Current working version.** Opinionated starting point for organizing observability as a professional domain. Not canonical. Not finished. (Structure and vocabulary: [How the BOK is Organized](how-the-bok-is-organized.md) · start point: [Start Here](start-here.md).)
+**Current working version.** Opinionated starting point for organizing observability as a professional domain. Not canonical. Not finished. (Structure and vocabulary: [How the BOK is Organized](how-the-bok-is-organized.md) · start point: [the hub](README.md).)
 
 ## Why it exists
 

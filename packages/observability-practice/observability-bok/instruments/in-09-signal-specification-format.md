@@ -1,7 +1,9 @@
 # IN-09 — Signal Specification Format
 
 **Type:** Definition
+
 **State:** Current
+
 **Lifecycle position:** Define → Implement
 
 ---
@@ -44,10 +46,12 @@ A complete signal specification carries six sections:
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - Introducing or modifying a signal type — write its spec in this format before changing the data model
 - Onboarding developers who need signal behavior beyond the record-template level
 - Resolving questions about signal ownership, lifecycle, or behavior rules
 
 **Related instruments:**
+
 - [IN-05 Signal Definition Template](in-05-signal-definition-template.md) — the record view a spec explains and validates
 - [IN-07 Health Signal Template](in-07-health-signal-template.md) — measurement details that implement a spec's requirements

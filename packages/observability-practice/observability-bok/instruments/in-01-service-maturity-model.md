@@ -1,7 +1,9 @@
 # IN-01 — Service Maturity Model
 
 **Type:** Assessment
+
 **State:** Current
+
 **Lifecycle position:** Spans Define → Observe
 
 ---
@@ -49,12 +51,14 @@ Each stage requires the previous — a service cannot be Instrumented without be
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - Quarterly portfolio reviews — "show me where we are"
 - Objectives-and-key-results (OKR) reporting — stage transitions as a key result
 - Stakeholder communications — demonstrating adoption progress
 - Adoption planning — identifying where services are stuck and what would unblock them
 
 **Related instruments:**
+
 - [IN-03 Division Maturity Assessment](in-03-division-maturity-assessment.md) — uses the service maturity model as one input dimension
 - [IN-20 Portfolio Maturity View](in-20-portfolio-maturity-view.md) — the communication instrument that visualizes this assessment's output
 - [IN-23 Observability Standard](in-23-observability-standard.md) — the definition of good; its filled chain positions are what the maturity stages translate

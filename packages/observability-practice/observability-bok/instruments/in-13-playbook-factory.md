@@ -1,7 +1,9 @@
 # IN-13 — Playbook Factory
 
 **Type:** Production
+
 **State:** Seeded
+
 **Lifecycle position:** Respond
 
 ---

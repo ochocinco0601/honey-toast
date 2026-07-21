@@ -1,7 +1,9 @@
 # IN-05 — Signal Definition Template
 
 **Type:** Definition
+
 **State:** Current
+
 **Lifecycle position:** Define → Implement
 
 ---
@@ -54,11 +56,13 @@ Type-specific measurement fields follow the signal type: ratio signals need a nu
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - After stakeholder expectations are captured ([IN-06](in-06-stakeholder-expectation-template.md)) — signals measure whether expectations are met
 - When a new business function needs health monitoring
 - When an incident reveals a gap in signal coverage (lifecycle feedback from [KA05 — Incident Response](../ka05-incident-response.md))
 
 **Related instruments:**
+
 - [IN-06 Stakeholder Expectation Template](in-06-stakeholder-expectation-template.md) — provides the expectations that signals measure
 - [IN-07 Health Signal Template](in-07-health-signal-template.md) — captures the measurement details (metric source, formula)
 - [IN-09 Signal Specification Format](in-09-signal-specification-format.md) — deeper spec-level detail for complex signals

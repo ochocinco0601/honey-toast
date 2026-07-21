@@ -1,7 +1,9 @@
 # KA06 — Platform & Tooling
 
 **Category:** Enabling Practice
+
 **Primary owner:** Platform Engineering
+
 **Question this KA answers:** What technology makes observability possible?
 
 ---
@@ -11,6 +13,7 @@
 This KA covers the technology landscape that makes observability possible. Tool selection, telemetry pipeline architecture, consolidation strategy, platform operations, observability-as-code, and the economics of running an observability platform at enterprise scale. KA06 is cross-cutting — it enables all core practice KAs ([KA01](ka01-business-context.md)-[KA05](ka05-incident-response.md)) by providing the infrastructure they depend on.
 
 **What's in scope:**
+
 - Tool landscape and selection — evaluating and managing observability tools
 - Telemetry pipeline architecture — collection, routing, enrichment, storage
 - Consolidation vs best-of-breed strategy — single vendor vs specialized tools
@@ -19,6 +22,7 @@ This KA covers the technology landscape that makes observability possible. Tool 
 - Observability economics — cost management, data volume, licensing
 
 **What's out of scope:**
+
 - What to monitor ([KA01](ka01-business-context.md)-[KA02](ka02-signal-design.md)) — KA06 provides the HOW, not the WHAT
 - Quality standards ([KA03](ka03-standards-quality.md)) — KA06 implements enforcement infrastructure
 - Dashboard design patterns ([KA04](ka04-monitoring-visualization.md)) — KA06 provides the rendering tools
@@ -37,9 +41,9 @@ Research on 11 industry observability maturity models (AWS, Grafana, Splunk, New
 
 ### Telemetry Pipeline Architecture
 
-A reference implementation documents one complete pipeline — synthetic monitoring (e.g., ThousandEyes) → OTLP → Prometheus → Mimir → Grafana. This demonstrates the full chain from synthetic monitoring through data collection, storage, and visualization.
+One complete reference chain runs synthetic monitoring (e.g., ThousandEyes) → OTLP → Prometheus → Mimir → Grafana. This demonstrates the full chain from synthetic monitoring through data collection, storage, and visualization.
 
-A reference business observability pipeline: CSV input → SQLite database → ORM → Grafana dashboards. Schema-driven: changes to the data model propagate through migrations, ORM, and dashboard generators.
+A reference business observability pipeline: structured input → a persisted definition store → generated dashboards. Schema-driven: changes to the data model propagate through migrations, the data-access layer, and dashboard generators.
 
 **Pipeline health is observability's observability.** Operating experience with platform disaster recovery surfaces a critical insight: an observability platform that is unobserved in steady state cannot be trusted in DR. Required steady-state health signals: ingest pipeline freshness, scheduled-search success rate, synthetic-event round-trip, alert delivery round-trip.
 
@@ -51,9 +55,10 @@ The practical framing that resolves most real-world instances: **common where po
 
 ### Platform Operations
 
-Running the observability platform itself — availability, capacity, cost. A reference architecture pattern: SQLite database, ORM layer, migration pipeline, Grafana rendering, with schema-driven UI metadata generation.
+Running the observability platform itself — availability, capacity, cost. A reference architecture pattern: a persisted definition store, a data-access layer, a migration pipeline, and generated rendering, with schema-driven field-metadata generation.
 
 **Platform-resilience patterns from operating experience:**
+
 - Platform failure modes split into read-path (correct but slow) and write-path (fast but stale). Data-delayed is strictly worse because it corrupts truth, not throughput.
 - Gray failure taxonomy: region loss (rare/total), platform degradation (recurring/gray-zone), catastrophic loss (very rare/total). Classical DR solves for mode 1. Mode 2 is where most operational harm occurs.
 - Meta-observability: the platform needs its own SLOs, decomposed into freshness × query performance dimensions.

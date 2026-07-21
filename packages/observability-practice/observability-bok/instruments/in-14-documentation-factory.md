@@ -1,7 +1,9 @@
 # IN-14 — Documentation Factory
 
 **Type:** Production
+
 **State:** Seeded
+
 **Lifecycle position:** Cross-cutting (produces stakeholder documentation at any lifecycle stage)
 
 ---
@@ -22,7 +24,7 @@ The Documentation Factory turns business observability data into stakeholder-fac
 
 - Executive summaries — portfolio view, one-line-per-service with health-definition coverage and impact categories (definition state from the system of record — live health display belongs to the monitoring platforms the definitions feed)
 - Team onboarding briefs — service-specific, showing what the team needs to know and do
-- Compliance reports — observability coverage against regulatory/PTO checklists
+- Compliance reports — observability coverage against regulatory / permit-to-operate checklists
 - Adoption updates — progress against targets, friction patterns, stuck services
 - Portfolio maturity views — aggregate progression across the service inventory
 

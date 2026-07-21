@@ -1,7 +1,9 @@
 # IN-11 — Dashboard Factory
 
 **Type:** Production
+
 **State:** Seeded
+
 **Lifecycle position:** Observe
 
 ---
@@ -31,11 +33,13 @@ A Platform Engineer needs dashboards for a service that has completed signal def
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - A service reaches Instrumented stage and needs production dashboards
 - New signals are added to an existing service
 - Dashboard standards are updated and existing dashboards need regeneration
 
 **Related instruments:**
+
 - [IN-15 Dashboard Generation Methodology](in-15-dashboard-generation-methodology.md) — the rules this factory follows
 - [IN-22 Executive Dashboard Patterns](in-22-executive-dashboard-patterns.md) — design patterns for the executive-level output
 - [IN-05 Signal Definition Template](in-05-signal-definition-template.md) — signal data drives panel content

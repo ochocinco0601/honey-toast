@@ -1,7 +1,9 @@
 # KA11 — Organizational Capability
 
 **Category:** Management Practice
+
 **Primary owner:** Leadership / Practice Lead
+
 **Question this KA answers:** Do we have the right people, skills, and structure?
 
 ---
@@ -11,13 +13,15 @@
 This KA covers the people dimension of observability. Roles, team structure, skills, staffing, and culture. KA11 determines the ceiling for everything else — the best methodology, platform, and strategy won't matter if the organization can't execute. KA11 is what determines whether [KA12](ka12-adoption-enablement.md)'s adoption efforts succeed or stall.
 
 **What's in scope:**
-- Role definitions and responsibilities — PO, Developer, SRE, Platform, PE
+
+- Role definitions and responsibilities — PO, Developer, SRE, Platform, principal engineer
 - Team structure and interaction — how teams are organized for observability work
 - Skills and competency development — what people need to know, growth paths
 - Staffing and capacity — resource allocation for the practice
 - Culture and mindset — shifting from reactive to proactive, business-outcome orientation
 
 **What's out of scope:**
+
 - How people adopt specific practices ([KA12](ka12-adoption-enablement.md)) — KA11 builds capability, [KA12](ka12-adoption-enablement.md) drives adoption
 - How stakeholders are engaged ([KA10](ka10-stakeholder-engagement.md)) — KA11 builds organizational muscle, [KA10](ka10-stakeholder-engagement.md) engages outward
 - Strategic direction ([KA09](ka09-strategy-program.md)) — KA11 is constrained by available capability
@@ -35,7 +39,7 @@ Business observability defines four primary roles, each owning specific layers a
 | **Product Owner** | Business Health, Business Impact | Define: business context, stakeholder expectations, SLO targets |
 | **Developer** | Application | Implement: signal queries, data sources, instrumentation |
 | **Platform/SRE** | System | Observe + Respond: monitoring, alerting, threshold configuration, incident response |
-| **PE / Practice Lead** | Cross-cutting | All stages: methodology, governance, scaling, adoption |
+| **Principal engineer / Practice Lead** | Cross-cutting | All stages: methodology, governance, scaling, adoption |
 
 The three-actor ownership model for Business Health signals ([KA02](ka02-signal-design.md)) is the most concrete instantiation: PO creates (what and why), Developer implements (how), Platform configures (when to alert). One record, three contributors.
 
@@ -47,7 +51,7 @@ Team Topologies (Skelton & Pais) provides the analytical framework but hasn't be
 
 ### Skills & Competency Development
 
-Onboarding a first service is the primary skill development mechanism — POs learn by doing. In the current process that means walking the motivation-chain elicitation ([KA12](ka12-adoption-enablement.md)): the PO who traverses stakeholder → expectation → signal for their own service has applied the four-layer model, not read about it. The earlier onboarding tool's learn mode (progressive disclosure of methodology concepts at each form step) remains the interactive training surface for the same purpose.
+Onboarding a first service is the primary skill development mechanism — POs learn by doing. In the current process that means walking the motivation-chain elicitation ([KA12](ka12-adoption-enablement.md)): the PO who traverses stakeholder → expectation → signal for their own service has applied the four-layer model, not read about it. A learn mode that discloses methodology concepts progressively at each capture step serves the same purpose as an interactive training surface.
 
 The domain context transfer document is skill development for AI agents — bringing them to practitioner-level understanding.
 
@@ -85,7 +89,7 @@ Prior art: Kotter's change management framework applies — establish urgency ti
 
 ## 4. Roles & Responsibilities
 
-| Activity | Leadership | Practice Lead / PE | HR / Talent |
+| Activity | Leadership | Practice Lead | HR / Talent |
 |----------|:---:|:---:|:---:|
 | Define observability roles | Approve | **Own** | Review (JD alignment) |
 | Design team structure | Approve | **Own** | — |
@@ -113,13 +117,13 @@ These instruments operationalize KA11 knowledge — a practitioner doing organiz
 | OKR set with role descriptions | Role definitions per KR (PO, Dev, Platform) |
 | Capacity model | Leadership partnership model, embedded-to-independent transition pattern |
 | Domain context transfer | AI agent competency model (analogous to human skill development) |
-| Maturity assessment | Technical-reductionism pattern, culture-shift observations from a reference LOB |
+| Maturity assessment | Technical-reductionism pattern, culture-shift observations from adoption in one line of business |
 
 ### Techniques
 
 - **Learn-by-doing** — the onboarding workflow teaches the methodology through application, not training
 - **AI agent as skill proxy** — domain context transfer creates a skilled agent that can support POs, reducing the human skill requirement
-- **Part A → Part B transition** — embedded PE support first, independent adoption second. The scaling pattern for capability building.
+- **Embedded-support → independent-adoption transition** — embedded principal-engineer support first, independent adoption second. The scaling pattern for capability building.
 
 ---
 
@@ -151,9 +155,9 @@ These instruments operationalize KA11 knowledge — a practitioner doing organiz
 | Topic | State | Notes |
 | ------- | ------- | ------- |
 | [KA11.1](ka11-organizational-capability.md#role-definitions-responsibilities) Role Definitions & Responsibilities | **Seeded** | Roles described within OKR docs. No standalone role definitions. |
-| [KA11.2](ka11-organizational-capability.md#team-structure-interaction) Team Structure & Interaction | **Seeded** | One team model (Business Health leads partnership). No Team Topologies application. |
+| [KA11.2](ka11-organizational-capability.md#team-structure-interaction) Team Structure & Interaction | **Seeded** | One team model (practice-lead / product-lead partnership). No Team Topologies application. |
 | [KA11.3](ka11-organizational-capability.md#skills-competency-development) Skills & Competency Development | **Seeded** | Learning features designed. No role-specific competency paths. |
 | [KA11.4](ka11-organizational-capability.md#staffing-capacity) Staffing & Capacity | **Seeded** | One capacity model for the current year. Not a reusable planning framework. |
 | [KA11.5](ka11-organizational-capability.md#culture-mindset) Culture & Mindset | **Seeded** | Observable patterns noted. No change management methodology. |
 
-**KA11 summary:** 0/5 Current, 5 Seeded. Most underdeveloped KA. Every topic has raw material — real instances from real work — but nothing has been extracted into practitioner-reusable form. The pattern: organizational capability work has been done through doing it (building teams, running meetings, onboarding POs), not through documenting how to do it.
+**KA11 summary:** 0/5 Current, 5 Seeded. Most underdeveloped KA. Every topic has raw material that is not yet extracted into practitioner-reusable form. The pattern: organizational capability work has been done through doing it (building teams, running meetings, onboarding POs), not through documenting how to do it.

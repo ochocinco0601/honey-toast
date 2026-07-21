@@ -1,8 +1,11 @@
 # KA05 — Incident Management & Response
 
 **Category:** Core Practice
+
 **Lifecycle stage:** Respond
+
 **Primary owner:** SRE / Ops
+
 **Question this KA answers:** When something fails, what do we do?
 
 ---
@@ -12,6 +15,7 @@
 This KA covers what happens when things break. [KA04](ka04-monitoring-visualization.md) surfaces the signals. KA05 acts on them — triage, escalation, playbook execution, postmortems, and the feedback loop that turns incidents into improved definitions. KA05 completes the observability lifecycle (Define → Implement → Enforce → Observe → **Respond**) and feeds back to [KA01](ka01-business-context.md) (Define), making the lifecycle iterative rather than linear.
 
 **What's in scope:**
+
 - Triage and severity determination — business-context-aware incident assessment
 - Escalation and team composition — who gets called, role-based response
 - Playbook design and execution — pre-built response procedures tied to signal patterns
@@ -19,6 +23,7 @@ This KA covers what happens when things break. [KA04](ka04-monitoring-visualizat
 - Feedback to definition — incidents reveal gaps in business context, completing the lifecycle loop
 
 **What's out of scope:**
+
 - Monitoring and alerting configuration ([KA04](ka04-monitoring-visualization.md)) — KA05 starts when the alert has already fired
 - Platform tooling for incident management ([KA06](ka06-platform-tooling.md)) — BigPanda, PagerDuty are tools; KA05 is the practice
 - Organizational incident management processes ([KA11](ka11-organizational-capability.md)) — team structure and rotation are organizational capability
@@ -66,7 +71,7 @@ Playbooks are pre-built response procedures tied to signal patterns and business
 
 **The structural investigation path.** For services onboarded with the current capture instrument, every signal carries an assembled **descent link**: signal → layer → business-process step(s) → sub-capability → component → endpoint → diagnostic signals → what to check when the diagnostics are healthy. This is the investigation path the on-call engineer follows when a signal degrades — produced at definition time and reviewed by the on-call engineer, so investigation starts from structure rather than from zero. The failure-mode templates above complement it: the descent link says *where* to look; the failure-mode checklist says *what* to look for.
 
-In the reference implementation, a general-ledger reconciliation pilot produced a complete playbook artifact — a runbook tied to specific alert conditions with step-by-step response procedures.
+A complete playbook artifact is a runbook tied to specific alert conditions with step-by-step response procedures.
 
 ### Postmortem & Learning
 

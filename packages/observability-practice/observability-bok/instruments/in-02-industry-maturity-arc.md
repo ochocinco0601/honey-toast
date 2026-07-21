@@ -1,7 +1,9 @@
 # IN-02 — Industry Maturity Arc
 
 **Type:** Assessment
+
 **State:** Seeded
+
 **Lifecycle position:** Cross-cutting (organizational-level assessment, not per-service)
 
 ---
@@ -53,10 +55,12 @@ An organization can be high on one and low on the other. Standardized basic moni
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - Strategic planning — positioning observability investment against industry benchmarks
 - Executive presentations — "here's where we are, here's where we're going, here's what the industry looks like"
 - Investment justification — demonstrating the Stage 2→3 gap and the business value of crossing it
 
 **Related instruments:**
+
 - [IN-01 Service Maturity Model](in-01-service-maturity-model.md) — per-service progression (tactical); this instrument is organizational (strategic)
 - [IN-03 Division Maturity Assessment](in-03-division-maturity-assessment.md) — applies this arc to a specific technology division

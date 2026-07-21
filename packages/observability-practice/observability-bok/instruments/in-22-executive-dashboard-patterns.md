@@ -1,7 +1,9 @@
 # IN-22 — Executive Dashboard Patterns
 
 **Type:** Communication
+
 **State:** Current
+
 **Lifecycle position:** Observe
 
 ---
@@ -37,12 +39,14 @@ An executive needs to see business health — not infrastructure metrics, not ra
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - Designing dashboards for director+ audiences
 - Reviewing existing dashboards for executive appropriateness
 - Establishing dashboard standards for a new organizational rollup
 - Demonstrating business observability value to leadership through concrete visualizations
 
 **Related instruments:**
+
 - [IN-15 Dashboard Generation Methodology](in-15-dashboard-generation-methodology.md) — executive patterns are a subset of the broader methodology
 - [IN-11 Dashboard Factory](in-11-dashboard-factory.md) — the factory produces executive dashboard panels when configured for leadership audience
 - [IN-20 Portfolio Maturity View](in-20-portfolio-maturity-view.md) — portfolio view is often presented alongside executive dashboards

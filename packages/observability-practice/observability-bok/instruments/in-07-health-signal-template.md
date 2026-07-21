@@ -1,7 +1,9 @@
 # IN-07 — Health Signal Template
 
 **Type:** Definition
+
 **State:** Current
+
 **Lifecycle position:** Define → Implement
 
 ---
@@ -50,11 +52,13 @@ Validation is type-conditional and runs at update time, not creation time — a 
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - After signal definitions exist ([IN-05](in-05-signal-definition-template.md)) — the Developer translates Product Owner intent into measurement details
 - When migrating signals between monitoring platforms
 - When optimizing signal performance (query efficiency, cardinality management)
 
 **Related instruments:**
+
 - [IN-05 Signal Definition Template](in-05-signal-definition-template.md) — provides the "what"; this instrument specifies the "how"
 - [IN-09 Signal Specification Format](in-09-signal-specification-format.md) — feature-spec depth for complex signal behaviors
 - [IN-12 Alert Factory](in-12-alert-factory.md) — consumes this template's output to generate alert rules

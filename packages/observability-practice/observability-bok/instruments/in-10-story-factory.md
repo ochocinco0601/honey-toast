@@ -1,7 +1,9 @@
 # IN-10 — Story Factory
 
 **Type:** Production
+
 **State:** Seeded
+
 **Lifecycle position:** Define → Implement (bridges business context to development work)
 
 ---
@@ -32,11 +34,13 @@ A Product Owner has completed a service profile with stakeholder expectations an
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - Sprint planning — generating implementation stories from service profiles
 - Backlog creation — producing the initial set of observability stories for a service
 - Validation — checking that all signals and expectations have corresponding implementation stories
 
 **Related instruments:**
+
 - [IN-04 Service Profile Template](in-04-service-profile-template.md) — primary input
 - [IN-05 Signal Definition Template](in-05-signal-definition-template.md) — signal inputs
 - [IN-06 Stakeholder Expectation Template](in-06-stakeholder-expectation-template.md) — expectation inputs

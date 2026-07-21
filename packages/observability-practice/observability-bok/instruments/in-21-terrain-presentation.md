@@ -1,7 +1,9 @@
 # IN-21 — Terrain Presentation
 
 **Type:** Communication
+
 **State:** Seeded
+
 **Lifecycle position:** Cross-cutting (communicates observability needs across the full lifecycle)
 
 ---
@@ -34,11 +36,13 @@ A practice lead presents to a working group or leadership audience and needs to 
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - Observability champions-group or working-group presentations
 - Leadership advocacy — introducing observability to new stakeholders
 - Cross-team alignment — showing how different teams' needs connect to the same lifecycle
 - Campaign communication — ongoing stakeholder engagement across multiple touchpoints
 
 **Related instruments:**
+
 - [IN-20 Portfolio Maturity View](in-20-portfolio-maturity-view.md) — shows progress (where we are); terrain shows needs (what's required)
 - [IN-22 Executive Dashboard Patterns](in-22-executive-dashboard-patterns.md) — live dashboards that demonstrate the "Observe" stage terrain

@@ -1,8 +1,11 @@
 # KA03 — Standards & Quality Assurance
 
 **Category:** Core Practice
+
 **Lifecycle stage:** Enforce
+
 **Primary owner:** Platform / Engineering
+
 **Question this KA answers:** How do we ensure standards before production?
 
 ---
@@ -12,6 +15,7 @@
 This KA covers how observability standards are enforced before production. Signal design ([KA02](ka02-signal-design.md)) produces signal definitions. KA03 validates that those definitions meet quality standards before they reach dashboards and alerting systems. Without enforcement, observability debt accumulates — signals exist but are incomplete, inconsistent, or untrustworthy.
 
 **What's in scope:**
+
 - Quality gates embedded in CI/CD and service onboarding workflows
 - Observability readiness criteria — what "production-ready" means for observability
 - Compliance and regulatory alignment — permit-to-operate, audit requirements
@@ -19,6 +23,7 @@ This KA covers how observability standards are enforced before production. Signa
 - Validation and verification — automated checks against schema and quality
 
 **What's out of scope:**
+
 - Signal design ([KA02](ka02-signal-design.md)) — KA03 enforces what [KA02](ka02-signal-design.md) produces
 - Platform tooling ([KA06](ka06-platform-tooling.md)) — KA03 defines standards, [KA06](ka06-platform-tooling.md) implements the enforcement infrastructure
 - Data governance ([KA08](ka08-data-governance.md)) — KA03 is the enforcement arm, [KA08](ka08-data-governance.md) governs the broader data management practice
@@ -68,10 +73,11 @@ Compliance integration attaches to business observability through the legal-risk
 Reusable patterns teams follow when defining observability for their services. The concept of "standards and guidance" — documented approaches that ensure consistency across teams without requiring each team to invent their own patterns.
 
 **Established template families:**
+
 - Stakeholder context guidance — sentence templates, quality checklists, and prompt templates for generating stakeholder expectations
 - Discovery template — structured approach for initial service analysis
 - Case study template — documenting the onboarding experience for a specific service
-- CSV templates (5 files) — the structured input format feeding the pipeline
+- CSV templates — service, expectations, signals, impact, and operational input feeding the system of record
 
 **What's missing:** A unified blueprint library. A recurring stakeholder ask is "standard practices, guidelines, recommendations" — and the typical response is "the templates exist, but scattered." Teams need a single "here are the standards" artifact a lead can hand to POs. This is typically the most stakeholder-visible gap in KA03.
 
@@ -147,7 +153,7 @@ These instruments operationalize KA03 knowledge — a practitioner doing standar
 |--------------|-----------------|
 | Service Status specification | 5-dimension evaluation, weighted scoring, progressive completeness |
 | Stakeholder context guidance | Quality checklist, sentence templates, AI prompt template |
-| Structured input templates | Five CSV templates capturing a complete service profile, with schema validation |
+| Structured input templates | Structured CSV templates capturing a complete service profile, with schema validation |
 | Enterprise service-hierarchy reference | Regulatory context: enterprise critical-products frameworks, business impact analysis, compliance alignment |
 
 ### Techniques

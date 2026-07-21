@@ -1,7 +1,9 @@
 # IN-19 — Discovery Dialogue Protocol
 
 **Type:** Adoption
+
 **State:** Seeded
+
 **Lifecycle position:** Define
 
 ---
@@ -37,11 +39,13 @@ A Platform Engineer sits down with a Product Owner to produce a service profile.
 ## Usage Context
 
 **When to reach for this instrument:**
-- First-time service profiling — PE facilitates the PO's first service profile
+
+- First-time service profiling — the principal engineer facilitates the PO's first service profile
 - Complex services — where business context isn't obvious and requires structured exploration
 - Cross-functional services — where multiple stakeholders need to contribute context
 
 **Related instruments:**
+
 - [IN-04 Service Profile Template](in-04-service-profile-template.md) — the dialogue produces data for this template
 - [IN-06 Stakeholder Expectation Template](in-06-stakeholder-expectation-template.md) — the dialogue produces expectation rows
 - [IN-16 Onboarding Simulation](in-16-onboarding-simulation.md) — the simulation incorporates discovery dialogue principles

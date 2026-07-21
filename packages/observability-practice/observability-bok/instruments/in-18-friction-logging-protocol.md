@@ -1,7 +1,9 @@
 # IN-18 — Friction Logging Protocol
 
 **Type:** Adoption
+
 **State:** Seeded
+
 **Lifecycle position:** Cross-cutting (captures adoption pain points at any stage)
 
 ---
@@ -32,11 +34,13 @@ A team encounters friction during onboarding or ongoing practice execution — c
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - During onboarding simulation ([IN-16](in-16-onboarding-simulation.md)) — built into the experience
 - During pilot execution — facilitator logs friction alongside participants
 - During any "first time" experience with an instrument or workflow
 - Post-incident — when incident response reveals methodology friction
 
 **Related instruments:**
+
 - [IN-16 Onboarding Simulation](in-16-onboarding-simulation.md) — friction logging is embedded in the simulation
 - [IN-19 Discovery Dialogue Protocol](in-19-discovery-dialogue-protocol.md) — friction during discovery dialogues is a common capture point

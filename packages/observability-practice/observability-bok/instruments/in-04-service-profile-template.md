@@ -1,7 +1,9 @@
 # IN-04 — Service Profile Template
 
 **Type:** Definition
+
 **State:** Current
+
 **Lifecycle position:** Define
 
 ---
@@ -43,7 +45,7 @@ Service identity is unique per (`serviceName`, `org_id`, `app_id`) — the same 
 | `businessUnit` | Mortgage Lending |
 | `productOwner` | sarah.chen@example.com |
 | `org_id` | ORG005 |
-| `app_id` | CORE_HOME_ORIG |
+| `app_id` | APP_0123 |
 
 ## Inputs
 
@@ -66,11 +68,13 @@ Service identity is unique per (`serviceName`, `org_id`, `app_id`) — the same 
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - A new service needs observability — this is step 1
 - A CMDB inventory audit identifies services without observability coverage
 - Organizational restructuring requires updating service-to-organization mappings
 
 **Related instruments:**
+
 - [IN-06 Stakeholder Expectation Template](in-06-stakeholder-expectation-template.md) — next step after service registration (who cares about this service?)
 - [IN-05 Signal Definition Template](in-05-signal-definition-template.md) — defines the health signals for the registered service
 - [IN-01 Service Maturity Model](in-01-service-maturity-model.md) — completing this template moves a service from Identified to beginning Contextualized

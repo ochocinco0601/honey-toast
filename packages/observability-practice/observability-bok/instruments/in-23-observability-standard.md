@@ -1,7 +1,9 @@
 # IN-23 — Observability Standard (One Content, Three Forms)
 
 **Type:** Definition
+
 **State:** Current — the agent-workflow vocabulary is provisional (industry still converging)
+
 **Lifecycle position:** Define → Respond (the standard every stage tests against)
 
 ---
@@ -29,7 +31,7 @@ The application and system sets are industry-canonical. The business-layer sets 
 **The chain** — the BOK's semantic chain, which every monitored function must be able to walk in both directions:
 
 ```
-stakeholder → expectation → business health signal (supported by process and system signals)
+stakeholder → expectation → business health signal (supported by application and system signals)
   → on breach: business impact signal → alert → owner + next action
 ```
 
@@ -51,9 +53,9 @@ The definition is carried in three forms, and it takes all three:
 
 ## Form A — the Model
 
-One real business function, worked through the layers with the chain filled, shown beside an empty copy of the same positions. Compare your own function to the worked column; the empty column is yours to fill — your blanks are your placement.
+One business function, worked through the layers with the chain filled, shown beside an empty copy of the same positions. Compare your own function to the worked column; the empty column is yours to fill — your blanks are your placement.
 
-The worked column below is drawn from a real service record produced by this practice — a payments transaction-acceptance service — not invented for this page:
+The worked column below shows the chain end to end:
 
 | Chain position | Worked: payment acceptance | Yours |
 |---|---|---|
@@ -99,11 +101,13 @@ Either way the output is a map of filled and unfilled positions — a distance f
 ## Usage Context
 
 **When to reach for this instrument:**
+
 - Design or review time for any critical flow — "when this breaks silently, how will anyone know?"
 - Evaluating an existing monitoring surface — walk the chain positions against it
 - Standing up or auditing a recurring operational review — apply the rhythm criteria
 
 **Related instruments:**
+
 - [IN-01 Service Maturity Model](in-01-service-maturity-model.md) — translates a placement into a maturity stage
 - [IN-04 Service Profile Template](in-04-service-profile-template.md) — Form B's root record
 - [IN-05 Signal Definition Template](in-05-signal-definition-template.md) — Form B's signal rows
