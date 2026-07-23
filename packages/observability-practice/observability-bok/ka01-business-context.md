@@ -220,6 +220,7 @@ These instruments operationalize KA01 knowledge — a practitioner doing busines
 | [IN-13 Playbook Factory](instruments/in-13-playbook-factory.md) | Production | Generates playbooks from service context and impact categories |
 | [IN-16 Onboarding Simulation](instruments/in-16-onboarding-simulation.md) | Adoption | Guided walkthrough of a PO's first service profile — walks through KA01's service definition workflow |
 | [IN-19 Discovery Dialogue Protocol](instruments/in-19-discovery-dialogue-protocol.md) | Adoption | Facilitation guide for the PO conversation that produces a service profile |
+| [IN-24 First-Process Run Plan](instruments/in-24-first-process-run-plan.md) | Adoption | Sequences KA01 capture into a team's first executable walk — session order, roles, outputs |
 | [IN-23 Observability Standard](instruments/in-23-observability-standard.md) | Definition | The written definition of good — the chain positions KA01 content must fill |
 
 ### KA-Specific Artifact Types

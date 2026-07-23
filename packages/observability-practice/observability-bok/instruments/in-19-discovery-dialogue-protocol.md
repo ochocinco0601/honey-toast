@@ -50,3 +50,4 @@ A Platform Engineer sits down with a Product Owner to produce a service profile.
 - [IN-06 Stakeholder Expectation Template](in-06-stakeholder-expectation-template.md) — the dialogue produces expectation rows
 - [IN-16 Onboarding Simulation](in-16-onboarding-simulation.md) — the simulation incorporates discovery dialogue principles
 - [IN-23 Observability Standard](in-23-observability-standard.md) — the definition of good the dialogue's record serves
+- [IN-24 First-Process Run Plan](in-24-first-process-run-plan.md) — the run plan that places this dialogue inside a team's first working session

@@ -65,6 +65,7 @@ Onboarding and scaling — "how do teams get started?"
 | [IN-17](in-17-transfer-packages.md) | Transfer Packages | Self-contained artifact bundles teams adopt to run the practice independently | **S** |
 | [IN-18](in-18-friction-logging-protocol.md) | Friction Logging Protocol | Structured capture of adoption pain points during pilot and onboarding | **S** |
 | [IN-19](in-19-discovery-dialogue-protocol.md) | Discovery Dialogue Protocol | Facilitation guide for the PO conversation that produces a service profile | **S** |
+| [IN-24](in-24-first-process-run-plan.md) | First-Process Run Plan | The executable path for a team's first process — prep, the facilitated session, measurement and response wiring, repeat | **S** |
 
 ## Communication Instruments
 
@@ -82,7 +83,7 @@ Stakeholder visibility — "how do we show progress?"
 
 ## Relationship to Knowledge Areas
 
-Instruments are **peers** of Knowledge Areas, not children. Where KAs organize by domain topic (13 areas, 73 topics), instruments organize by practitioner action (5 types, 23 instruments). Navigation flows both directions:
+Instruments are **peers** of Knowledge Areas, not children. Where KAs organize by domain topic (13 areas, 73 topics), instruments organize by practitioner action (5 types, 24 instruments). Navigation flows both directions:
 
 - **KA → Instruments:** Each KA page's Section 5 lists which instruments operationalize that knowledge
 - **Instruments → KAs:** Each instrument page lists which KAs it draws knowledge from

@@ -1108,6 +1108,14 @@ practice_instruments:
       draws_from: ["KA01", "KA12"]
       page: "instruments/in-19-discovery-dialogue-protocol.md"
 
+    - id: "IN-24"
+      name: "First-Process Run Plan"
+      type: adoption
+      state: seeded
+      lifecycle_position: ["Define"]
+      draws_from: ["KA01", "KA12"]
+      page: "instruments/in-24-first-process-run-plan.md"
+
     # --- Communication ---
     - id: "IN-20"
       name: "Portfolio Maturity View"

@@ -207,6 +207,7 @@ These instruments operationalize KA12 knowledge — a practitioner doing adoptio
 | [IN-17 Transfer Packages](instruments/in-17-transfer-packages.md) | Adoption | Self-contained artifact bundles that make adoption portable across teams and LOBs |
 | [IN-18 Friction Logging Protocol](instruments/in-18-friction-logging-protocol.md) | Adoption | Structured capture of adoption pain points during pilots and onboarding |
 | [IN-19 Discovery Dialogue Protocol](instruments/in-19-discovery-dialogue-protocol.md) | Adoption | Facilitation guide for the PO conversation that produces a service profile |
+| [IN-24 First-Process Run Plan](instruments/in-24-first-process-run-plan.md) | Adoption | The executable on-ramp — what a receiving team does first, sequenced end to end |
 
 ### KA-Specific Artifact Types
 
