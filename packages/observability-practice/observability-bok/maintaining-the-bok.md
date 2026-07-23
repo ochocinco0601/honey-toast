@@ -399,7 +399,7 @@ Examples of legitimate structural moves that have happened or might happen:
 - **Adding the Perspectives structural element.** Originally the BOK had KAs and Instruments. A real-world question (platform-type variation) couldn't be answered by either. Perspectives was added with BABOK v3 Perspectives Chapter as prior art.
 - **Splitting a KA.** If KA10 Stakeholder Engagement grows so large it fragments naturally into two bodies of knowledge (say, Stakeholder Engagement + Communication), the split is legitimate once the boundary is clean.
 - **Merging topics.** If KA02.3 (Instrumentation Strategy) and KA02.4 (Signal Hierarchy) turn out to always be discussed together with no distinct content, merge them.
-- **Introducing a new instrument type.** The current five types (Assessment, Definition, Production, Adoption, Communication) cover 23 instruments. A future instrument that doesn't fit would be a signal — either the instrument isn't really an instrument, or the type taxonomy needs expansion.
+- **Introducing a new instrument type.** The current five types (Assessment, Definition, Production, Adoption, Communication) cover 24 instruments. A future instrument that doesn't fit would be a signal — either the instrument isn't really an instrument, or the type taxonomy needs expansion.
 
 ### What structural change is NOT
 
@@ -791,7 +791,7 @@ When a review trigger fires, the steward walks the meta set. This is a deliberat
 **For each meta page identified as affected:**
 
 1. **Read it cold.** Assume nothing about what it currently says. Read as a new reader would.
-2. **Check counts and claims.** Does every count in the page match current reality? (Count of KAs, topics, instruments, perspectives, instrument types.) Does every structural claim still hold? ("Three peer structural elements," "five perspectives," "23 instruments in five types.")
+2. **Check counts and claims.** Does every count in the page match current reality? (Count of KAs, topics, instruments, perspectives, instrument types.) Does every structural claim still hold? ("Three peer structural elements," "five perspectives," "24 instruments in five types.") Standing remote counts are deliberately limited to two instances — the front page's catalog-link headline and the build config's `site_description`; both must be checked whenever an instrument is added or retired. Prose elsewhere describes categories without numerals precisely so counts can't go stale there.
 3. **Check examples.** If the page uses a worked example (how-to-walk-a-question) or references specific IDs (how-the-bok-is-organized cites KA examples), do the examples still hold? Did any referenced KA/topic/instrument get renamed, moved, or retired?
 4. **Check cross-references.** Do internal links resolve? Did a linked page get renamed or moved?
 5. **Check consistency with other meta.** Does this page contradict any other meta page? (Two meta pages citing different structure element counts is a smoking-gun inconsistency.)

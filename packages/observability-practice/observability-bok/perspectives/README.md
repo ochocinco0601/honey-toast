@@ -12,11 +12,11 @@
 
 | Perspective | What it covers | State |
 |---|---|---|
-| [Cloud-Native](cloud-native.md) | Container platforms, service mesh, OpenTelemetry-native instrumentation | **Seeded** |
-| [Mainframe](mainframe.md) | SMF/RMF records, batch-job telemetry, transaction monitors (CICS/IMS) | **Seeded** |
-| [Hybrid / Integration-Oriented](hybrid-integration.md) | Cross-platform correlation, metadata parity, trace propagation across boundaries | **Seeded** |
-| [SaaS / Third-Party](saas-third-party.md) | Instrumentation without code access, API-level observability, vendor telemetry ingestion | **Seeded** |
-| [Agentic](agentic.md) | Services containing a judgment-making software step — the conditional Agent Workflow stratum *(provisional vocabulary)*, decision-quality signals, the answer-key obligation | **Current** |
+| [Cloud-Native](cloud-native.md) | Container platforms, service mesh, OpenTelemetry-native instrumentation | **[Seeded](../instruments/README.md#content-state-key)** |
+| [Mainframe](mainframe.md) | SMF/RMF records, batch-job telemetry, transaction monitors (CICS/IMS) | **[Seeded](../instruments/README.md#content-state-key)** |
+| [Hybrid / Integration-Oriented](hybrid-integration.md) | Cross-platform correlation, metadata parity, trace propagation across boundaries | **[Seeded](../instruments/README.md#content-state-key)** |
+| [SaaS / Third-Party](saas-third-party.md) | Instrumentation without code access, API-level observability, vendor telemetry ingestion | **[Seeded](../instruments/README.md#content-state-key)** |
+| [Agentic](agentic.md) | Services containing a judgment-making software step — the conditional Agent Workflow stratum *(provisional vocabulary)*, decision-quality signals, the answer-key obligation | **[Current](../instruments/README.md#content-state-key)** |
 
 ---
 

@@ -1,8 +1,15 @@
 # Worked Example — Ledger-Writer Service Profile
 
-**Type:** Worked example (companion artifact to [IN-24](in-24-first-process-run-plan.md))
-
-**State:** Seeded
+<table style="border: 1px solid var(--md-typeset-table-color, #ddd); border-left: 4px solid var(--md-primary-fg-color, #673ab7); border-collapse: collapse; margin: 1em 0; font-size: 0.95em;">
+  <tr>
+    <th style="text-align: left; padding: 0.4em 0.9em; white-space: nowrap; font-weight: 600;">Type</th>
+    <td style="padding: 0.4em 0.9em;">Worked example (companion artifact to <a href="in-24-first-process-run-plan.html">IN-24</a>)</td>
+  </tr>
+  <tr>
+    <th style="text-align: left; padding: 0.4em 0.9em; white-space: nowrap; font-weight: 600;">State</th>
+    <td style="padding: 0.4em 0.9em;"><a href="index.html#content-state-key">Seeded</a></td>
+  </tr>
+</table>
 
 ---
 

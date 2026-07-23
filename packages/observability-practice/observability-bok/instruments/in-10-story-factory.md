@@ -1,10 +1,19 @@
 # IN-10 — Story Factory
 
-**Type:** Production
-
-**State:** Seeded
-
-**Lifecycle position:** Define → Implement (bridges business context to development work)
+<table style="border: 1px solid var(--md-typeset-table-color, #ddd); border-left: 4px solid var(--md-primary-fg-color, #673ab7); border-collapse: collapse; margin: 1em 0; font-size: 0.95em;">
+  <tr>
+    <th style="text-align: left; padding: 0.4em 0.9em; white-space: nowrap; font-weight: 600;">Type</th>
+    <td style="padding: 0.4em 0.9em;">Production</td>
+  </tr>
+  <tr>
+    <th style="text-align: left; padding: 0.4em 0.9em; white-space: nowrap; font-weight: 600;">State</th>
+    <td style="padding: 0.4em 0.9em;"><a href="index.html#content-state-key">Seeded</a></td>
+  </tr>
+  <tr>
+    <th style="text-align: left; padding: 0.4em 0.9em; white-space: nowrap; font-weight: 600;">Lifecycle position</th>
+    <td style="padding: 0.4em 0.9em;">Define → Implement (bridges business context to development work)</td>
+  </tr>
+</table>
 
 ---
 

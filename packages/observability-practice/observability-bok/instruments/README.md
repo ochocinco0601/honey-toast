@@ -15,6 +15,7 @@ This is the **Act** axis of the BOK. See [How the BOK is Organized](../how-the-b
 - **Preparing stakeholder communications** → Browse [Communication Instruments](#communication-instruments)
 
 **Content state key:** **C** = Current (documented, usable) | **S** = Seeded (concept exists, not fully built) | **M** = Missing
+{: #content-state-key }
 
 ---
 

@@ -12,13 +12,13 @@ It's a reference to look things up in — a working draft, not a finished standa
 
 *Define → Implement → Enforce → Observe → Respond. Responding feeds back into defining.*
 
-| Your question | Where it's answered | Usually owned by |
-|---|---|---|
-| What does "healthy" mean in business terms? | [Business Context & Service Definition](ka01-business-context.md) | Product Owner |
-| How do we instrument the signals that matter? | [Signal Design & Instrumentation](ka02-signal-design.md) | Developer |
-| How do we ensure standards before production? | [Standards & Quality Assurance](ka03-standards-quality.md) | Platform / Engineering |
-| What views make health visible? | [Monitoring, Visualization & Correlation](ka04-monitoring-visualization.md) | Platform / SRE |
-| When something fails, what do we do? | [Incident Management & Response](ka05-incident-response.md) | SRE / Ops |
+| Your question | Where it's answered |
+|---|---|
+| What does "healthy" mean in business terms? | [Business Context & Service Definition](ka01-business-context.md) |
+| How do we instrument the signals that matter? | [Signal Design & Instrumentation](ka02-signal-design.md) |
+| How do we ensure standards before production? | [Standards & Quality Assurance](ka03-standards-quality.md) |
+| What views make health visible? | [Monitoring, Visualization & Correlation](ka04-monitoring-visualization.md) |
+| When something fails, what do we do? | [Incident Management & Response](ka05-incident-response.md) |
 
 ### Making it possible
 
@@ -42,15 +42,15 @@ It's a reference to look things up in — a working draft, not a finished standa
 
 ## Or pick up a tool
 
-The pages above explain what you need to understand. These are what you fill out and use — **[23 instruments in the full catalog →](instruments/README.md)**
+The pages above explain what you need to understand. These are what you fill out and use — **[24 instruments in the full catalog →](instruments/README.md)**
 
 | Your question | What you'll find |
 |---|---|
-| Where are we? | [Assessment](instruments/README.md#assessment-instruments) — 3 maturity models and assessments |
-| What do I fill out? | [Definition](instruments/README.md#definition-instruments) — 6 templates plus the written standard |
-| What gets produced? | [Production](instruments/README.md#production-instruments) — 6 generators for dashboards, alerts, playbooks |
-| How do teams get started? | [Adoption](instruments/README.md#adoption-instruments) — 4 onboarding and pilot tools |
-| How do we show progress? | [Communication](instruments/README.md#communication-instruments) — 3 stakeholder reporting tools |
+| Where are we? | [Assessment](instruments/README.md#assessment-instruments) — maturity models and assessments |
+| What do I fill out? | [Definition](instruments/README.md#definition-instruments) — templates plus the written standard |
+| What gets produced? | [Production](instruments/README.md#production-instruments) — generators for dashboards, alerts, playbooks |
+| How do teams get started? | [Adoption](instruments/README.md#adoption-instruments) — onboarding and pilot tools |
+| How do we show progress? | [Communication](instruments/README.md#communication-instruments) — stakeholder reporting tools |
 
 ---
 

@@ -1,10 +1,19 @@
 # IN-24 — First-Process Run Plan
 
-**Type:** Adoption
-
-**State:** Seeded
-
-**Lifecycle position:** Define
+<table style="border: 1px solid var(--md-typeset-table-color, #ddd); border-left: 4px solid var(--md-primary-fg-color, #673ab7); border-collapse: collapse; margin: 1em 0; font-size: 0.95em;">
+  <tr>
+    <th style="text-align: left; padding: 0.4em 0.9em; white-space: nowrap; font-weight: 600;">Type</th>
+    <td style="padding: 0.4em 0.9em;">Adoption</td>
+  </tr>
+  <tr>
+    <th style="text-align: left; padding: 0.4em 0.9em; white-space: nowrap; font-weight: 600;">State</th>
+    <td style="padding: 0.4em 0.9em;"><a href="index.html#content-state-key">Seeded</a></td>
+  </tr>
+  <tr>
+    <th style="text-align: left; padding: 0.4em 0.9em; white-space: nowrap; font-weight: 600;">Lifecycle position</th>
+    <td style="padding: 0.4em 0.9em;">Define</td>
+  </tr>
+</table>
 
 ---
 
