@@ -1,0 +1,103 @@
+site_name: Observability Body of Knowledge
+site_description: 13 Knowledge Areas and 24 Practice Instruments — the scope of enterprise observability
+docs_dir: observability-bok
+# Flat filenames (ka01-x.html, not ka01-x/index.html) so a built site/ opens
+# directly from disk — directory URLs break under file://.
+use_directory_urls: false
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+    - content.code.copy
+    - search.highlight
+    - search.suggest
+
+markdown_extensions:
+  - tables
+  - fenced_code
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+
+nav:
+  - Start here: README.md
+  - Running the practice:
+      - Business Context & Service Definition: ka01-business-context.md
+      - Signal Design & Instrumentation: ka02-signal-design.md
+      - Standards & Quality Assurance: ka03-standards-quality.md
+      - Monitoring, Visualization & Correlation: ka04-monitoring-visualization.md
+      - Incident Management & Response: ka05-incident-response.md
+  - Making it possible:
+      - Platform & Tooling: ka06-platform-tooling.md
+      - Integration & Architecture: ka07-integration-architecture.md
+      - Data Management & Governance: ka08-data-governance.md
+  - Making it stick:
+      - Strategy & Program Management: ka09-strategy-program.md
+      - Stakeholder Engagement & Communication: ka10-stakeholder-engagement.md
+      - Organizational Capability: ka11-organizational-capability.md
+      - Adoption & Enablement: ka12-adoption-enablement.md
+      - Continuous Improvement: ka13-continuous-improvement.md
+  - Platform perspectives:
+      - All perspectives: perspectives/README.md
+      - Cloud-Native: perspectives/cloud-native.md
+      - Mainframe: perspectives/mainframe.md
+      - Hybrid / Integration: perspectives/hybrid-integration.md
+      - SaaS / Third-Party: perspectives/saas-third-party.md
+      - Agentic: perspectives/agentic.md
+  - Practice instruments:
+      - All instruments: instruments/README.md
+      - Service Maturity Model: instruments/in-01-service-maturity-model.md
+      - Industry Maturity Arc: instruments/in-02-industry-maturity-arc.md
+      - Division Maturity Assessment: instruments/in-03-division-maturity-assessment.md
+      - Service Profile Template: instruments/in-04-service-profile-template.md
+      - Signal Definition Template: instruments/in-05-signal-definition-template.md
+      - Stakeholder Expectation Template: instruments/in-06-stakeholder-expectation-template.md
+      - Health Signal Template: instruments/in-07-health-signal-template.md
+      - Service Status Template: instruments/in-08-service-status-template.md
+      - Signal Specification Format: instruments/in-09-signal-specification-format.md
+      - Story Factory: instruments/in-10-story-factory.md
+      - Dashboard Factory: instruments/in-11-dashboard-factory.md
+      - Alert Factory: instruments/in-12-alert-factory.md
+      - Playbook Factory: instruments/in-13-playbook-factory.md
+      - Documentation Factory: instruments/in-14-documentation-factory.md
+      - Dashboard Generation Methodology: instruments/in-15-dashboard-generation-methodology.md
+      - Onboarding Simulation: instruments/in-16-onboarding-simulation.md
+      - Transfer Packages: instruments/in-17-transfer-packages.md
+      - Friction Logging Protocol: instruments/in-18-friction-logging-protocol.md
+      - Discovery Dialogue Protocol: instruments/in-19-discovery-dialogue-protocol.md
+      - Portfolio Maturity View: instruments/in-20-portfolio-maturity-view.md
+      - Terrain Presentation: instruments/in-21-terrain-presentation.md
+      - Executive Dashboard Patterns: instruments/in-22-executive-dashboard-patterns.md
+      - Observability Standard: instruments/in-23-observability-standard.md
+      - First-Process Run Plan: instruments/in-24-first-process-run-plan.md
+      - Worked Example — Ledger-Writer Profile: instruments/worked-example-ledger-writer.md
+  - New to this?:
+      - The Methodology: the-methodology.md
+      - How to walk a question: how-to-walk-a-question.md
+      - Questions the BOK Answers: questions-the-bok-answers.md
+      - About this BOK: about.md
+  - Maintaining it:
+      - How the BOK is Organized: how-the-bok-is-organized.md
+      - Contributing: contribute.md
+      - Maintaining the BOK: maintaining-the-bok.md

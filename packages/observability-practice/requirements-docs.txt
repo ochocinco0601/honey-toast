@@ -1,0 +1,4 @@
+# Toolchain to build a browsable site from these docs:
+#   pip install -r requirements-docs.txt && mkdocs build
+mkdocs==1.6.1
+mkdocs-material==9.7.6
