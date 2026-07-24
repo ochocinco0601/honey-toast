@@ -1,13 +1,21 @@
-"""Strip every markdown link that points outside the nine kit pages down to plain
-text, so a focused rendering has no dead-ends. Run against the assembled docs dir:
+"""Prepare the assembled docs for the build: strip every markdown link that points
+outside the nine kit pages down to plain text so a focused rendering has no
+dead-ends, and fill the render date. Run against the assembled docs dir:
 
     python neutralize.py <docs_dir>
+
+Every read and write here declares UTF-8, and all page-text rewriting lives here
+rather than in the build script. The pages are full of em dashes and arrows, so a
+build driven from a shell whose text tools default to a non-UTF-8 codepage would
+mangle them; keeping the shell to file operations only makes that impossible.
 """
+import datetime
 import os
 import re
 import sys
 
 docs = sys.argv[1]
+RENDER_DATE = datetime.date.today().isoformat()
 
 KEPT = {
     "README.md", "the-methodology.md", "how-to-walk-a-question.md",
@@ -39,6 +47,7 @@ def process(full, rel):
         return m.group(0) if resolved in KEPT else label
 
     new = state_re.sub(r'\1', link_re.sub(repl, text))
+    new = new.replace('[RENDER DATE]', RENDER_DATE)
     if new != text:
         open(full, 'w', encoding='utf-8').write(new)
 
@@ -50,4 +59,4 @@ for root, _, files in os.walk(docs):
             rel = os.path.relpath(full, docs).replace(os.sep, '/')
             process(full, rel)
 
-print("neutralized outside-kit links")
+print(f"neutralized outside-kit links; render date {RENDER_DATE}")

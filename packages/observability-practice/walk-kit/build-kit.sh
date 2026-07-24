@@ -20,9 +20,8 @@ for p in "${INSTR_PAGES[@]}"; do cp "$SRC/instruments/$p.md" "$OUT/docs/instrume
 
 # Authored front door -> the kit home page
 cp "$HERE/front-door.md" "$OUT/docs/README.md"
-# Fill the render date at build time
-sed -i "s/\[RENDER DATE\]/$(date +%F)/" "$OUT/docs/README.md"
-# Strip every link pointing outside the nine pages
+# Strip every link pointing outside the nine pages, and fill the render date.
+# All page-text rewriting happens in neutralize.py, in UTF-8; this script only moves files.
 python "$HERE/neutralize.py" "$OUT/docs"
 # Build
 cp "$HERE/kit-mkdocs.yml" "$OUT/mkdocs.yml"

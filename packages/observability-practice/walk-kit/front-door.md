@@ -2,7 +2,7 @@
 
 > Draft — rendered [RENDER DATE], from the living Business Observability practice.
 
-**Business observability makes a business process's health explicit and traceable — from a business expectation down to the failing connection — so a team works from one shared picture and finds what's actually broken instead of chasing the wrong system.**
+**Business observability makes a business process's health explicit and traceable — from a business expectation down to the failing connection — so a team can say what "working" means for the process, and show whether it is.**
 
 ## Where to begin
 

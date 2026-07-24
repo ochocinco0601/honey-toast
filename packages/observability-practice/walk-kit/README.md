@@ -23,6 +23,9 @@ first walk, not the whole reference.
   notes the full body of knowledge is available separately.
 - **Dated at render.** The front door carries a `[RENDER DATE]` marker; the build fills it
   with the build date. The kit is a dated snapshot, not the living source.
+- **Page text is only ever rewritten in Python, in UTF-8.** `build-kit.sh` copies and builds;
+  it never edits page characters. The pages are full of em dashes and arrows, and keeping the
+  shell out of the text means no shell's default codepage can mangle them.
 
 ## Regenerate
 
@@ -38,5 +41,5 @@ serve the directory.
 |---|---|
 | `front-door.md` | The authored front door (becomes the kit's home page) |
 | `kit-mkdocs.yml` | The focused nav and theme |
-| `neutralize.py` | Strips outside-kit links to plain text |
+| `neutralize.py` | Strips outside-kit links to plain text, and fills the render date |
 | `build-kit.sh` | Assembles the nine pages, neutralizes, and builds |
