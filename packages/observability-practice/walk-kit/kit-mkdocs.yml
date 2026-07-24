@@ -1,0 +1,33 @@
+site_name: Business Observability — Walk-Before-Run Kit
+site_description: A focused first-process kit
+copyright: "Draft snapshot — not the living source."
+docs_dir: docs
+use_directory_urls: false
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: deep purple
+  features: [navigation.top, navigation.tracking, toc.follow, content.code.copy]
+markdown_extensions:
+  - tables
+  - fenced_code
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc: {permalink: true}
+  - pymdownx.details
+  - pymdownx.superfences
+nav:
+  - Start here: README.md
+  - Walk before run:
+      - First-Process Run Plan: instruments/in-24-first-process-run-plan.md
+      - Discovery Dialogue Protocol: instruments/in-19-discovery-dialogue-protocol.md
+      - Service Profile Template: instruments/in-04-service-profile-template.md
+      - Signal Definition Template: instruments/in-05-signal-definition-template.md
+      - Stakeholder Expectation Template: instruments/in-06-stakeholder-expectation-template.md
+      - Worked Example — Ledger-Writer Profile: instruments/worked-example-ledger-writer.md
+  - Learn the approach:
+      - The Methodology: the-methodology.md
+      - How to walk a question: how-to-walk-a-question.md
