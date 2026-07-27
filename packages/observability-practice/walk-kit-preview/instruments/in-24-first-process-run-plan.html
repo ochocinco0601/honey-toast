@@ -1,0 +1,1014 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A focused first-process kit">
+      
+      
+      
+      
+        <link rel="prev" href="../index.html">
+      
+      
+        <link rel="next" href="in-04-service-profile-template.html">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Run your first process - Business Observability — Walk-Before-Run Kit</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#run-your-teams-first-process" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../index.html" title="Business Observability — Walk-Before-Run Kit" class="md-header__button md-logo" aria-label="Business Observability — Walk-Before-Run Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Business Observability — Walk-Before-Run Kit
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Run your first process
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="deep-purple"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../index.html" title="Business Observability — Walk-Before-Run Kit" class="md-nav__button md-logo" aria-label="Business Observability — Walk-Before-Run Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Business Observability — Walk-Before-Run Kit
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Start here
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Walk before run
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Walk before run
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run your first process
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="in-24-first-process-run-plan.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run your first process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#before-the-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before the session
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-session-90-minutes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The session — 90 minutes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The session — 90 minutes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-context-10-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1 · Context — 10 min
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-stakeholder-chains-50-min-the-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2 · Stakeholder chains — 50 min · the core
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-impact-10-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3 · Impact — 10 min
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-technical-signals-15-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4 · Technical signals — 15 min
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-close-5-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5 · Close — 5 min
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#after-the-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        After the session
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#process-two-and-three" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process two and three
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="in-04-service-profile-template.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Capture - the service profile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="in-06-stakeholder-expectation-template.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Capture - stakeholder expectations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="in-05-signal-definition-template.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Capture - signal definitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="worked-example-ledger-writer.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    See a finished example
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Learn the approach
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Learn the approach
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../the-methodology.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why business observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#before-the-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before the session
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-session-90-minutes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The session — 90 minutes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The session — 90 minutes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-context-10-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1 · Context — 10 min
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-stakeholder-chains-50-min-the-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2 · Stakeholder chains — 50 min · the core
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-impact-10-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3 · Impact — 10 min
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-technical-signals-15-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4 · Technical signals — 15 min
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-close-5-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5 · Close — 5 min
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#after-the-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        After the session
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#process-two-and-three" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process two and three
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="run-your-teams-first-process">Run your team's first process<a class="headerlink" href="#run-your-teams-first-process" title="Permanent link">&para;</a></h1>
+<p>One facilitated working session — about 90 minutes — turns a business process you
+pick into your first <strong>service profile</strong>: what the process owes, to whom, and the
+signals that show whether it's holding. This page is the run sheet. Run it once with
+facilitation; after that your team runs its own.</p>
+<div class="admonition note">
+<p class="admonition-title">New to the idea? Read the <em>why</em> first.</p>
+<p><strong><a href="../the-methodology.html">Why business observability</a></strong> explains why observability
+starts from business health, not telemetry. This page is the <em>how</em> — it assumes
+you're sold on the idea and ready to do it.</p>
+</div>
+<h2 id="before-the-session">Before the session<a class="headerlink" href="#before-the-session" title="Permanent link">&para;</a></h2>
+<p>Get four things ready. None needs tooling; two go faster with it.</p>
+<p><strong>1 — Pick one business process.</strong> One the business notices when it fails, and one the
+team knows well. A good first pick beats a perfect one.</p>
+<p><strong>2 — Get three people in the room</strong> (however your org names the roles):</p>
+<ul>
+<li><strong>Business</strong> — knows what the process owes and to whom (product owner, BA, or the ops lead who fields the complaints).</li>
+<li><strong>Engineering</strong> — knows the applications inside the process.</li>
+<li><strong>Monitoring</strong> — owns today's alerts for those applications.</li>
+</ul>
+<p><strong>3 — Build the process inventory.</strong> One table: the process → every application that
+participates, in order → where each runs. Pull it from architecture docs and runbooks;
+if none exist, write it from the engineers' heads. Most teams find this table exists
+nowhere — producing it is your first real output, not prep overhead.</p>
+<p><strong>4 — Get the code-level picture in front of the engineers.</strong> Run DeepWiki (a tool that reads a repo and builds a readable wiki of how the code works) against the
+applications' repos for flow diagrams and service descriptions, then have the engineers
+correct it — the documented flow must match the real one before anything is measured
+against it. No tooling yet? A hand-drawn flow the engineers agree on works for process one.</p>
+<p>Then read the <strong><a href="worked-example-ledger-writer.html">worked example</a></strong> — it shows what
+"done" looks like, so the room can check its own output against it.</p>
+<div class="admonition tip">
+<p class="admonition-title">No room yet? Start solo.</p>
+<p>Draft the stakeholder chains yourself from documents and your own knowledge, in the
+session order below — and mark every expectation and signal <strong>NEEDS VALIDATION</strong>. A
+solo pass is a draft, not a finished profile. The session then runs as
+confirm-and-correct — faster than starting blank, and nothing self-answered slips
+through as settled.</p>
+</div>
+<h2 id="the-session-90-minutes">The session — 90 minutes<a class="headerlink" href="#the-session-90-minutes" title="Permanent link">&para;</a></h2>
+<p>One person facilitates and asks; the room answers. Run the segments in this order — it
+follows how business people actually reason, so traceability builds as you go instead of
+being reconnected afterward.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">#</th>
+<th>Segment</th>
+<th style="text-align: center;">Time</th>
+<th>You walk out with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">1</td>
+<td>Context</td>
+<td style="text-align: center;">10 min</td>
+<td>the inventory table, confirmed in the room</td>
+</tr>
+<tr>
+<td style="text-align: center;">2</td>
+<td><strong>Stakeholder chains — the core</strong></td>
+<td style="text-align: center;">50 min</td>
+<td>one closed chain per stakeholder</td>
+</tr>
+<tr>
+<td style="text-align: center;">3</td>
+<td>Impact</td>
+<td style="text-align: center;">10 min</td>
+<td>a cost attached to each expectation</td>
+</tr>
+<tr>
+<td style="text-align: center;">4</td>
+<td>Technical signals</td>
+<td style="text-align: center;">15 min</td>
+<td>existing monitors connected upward</td>
+</tr>
+<tr>
+<td style="text-align: center;">5</td>
+<td>Close</td>
+<td style="text-align: center;">5 min</td>
+<td>open questions, each with an owner and a date</td>
+</tr>
+</tbody>
+</table>
+<h3 id="1-context-10-min">1 · Context — 10 min<a class="headerlink" href="#1-context-10-min" title="Permanent link">&para;</a></h3>
+<p>What is this process, what does it participate in, who depends on it. Confirm the
+inventory table in the room.</p>
+<h3 id="2-stakeholder-chains-50-min-the-core">2 · Stakeholder chains — 50 min · the core<a class="headerlink" href="#2-stakeholder-chains-50-min-the-core" title="Permanent link">&para;</a></h3>
+<p>One stakeholder at a time, complete before moving on:</p>
+<ul>
+<li><strong>Who are they?</strong> A named role — the operations team, the downstream reconciliation group, the customer.</li>
+<li><strong>What do they expect</strong> of this process, as a <em>measurable sentence</em>? ("Files arrive by 6am." "A transaction completes end to end in 10 seconds.")</li>
+<li><strong>What signal</strong> would tell us each expectation is met or missed? Name it, even if nothing measures it today.</li>
+<li><strong>Close the chain</strong> before the next stakeholder: does every expectation have a signal? Gaps stay on the page as gaps.</li>
+</ul>
+<h3 id="3-impact-10-min">3 · Impact — 10 min<a class="headerlink" href="#3-impact-10-min" title="Permanent link">&para;</a></h3>
+<p>When each expectation is missed, what does it cost — money, customers, regulatory
+exposure, downstream teams blocked? Attach the cost to the expectation it belongs to.</p>
+<h3 id="4-technical-signals-15-min">4 · Technical signals — 15 min<a class="headerlink" href="#4-technical-signals-15-min" title="Permanent link">&para;</a></h3>
+<p><em>Now</em> bring in the engineers: for each business signal, which application-level signals
+would explain a breach (workflow errors, queue depth, latency A→B)? Which system-level
+signals sit under those? This is where years of bottom-up monitoring get connected
+upward instead of thrown away.</p>
+<h3 id="5-close-5-min">5 · Close — 5 min<a class="headerlink" href="#5-close-5-min" title="Permanent link">&para;</a></h3>
+<p>Read back every question the room couldn't answer — each with an owner and a date.</p>
+<div class="admonition success">
+<p class="admonition-title">The session's output</p>
+<p>A <strong>filled service profile</strong>: stakeholders → expectations → business signals →
+supporting application and system signals, plus impact notes and the gap list.</p>
+</div>
+<h2 id="after-the-session">After the session<a class="headerlink" href="#after-the-session" title="Permanent link">&para;</a></h2>
+<p><strong>Set measurements and targets.</strong> For each signal: which source answers it — logs, APM,
+synthetics — and what the target is. Where no target was ever agreed, derive a starting
+range from what "normal" has looked like over recent months, alert on deviation, and
+replace it with a real agreement when one exists.</p>
+<p><strong>Wire the response.</strong> Every signal that can breach gets an owner and a next action. From
+here it's the reliability practice you already run — now anchored to the process map
+instead of tribal memory.</p>
+<p><strong>Let the profile drive the artifacts.</strong> The filled profile is the source dashboards,
+alerts, and playbooks generate from. Until that machinery is local: keep the profile on a
+wiki page, build the dashboard once by hand from it, and map question → signal → tool.</p>
+<h2 id="process-two-and-three">Process two and three<a class="headerlink" href="#process-two-and-three" title="Permanent link">&para;</a></h2>
+<p>Run the next process with less facilitation — the people from session one can now lead
+their own. Log friction as it happens (what confused the room, what blocked progress —
+30 seconds an entry) and fix the next run from the log. A signal that traces to no
+expectation is a cleanup candidate, not a keeper.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Draft
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.top", "navigation.tracking", "toc.follow", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

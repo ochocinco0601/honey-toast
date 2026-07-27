@@ -1,0 +1,1109 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A focused first-process kit">
+      
+      
+      
+      
+        <link rel="prev" href="in-05-signal-definition-template.html">
+      
+      
+        <link rel="next" href="../the-methodology.html">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>See a finished example - Business Observability — Walk-Before-Run Kit</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#worked-example-ledger-writer-service-profile" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../index.html" title="Business Observability — Walk-Before-Run Kit" class="md-header__button md-logo" aria-label="Business Observability — Walk-Before-Run Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Business Observability — Walk-Before-Run Kit
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              See a finished example
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="deep-purple"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../index.html" title="Business Observability — Walk-Before-Run Kit" class="md-nav__button md-logo" aria-label="Business Observability — Walk-Before-Run Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Business Observability — Walk-Before-Run Kit
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Start here
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Walk before run
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Walk before run
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="in-24-first-process-run-plan.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run your first process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="in-04-service-profile-template.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Capture - the service profile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="in-06-stakeholder-expectation-template.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Capture - stakeholder expectations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="in-05-signal-definition-template.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Capture - signal definitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    See a finished example
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="worked-example-ledger-writer.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    See a finished example
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this is
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-service-in-one-paragraph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The service in one paragraph
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-process-it-serves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The process it serves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stakeholder-chains-the-sessions-core-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stakeholder chains — the session's core output
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stakeholder chains — the session&#39;s core output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chain-1-bank-customers-critical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chain 1 — Bank Customers (CRITICAL)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chain-2-compliance-risk-management-critical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chain 2 — Compliance &amp; Risk Management (CRITICAL)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chain-3-finance-treasury-high" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chain 3 — Finance &amp; Treasury (HIGH)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chain-4-payments-operations-high" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chain 4 — Payments Operations (HIGH)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-supporting-layers-connecting-existing-monitoring-upward" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The supporting layers — connecting existing monitoring upward
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-diagnosis-walks-the-layers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How diagnosis walks the layers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-gap-list-kept-on-the-page-as-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The gap list — kept on the page as gaps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-to-imitate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What to imitate
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Learn the approach
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Learn the approach
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../the-methodology.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why business observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this is
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-service-in-one-paragraph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The service in one paragraph
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-process-it-serves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The process it serves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stakeholder-chains-the-sessions-core-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stakeholder chains — the session's core output
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stakeholder chains — the session&#39;s core output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chain-1-bank-customers-critical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chain 1 — Bank Customers (CRITICAL)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chain-2-compliance-risk-management-critical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chain 2 — Compliance &amp; Risk Management (CRITICAL)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chain-3-finance-treasury-high" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chain 3 — Finance &amp; Treasury (HIGH)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chain-4-payments-operations-high" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chain 4 — Payments Operations (HIGH)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-supporting-layers-connecting-existing-monitoring-upward" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The supporting layers — connecting existing monitoring upward
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-diagnosis-walks-the-layers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How diagnosis walks the layers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-gap-list-kept-on-the-page-as-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The gap list — kept on the page as gaps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-to-imitate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What to imitate
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="worked-example-ledger-writer-service-profile">Worked Example — Ledger-Writer Service Profile<a class="headerlink" href="#worked-example-ledger-writer-service-profile" title="Permanent link">&para;</a></h1>
+<h2 id="what-this-is">What this is<a class="headerlink" href="#what-this-is" title="Permanent link">&para;</a></h2>
+<p>The completed output of a first-process run — the filled service profile that a <a href="in-24-first-process-run-plan.html">first-process run</a> produces — for a real service: the ledger-writer service of Bank of Anthos, a public reference banking application. Use it two ways: read it before your own session to see what done looks like, and compare your session's output against it afterward.</p>
+<p>This page keeps the shape your session produces: stakeholders → expectations → business signals → supporting application and system signals, plus impact notes and the gap list.</p>
+<h2 id="the-service-in-one-paragraph">The service in one paragraph<a class="headerlink" href="#the-service-in-one-paragraph" title="Permanent link">&para;</a></h2>
+<p>Ledger-writer validates and records every customer payment — the single gate through which all payments flow. It is critical-path: there is no alternative channel, no degraded mode, no retry queue. When it fails, customers experience immediate, total inability to send money. Tier 1; regulatory exposure: every transaction must produce an auditable record.</p>
+<h2 id="the-process-it-serves">The process it serves<a class="headerlink" href="#the-process-it-serves" title="Permanent link">&para;</a></h2>
+<p><strong>Send Payment:</strong> payment initiation (frontend) → <strong>transaction acceptance (ledger-writer — the step this profile covers, blocking)</strong> → balance update (balance-reader) → payment confirmation (frontend). Critical dependencies at the acceptance step: the balance-reader service (synchronous call, no fallback) and the ledger database (synchronous write, no queue).</p>
+<h2 id="stakeholder-chains-the-sessions-core-output">Stakeholder chains — the session's core output<a class="headerlink" href="#stakeholder-chains-the-sessions-core-output" title="Permanent link">&para;</a></h2>
+<p>Four chains. Each one: who → what they expect (as a measurable sentence) → the business health signal that tells us it's met or missed → what it costs when it isn't.</p>
+<h3 id="chain-1-bank-customers-critical">Chain 1 — Bank Customers (CRITICAL)<a class="headerlink" href="#chain-1-bank-customers-critical" title="Permanent link">&para;</a></h3>
+<p><strong>Expectation:</strong> "Payments complete successfully, quickly, and without double-charging."</p>
+<table>
+<thead>
+<tr>
+<th>Business health signal</th>
+<th>Question it answers</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Transaction Success Rate</td>
+<td>Are customer payments completing successfully?</td>
+<td>≥ 99.5% (30-day)</td>
+</tr>
+<tr>
+<td>Transaction Processing Duration p95</td>
+<td>Is payment processing fast enough?</td>
+<td>&lt; 2,000 ms</td>
+</tr>
+<tr>
+<td>Payment Volume Capacity Headroom</td>
+<td>Can we absorb volume spikes (payroll day, month-end)?</td>
+<td>≥ 20% buffer</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Impact when missed:</strong> the only path for sending money is down — no fallback; roughly $2,400/hour of uncaptured revenue at baseline volume; beyond 2 seconds customers resubmit, which stresses duplicate prevention; trust erosion and account-closure risk.</p>
+<h3 id="chain-2-compliance-risk-management-critical">Chain 2 — Compliance &amp; Risk Management (CRITICAL)<a class="headerlink" href="#chain-2-compliance-risk-management-critical" title="Permanent link">&para;</a></h3>
+<p><strong>Expectation:</strong> "Every processed transaction produces a complete, auditable record; no unauthorized transactions are accepted."</p>
+<table>
+<thead>
+<tr>
+<th>Business health signal</th>
+<th>Question it answers</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Transaction Audit Completeness</td>
+<td>Does every transaction — including rejected ones — produce a complete audit record?</td>
+<td>≥ 99.99%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Impact when missed:</strong> audit gaps are examination findings — BSA/AML reporting gaps, consent-order risk, mandatory disclosure. The record must show <em>why</em> a transaction was rejected, not just that it was.</p>
+<h3 id="chain-3-finance-treasury-high">Chain 3 — Finance &amp; Treasury (HIGH)<a class="headerlink" href="#chain-3-finance-treasury-high" title="Permanent link">&para;</a></h3>
+<p><strong>Expectation:</strong> "Ledger balances are accurate — no duplicate entries, no missing transactions, reconciliation closes daily."</p>
+<table>
+<thead>
+<tr>
+<th>Business health signal</th>
+<th>Question it answers</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Duplicate Prevention Rate</td>
+<td>Are duplicate payment attempts caught before ledger write?</td>
+<td>≥ 99.9%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Impact when missed:</strong> at just 0.1% leakage, ~5 duplicate transactions a day each need manual reversal; balance errors, daily reconciliation breaks, restatement risk.</p>
+<h3 id="chain-4-payments-operations-high">Chain 4 — Payments Operations (HIGH)<a class="headerlink" href="#chain-4-payments-operations-high" title="Permanent link">&para;</a></h3>
+<p><strong>Expectation:</strong> "Transaction failures are visible and diagnosable within 15 minutes; the system handles volume changes without manual intervention."</p>
+<p>This chain is served by the whole signal set plus the diagnostic descent below — and it carries this profile's most instructive finding: <strong>no single composite health signal exists</strong>; operators must correlate individual signals. That finding is recorded in the gap list rather than hidden.</p>
+<p><strong>Impact when missed:</strong> blind spots in payment health, manual-correlation delay, incident-response SLA breaches, dependency failures cascading undetected.</p>
+<h2 id="the-supporting-layers-connecting-existing-monitoring-upward">The supporting layers — connecting existing monitoring upward<a class="headerlink" href="#the-supporting-layers-connecting-existing-monitoring-upward" title="Permanent link">&para;</a></h2>
+<p>Every business health signal above is explained by signals at the layers below. This is where a team's existing monitors slot in instead of being thrown away.</p>
+<p><strong>Application-layer signals</strong> (which step is failing?):</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Question it answers</th>
+<th>Explains</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Payment Validation Rate</td>
+<td>Are payments passing the validation chain (auth, format, business rules)?</td>
+<td>Success Rate</td>
+</tr>
+<tr>
+<td>Balance Check Latency p95</td>
+<td>Is the balance-verification dependency fast enough? (target &lt; 500 ms)</td>
+<td>Duration, Success Rate</td>
+</tr>
+<tr>
+<td>Ledger Write Latency p95</td>
+<td>Is the database write keeping up? (target &lt; 200 ms)</td>
+<td>Duration, Success Rate</td>
+</tr>
+<tr>
+<td>Transaction Request Rate</td>
+<td>What volume is arriving right now?</td>
+<td>Capacity Headroom</td>
+</tr>
+</tbody>
+</table>
+<p><strong>System-layer signals</strong> (why is it failing?):</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Question it answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ledger-Writer Availability</td>
+<td>Is the service accepting requests at all? (readiness probe)</td>
+</tr>
+<tr>
+<td>CPU Utilization</td>
+<td>Is it working past its resource budget? (target &lt; 70%)</td>
+</tr>
+<tr>
+<td>DB Connection Pool Saturation</td>
+<td>Is the write path about to bottleneck? (target &lt; 80%)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="how-diagnosis-walks-the-layers">How diagnosis walks the layers<a class="headerlink" href="#how-diagnosis-walks-the-layers" title="Permanent link">&para;</a></h2>
+<p>Business health says <em>customers can't pay</em> or <em>payments are slow</em>. Application signals say <em>which step</em> — validation, balance check, or write. System signals say <em>why</em> — service down, CPU contention, pool exhausted. For this service the single largest risk is the balance-reader dependency: its failure blocks every local payment and surfaces as ledger-writer errors, not as a clear dependency signal.</p>
+<h2 id="the-gap-list-kept-on-the-page-as-gaps">The gap list — kept on the page as gaps<a class="headerlink" href="#the-gap-list-kept-on-the-page-as-gaps" title="Permanent link">&para;</a></h2>
+<p>What the analysis could not settle, recorded instead of smoothed over:</p>
+<ul>
+<li><strong>Duplicate prevention has a structural hole:</strong> the deduplication cache is per-pod, not shared — a pod restart or a multi-replica deployment opens a window for duplicate writes. (Recorded as a violated precondition.)</li>
+<li><strong>Rated capacity has never been established by load test</strong> — the capacity-headroom signal depends on it. (Unknown.)</li>
+<li><strong>Whether balance-reader scales with ledger-writer throughput is unverified</strong> — if it's the bottleneck, headroom overstates safety. (Unknown.)</li>
+<li><strong>No composite health signal</strong> — Operations correlates individual signals by hand today.</li>
+</ul>
+<h2 id="what-to-imitate">What to imitate<a class="headerlink" href="#what-to-imitate" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Every expectation is a <strong>measurable sentence</strong>, not a sentiment.</li>
+<li>Every expectation has a <strong>named signal</strong> — even where nothing measures it yet; the gap stays visible.</li>
+<li>Every signal carries <strong>the question it answers</strong>, in business language.</li>
+<li>Existing monitors are <strong>connected upward</strong> under business signals, not discarded.</li>
+<li><strong>Gaps stay on the page as gaps</strong> — the profile records what the room couldn't answer.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Draft
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.top", "navigation.tracking", "toc.follow", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
