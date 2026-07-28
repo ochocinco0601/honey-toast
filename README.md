@@ -13,6 +13,7 @@ Reusable GitHub Copilot skills and agents for structured thinking, writing, and 
 | **editorial** | Editorial governance for human-facing content — tone/style, production standards, writing craft. |
 | **html** | Produce interactive, self-contained HTML shaped for a specific job (understand, brief, present, orient, reference). Includes 20 worked examples. |
 | **information-surface-design** | Design or evaluate any information surface so it collapses need → uncertainty → decision. Includes a worked observability-panel instance. |
+| **model-lookup** | Surface the conceptual models already built for a domain — the typed-slot structures (chains, stacks, sets, graphs) catalogued in a companion compendium — that fit the work in front of you, on the cue "what are the models for this?". Names the fit (one model, a composition, or none) instead of reinventing. Ships with the compendium it reads. |
 | **prior-art-check** | Check whether something you built already exists as established practice — a named practice, a standard artifact, or a framework — or is genuinely novel. Judges by function rather than by name, and reconciles what it finds against your own record of adopted practice. Ships with the definition it judges against. |
 | **prune-instructions** | Restructure an overgrown instructions file via the residency-test method (GATE / FACT / CONDUCT). |
 | **requirements** | Elicit and structure requirements before work begins — functional requirements, quality attributes, stakeholder analysis, failure definition. |
