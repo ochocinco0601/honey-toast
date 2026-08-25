@@ -40,6 +40,7 @@ Reusable GitHub Copilot skills and agents for structured thinking, writing, and 
 | **meeting-delegate** | A package for the meeting-delegate practice (start-here, the practice, acceptance test). |
 | **portfolio-coverage-operating-perspective.md** | An operating perspective for reasoning about observability coverage across a service portfolio. |
 | **ai-credit-cap-justification.md** | Argument architecture for justifying an AI-assistant credit-cap increase — the answer-with-context method, per-question structure, candidate framings, and cautions. |
+| **design-for-operations.md** | A repeatable method for taking a business capability from architecture to observability — eight passes from surface discovery to signal placement and ownership, each producing an artefact and ending at a checkpoint. |
 
 ## Install
 
