@@ -41,6 +41,7 @@ Reusable GitHub Copilot skills and agents for structured thinking, writing, and 
 | **portfolio-coverage-operating-perspective.md** | An operating perspective for reasoning about observability coverage across a service portfolio. |
 | **ai-credit-cap-justification.md** | Argument architecture for justifying an AI-assistant credit-cap increase — the answer-with-context method, per-question structure, candidate framings, and cautions. |
 | **design-for-operations.md** | A repeatable method for taking a business capability from architecture to observability — eight passes from surface discovery to signal placement and ownership, each producing an artefact and ending at a checkpoint. |
+| **design-for-operations-operating-perspective.md** | The same method in activation form, written for an assistant that already holds the field rather than for a reader learning it — seven passes with the practice each activates, what each of the three views may not claim, the four concerns as competency questions, what code cannot yield, and where established practice runs out. A working draft under active development. |
 | **platform-capability-assessment-operating-perspective.md** | An operating perspective for the situation where a platform reports that a capability exists and the consuming team's need is still unmet — decomposing a capability claim into presence, coverage, and depth, naming the scope state it holds, and shaping a request that asks for published scope rather than a one-off exception. |
 
 ## Install
