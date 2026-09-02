@@ -1,7 +1,6 @@
 # Instance: Observability Panels
 
-> This is the **observability instantiation** of the information-surface-design
-> engine. Read `../SKILL.md` first — the chain, the design method, the two faces,
+> This is the **observability instantiation** of the engine in `../SKILL.md`. Read `../SKILL.md` first — the chain, the design method, the two faces,
 > and the acceptance gates are defined there and are not repeated. This file
 > supplies what's specific to observability: the domain vocabulary for each chain
 > position, the sequenced triage chain, the production machinery to build a panel
@@ -39,6 +38,51 @@ something measurable.**
 next (customers affected, revenue at risk, compliance exposure, operational
 backlog)? Absence here is the *"system healthy but business failing"* blind spot —
 the most expensive gap.
+
+---
+
+## 1b. Occasions — which question set applies
+
+**Name the occasion before you use any question set.** The same subject generates
+different questions depending on *when and why* someone is asking. A surface built
+for one occasion and read on another fails without any individual panel being
+wrong — and that mismatch is the most common structural finding on a real
+dashboard.
+
+Nine occasions, each with its own governing prior art and its own recurring
+question:
+
+| # | Occasion | Governing prior art | The recurring question |
+|---|----------|--------------------|------------------------|
+| 1 | **Incident triage** | ITIL 4 Incident Management; Google SRE incident response; OODA | "Something is wrong — what do I do?" |
+| 2 | **Routine monitoring / readiness** | Google SRE *Monitoring Distributed Systems* (symptom-based, golden signals); ITIL 4 Monitor & Event Management | "Is everything healthy right now — are we ready for the day?" |
+| 3 | **Change validation** | DORA (change failure rate, time to restore); SRE release engineering and canary analysis | "Did this change degrade anything?" |
+| 4 | **Capacity planning** | Google SRE capacity planning and demand forecasting | "Will we have enough? When do we run out?" |
+| 5 | **Compliance & audit** | COSO ERM; OpenSLO / SLODLC conformance; regulatory obligation | "Can we prove we met our obligations, and what is the exposure?" |
+| 6 | **Trend analysis** | SRE error-budget burn; DORA trend; Tufte small multiples | "Are we getting better or worse?" |
+| 7 | **Coverage & maturity** | CNCF Observability Maturity Model; DORA capability self-assessment | "What is unmonitored, and how mature is our observability?" |
+| 8 | **Cost & efficiency** | FinOps Framework unit economics; SRE efficiency and utilization | "What does this cost, and is resource use efficient?" |
+| 9 | **Toil & operational burden** | Google SRE *Eliminating Toil*; ISA-18.2 / IEC 62682 alarm rate and alarm flood | "How much manual burden and alert noise does this generate?" |
+
+Each occasion crosses the three altitudes (§3.2), so a question set is an
+occasion **and** an altitude — "readiness at the business altitude" asks something
+different from "readiness at the technology altitude."
+
+**Honest confidence split.** Occasion 1 is the one worked in depth: its seven-step
+chain (§2) is validated across 21 worked examples spanning 8 domains and all three
+altitudes. **Occasions 2–9 are derived from the named prior art above and have not
+been walked.** Their governing questions are sound; their step-by-step
+decompositions are not established the way §2's is. Say which you are using, and
+do not present a derived question set as a proven one.
+
+**Two consequences for a diagnostic run.**
+
+1. **Choose the coverage question set from the occasion, not by habit.** Running
+   §2's triage chain against a readiness surface will report gaps that are not
+   gaps — the surface was never answering those questions. Judging a dashboard by
+   the wrong occasion's ruler is a defect in the *review*, not the dashboard.
+2. **A surface serving several occasions at once is a finding.** Name the
+   occasions and expect the recommendation to be a split, rather than more panels.
 
 ---
 
@@ -157,7 +201,8 @@ a gap.** Use element types and field names from published specs, in their real
 namespaces (`archimate:name`, `openslo:target`, `dcterms:source`). When a concept
 is needed but no framework is identified, label it `prior-art-unresolved` with a
 pointer — do not silently invent. **Tie-breaker** when multiple standards apply:
-(1) frameworks already adopted in your program → (2) native domain framework →
+(1) a framework already adopted in the practice or estate you are working in
+→ (2) native domain framework →
 (3) simplicity → (4) wide adoption.
 
 ---
@@ -165,11 +210,11 @@ pointer — do not silently invent. **Tie-breaker** when multiple standards appl
 ## 4. Formed design opinions — multi-workflow business apps
 
 These are layout opinions **already resolved against real cases.** They are the
-current "what good looks like" for the live need this instance is applied to:
+current "what good looks like" for the case these were worked against:
 **real business applications that contain multiple workflows.** Treat them as
-defaults. *Status:* Proven = validated against real cases or a practitioner build;
-Design decision = committed, not yet shipped; Hypothesis = validated in analysis,
-not yet built. Don't present a Hypothesis as settled fact.
+defaults. *Status:* Proven = held up in worked cases; Reasoned = argued from the model,
+not yet tested in a build; Hypothesis = plausible, untested. Don't present a
+Hypothesis as settled fact.
 
 ### The governing case
 
@@ -189,18 +234,18 @@ not, where?"* **A single rolled-up health tile destroys that** — it says
 | # | Opinion | Layout implication | Status |
 |---|---------|--------------------|--------|
 | 1 | **Sequential steps, not parallel peers.** A step-3 failure *blocks* steps 4–6. | Left-to-right pipeline; give a gated step a distinct **BLOCKED** state vs **DEGRADED** (own failure) vs **HEALTHY**. | Proven |
-| 2 | **A step's health rule is a business decision, not a roll-up.** One step may depend on several services with *different* criticality (fraud down = blocking; credit-risk down = degraded-but-proceed). | Each step owns an explicit composition rule (blocking / degradable / optional), authored once by the process owner, applied mechanically. Don't worst-case everything to red. | Design decision |
-| 3 | **Structure visible upfront for naive readers.** | First view shows *all* steps (the pipeline), not "1 CRITICAL · 2 WARNING" cards that hide the flow. | Principle (validated) |
-| 4 | **Journey is per-workflow, owned, its own view.** Each workflow has a name, a business question, an owner, ordered steps. | Each workflow gets its own view/section — never all workflows compressed into one generic "journey." | Design decision |
-| 5 | **Journey is a *perspective on* a service, not a replacement.** Service home answers "is this service healthy?"; journey view answers "where in the flow is the problem?" | Service home is the hub (health + context, always on); the flow view is reachable *from* it, for process-shaped services. | Design decision |
+| 2 | **A step's health rule is a business decision, not a roll-up.** One step may depend on several services with *different* criticality (fraud down = blocking; credit-risk down = degraded-but-proceed). | Each step owns an explicit composition rule (blocking / degradable / optional), authored once by the process owner, applied mechanically. Don't worst-case everything to red. | Reasoned |
+| 3 | **Structure visible upfront for naive readers.** | First view shows *all* steps (the pipeline), not "1 CRITICAL · 2 WARNING" cards that hide the flow. | Proven |
+| 4 | **Journey is per-workflow, owned, its own view.** Each workflow has a name, a business question, an owner, ordered steps. | Each workflow gets its own view/section — never all workflows compressed into one generic "journey." | Reasoned |
+| 5 | **Journey is a *perspective on* a service, not a replacement.** Service home answers "is this service healthy?"; journey view answers "where in the flow is the problem?" | Service home is the hub (health + context, always on); the flow view is reachable *from* it, for process-shaped services. | Reasoned |
 | 6 | **Heterogeneous steps stay coherent when self-contained.** Steps measure different things (success rate vs timeliness vs coverage). | Don't fuse into one score. Each step is a self-contained micro-panel with its own labeled measurement; the step's outcome label is load-bearing. | Proven |
 | 7 | **Enumerate up to ~7, aggregate above.** (Few's data density + Miller's 7±2.) | ≤7 items: show all equally. >7: headline aggregation + grouped/collapsible detail. | Proven |
-| 8 | **Signal → stakeholder → impact must be visually direct.** "This signal is critical" is half the meaning; whose expectation and what cost is the other half. | Carry stakeholder + impact inline with each signal (chips/badges), not in a separate section. | Design principle |
+| 8 | **Signal → stakeholder → impact must be visually direct.** "This signal is critical" is half the meaning; whose expectation and what cost is the other half. | Carry stakeholder + impact inline with each signal (chips/badges), not in a separate section. | Reasoned |
 | 9 | **Health is scoped to the *need*; a signal's role is contextual.** The same signal can be *outcome* for one need and *diagnostic* for another. | Label a signal with its role in context ("Outcome for *detection*"), not a fixed global label. | Hypothesis |
 
 ### How this plugs into the method
 
-These are the *answers* to Step 4 of the design method (vague → satisfy) for the
+These are the *answers* to Step 5 of the design method (vague → satisfy) for the
 multi-workflow case: decompose into workflows (4), lay each out as an ordered
 pipeline (1, 3), give each step a business-authored health rule (2, 6), keep
 signal→impact inline (8), respect the ~7 boundary (7). The worked example below is
@@ -255,8 +300,35 @@ affected — escalate.
 
 ---
 
-*Everything in this file is the information-surface-design engine instantiated for
+## 6. Evaluating panels that already exist
+
+§1–§5 are written from the generative side: the chain produces a panel. The
+diagnostic side — a dashboard already exists, it has grown, and someone needs to
+decide what stays — needs two more things, and each has its own file.
+
+| Need | File | The move |
+|------|------|----------|
+| Is this panel drawn in the right form for the question it answers? | `panel-form-fitness.md` | Question shape → form, plus eight named tests with remedies (right-edge, threshold, naming, gauge, pie, lookup-vs-scan, altitude, dual-axis) |
+| Can the reader use the surface at all? | `reading-the-render.md` | Judge the rendered dashboard as its reader sees it. Adversarial, default FAIL, ENGAGE/BOUNCE verdict |
+| A grown dashboard needs a justified keep/fix/remove per panel | `dashboard-rationalization.md` | Alarm rationalization (ISA-18.2) applied to panels: the burden of proof sits on the panel. Consumes all three of the above |
+
+**Run them in order.** The diagnostic in §1 comes first — a panel with no named
+consumer and no named decision is not a form problem. Form fitness is the second
+test, and it only applies to panels that survived the first. The render is a
+separate evidence source, not a later step: it is the only place a whole class of
+findings exists, and its verdict outranks the panel-level ones.
+
+---
+
+*Everything in this file is the engine in `../SKILL.md` instantiated for
 observability. The engine generalizes; this is its most fully validated
-application — demonstrated end-to-end across the full range of domains, altitudes,
-and both real-time and batch, with no structural exceptions. That is why the
-patterns in §4 are given as defaults, not suggestions.*
+application — demonstrated end-to-end across 21 worked examples spanning 8 domains
+(including mortgage origination, card authorization, ACH, credit decisioning,
+e-commerce checkout, and vendor-integrated flows), all three altitudes, and both
+real-time and batch, with no structural exceptions. That is why the patterns in §4
+are given as defaults, not suggestions.*
+
+***Scope of that claim.** Those 21 walks are all incident triage — occasion 1 of
+the nine in §1b. The chain, the traversal, the altitude bindings and the projection
+rules are proven there. Occasions 2–9 carry sound governing questions from named
+prior art and unwalked decompositions. When a run uses one of them, say so.*

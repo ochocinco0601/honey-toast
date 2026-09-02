@@ -1,25 +1,31 @@
 ---
-name: information-surface-design
+name: dashboard-evaluation
 description: >
-  Design or evaluate ANY information surface — a dashboard, a panel, an intake
-  form, a status report, a triage view, a navigation hierarchy, a ticket queue —
-  so that it collapses need → uncertainty → decision. Use when designing a new
-  surface someone will act on, diagnosing why an existing surface isn't useful,
-  deciding what a view must show, or any time a person needs information in order
-  to decide something. Triggers on "design a dashboard/form/report/view", "what
-  should this show", "why isn't this useful", "evaluate this surface", "this
-  dashboard doesn't help", or any work where a surface exists to support a
-  decision. Observability panels are one worked instance (see
-  references/observability-panels.md), not the limit of this skill.
+  Evaluate a dashboard that already exists — panel by panel, with a stated reason
+  per panel — or design a new one before any layout. Answers three questions: does
+  this surface answer the questions its reader actually has, is each panel drawn in
+  the right form for its question, and can a reader use the page at all. Produces a
+  keep / fix / remove record the owner can dispute line by line. Triggers on
+  "evaluate this dashboard", "review this dashboard", "rationalize this dashboard",
+  "what should this dashboard show", "this dashboard isn't useful", "too many
+  panels", "which panels can we cut", "design a dashboard or panel", and on the
+  same asks about a report, a form, or any view someone reads in order to decide
+  something. Scope note: the reasoning generalizes to any decision surface, but the
+  run procedure, the form tests and the output contract shipped here are built for
+  monitoring displays.
 ---
 
-# Information Surface Design — The JTBD Chain
+# Dashboard Evaluation — The JTBD Chain
 
-> **What this is.** A lens for designing and evaluating any information surface.
-> It is not a template library and not a tool to run — it is a way of reasoning
-> that you apply whenever someone needs a surface to make a decision. The deep
-> claim is small and general; the value is that it holds across *every* kind of
-> surface, not just dashboards.
+> **What this is.** A way of reasoning about any surface someone reads in order to
+> decide something, plus the machinery to run it on a dashboard. It is not a
+> template library and not a program — nothing here executes.
+>
+> **Two layers, and they are not equally deep.** The chain below is small, general,
+> and holds for a form or a report as readily as a panel. Everything with teeth —
+> the form tests, the render method, the run, the output contract — is written for
+> monitoring displays. Do not present the general half as if it carried the
+> machinery; see the instances table for what actually ships.
 >
 > **Prior art.** Christensen *Jobs To Be Done* — full form *When [circumstance],
 > I want to [job], so I can [outcome]*. The "one idea" below works the
@@ -154,6 +160,14 @@ taxonomic ("is this an example of the chain?").
 | Is the **decision** concrete? | A named action the surface unlocks | "Awareness" — no action it serves |
 | Does the surface **collapse** each uncertainty? | Context sufficient to decide | Data displayed *near* the question but not answering it |
 
+**This diagnostic reasons from the surface's content. It cannot see the surface.**
+A page can pass every line above and still fail, because nothing tells the eye
+where to start. Judging that requires *looking* at the thing as its reader sees
+it — a separate evidence source with its own method and its own adversarial
+stance: `references/reading-the-render.md`. If you have not seen it rendered, you
+do not have a verdict on it; say so rather than inferring the visual from the
+source.
+
 ---
 
 ## When does a surface actually land? (acceptance gates)
@@ -183,12 +197,20 @@ The chain is universal; each instance is the chain wearing a domain's skin. The
 engine above is constant — the instance supplies the domain vocabulary, the
 specific positions, and any production machinery.
 
-| Instance | Who has the need | The decision | Where it lives |
-|----------|------------------|--------------|----------------|
-| **Observability panels** *(deepest worked instance)* | Operator / stakeholder during triage | Act, escalate, investigate, accept | `references/observability-panels.md` |
-| **Request intake** | A receiver triaging incoming requests | Accept, defer, redirect, decompose | your intake surface |
-| **Service onboarding (SUD)** | A practitioner profiling a service | How to structure the service profile | the SUD instrument |
-| **Status report / briefing** | A leader deciding where to spend attention | Fund, intervene, stay the course | briefing discipline |
+**One instance ships in this package. The rest are shape, not machinery** — say so
+rather than implying a depth that is not in the box.
+
+| Instance | Who has the need | The decision | What ships here |
+|----------|------------------|--------------|-----------------|
+| **Observability panels** | Operator / stakeholder during triage | Act, escalate, investigate, accept | **Everything** — `references/observability-panels.md` plus the form tests, the render method and the run |
+| **Request intake** | A receiver triaging incoming requests | Accept, defer, redirect, decompose | The engine only — no vocabulary, no run, no output contract |
+| **Service onboarding** | A practitioner profiling a service | How to structure the service profile | The engine only |
+| **Status report / briefing** | A leader deciding where to spend attention | Fund, intervene, stay the course | The engine only |
+
+**What "the engine only" gets you.** The chain, the six-step method, and the
+four-line general diagnostic below. Enough to ask whether a need, an uncertainty
+and a decision are named — and nothing more. No form fitness, no run procedure, no
+per-item record, no closing checks. Every one of those is written for panels.
 
 **To add an instance:** name the domain vocabulary for each chain position, the
 diagnostic in that vocabulary, and any production machinery. Don't re-derive the
@@ -198,9 +220,19 @@ engine — it's done.
 > sequenced triage chain, a full ArchiMate production traversal, altitude-specific
 > health frameworks, projection rules, and resolved multi-workflow layout
 > opinions. Load `references/observability-panels.md` when the surface is an
-> observability dashboard or panel. Everything there is *this engine, instantiated*
-> — read this file first. It is also the most heavily validated instance, which is
-> why its patterns are stated as defaults rather than suggestions.
+> observability dashboard or panel. Two further references sit under it:
+> `references/panel-form-fitness.md` (is a panel drawn in the right form for the
+> question it answers — the second test, after the chain diagnostic) and
+> `references/dashboard-rationalization.md` (the run for an existing dashboard
+> that has grown: per-panel disposition on stated grounds, plus coverage the
+> other way). Everything there is *this engine, instantiated*
+> — read this file first. It is also the most heavily validated instance, **for
+> one occasion**: its patterns held across 21 worked examples in 8 domains
+> and all three altitudes without exception *for incident triage*, which is why
+> they're stated as defaults rather than suggestions there. The other eight
+> occasions in `references/observability-panels.md` §1b are derived from named
+> prior art and have not been walked — sound questions, unproven decompositions.
+> Name which you are using.
 
 ---
 
@@ -219,3 +251,13 @@ engine — it's done.
 - Naive consumer needs structure visible upfront; expert needs only isolation.
 - Reach for an instance file when the surface has a domain (observability →
   `references/observability-panels.md`).
+- Form is the **second** question. Chain diagnostic first (does this panel serve a
+  named consumer and decision), then `references/panel-form-fitness.md` (is it
+  drawn in the right shape). A panel can be beautifully shaped and serve nobody.
+- Two evidence sources, neither substituting for the other: the surface's
+  **definition** (what is configured) and its **render**
+  (`references/reading-the-render.md` — what is perceived). No render seen, no
+  visual verdict.
+- Evaluating a dashboard that already exists and has grown →
+  `references/dashboard-rationalization.md`. Its governing move: the burden of
+  proof sits on the panel to justify its existence, not on the person removing it.
