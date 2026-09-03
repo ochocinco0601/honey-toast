@@ -1,0 +1,176 @@
+{
+  "business_process_flow": "Placing an order",
+  "subject": "ordering",
+  "subject_note": "The commit point. This is a journey document, not a single-service one, so the graph is anchored at the deployable where the order is created, shipped and cancelled. The adapter anchors the graph here and records the subject.",
+  "source": "Transcribed from PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 3, the reconciliation table. Not re-derived — this is the same run's own rulings, moved from a markdown table into the shape the adapter reads.",
+  "transcribed_on": "2026-09-02",
+  "stages": [
+    {
+      "order": 1,
+      "name": "Customer chooses what to buy",
+      "components": ["catalog"],
+      "blocking": true,
+      "condition": null,
+      "owned": false,
+      "classification": "convergence",
+      "provenance": "extracted",
+      "description": "The customer browses the catalogue. Served by the catalogue read surface.",
+      "citations": ["src/Catalog.API/Apis/CatalogApi.cs:21,26,31,36,41,52,73"]
+    },
+    {
+      "order": 2,
+      "name": "Customer holds items until ready",
+      "components": ["basket"],
+      "blocking": true,
+      "condition": null,
+      "owned": false,
+      "classification": "convergence",
+      "provenance": "extracted",
+      "description": "Items are held in a basket that can be read, updated and emptied.",
+      "citations": ["src/Basket.API/Grpc/BasketService.cs:13,36,59"]
+    },
+    {
+      "order": 3,
+      "name": "Customer submits the order",
+      "components": ["ordering"],
+      "blocking": true,
+      "condition": null,
+      "owned": true,
+      "classification": "convergence",
+      "provenance": "extracted",
+      "description": "The order is created.",
+      "citations": ["src/Ordering.API/Apis/OrdersApi.cs:17"]
+    },
+    {
+      "order": 4,
+      "name": "Business acknowledges the order",
+      "components": ["webapp"],
+      "blocking": false,
+      "condition": null,
+      "owned": false,
+      "classification": "convergence",
+      "provenance": "extracted",
+      "description": "An order-submitted announcement is picked up by the web application.",
+      "citations": ["src/WebApp/Services/OrderStatus/IntegrationEvents/EventHandling/OrderStatusChangedToSubmittedIntegrationEventHandler.cs:5"]
+    },
+    {
+      "order": 5,
+      "name": "Short window to change their mind",
+      "components": ["orderprocessor", "ordering"],
+      "blocking": true,
+      "condition": null,
+      "owned": true,
+      "classification": "convergence",
+      "provenance": "extracted",
+      "description": "A background worker runs the grace period, then confirms it has elapsed.",
+      "citations": [
+        "src/OrderProcessor/Services/GracePeriodManagerService.cs:15",
+        "src/Ordering.API/Application/IntegrationEvents/EventHandling/GracePeriodConfirmedIntegrationEventHandler.cs:3"
+      ]
+    },
+    {
+      "order": 6,
+      "name": "Check the goods are available",
+      "components": ["catalog", "ordering"],
+      "blocking": true,
+      "condition": null,
+      "owned": false,
+      "classification": "convergence",
+      "provenance": "extracted",
+      "description": "Stock is checked and answered as confirmed or rejected — two distinct announcements.",
+      "citations": [
+        "src/Catalog.API/IntegrationEvents/EventHandling/OrderStatusChangedToAwaitingValidationIntegrationEventHandler.cs:3",
+        "src/Ordering.API/Application/IntegrationEvents/EventHandling/OrderStockConfirmedIntegrationEventHandler.cs:3",
+        "src/Ordering.API/Application/IntegrationEvents/EventHandling/OrderStockRejectedIntegrationEventHandler.cs:2"
+      ]
+    },
+    {
+      "order": 7,
+      "name": "Business takes the money",
+      "components": ["payment"],
+      "blocking": true,
+      "condition": null,
+      "owned": false,
+      "classification": "divergence",
+      "provenance": "extracted",
+      "reading_provenance": "proposed",
+      "ruling": "R1",
+      "description": "A payment service exists and it charges nobody — it decides its outcome by reading a configuration setting, so no gateway is contacted. Present in structure, hollow in function.",
+      "citations": ["src/PaymentProcessor/IntegrationEvents/EventHandling/OrderStatusChangedToStockConfirmedIntegrationEventHandler.cs:3"]
+    },
+    {
+      "order": 8,
+      "name": "Confirm the order is going ahead",
+      "components": ["catalog", "webhooks", "webapp"],
+      "blocking": true,
+      "condition": null,
+      "owned": false,
+      "classification": "convergence",
+      "provenance": "extracted",
+      "description": "Stock is decremented, and the web application and subscribed partners are told.",
+      "citations": [
+        "src/Catalog.API/IntegrationEvents/EventHandling/OrderStatusChangedToPaidIntegrationEventHandler.cs:3,20",
+        "src/Webhooks.API/IntegrationEvents/OrderStatusChangedToPaidIntegrationEventHandler.cs:3",
+        "src/WebApp/Services/OrderStatus/IntegrationEvents/EventHandling/OrderStatusChangedToPaidIntegrationEventHandler.cs:5"
+      ]
+    },
+    {
+      "order": 9,
+      "name": "Pick and ship the goods",
+      "components": ["ordering"],
+      "blocking": true,
+      "condition": null,
+      "owned": true,
+      "classification": "divergence",
+      "provenance": "extracted",
+      "reading_provenance": "proposed",
+      "ruling": "R2",
+      "description": "A ship endpoint exists and works, and nothing in this system calls it. What cannot be measured is the physical fulfilment, not the transition.",
+      "citations": ["src/Ordering.API/Apis/OrdersApi.cs:12"]
+    },
+    {
+      "order": 10,
+      "name": "Customer is told it shipped",
+      "components": ["webapp", "webhooks"],
+      "blocking": false,
+      "condition": null,
+      "owned": false,
+      "classification": "convergence",
+      "provenance": "extracted",
+      "description": "An order-shipped announcement reaches the web application and partners.",
+      "citations": ["src/WebApp/Services/OrderStatus/IntegrationEvents/EventHandling/OrderStatusChangedToShippedIntegrationEventHandler.cs:5"]
+    },
+    {
+      "order": 11,
+      "name": "Tell partners what happened",
+      "components": ["webhooks"],
+      "blocking": false,
+      "condition": null,
+      "owned": false,
+      "classification": "convergence",
+      "provenance": "extracted",
+      "description": "Dispatch to subscribed third parties. Subscription management is a separate surface.",
+      "citations": [
+        "src/Webhooks.API/IntegrationEvents/OrderStatusChangedToShippedIntegrationEventHandler.cs:16",
+        "src/Webhooks.API/Apis/WebHooksApi.cs:13,35,66"
+      ]
+    },
+    {
+      "order": 12,
+      "name": "Handle cancellation or failure",
+      "components": ["ordering", "webapp"],
+      "blocking": false,
+      "condition": "the order is cancelled, payment fails, or stock is rejected",
+      "owned": true,
+      "classification": "convergence",
+      "provenance": "extracted",
+      "description": "Three distinct branches — cancellation, payment failure, stock rejection.",
+      "citations": [
+        "src/Ordering.API/Apis/OrdersApi.cs:11",
+        "src/WebApp/Services/OrderStatus/IntegrationEvents/EventHandling/OrderStatusChangedToCancelledIntegrationEventHandler.cs:5",
+        "src/Ordering.API/Application/IntegrationEvents/EventHandling/OrderPaymentFailedIntegrationEventHandler.cs:3",
+        "src/Ordering.API/Application/IntegrationEvents/EventHandling/OrderStockRejectedIntegrationEventHandler.cs:2"
+      ]
+    }
+  ]
+}

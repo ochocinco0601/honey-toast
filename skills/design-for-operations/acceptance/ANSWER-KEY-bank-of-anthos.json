@@ -1,0 +1,63 @@
+{
+  "subject": "Bank of Anthos",
+  "source_repository": "https://github.com/GoogleCloudPlatform/bank-of-anthos",
+  "business_process_flow": "send payment",
+
+  "provenance": {
+    "how_it_was_derived": "By hand, twice, independently — never by the extractor this key is used to score.",
+    "derivations": [
+      "A hand-traced dependency map for the same business process flow (June-July 2026)",
+      "An independent hand-trace 2026-08-25 that reproduced the same citations, including the 250ms propagation sleep at src/frontend/frontend.py:342-344"
+    ],
+    "why_this_matters": "A key derived by the tool being scored proves nothing. Two independent hand derivations that agree make a better answer key than either alone, and neither used the tool.",
+    "corroboration": "The estate also declares its own service addresses in kubernetes-manifests/config.yaml (ConfigMap service-api-config), and describes its services in README.md. Both agree with the key."
+  },
+
+  "deployable_names": {
+    "why_declared": "The key was written in the hand-trace's display names; a fact base names deployables from the operator's --service-map. These are mapped EXPLICITLY here rather than matched by name similarity, which would pair 'payment-processor' with 'payment' and be wrong.",
+    "map": {
+      "Frontend": "frontend",
+      "User-Service": "userservice",
+      "Contacts": "contacts",
+      "Ledger-Writer": "ledgerwriter",
+      "Balance-Reader": "balancereader",
+      "Transaction-History": "transactionhistory",
+      "Ledger-DB": "ledger-db"
+    }
+  },
+
+  "cross_boundary_edges": [
+    {"from": "frontend", "to": "userservice", "protocol": "HTTP",
+     "note": "Gates the journey — mints the JWT. Does not execute a step in it."},
+    {"from": "frontend", "to": "contacts", "protocol": "HTTP",
+     "note": "Conditional — new-recipient payments only."},
+    {"from": "frontend", "to": "ledgerwriter", "protocol": "HTTP",
+     "note": "The synchronous commit point of the journey.",
+     "is_the_hard_one": true,
+     "why": "This is the four-hop chain no static analyser is documented to follow: the call site names no target (frontend.py), the URI is built from an environment variable, the variable resolves only in a Kubernetes manifest, and the receiving route is in another language. An extractor that recovers only this edge has done the thing that matters."},
+    {"from": "frontend", "to": "balancereader", "protocol": "HTTP",
+     "note": "Read-back after commit. Staleness opens the overdraft race."},
+    {"from": "frontend", "to": "transactionhistory", "protocol": "HTTP",
+     "note": "Read model for the customer's transaction list."},
+    {"from": "ledgerwriter", "to": "balancereader", "protocol": "HTTP",
+     "note": "The balance check before commit. Critical."},
+    {"from": "ledgerwriter", "to": "ledger-db", "protocol": "SQL",
+     "note": "The commit itself."},
+    {"from": "balancereader", "to": "ledger-db", "protocol": "SQL"},
+    {"from": "transactionhistory", "to": "ledger-db", "protocol": "SQL"}
+  ],
+
+  "scoring_rules": {
+    "score_cross_boundary_separately": "Cross-boundary edges are scored on their own, never folded into a total with within-service facts. A tool can be excellent at per-file structure and recover no seams at all, and one number would hide that. This is the axis on which candidate extractors are expected to differ.",
+    "cited_versus_asserted": "An edge counts as RECOVERED only if every hop carries a citation a person can open. An edge with no cited hops is an assertion — most likely a model deciding a hop exists. Both are reported, never summed. Measured evidence on model-asserted cross-service structure: 0 precision, 0 recall, 39.1% edge hallucination (De Luca et al. 2026, arXiv:2606.26927).",
+    "false_edges_are_worse_than_missing_ones": "A missing edge is a visible gap. A fabricated edge is a wrong answer that reads as a finding, and nothing downstream can tell. Report them by name.",
+    "sql_edges": "Edges to ledger-db and accounts-db are database dependencies. A tool that recovers only HTTP is not wrong, it is partial — report the two protocols separately."
+  },
+
+  "what_this_key_does_not_cover": [
+    "The ORDER stages run in. Static source reading cannot confirm it; the key holds structure, not sequence.",
+    "Within-service correctness. That is a precision sample judged by a reader, not an edge count.",
+    "loadgenerator. It drives the frontend but is synthetic traffic, not part of the business process flow.",
+    "accounts-db edges from userservice and contacts. Real, but outside the send-payment flow this key was derived for."
+  ]
+}

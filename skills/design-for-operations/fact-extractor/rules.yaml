@@ -1,0 +1,812 @@
+rules:
+  # ---------------------------------------------------------------- inbound routes
+  - id: dfo-java-inbound-route
+    languages: [java]
+    severity: INFO
+    message: "inbound_route"
+    metadata:
+      fact_kind: inbound_route
+      # Precision evidence. Each entry carries the fingerprint of the rule it
+      # was drawn from; run.py discards any entry whose fingerprint no longer
+      # matches, so editing a pattern voids its evidence mechanically.
+      checked:
+        - {"estate": "petclinic", "date": "2026-09-02", "sampled": 6, "correct": 6, "pattern_sha": "c5d19a30b7f6"}
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 6, "correct": 6, "pattern_sha": "c5d19a30b7f6"}
+    pattern-either:
+      - pattern: "@GetMapping(...)"
+      - pattern: "@PostMapping(...)"
+      - pattern: "@PutMapping(...)"
+      - pattern: "@DeleteMapping(...)"
+      - pattern: "@PatchMapping(...)"
+      - pattern: "@RequestMapping(...)"
+
+  - id: dfo-python-inbound-route
+    languages: [python]
+    severity: INFO
+    message: "inbound_route"
+    metadata:
+      fact_kind: inbound_route
+      checked:
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 6, "correct": 6, "pattern_sha": "21e740a5e2cf"}
+        - {"estate": "microservices-demo", "date": "2026-09-02", "sampled": 1, "correct": 1, "pattern_sha": "21e740a5e2cf"}
+    pattern-either:
+      - pattern: "@$APP.route(...)"
+      - pattern: "@$APP.get(...)"
+      - pattern: "@$APP.post(...)"
+
+  # C# attributes are matched WITHOUT their brackets, as call-like forms: `HttpGet(...)`
+  # matches both `[HttpGet]` and `[HttpGet("{id}")]`. Two wrong forms were measured
+  # against a real ASP.NET controller on 2026-09-01 before this one: `[HttpGet]` matched
+  # 0, and `[$A]` matched 6 things that were array indexing on entirely different lines —
+  # a false positive that looked like a correct count. Verified: this form returns the 6
+  # attribute lines the file actually has.
+  - id: dfo-csharp-inbound-route
+    languages: [csharp]
+    severity: INFO
+    message: "inbound_route"
+    metadata:
+      fact_kind: inbound_route
+      # Precision evidence. `run.py` computes standing from these; one entry per
+      # pass, written by `precision.py --record` from a worksheet an independent
+      # reader judged. Scoring your own is the self-grading this replaced.
+      checked:
+        - {"estate": "dotnet/eShop", "date": "2026-09-01", "sampled": 3, "correct": 3}
+        # CLEARED 2026-09-01: the pattern above changed after this evidence was
+        # recorded, so the evidence describes a rule that no longer exists. Standing
+        # does not survive a change to what the rule matches — carrying it forward
+        # would report a narrowed rule as vouched-for on the strength of a sample
+        # drawn from the broad one. Re-sample to earn it back.
+    pattern-either:
+      # Attribute style — MVC controllers.
+      - pattern: "HttpGet(...)"
+      - pattern: "HttpPost(...)"
+      - pattern: "HttpPut(...)"
+      - pattern: "HttpDelete(...)"
+      - pattern: "HttpPatch(...)"
+      - pattern: "Route(...)"
+      # Minimal API style, and it is not a minority form: on the .NET reference
+      # microservices application it declares 33 endpoints against the attribute
+      # style's 14. Rules written only for controllers report a third of the surface
+      # and look successful doing it (measured 2026-09-01).
+      - pattern: "$APP.MapGet(...)"
+      - pattern: "$APP.MapPost(...)"
+      - pattern: "$APP.MapPut(...)"
+      - pattern: "$APP.MapDelete(...)"
+      - pattern: "$APP.MapPatch(...)"
+      # `$APP.MapGroup(...)` was REMOVED 2026-09-01: a group declares a prefix and serves no
+      # request. It produced three identical non-endpoint facts on one file, and the real
+      # endpoints beneath it are captured by the Map* patterns above. Scored 1 of 2 before.
+
+  # In an event-driven estate the business process crosses services on messages, not
+  # HTTP. A handler is where one service picks up what another emitted, so it is a
+  # boundary in exactly the sense signal placement cares about.
+  - id: dfo-csharp-message-consumer
+    languages: [csharp]
+    severity: INFO
+    message: "message_consumer"
+    metadata:
+      fact_kind: message_consumer
+      # Precision evidence. `run.py` computes standing from these; one entry per
+      # pass, written by `precision.py --record` from a worksheet an independent
+      # reader judged. Scoring your own is the self-grading this replaced.
+      checked:
+        - {"estate": "dotnet/eShop", "date": "2026-09-01", "sampled": 3, "correct": 3}
+        # CLEARED 2026-09-01: the pattern above changed after this evidence was
+        # recorded, so the evidence describes a rule that no longer exists. Standing
+        # does not survive a change to what the rule matches — carrying it forward
+        # would report a narrowed rule as vouched-for on the strength of a sample
+        # drawn from the broad one. Re-sample to earn it back.
+    pattern-either:
+      - pattern: "class $C : IIntegrationEventHandler<$E> { ... }"
+      # IRequestHandler and INotificationHandler were REMOVED 2026-09-01. They are MediatR:
+      # in-process command and domain-event handlers. Nothing crosses a broker and nothing
+      # arrives from another service, so they are not boundaries in the sense signal
+      # placement cares about. Scored 1 of 2 before this.
+
+  # ---------------------------------------------------------------- outbound calls
+  # ------------------------------------------------- event seams (publisher / subscriber)
+  # Added 2026-09-02, after the adapter showed that the recovered dependency graph for an
+  # event-driven estate connects almost nothing. The join follows call sites and addresses;
+  # on eShop that recovered TWO edges between eight deployables, while the business process
+  # crosses all eight — six of eight nodes had no path to the subject, so their position
+  # could not be derived. The stages are joined by events, and nothing extracted events.
+  #
+  # Prior art, from a blind check and a sourced literature search:
+  # recovering WHICH service publishes and consumes which message is established practice.
+  # Recovering the ORDER is not, and is not attempted here.
+  - id: dfo-csharp-message-publisher
+    languages: [csharp]
+    severity: INFO
+    message: "message_publisher"
+    metadata:
+      fact_kind: message_publisher
+      provisional: true
+      authored_on: eshop
+      authored_date: 2026-09-02
+    patterns:
+      - pattern: "new $E(...)"
+      - metavariable-regex:
+          metavariable: "$E"
+          # The construction site, not the PublishAsync call: the call takes a variable and
+          # never names the type on its own line. Same shape as the Python durable_write
+          # defect - identity lives in how the thing was built.
+          regex: "^\\w*IntegrationEvent$"
+
+  # A DECLARATION, which is stronger than any call site: it names the event type and the
+  # handler together, and it enumerates a population recall can be measured against.
+  - id: dfo-csharp-message-subscription
+    languages: [csharp]
+    severity: INFO
+    message: "message_subscription"
+    metadata:
+      fact_kind: message_subscription
+      provisional: true
+      authored_on: eshop
+      authored_date: 2026-09-02
+    pattern-regex: "AddSubscription<\\s*(\\w+)\\s*,\\s*(\\w+)\\s*>"
+
+  - id: dfo-java-outbound-http
+    languages: [java]
+    severity: INFO
+    message: "outbound_http"
+    metadata:
+      fact_kind: outbound_http
+      # Precision evidence. Each entry carries the fingerprint of the rule it
+      # was drawn from; run.py discards any entry whose fingerprint no longer
+      # matches, so editing a pattern voids its evidence mechanically.
+      checked:
+        - {"estate": "petclinic", "date": "2026-09-02", "sampled": 6, "correct": 6, "pattern_sha": "9c0f49e2c91a"}
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 1, "correct": 1, "pattern_sha": "9c0f49e2c91a"}
+      # CLEARED 2026-09-01 along with the patterns. `WebClient.$M(...)` and
+      # `HttpClient.$M(...)` were removed: they matched `WebClient.builder()`, a bean factory
+      # returning a builder, which performs no request. On Spring PetClinic microservices
+      # those two patterns produced every outbound fact in the run and both were wrong, while
+      # every genuine cross-service call went unextracted.
+    pattern-either:
+      - pattern: "$R.exchange(...)"
+      - pattern: "$R.getForObject(...)"
+      - pattern: "$R.getForEntity(...)"
+      - pattern: "$R.postForObject(...)"
+      - pattern: "$R.postForEntity(...)"
+      # The reactive and fluent clients — WebClient, RestClient — build a call as a chain and
+      # the target is named at `.uri(...)`. **This is where a Spring estate's cross-service
+      # calls actually live**, and none of them were extracted before 2026-09-01: measured on
+      # Spring PetClinic microservices, the gateway's calls to the customers and visits
+      # services were both invisible.
+      #
+      # Deliberately not constrained to a literal URL. Half the real calls on that subject
+      # build the target from a field or a helper, and an extraction that only sees literals
+      # reports the estate as having fewer calls rather than having less resolvable ones.
+      # **Whether the target can be named is the join's question, not this rule's** — the
+      # join emits an unresolved record naming the hop it could not follow.
+      - pattern: "$R.uri(...)"
+
+  - id: dfo-python-outbound-http
+    languages: [python]
+    severity: INFO
+    message: "outbound_http"
+    metadata:
+      fact_kind: outbound_http
+      checked:
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 6, "correct": 6, "pattern_sha": "2f08ec0c225a"}
+    pattern-either:
+      - pattern: "requests.get(...)"
+      - pattern: "requests.post(...)"
+      - pattern: "requests.put(...)"
+      - pattern: "requests.delete(...)"
+      - pattern: "requests.patch(...)"
+      - pattern: "httpx.$M(...)"
+
+  - id: dfo-csharp-outbound-http
+    languages: [csharp]
+    severity: INFO
+    message: "outbound_http"
+    metadata:
+      fact_kind: outbound_http
+      # Precision evidence. `run.py` computes standing from these; one entry per
+      # pass, written by `precision.py --record` from a worksheet an independent
+      # reader judged. Scoring your own is the self-grading this replaced.
+      checked: []
+        # CLEARED 2026-09-01: the pattern above changed after this evidence was
+        # recorded, so the evidence describes a rule that no longer exists. Standing
+        # does not survive a change to what the rule matches — carrying it forward
+        # would report a narrowed rule as vouched-for on the strength of a sample
+        # drawn from the broad one. Re-sample to earn it back.
+    # The receiver is constrained because the bare method name is not a network call:
+    # `_orderRepository.GetAsync()` resolves to Entity Framework's FindAsync, and that one
+    # evidence string recurred six times in the fact base. Scored 1 of 2 before this.
+    patterns:
+      - pattern-either:
+          - pattern: "$C.GetAsync(...)"
+          - pattern: "$C.PostAsync(...)"
+          - pattern: "$C.PutAsync(...)"
+          - pattern: "$C.DeleteAsync(...)"
+          - pattern: "$C.SendAsync(...)"
+          # Added 2026-09-01. System.Net.Http.Json extensions are the idiomatic form in this
+          # estate and were entirely uncaught: 16 calls across WebApp, WebAppComponents and
+          # HybridApp. In WebApp/Services/OrderingService.cs a SendAsync was a fact and a
+          # GetFromJsonAsync on the same client in the same class was not.
+          - pattern: "$C.GetFromJsonAsync(...)"
+          - pattern: "$C.PostAsJsonAsync(...)"
+          - pattern: "$C.PutAsJsonAsync(...)"
+          - pattern: "$C.PatchAsJsonAsync(...)"
+          - pattern: "$C.DeleteFromJsonAsync(...)"
+      - metavariable-regex:
+          metavariable: "$C"
+          regex: "(?i).*(httpclient|http|client)$"
+
+  # A typed client registration: the class that receives the client, and the host it is
+  # pointed at. **This is the hop that turns a call site into an edge.** An outbound call
+  # names a method on a receiver and never names the service it reaches; the address lives
+  # in composition-root registration, in a different file. Authored 2026-09-01 for the join.
+  #
+  # Deliberately broad. The type argument and the address are read from the cited source by
+  # `join.py`, not captured here, because Semgrep's free engine redacts metavariable
+  # bindings from its JSON output (`"lines": "requires login"`), which is the same reason
+  # `run.py` reads the cited line from disk itself.
+  - id: dfo-csharp-client-binding
+    languages: [csharp]
+    severity: INFO
+    message: "client_binding"
+    metadata:
+      fact_kind: client_binding
+      provisional: true
+      authored:
+        estate: "dotnet/eShop"
+        date: "2026-09-01"
+        checked_against: "the three typed-client registrations in WebApp and WebhookClient, opened at their cited lines"
+      checked: []
+    pattern-either:
+      - pattern: $S.AddHttpClient<$T>(...)
+      - pattern: $S.AddGrpcClient<$T>(...)
+
+  # ---------------------------------------------------------------- Go
+  #
+  # **Authored 2026-09-01 because a run reported six of eleven deployables silent and the
+  # reach check made that visible instead of leaving it to be noticed.** Four of the six are
+  # Go, the parser reads Go, so this was a missing rule set rather than an estate out of
+  # reach. Written from the idioms in the subject, each confirmed by opening its matches.
+  #
+  # Generated protobuf stubs are excluded everywhere below: they *define* the registration and
+  # client constructors these rules match as calls, and counting a generated definition as an
+  # entry point would inflate every Go estate by the size of its contract.
+  - id: dfo-go-inbound-route
+    languages: [go]
+    severity: INFO
+    message: "inbound_route"
+    metadata:
+      fact_kind: inbound_route
+      provisional: true
+      authored:
+        estate: "GoogleCloudPlatform/microservices-demo"
+        date: "2026-09-01"
+        checked_against: "the frontend's route table and the gRPC server registrations, opened at their cited lines"
+      checked: []
+    paths:
+      exclude: ["*genproto*", "*.pb.go"]
+    pattern-either:
+      - pattern: $R.HandleFunc($PATH, ...)
+      - pattern: $R.Handle($PATH, ...)
+      # `pb.RegisterCheckoutServiceServer(srv, svc)` — the point a service is mounted.
+      # **The name is constrained by regex, not spelled with a metavariable inside it.**
+      # `Register$XServer` parses and matches nothing: Semgrep binds a metavariable to a whole
+      # identifier, never to part of one. It produced zero silently, which is the same
+      # confidently-empty shape this tool exists to catch.
+      - patterns:
+          - pattern: $PB.$F(...)
+          - metavariable-regex:
+              metavariable: "$F"
+              regex: '^Register\w+Server$'
+
+  - id: dfo-go-grpc-method
+    languages: [go]
+    severity: INFO
+    message: "grpc_method"
+    metadata:
+      fact_kind: grpc_method
+      provisional: true
+      authored:
+        estate: "GoogleCloudPlatform/microservices-demo"
+        date: "2026-09-01"
+        checked_against: "the product catalog service's handlers, against its .proto"
+      checked: []
+    paths:
+      exclude: ["*genproto*", "*.pb.go"]
+    # The generated server interface's method shape. Narrower than it looks: an ordinary Go
+    # method does not take a context and a request pointer and return a response pointer.
+    pattern: |
+      func ($R $T) $M(ctx context.Context, $REQ $RT) (*$RES, error) { ... }
+
+  - id: dfo-go-outbound-http
+    languages: [go]
+    severity: INFO
+    message: "outbound_http"
+    metadata:
+      fact_kind: outbound_http
+      provisional: true
+      authored:
+        estate: "GoogleCloudPlatform/microservices-demo"
+        date: "2026-09-01"
+        checked_against: "the checkout service's six client constructions, opened at their cited lines"
+      checked: []
+    paths:
+      exclude: ["*genproto*", "*.pb.go"]
+    pattern-either:
+      # `pb.NewCartServiceClient(conn)` — **the target service is in the type name**, which
+      # makes this the join hop as well as the fact. Name constrained by regex for the same
+      # reason as the server registration above.
+      - patterns:
+          - pattern: $PB.$F(...)
+          - metavariable-regex:
+              metavariable: "$F"
+              regex: '^New\w+Client$'
+      - pattern: $R.Get($URL, ...)
+      - pattern: $R.Post($URL, ...)
+      - pattern: $R.Do($REQ)
+
+  - id: dfo-go-env-read
+    languages: [go]
+    severity: INFO
+    message: "env_read"
+    metadata:
+      fact_kind: env_read
+      provisional: true
+      authored:
+        estate: "GoogleCloudPlatform/microservices-demo"
+        date: "2026-09-01"
+        checked_against: "the frontend's startup configuration reads"
+      checked: []
+    paths:
+      exclude: ["*genproto*", "*.pb.go"]
+    pattern-either:
+      - pattern: os.Getenv($K)
+      - pattern: os.LookupEnv($K)
+
+  # ---------------------------------------------------------------- JavaScript / Node
+  #
+  # Authored 2026-09-01 in the same pass as the Go rules, for the two remaining deployables the
+  # reach check reported silent on the polyglot estate. Both are Node services; the parser
+  # reads JavaScript, so this too was a missing rule rather than an estate out of reach.
+  - id: dfo-js-inbound-route
+    languages: [javascript, typescript]
+    severity: INFO
+    message: "inbound_route"
+    metadata:
+      fact_kind: inbound_route
+      provisional: true
+      authored:
+        estate: "GoogleCloudPlatform/microservices-demo"
+        date: "2026-09-01"
+        checked_against: "the currency and payment services' gRPC service registrations, opened at their cited lines"
+      checked: []
+    pattern-either:
+      # `server.addService(shopProto.CurrencyService.service, {...})` — a gRPC mount point.
+      - pattern: $S.addService($SVC, ...)
+      # Express and the routers built on it. **The receiver is constrained, and the first
+      # version was not.** `$A.get($PATH, ...)` matched 124 Cypress selectors —
+      # `cy.get('#create-account-btn')` — on the next estate it met, all of them filed as
+      # inbound routes. A rule verified on one estate becomes a silent default on the next,
+      # and what transfers is coverage rather than precision; this is that, caught by running
+      # it somewhere else the same day. `.use` is dropped entirely: it mounts middleware as
+      # often as a route and nothing in the call distinguishes them.
+      - patterns:
+          - pattern-either:
+              - pattern: $A.get($PATH, ...)
+              - pattern: $A.post($PATH, ...)
+              - pattern: $A.put($PATH, ...)
+              - pattern: $A.delete($PATH, ...)
+          - metavariable-regex:
+              metavariable: "$A"
+              regex: '^(app|router|api|server|express)$'
+
+  - id: dfo-js-env-read
+    languages: [javascript, typescript]
+    severity: INFO
+    message: "env_read"
+    metadata:
+      fact_kind: env_read
+      provisional: true
+      authored:
+        estate: "GoogleCloudPlatform/microservices-demo"
+        date: "2026-09-01"
+        checked_against: "the currency service's startup configuration reads"
+      checked: []
+    pattern-either:
+      - pattern: process.env.$K
+      - pattern: process.env[$K]
+
+  # ---------------------------------------------------------------- config / env reads
+  - id: dfo-java-env-read
+    languages: [java]
+    severity: INFO
+    message: "env_read"
+    metadata:
+      fact_kind: env_read
+      # Precision evidence. Each entry carries the fingerprint of the rule it
+      # was drawn from; run.py discards any entry whose fingerprint no longer
+      # matches, so editing a pattern voids its evidence mechanically.
+      checked:
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 6, "correct": 6, "pattern_sha": "b7c4d917e853"}
+    pattern-either:
+      - pattern: "System.getenv(...)"
+      # `@Value(...)` bare matched `@Value("classpath:/static/index.html")` — a resource
+      # bundled INSIDE the artifact, which is the boundary the C# round already drew:
+      # env_read is the operating-system environment, set outside the artifact and
+      # surviving no redeploy. Restricted to property placeholders, and POLL excluded so
+      # a line is not emitted under both env_read and poll_interval — the same
+      # double-kinding defect found in C# between env_read and config_ref.
+      # Found 2026-09-02: PetClinic (the classpath resource) and Bank of Anthos
+      # (3 lines carrying two kinds).
+      #
+      # OPEN, recorded rather than silently resolved: a `${...}` placeholder resolves
+      # from Spring's Environment, which spans OS variables, JVM properties AND property
+      # files. The cited line cannot say which. On Bank of Anthos the Kubernetes
+      # manifests supply them, so env_read is right there; on an estate shipping
+      # application.properties the same pattern would be config_ref.
+      - patterns:
+      # NB the placeholder must be CONTAINED, not equal to the whole value. A first
+      # cut required equality and dropped `@Value("http://${BALANCES_API_ADDR}/balances")`
+      # — a genuine env read carrying another service's address, which the join needs.
+      # Caught 2026-09-02 by diffing what the fix removed, not only what it kept.
+          - pattern: "@Value($V)"
+          - metavariable-regex:
+              metavariable: "$V"
+              regex: "^\"(?!.*POLL).*\\$\\{.*\\}.*\"$"
+
+  - id: dfo-python-env-read
+    languages: [python]
+    severity: INFO
+    message: "env_read"
+    metadata:
+      fact_kind: env_read
+      checked:
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 6, "correct": 6, "pattern_sha": "9b62d4acd353"}
+        - {"estate": "microservices-demo", "date": "2026-09-02", "sampled": 6, "correct": 6, "pattern_sha": "9b62d4acd353"}
+    pattern-either:
+      - pattern: "os.environ.get(...)"
+      - pattern: "os.environ[...]"
+      - pattern: "os.getenv(...)"
+
+  - id: dfo-csharp-env-read
+    languages: [csharp]
+    severity: INFO
+    message: "env_read"
+    metadata:
+      fact_kind: env_read
+      # Precision evidence. `run.py` computes standing from these; one entry per
+      # pass, written by `precision.py --record` from a worksheet an independent
+      # reader judged. Scoring your own is the self-grading this replaced.
+      checked: []
+        # CLEARED 2026-09-01: the pattern above changed after this evidence was
+        # recorded, so the evidence describes a rule that no longer exists. Standing
+        # does not survive a change to what the rule matches — carrying it forward
+        # would report a narrowed rule as vouched-for on the strength of a sample
+        # drawn from the broad one. Re-sample to earn it back.
+    pattern-either:
+      # REMOVED 2026-09-02: `$CFG.GetValue<$T>(...)` and `$CFG.GetConnectionString(...)`.
+      # Both read IConfiguration, which is backed by appsettings.json — a file that ships
+      # INSIDE the artifact. That is config_ref, and both patterns are already there.
+      #
+      # The two kinds split on where the value comes from: env_read is the operating-system
+      # environment, config_ref is configuration that ships inside the artifact. The split was
+      # documented before it was applied here — both patterns stayed in both rules, so three
+      # eShop lines were emitted twice under two kinds. Found by the Phase 1 conformance check
+      # (C7), which exists because a documented fix that never lands is invisible until
+      # something counts.
+      - pattern: "Environment.GetEnvironmentVariable(...)"
+      # `$CFG[$KEY]` was REMOVED 2026-09-01. It matches ANY indexer expression —
+      # `MockCatalogBrands[1]`, `match.Groups[1].Value`, `embedding[0..N]`. This rule was the
+      # second-largest in the fact base at 83 facts and scored 2 of 2 clean, which the
+      # reviewing reader called luck rather than evidence. Not quarantined by the sample; cut
+      # on the reader's separate warning about the population.
+
+  # ---------------------------------------------------------------- background work
+  - id: dfo-java-background-trigger
+    languages: [java]
+    severity: INFO
+    message: "background_trigger"
+    metadata:
+      fact_kind: background_trigger
+      # Precision evidence. Each entry carries the fingerprint of the rule it
+      # was drawn from; run.py discards any entry whose fingerprint no longer
+      # matches, so editing a pattern voids its evidence mechanically.
+      checked:
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 3, "correct": 3, "pattern_sha": "e3a95aaf0ef6"}
+    pattern-either:
+      - pattern: "@Scheduled(...)"
+      - pattern: "@Async(...)"
+      # A bare annotation is not a standalone Java pattern — it must attach to the
+      # declaration it decorates. Semgrep rejects `@Async` alone (verified 2026-09-01).
+      - pattern: |
+          @Async
+          $RET $M(...) { ... }
+      - pattern: "new Thread(...)"
+      - pattern: "@KafkaListener(...)"
+      - pattern: "@RabbitListener(...)"
+
+  - id: dfo-python-background-trigger
+    languages: [python]
+    severity: INFO
+    message: "background_trigger"
+    metadata:
+      fact_kind: background_trigger
+    pattern-either:
+      - pattern: "threading.Thread(...)"
+      - pattern: "BackgroundScheduler(...)"
+      - pattern: "@$SCHED.scheduled_job(...)"
+      # `@$APP.task(...)` was REMOVED 2026-09-02. It was written for Celery's `@app.task`
+      # and matched Locust's bare `@task(5)` instead: 11 of the 14 background_trigger facts
+      # on Bank of Anthos were load-generator task definitions, none flagged `in_test`, and
+      # the estate's real background work is Java. A reader would have concluded the estate
+      # runs eleven scheduled jobs. Celery is now named explicitly.
+      - pattern: "@app.task(...)"
+      - pattern: "@celery.task(...)"
+      - pattern: "@shared_task(...)"
+
+  - id: dfo-csharp-background-trigger
+    languages: [csharp]
+    severity: INFO
+    message: "background_trigger"
+    metadata:
+      fact_kind: background_trigger
+      # Precision evidence. `run.py` computes standing from these; one entry per
+      # pass, written by `precision.py --record` from a worksheet an independent
+      # reader judged. Scoring your own is the self-grading this replaced.
+      checked: []
+        # CLEARED 2026-09-01: the pattern above changed after this evidence was
+        # recorded, so the evidence describes a rule that no longer exists. Standing
+        # does not survive a change to what the rule matches — carrying it forward
+        # would report a narrowed rule as vouched-for on the strength of a sample
+        # drawn from the broad one. Re-sample to earn it back.
+    pattern-either:
+      - pattern: "Task.Run(...)"
+      - pattern: "new Timer(...)"
+      # A hosted background worker is a work-initiating entry point, not incidental
+      # concurrency: in the .NET reference estate the grace-period stage of the
+      # ordering business process runs entirely inside one, and the Task.Run / Timer
+      # patterns matched none of them. (An earlier version of this comment claimed four such
+      # classes exist; the fact base does not support that number and it is withdrawn.) Found by the
+      # coverage check below flagging a service with durable writes and no entry
+      # point (2026-09-01).
+      # Matched through the METHOD BODY, not the class declaration, and that is the lesson.
+      # `class $C : BackgroundService { ... }` matches nothing here: these classes use primary
+      # constructors, which the C# parser fails on, so the class header sits inside the unparsed
+      # region while the body parses fine. **A partial parse loses the unparsed construct, not
+      # the file** — a rule keyed on the failing construct misses, a rule keyed on anything else
+      # in the same file succeeds. Measured 2026-09-01, correcting an earlier belief that facts
+      # in all 49 partially-parsed files were unrecoverable.
+      - pattern: "protected override async Task ExecuteAsync(...) { ... }"
+      - pattern: "protected override Task ExecuteAsync(...) { ... }"
+      # An IHostedService begins work in StartAsync, not ExecuteAsync. Added 2026-09-01:
+      # RabbitMQEventBus starts broker consumption there and was matched by nothing, which
+      # left the estate's message ingress invisible.
+      - pattern: "public Task StartAsync(CancellationToken $T) { ... }"
+      - pattern: "public async Task StartAsync(CancellationToken $T) { ... }"
+
+  # gRPC service methods are inbound entry points — in the .NET reference estate this is how the
+  # web application reaches the basket service, and it is a business process seam. Keyed on the
+  # ServerCallContext parameter, which is the signature marker, rather than on `override`, which
+  # would match every override in the estate. Verified against the proto answer key: 3 declared,
+  # 3 found.
+  - id: dfo-csharp-grpc-method
+    languages: [csharp]
+    severity: INFO
+    message: "inbound_route"
+    metadata:
+      fact_kind: inbound_route
+      # Precision evidence. `run.py` computes standing from these; one entry per
+      # pass, written by `precision.py --record` from a worksheet an independent
+      # reader judged. Scoring your own is the self-grading this replaced.
+      checked:
+        - {"estate": "dotnet/eShop", "date": "2026-09-01", "sampled": 3, "correct": 3}
+        # CLEARED 2026-09-01: the pattern above changed after this evidence was
+        # recorded, so the evidence describes a rule that no longer exists. Standing
+        # does not survive a change to what the rule matches — carrying it forward
+        # would report a narrowed rule as vouched-for on the strength of a sample
+        # drawn from the broad one. Re-sample to earn it back.
+      # ---- PRECISION EVIDENCE — the only thing that gives a rule standing ----------------
+      # `run.py` reads these lines and computes state from them: unchecked with none,
+      # provisional while thin, established at 10 samples across 2 estates, quarantined the
+      # moment `correct` is below `sampled`. There is no flag to set and nobody to ask.
+      #
+      # ONE ENTRY PER PRECISION PASS, exactly this form — strict JSON on one line, because
+      # the reader is a line scanner and a YAML flow mapping with unquoted keys will not
+      # parse:
+      #   - checked: {"estate": "<name>", "date": "<YYYY-MM-DD>", "sampled": <n>, "correct": <n>}
+      #
+      # `sampled` and `correct` come from a reader judging `precision.py`'s worksheet — a
+      # reader who did NOT author the rule. Appending an entry you scored yourself is the
+      # self-grading this mechanism replaced.
+      # Authored 2026-09-01 during the eShop run. Its 3 cited locations were opened and the
+      # .proto reconciliation matched 3 of 3 — but that is a RECALL check against a declared
+      # population, not a precision judgment by an independent reader, so it earns no entry
+      # here and this rule is correctly still `unchecked`.
+    pattern-either:
+      - pattern: "$RET $M($REQ $R, ServerCallContext $CTX) { ... }"
+      # The single-parameter form was REMOVED 2026-09-01: it matched a two-line
+      # claims-reading extension helper that merely takes a ServerCallContext. A gRPC service
+      # method takes a request AND a context. Scored 1 of 2 before this.
+
+  # ---------------------------------------------------------------- durable state
+  - id: dfo-java-durable-write
+    languages: [java]
+    severity: INFO
+    message: "durable_write"
+    metadata:
+      fact_kind: durable_write
+      # Precision evidence. Each entry carries the fingerprint of the rule it
+      # was drawn from; run.py discards any entry whose fingerprint no longer
+      # matches, so editing a pattern voids its evidence mechanically.
+      checked:
+        - {"estate": "petclinic", "date": "2026-09-02", "sampled": 5, "correct": 5, "pattern_sha": "a0f0630eb915"}
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 2, "correct": 2, "pattern_sha": "a0f0630eb915"}
+    pattern-either:
+      - pattern: "$REPO.save(...)"
+      - pattern: "$REPO.saveAll(...)"
+      - pattern: "$REPO.delete(...)"
+      - pattern: "$EM.persist(...)"
+      - pattern: "$EM.merge(...)"
+
+  - id: dfo-python-durable-write
+    languages: [python]
+    severity: INFO
+    message: "durable_write"
+    metadata:
+      fact_kind: durable_write
+      checked:
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 2, "correct": 2, "pattern_sha": "65f9d999c15e"}
+    pattern-either:
+      - pattern: "$S.commit(...)"
+      # `$CONN.execute($Q, ...)` was REMOVED 2026-09-02. `conn.execute(statement)` runs the
+      # statement it is handed and the call site cannot say which direction it goes: on Bank
+      # of Anthos three of five sampled durable writes were SELECTs — `get_contacts`,
+      # `get_user` and the uniqueness check inside `generate_accountid`. Direction lives in
+      # how the statement was BUILT, so the constructors are matched instead. The citation
+      # moves to the construction line, which also names the table.
+      #
+      # `$S.add(...)` was REMOVED in the same edit. It is receiver-blind — the same defect
+      # the C# round cut `$SET.Add(...)` for. An ORM write still shows up: `$S.commit(...)`
+      # is unambiguous, and it is the line where the write becomes durable.
+      - pattern: "$T.insert()"
+      - pattern: "$T.update()"
+      - pattern: "$T.delete()"
+
+  - id: dfo-csharp-durable-write
+    languages: [csharp]
+    severity: INFO
+    message: "durable_write"
+    metadata:
+      fact_kind: durable_write
+      # Precision evidence. `run.py` computes standing from these; one entry per
+      # pass, written by `precision.py --record` from a worksheet an independent
+      # reader judged. Scoring your own is the self-grading this replaced.
+      checked:
+        - {"estate": "dotnet/eShop", "date": "2026-09-01", "sampled": 3, "correct": 3}
+        # CLEARED 2026-09-01: the pattern above changed after this evidence was
+        # recorded, so the evidence describes a rule that no longer exists. Standing
+        # does not survive a change to what the rule matches — carrying it forward
+        # would report a narrowed rule as vouched-for on the strength of a sample
+        # drawn from the broad one. Re-sample to earn it back.
+    pattern-either:
+      - pattern: "$CTX.SaveChanges(...)"
+      - pattern: "$CTX.SaveChangesAsync(...)"
+      # `$SET.Add(...)` and `$SET.Remove(...)` were REMOVED 2026-09-01 after scoring 0 of 2:
+      # both draws were in-memory appends — a TypeInfoResolverChain and a local List<Claim>.
+      # Semgrep cannot tell a DbSet from a List without type resolution, so no narrowing of
+      # the receiver saves it. SaveChanges is the unambiguous signal and costs recall on
+      # tracked-entity writes, which is the correct trade: an inflated business process map
+      # puts monitoring on things that do not exist.
+
+  # Broad on the method name, narrow on the receiver — the same reasoning the script
+  # carried. metavariable-regex keeps the receiver AST-resolved while allowing the
+  # open-ended Spring Data method vocabulary (findByX, getAllByY, ...).
+  - id: dfo-java-durable-read
+    languages: [java]
+    severity: INFO
+    message: "durable_read"
+    metadata:
+      fact_kind: durable_read
+      # Precision evidence. Each entry carries the fingerprint of the rule it
+      # was drawn from; run.py discards any entry whose fingerprint no longer
+      # matches, so editing a pattern voids its evidence mechanically.
+      checked:
+        - {"estate": "petclinic", "date": "2026-09-02", "sampled": 6, "correct": 6, "pattern_sha": "b71a84a7fb64"}
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 6, "correct": 6, "pattern_sha": "b71a84a7fb64"}
+    patterns:
+      - pattern: "$REPO.$M(...)"
+      - metavariable-regex:
+          metavariable: "$M"
+          # `get\\w*By\\w*` matched `json.getBytes()` — "get" + "" + "By" + "tes".
+          # A Spring Data derived query always capitalises the property after `By`
+          # (`getByName`, `getOwnerById`), so requiring a capital excludes the English
+          # word "Bytes" without excluding any real query.
+          # Found 2026-09-02, PetClinic sample.
+          regex: "^(find\\w*|latest\\w*|count\\w*|exists\\w*|get\\w*By[A-Z]\\w*)$"
+
+  # A repository field declaration binds a field NAME to a repository TYPE. Call sites
+  # name the field; only the declaration names the type, and the type is what two
+  # services share when one writes what the other polls. This is the join key.
+  # Python had NO durable_read rule until 2026-09-02. Every Python read of durable state
+  # was therefore either invisible or, worse, counted as a WRITE by the direction-blind
+  # `execute()` pattern above. A missing rule and a wrong one produced the same wrong
+  # picture from two directions.
+  - id: dfo-python-durable-read
+    languages: [python]
+    severity: INFO
+    message: "durable_read"
+    metadata:
+      fact_kind: durable_read
+      checked:
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 3, "correct": 3, "pattern_sha": "f2a8c5279895"}
+    pattern-either:
+      - pattern: "$T.select()"
+      - pattern: "$S.query(...)"
+
+  - id: dfo-java-repo-decl
+    languages: [java]
+    severity: INFO
+    message: "repo_decl"
+    metadata:
+      fact_kind: repo_decl
+      # Precision evidence. Each entry carries the fingerprint of the rule it
+      # was drawn from; run.py discards any entry whose fingerprint no longer
+      # matches, so editing a pattern voids its evidence mechanically.
+      checked:
+        - {"estate": "petclinic", "date": "2026-09-02", "sampled": 5, "correct": 5, "pattern_sha": "8cc1adb55506"}
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 6, "correct": 6, "pattern_sha": "8cc1adb55506"}
+    patterns:
+      - pattern: "$T $NAME;"
+      - metavariable-regex:
+          metavariable: "$T"
+          regex: "^\\w*Repository$"
+
+  - id: dfo-java-poll-interval
+    languages: [java]
+    severity: INFO
+    message: "poll_interval"
+    metadata:
+      fact_kind: poll_interval
+      # Precision evidence. Each entry carries the fingerprint of the rule it
+      # was drawn from; run.py discards any entry whose fingerprint no longer
+      # matches, so editing a pattern voids its evidence mechanically.
+      checked:
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 3, "correct": 3, "pattern_sha": "90698ebbfbb9"}
+    patterns:
+      - pattern: "@Value($V)"
+      - metavariable-regex:
+          metavariable: "$V"
+          regex: ".*POLL.*"
+
+  - id: dfo-python-config-ref
+    languages: [python]
+    severity: INFO
+    message: "config_ref"
+    metadata:
+      fact_kind: config_ref
+      checked:
+        - {"estate": "bank-of-anthos", "date": "2026-09-02", "sampled": 6, "correct": 6, "pattern_sha": "db5bfc8556bc"}
+    pattern-either:
+      - pattern: "$APP.config[...]"
+      - pattern: "$APP.config.get(...)"
+
+  - id: dfo-csharp-config-ref
+    languages: [csharp]
+    severity: INFO
+    message: "config_ref"
+    metadata:
+      fact_kind: config_ref
+      # Precision evidence. `run.py` computes standing from these; one entry per
+      # pass, written by `precision.py --record` from a worksheet an independent
+      # reader judged. Scoring your own is the self-grading this replaced.
+      checked: []
+        # CLEARED 2026-09-01: the pattern above changed after this evidence was
+        # recorded, so the evidence describes a rule that no longer exists. Standing
+        # does not survive a change to what the rule matches — carrying it forward
+        # would report a narrowed rule as vouched-for on the strength of a sample
+        # drawn from the broad one. Re-sample to earn it back.
+    pattern-either:
+      - pattern: "$CFG.GetSection(...)"
+      - pattern: "$CFG.GetValue<$T>(...)"
+      # Moved here from env_read 2026-09-01: a connection string is read from configuration,
+      # not from the environment. Three of three env_read draws were this call.
+      - pattern: "$CFG.GetConnectionString(...)"
