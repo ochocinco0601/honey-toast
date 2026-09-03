@@ -6,6 +6,7 @@ Reusable GitHub Copilot skills and agents for structured thinking, writing, and 
 
 | Skill | What it does |
 |-------|-------------|
+| **arc42** | Turn raw, unstructured source material about a system into arc42-structured architecture documentation — twelve chapters, ISO/IEC/IEEE 42010 ordering (stakeholders, concerns, then views). Populates what the sources support and states the gaps plainly rather than filling them. Ships with a complete worked example. |
 | **artifact-review** | Evaluate artifacts from expert perspectives using selectable review lenses (usability, clarity, stakeholder fit). |
 | **briefing** | Produce stakeholder briefing products using intelligence, military, and business communication standards (BLUF, SOF, options lists). |
 | **confluence-design** | Design or review a Confluence page for reader-task-fit — top-task prioritization, macro-as-format selection, page composition, answer-first ordering. |
