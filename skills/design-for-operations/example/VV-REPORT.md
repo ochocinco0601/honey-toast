@@ -18,9 +18,9 @@ section. **Under V&V a finding is recorded and the run moves on; nothing here wa
 carried by **eighteen integration-event handlers**, and the join found none of them, because a
 published event has no call site and no address to follow.
 
-**Why it is not just a missing feature.** The extractor's documentation already lists the
-asynchronous join as not built, and it reads there as an edge case. **On this
-subject it is not an edge case — it carries most of the business process.**
+**Why it is not just a missing feature.** When this run was made the extractor documented the
+asynchronous join as a known limit, and it read there as an edge case. **On this subject it is
+not an edge case — it carries most of the business process.**
 
 **And the four it did find are not peripheral, which an earlier draft of this report got wrong.**
 One of them is `webapp → ordering-api` at `src/WebApp/Services/OrderingService.cs:17`, inside

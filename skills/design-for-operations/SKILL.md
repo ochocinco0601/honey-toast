@@ -91,6 +91,7 @@ that does not resolve as a defect to record, and never read a `proposed` locatio
 | `fact-extractor/README.md` | **Phase 1's built default** — Semgrep rules, a runner, a coverage reconciliation, a join, a precision sampler and a conformance check. How to run it, what it reports about itself, what it cannot reach |
 | `INTEGRATION.md` | How to fit a different extractor to Phase 1, and how to score the fit instead of asserting it |
 | `adapter/adapter.py` | Turns a finished run into a dependency graph and an ordered business process, in the format stated at the top of the file, as source material for onboarding a service |
+| `view/render_run.py` | **Phase 8's render step.** Turns a finished run into one self-contained page — no network, no third-party package, no CLI on PATH. `--check` reports which inputs a run is missing and which phase owes each |
 | `example/PLACING-AN-ORDER.md` | The shape of the output document, from one complete run. Right-shaped — **not** the quality target. If your subject is the same application, this file is also the prior answer, and reading it contaminates the run |
 | `example/RATIFICATION-QUEUE.md` · `example/JUDGING-SCORE.md` · `example/VV-REPORT.md` | The queue, the score and the verification report from that same run — the other three files a run produces |
 
@@ -399,13 +400,22 @@ state):
   `proposed` cell grouped by the role whose yes it needs. Rulings are recorded there (who,
   when, accept or reject), and the specification's labels flip to `ratified` from that record —
   the queue file is what makes `ratified` producible at all.
-- Present to the human: the specification document, the judging score, the independent read,
-  and the queue.
+- **Render the run as one page** — `python view/render_run.py <run-directory>`, which writes
+  `READ-THIS-RUN.html` beside the run's documents. Rendering is not a pass and establishes
+  nothing: it reads `observation.json` and `stages.json` from Phase 7 and the fact base from
+  Phase 1, and shows what they already say. `--check` on the same run reports which of those
+  three a run is missing and which phase owes it; a run that cannot be rendered has a Phase 7
+  output missing, which is a finding about the run rather than about the renderer.
+  **The page distinguishes a stage no code implements from a stage the code carries that
+  nothing can measure.** Those are different findings and a run that collapses them misreports
+  itself — measured on Bank of Anthos, where seven absence stages read as unwatchable ones.
+- Present to the human: the rendered page first, then the specification document, the judging
+  score, the independent read, and the queue.
 - **Record the run** in the run directory's README: subject and revision, tool and invocation,
   mode, the score. A run nobody can find is a run the next one cannot build on.
-- **Done =** the document and queue exist in the run directory, the accounting has no third
-  state, the score and independent read are recorded, and the run is recorded. Ratification is
-  outside the run.
+- **Done =** the document and queue exist in the run directory, the page renders and
+  `--check` returns clean, the accounting has no third state, the score and independent read
+  are recorded, and the run is recorded. Ratification is outside the run.
 
 ### After the run — onboarding
 

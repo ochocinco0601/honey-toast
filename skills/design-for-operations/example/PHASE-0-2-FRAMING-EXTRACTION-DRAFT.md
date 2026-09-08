@@ -49,9 +49,9 @@ coverage report this phase reads.
 python fact-extractor/run.py      eshop-dotnet --service-map src/Basket.API=basket \
   src/Catalog.API=catalog src/Ordering.API=ordering src/Identity.API=identity \
   src/Webhooks.API=webhooks src/PaymentProcessor=payment \
-  src/OrderProcessor=orderprocessor src/WebApp=webapp   > phase1-fact-base.json
-python fact-extractor/join.py     eshop-dotnet phase1-fact-base.json > phase1-join.json
-python fact-extractor/coverage.py eshop-dotnet phase1-fact-base.json > phase1-coverage.json
+  src/OrderProcessor=orderprocessor src/WebApp=webapp   > fact-base.json
+python fact-extractor/join.py     eshop-dotnet fact-base.json > join.json
+python fact-extractor/coverage.py eshop-dotnet fact-base.json > coverage.json
 ```
 
 ### What the run's own checks say about itself
@@ -83,8 +83,9 @@ application about itself, recovered without a model reading anything.
 **This is an INSTRUMENT finding and it is the sharpest one available.** The join follows call
 sites to addresses; a published event has neither. So on an event-driven estate the join reports
 four edges that are real but peripheral and misses the eighteen that carry the business process.
-The extractor's own documentation already names the asynchronous join as not built. **Measured here: on this subject that omission is not a gap at the edge — it is
-the business process itself.** Recorded, not fixed: this run is in V&V mode.
+When this run was made the join did not pair published events at all, and the extractor
+documented that as a known limit. **Measured here: on this subject that omission is not a gap at
+the edge — it is the business process itself.** Recorded, not fixed: this run is in V&V mode.
 
 ---
 

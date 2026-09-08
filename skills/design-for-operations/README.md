@@ -31,6 +31,7 @@ working services, and a success rate placed on the payment step would measure a 
 | `INTEGRATION.md` | **Read this to fit your own extractor.** What Phase 1 must emit, the guarantees it must carry, and how to score the fit |
 | `fact-extractor/` | The structure extraction: Semgrep rules, a runner, a coverage reconciliation, a join, a precision sampler and a conformance check |
 | `adapter/` | Turns a run into a dependency graph and an ordered business process, in the format stated at the top of `adapter/adapter.py`, so a service can be onboarded with no prose source material |
+| `view/` | **Phase 8's render step.** Turns a finished run into one self-contained page beside the run's documents — no network, no third-party package, no CLI on PATH. `--check` reports which inputs a run is missing and which phase owes each |
 | `acceptance/` | Scores a candidate extractor against a subject whose answer was hand-derived twice |
 | `reference/` | The method, and the target it aims at |
 | `JUDGING-INSTRUMENT.md` | The seven conditions a run is scored against |
