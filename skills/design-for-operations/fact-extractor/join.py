@@ -147,6 +147,19 @@ def spring_application_name(lines):
             continue
         indent = len(line) - len(line.lstrip())
         key = line.strip().rstrip(":")
+        # **The flat dotted spelling, which Spring accepts as readily as the nested one.**
+        # `spring.application.name: orders` on one line, at any indent. Measured on
+        # a Spring Kafka estate that writes it that way in all three modules: the join located
+        # none of them, the name correspondence came back empty, and the run stopped. The
+        # docstring above already records this method being fitted to one file's shape once;
+        # this is the same mistake one level up, and both spellings are held by tests now.
+        flat = re.match(r"spring\.application\.name:\s*([A-Za-z0-9_.${}-]+)", line.strip())
+        if flat:
+            return flat.group(1), number
+        if re.match(r"spring\.application:\s*$", line.strip()):
+            application = indent
+            inside = True
+            continue
         if indent == 0:
             inside, application = key == "spring", None
             continue
@@ -240,16 +253,25 @@ K8S_ENV_VALUE = re.compile(r"^\s*value:\s*[\"']?([^\"'#]+?)[\"']?\s*$")
 # matched nothing — and the edge it dropped was the one that makes the estate's two mutually
 # exclusive deployment topologies visible.
 HOST_IN_VALUE = re.compile(r"^(?:[a-z+]+://)?([A-Za-z0-9-]+)(?=[.:/]|$)")
+K8S_IMAGE = re.compile(r"^\s*(?:-\s*)?image:\s*[\"']?([^\"'\s#]+)")
+SKAFFOLD_IMAGE = re.compile(r"^\s*-\s*image:\s*[\"']?([^\"'\s#]+)")
+SKAFFOLD_KEY = re.compile(r"^\s*(context|project):\s*[\"']?([^\"'\s#]+)")
+
+
+def image_name(reference):
+    """`registry/path/name:tag@sha256:digest` -> `name`, the part a build declaration names."""
+    reference = reference.split("@", 1)[0]
+    name = reference.rsplit("/", 1)[-1]
+    return name.split(":", 1)[0]
 
 
 def kubernetes_declarations(root):
     """Deployables and environment bindings from Kubernetes manifests.
 
-    **This is the idiom an estate on Kubernetes actually uses**, and it is the one the
-    superseded proof of concept was built for: a service reads an environment variable, the
-    variable is bound in a ConfigMap or a container spec, and the value names another
-    deployable. Measured — without this resolver the join returned zero edges on Bank of
-    Anthos, where the old script had recovered eight cross-service pairs.
+    **This is the idiom an estate on Kubernetes actually uses**, and it is the one this
+    resolver was built for: a service reads an environment variable, the variable is bound in a
+    ConfigMap or a container spec, and the value names another deployable. Measured — without
+    this resolver the join returned zero edges on Bank of Anthos.
 
     Read as lines rather than parsed, to stay dependency-free like the rest of the tool. Its
     limits follow from that: a multi-document file is split on `---`, values are taken as
@@ -269,21 +291,28 @@ def kubernetes_declarations(root):
             except OSError:
                 continue
             rel = os.path.relpath(path, root).replace("\\", "/")
-            kind, in_data, pending = None, False, None
+            kind, in_data, pending, workload = None, False, None, None
             for number, line in enumerate(lines, start=1):
                 if line.strip() == "---":
-                    kind, in_data, pending = None, False, None
+                    kind, in_data, pending, workload = None, False, None, None
                     continue
                 found_kind = K8S_KIND.match(line)
                 if found_kind:
                     kind = found_kind.group(1)
-                    in_data = False
+                    in_data, workload = False, None
                     continue
                 found_name = K8S_NAME.match(line)
                 if found_name and kind in K8S_WORKLOAD_KINDS:
-                    names.setdefault(found_name.group(1),
+                    workload = found_name.group(1)
+                    names.setdefault(workload,
                                      {"project": None, "cite": f"{rel}:{number}",
                                       "directory": None, "kind": kind})
+                # The images a workload runs. A Service declares none; a Deployment's is the
+                # link to whatever declares how that image is built (skaffold_artifacts).
+                found_image = K8S_IMAGE.match(line)
+                if found_image and workload and kind in K8S_WORKLOAD_KINDS:
+                    names[workload].setdefault("images", {}).setdefault(
+                        image_name(found_image.group(1)), f"{rel}:{number}")
                 if line.rstrip() == "data:" and kind == "ConfigMap":
                     in_data = True
                     continue
@@ -308,6 +337,58 @@ def kubernetes_declarations(root):
     return names, bindings
 
 
+def skaffold_artifacts(root):
+    """Image name -> the directory it is built from, from skaffold build declarations.
+
+    **A Kubernetes manifest names an image, never a directory.** So a deployable declared only
+    in Kubernetes cannot be placed on disk by the manifest alone, and without a directory the
+    join can neither attribute a call site to it nor compute the name correspondence the
+    adapter reads. Measured on Bank of Anthos, 2026-09-04: thirteen deployables declared, none
+    located, correspondence empty, and the adapter refused the join.
+
+    skaffold is where this estate declares the build: `artifacts: - image: X` with a `context`
+    directory, and for a Jib build the `project` under it. Resolved through two declarations
+    that name the same artifact - the workload's `image:` and the build's `image:` - which is a
+    lookup, not a guess that `src/<name>/` exists.
+
+    Read as lines like the manifests. Limits that follow: only skaffold is read, so an image
+    built by a Helm chart, a Kustomize `images:` override or a CI file alone stays unlocated
+    and the deployable falls back to the run's service map as before; a `test:` entry that
+    names the same image is harmless because the first declaration wins.
+    """
+    found = {}
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        for filename in filenames:
+            if not (filename.startswith("skaffold") and filename.endswith((".yaml", ".yml"))):
+                continue
+            path = os.path.join(dirpath, filename)
+            try:
+                with open(path, "r", encoding="utf-8", errors="replace") as handle:
+                    lines = handle.read().splitlines()
+            except OSError:
+                continue
+            rel = os.path.relpath(path, root).replace("\\", "/")
+            entries, current = [], None
+            for number, line in enumerate(lines, start=1):
+                found_image = SKAFFOLD_IMAGE.match(line)
+                if found_image:
+                    current = {"image": found_image.group(1), "cite": f"{rel}:{number}",
+                               "context": None, "project": None}
+                    entries.append(current)
+                    continue
+                key = SKAFFOLD_KEY.match(line)
+                if key and current is not None and current[key.group(1)] is None:
+                    current[key.group(1)] = key.group(2)
+            for entry in entries:
+                if entry["context"] is None:
+                    continue
+                directory = os.path.join(dirpath, entry["context"], entry["project"] or "")
+                directory = os.path.relpath(os.path.normpath(directory), root).replace("\\", "/")
+                found.setdefault(entry["image"], {"directory": directory, "cite": entry["cite"]})
+    return found
+
+
 ENV_VAR_IN_CODE = re.compile(
     r"""(?:os\.environ\.get\(|os\.environ\[|getenv\(|System\.getenv\()\s*['"]([A-Za-z_]\w*)['"]"""
     r"""|@Value\(\s*["']\$\{([A-Za-z_]\w*)""")
@@ -322,8 +403,8 @@ def env_var_named(evidence):
     **The Spring form cost a real edge twice over.** The ledger writer's dependency on the
     balance reader is declared `@Value("http://${BALANCES_API_ADDR}/balances")` — the
     placeholder sits *inside* a URL template rather than filling the whole value, so a
-    pattern anchored to the opening quote misses it. The superseded script had found this
-    edge; a first version of this resolver did not, and the difference was that anchor.
+    pattern anchored to the opening quote misses it. An earlier script had found this
+    edge; the first version of this resolver did not, and the difference was that anchor.
     """
     if "@Value(" in evidence or "${" in evidence:
         placeholder = SPRING_PLACEHOLDER.search(evidence)
@@ -684,7 +765,7 @@ def distinct(edges):
     return sorted(rows.values(), key=lambda r: (str(r["from"]), str(r["to"])))
 
 
-def name_correspondence(facts, directories):
+def name_correspondence(facts, directories, names=None):
     """Declaration name -> the run's service-map name for the same deployable.
 
     **Two name spaces have always existed here and nothing reconciled them.** The fact base
@@ -693,7 +774,7 @@ def name_correspondence(facts, directories):
     to the same project directory, so the correspondence is computable — but it was never
     computed, and a consumer holding both outputs at once matched almost nothing.
 
-    Found 2026-09-02, by building the first thing that reads both.
+    Found by building the first thing that reads both.
 
     Resolved by directory, never by name similarity: `catalog-api` and `catalog` happen to
     look alike, and matching on that would be a guess that works until an estate names two
@@ -721,6 +802,9 @@ def name_correspondence(facts, directories):
                       if len(matched) > 1 else
                       "resolved by shared directory, not by name similarity"),
         }
+        located_by = (names or {}).get(logical, {}).get("located_by")
+        if located_by:
+            correspondence[logical]["located_by"] = located_by
     return correspondence
 
 
@@ -728,9 +812,59 @@ def name_correspondence(facts, directories):
 # line for the first thing that looks like one. A first cut did the latter and picked
 # `orderPaymentIntegrationEvent` - the VARIABLE on an assignment line - as the type, and
 # paired nothing. The same lesson as the direction-blind execute(): identity lives in the
-# construct, not in whatever the line happens to mention first. Found 2026-09-02.
+# construct, not in whatever the line happens to mention first.
 PUBLISHED_TYPE = re.compile("new\\s+(\\w*IntegrationEvent)")
 SUBSCRIBED_TYPE = re.compile("AddSubscription<\\s*(\\w+)")
+
+# **The send names a variable, not a type.** Measured on eShop 2026-09-07: not one publish call
+# site names an event type, and the probe fixture's own send passes a parameter typed with the
+# base class. These two recover the seam the corrected publisher rule leaves open — the variable
+# a send hands over, and the type a construction binds to that name.
+SENT_VARIABLE = re.compile(r"\.Publish\w*\(\s*([A-Za-z_]\w*)\s*[,)]")
+BOUND_TYPE = re.compile(r"(\w+)\s*=\s*new\s+(\w*IntegrationEvent)")
+
+
+def event_bindings(facts):
+    """Where each variable holding an event was bound to a concrete type.
+
+    Keyed by file, enclosing type and variable name, because a name is only meaningful inside
+    the scope that declared it. Same-name variables in two classes of one file are two bindings,
+    not one.
+    """
+    bindings = {}
+    for fact in facts:
+        if fact.get("in_test") or fact.get("kind") != "event_binding":
+            continue
+        match = BOUND_TYPE.search(fact.get("evidence") or "")
+        if not match:
+            continue
+        key = (fact.get("file"), fact.get("in_type"), match.group(1))
+        bindings.setdefault(key, []).append((fact.get("line"), match.group(2), fact))
+    return bindings
+
+
+def type_sent_at(fact, bindings):
+    """The event type a send carries, recovered from where its variable was bound.
+
+    **This does not make constructing an event into sending one.** The send remains the fact that
+    an event left the service; the binding supplies only the name of what left, and the edge
+    cites both lines so a reader can check the pairing rather than trust it.
+
+    Three constraints, each held by a test: the binding must be in the same file and the same
+    enclosing type as the send, it must PRECEDE the send, and where a name is reused the nearest
+    preceding binding is the one that stands. An argument that is not a plain variable — a
+    property access, an expression — resolves to nothing and is reported unpaired.
+    """
+    sent = SENT_VARIABLE.search(fact.get("evidence") or "")
+    if not sent:
+        return None
+    candidates = bindings.get((fact.get("file"), fact.get("in_type"), sent.group(1)))
+    if not candidates:
+        return None
+    preceding = [c for c in candidates if c[0] is not None and c[0] < fact.get("line", 0)]
+    if not preceding:
+        return None
+    return max(preceding, key=lambda c: c[0])
 
 
 def event_edges(facts):
@@ -751,19 +885,45 @@ def event_edges(facts):
     the ORDER, and cannot** — static sequence reconstruction admits transitions that never
     occur. Composing these hops into a sequence would make the claim unsound.
     """
-    published, subscribed = {}, {}
+    published, subscribed, unnamed = {}, {}, []
+    bindings = event_bindings(facts)
     for fact in facts:
         if fact.get("in_test") or not fact.get("service"):
             continue
+        bound = None
         if fact["kind"] == "message_publisher":
             match = PUBLISHED_TYPE.search(fact.get("evidence") or "")
+            if not match:
+                bound = type_sent_at(fact, bindings)
             bucket = published
         elif fact["kind"] == "message_subscription":
             match = SUBSCRIBED_TYPE.search(fact.get("evidence") or "")
             bucket = subscribed
         else:
             continue
+        if bound:
+            # The type came from the binding, so the fact carries it to the edge, which cites
+            # the construction line as a hop of its own.
+            published.setdefault(bound[1], []).append(dict(fact, _bound_at=bound[2]))
+            continue
         if not match:
+            # **A fact whose type cannot be read is reported, never dropped.** This function
+            # used to `continue` here, and that silence is how a real contradiction stayed
+            # invisible: the C# publisher rule was corrected so that it matches
+            # the send call rather than the construction of the event, on the sound ground that
+            # constructing an object is not sending it. But the type name appears only on the
+            # construction line — measured on eShop, 2026-09-07: not one of its publish call
+            # sites names a type, every one passes a variable. So every publisher fact now
+            # fails this pattern, is skipped, and an estate with a complete event topology
+            # returns an empty one that looks exactly like an estate with no events.
+            unnamed.append({
+                "kind": fact["kind"],
+                "service": fact["service"],
+                "at": f"{fact['file']}:{fact['line']}",
+                "evidence": (fact.get("evidence") or "")[:160],
+                "failed_at": ("the event type is not named at this line, so this fact cannot be "
+                              "paired with the other end of the seam"),
+            })
             continue
         bucket.setdefault(match.group(1), []).append(fact)
 
@@ -792,19 +952,40 @@ def event_edges(facts):
                         {"hop": "publish site",
                          "cite": f"{source['file']}:{source['line']}",
                          "evidence": source["evidence"]},
+                    ] + ([
+                        {"hop": "event binding",
+                         "cite": (f"{source['_bound_at']['file']}:"
+                                  f"{source['_bound_at']['line']}"),
+                         "evidence": source["_bound_at"].get("evidence", ""),
+                         "means": "the send names a variable; this is where that variable was "
+                                  "bound to this type. The send is still the fact that an event "
+                                  "left the service — this line only says what left"},
+                    ] if source.get("_bound_at") else []) + [
                         {"hop": "subscription declaration",
                          "cite": f"{target['file']}:{target['line']}",
                          "evidence": target["evidence"]},
                     ],
                 })
-    return edges, {
+    report = {
         "events_published": sorted(published),
         "events_subscribed": sorted(subscribed),
         "published_with_no_subscriber": sorted(set(published) - set(subscribed)),
         "subscribed_with_no_publisher": sorted(set(subscribed) - set(published)),
+        "facts_whose_event_type_could_not_be_read": unnamed,
         "means": "an event published with nobody listening, or listened for and never "
                  "published, is a finding about the estate. Neither is filled in here",
     }
+    # **An estate with message facts and no event topology is a finding about this tool.** It
+    # is not the same thing as an estate that publishes nothing, and the two used to look
+    # identical in the output. Said here so a reader does not have to notice an absence.
+    if unnamed and not edges:
+        report["means_for_this_run"] = (
+            f"{len(unnamed)} message fact(s) were extracted and NONE could be paired, so the "
+            "event topology below is empty because the type could not be read, not because "
+            "this estate has no event seams. Read "
+            "facts_whose_event_type_could_not_be_read before treating the graph as complete."
+        )
+    return edges, report
 
 
 def main():
@@ -826,6 +1007,16 @@ def main():
     k8s_names, k8s_bindings = kubernetes_declarations(root)
     for logical, entry in k8s_names.items():
         names.setdefault(logical, entry)
+    artifacts = skaffold_artifacts(root)
+    for logical, entry in names.items():
+        if entry.get("directory") or entry.get("project"):
+            continue
+        for image, run_at in (entry.get("images") or {}).items():
+            if image in artifacts:
+                entry["directory"] = artifacts[image]["directory"]
+                entry["located_by"] = {"image": image, "run_at": run_at,
+                                       "built_at": artifacts[image]["cite"]}
+                break
     # Logical deployable -> the directory its project builds from, so a call site's file can
     # be attributed to the deployable that makes the call. **Deliberately not the run's
     # service map:** the map names the deployables a run chose to study, and an edge whose
@@ -858,7 +1049,7 @@ def main():
         "declared_in": declared_in,
         # See name_correspondence: the two halves of a run named deployables differently
         # and nothing joined them until something consumed both.
-        "deployable_name_map": name_correspondence(facts, directories),
+        "deployable_name_map": name_correspondence(facts, directories, names),
         "event_topology": event_report,
         "dependencies": distinct(edges),
         "edges": edges,

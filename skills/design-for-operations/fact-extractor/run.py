@@ -318,7 +318,7 @@ def provisional_report(facts, rules_path):
     **This block was documented before it existed.** `README.md` printed its shape and said
     the announcement is generated rather than remembered; nothing generated it, so an
     authored rule entered the library in silence — the precise failure the announcement was
-    written to prevent. Found and closed 2026-09-01 while authoring one.
+    written to prevent. Found and closed while authoring one.
 
     A rule declares itself with `provisional: true` in its metadata, alongside the estate and
     date that produced it. It stops being provisional when someone rules on it, not when a
@@ -360,7 +360,7 @@ TEST_FILE = re.compile(
 def in_test(rel_path):
     """Whether a fact comes from test or CI code rather than from the running system.
 
-    **A capability the superseded script had and the rebuild lost.** Its join skipped facts
+    **A capability an earlier script had and the rebuild lost.** Its join skipped facts
     marked this way; nothing here did, and a rule authored on one estate immediately picked up
     eight environment reads from another's end-to-end test configuration — true statements
     about files that never run in production.
@@ -374,12 +374,32 @@ def in_test(rel_path):
 
 
 SOURCE_SUFFIXES = {
-    ".java", ".cs", ".py", ".go", ".ts", ".js", ".rb", ".php", ".kt", ".scala", ".rs",
-    ".cpp", ".c", ".sh", ".sql", ".yaml", ".yml", ".tf", ".xml", ".json",
+    ".java", ".cs", ".py", ".go", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".rb",
+    ".php", ".kt", ".scala", ".rs", ".cpp", ".c", ".sh", ".sql", ".yaml", ".yml", ".tf",
+    ".xml", ".json",
 }
 
+# **The suffixes that carry program behaviour, as opposed to configuration and data.**
+# The distinction exists because the unread-file-types list is only useful if its entries
+# are surprising. Before it existed, every run on every estate listed `.json`, `.yml` and
+# `.xml` as unread — true, expected, and therefore trained a reader to skip the list. The
+# one time it mattered, an entire TypeScript service sat in that same list and was skipped
+# with the rest. Config formats are still counted and still reported; they just cannot
+# make a run incomplete, and program text can.
+PROGRAM_SUFFIXES = {
+    ".java", ".cs", ".py", ".go", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".rb",
+    ".php", ".kt", ".scala", ".rs", ".cpp", ".c",
+}
 
-def reach(facts, service_map, root):
+# Below this, a language's presence is incidental — a lone config script, a generated
+# stub — and silence about it is not evidence of anything. Above it, a language nothing
+# read is a hole in the estate. Set from measurement: the smallest genuinely-unread service
+# measured was an Angular front end at ~1,100 non-blank lines; the largest incidental
+# presence was a 40-line build script.
+UNREAD_LANGUAGE_LINES = 200
+
+
+def reach(facts, service_map, root, partial_parse_files=0):
     """What the run was pointed at versus what any rule actually read.
 
     **This is the control that catches a confidently empty result**, and it was built after
@@ -421,17 +441,61 @@ def reach(facts, service_map, root):
                         pass
         sizes[name] = total
 
-    present, read = {}, {f["file"].rsplit(".", 1)[-1] for f in facts if "." in f["file"]}
+    # **Lines, not just files, per suffix.** A file count cannot separate a language that is
+    # genuinely unread from one that is incidentally present, and that is the exact judgement
+    # a reader has to make about this list. Measured: a NestJS service reported `.ts: 35` in
+    # the unread list beside `.json: 6`, and the two looked alike. In lines they do not.
+    present, present_lines = {}, {}
+    read = {"." + f["file"].rsplit(".", 1)[-1].lower() for f in facts if "." in f["file"]}
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames
                        if d not in {".git", "node_modules", "target", "build", "obj", "bin",
-                                    "__pycache__", ".venv", "vendor"}]
+                                    "__pycache__", ".venv", "vendor", "dist", "out"}]
         for name in filenames:
             suffix = os.path.splitext(name)[1].lower()
             if suffix in SOURCE_SUFFIXES:
                 present[suffix] = present.get(suffix, 0) + 1
-    unread = {suffix: count for suffix, count in present.items()
-              if suffix.lstrip(".") not in read}
+                try:
+                    with open(os.path.join(dirpath, name), "r",
+                              encoding="utf-8", errors="replace") as handle:
+                        present_lines[suffix] = present_lines.get(suffix, 0) + sum(
+                            1 for line in handle if line.strip())
+                except OSError:
+                    pass
+    unread = {suffix: count for suffix, count in present.items() if suffix not in read}
+
+    # **A language present in program quantity that produced no fact at all.** This is the
+    # estate-blindness case, and it is the one the earlier version of this function could not
+    # see: with no service map declared there are no deployables to be silent about, so a run
+    # that read literally nothing satisfied every check and reported itself complete.
+    unread_languages = {
+        suffix: {"files": count, "source_lines": present_lines.get(suffix, 0)}
+        for suffix, count in unread.items()
+        if suffix in PROGRAM_SUFFIXES
+        and present_lines.get(suffix, 0) >= UNREAD_LANGUAGE_LINES
+    }
+
+    # **Completeness is now conjunctive and it states its grounds.** A bare `true` is a claim
+    # a reader cannot audit; a reason list is one they can. The three grounds are the three
+    # ways a run is blind without erroring: a declared deployable nothing read, a language
+    # nothing read, and source the parser could not take apart.
+    incomplete_because = []
+    if silent:
+        incomplete_because.append(
+            f"{len(silent)} declared deployable(s) produced no fact: {', '.join(silent)}")
+    if unread_languages:
+        incomplete_because.append(
+            "source no rule read: " + ", ".join(
+                f"{suffix} ({detail['source_lines']} lines in {detail['files']} files)"
+                for suffix, detail in sorted(
+                    unread_languages.items(), key=lambda kv: -kv[1]["source_lines"])))
+    if not facts:
+        incomplete_because.append(
+            "no fact of any kind was extracted — this is an unread estate, not an empty one")
+    if partial_parse_files:
+        incomplete_because.append(
+            f"the parser could not fully read {partial_parse_files} file(s); facts inside "
+            "those regions are absent and unrecoverable")
 
     return {
         "deployables_declared": len(set(service_map.values())),
@@ -441,7 +505,11 @@ def reach(facts, service_map, root):
             sorted(sizes.items(), key=lambda kv: -kv[1])),
         "file_types_present_that_no_rule_read": dict(sorted(
             unread.items(), key=lambda kv: -kv[1])[:12]),
-        "complete": not silent,
+        "source_lines_by_file_type": dict(sorted(
+            present_lines.items(), key=lambda kv: -kv[1])[:12]),
+        "languages_present_that_no_rule_read": unread_languages,
+        "complete": not incomplete_because,
+        "incomplete_because": incomplete_because,
         "means": "a declared deployable with no facts is not a simple deployable. It is one "
                  "nothing read — an unsupported language, a missed scan root, or an idiom no "
                  "rule covers — and the output for it is empty rather than sparse. A run must "
@@ -454,7 +522,7 @@ def reach(facts, service_map, root):
     }
 
 
-def coverage_warnings(facts):
+def coverage_warnings(facts, reach_block=None, partial_parse_files=0):
     """Internal consistency check on the extraction itself.
 
     A service that writes durable state or calls another service is doing work, and
@@ -468,6 +536,7 @@ def coverage_warnings(facts):
     message consumer. Verified against a real defect: on the pre-fix run of that
     estate it flagged 7 of 8 services, every one of them genuinely under-read.
     """
+    reach_block = reach_block or {}
     per_service = {}
     for fact in facts:
         counts = per_service.setdefault(fact["service"], {})
@@ -484,20 +553,59 @@ def coverage_warnings(facts):
                 "work_facts": work,
                 "means": "an unmodelled entry-point idiom, not a service without entry points",
             })
+
+    # **The checks above are per-service, and per-service is not where blindness shows.** Every
+    # one of them is silent on an estate with no service map, because there is no service to be
+    # inconsistent about — and silent again on an estate that produced no facts at all, because
+    # an empty bucket satisfies *work implies entry point*. Three estate-level checks, each
+    # written after a run that passed everything else while reading almost nothing.
+    if not facts:
+        warnings.append({
+            "service": None,
+            "finding": "no fact of any kind was extracted from this estate",
+            "means": "an unread estate, not an empty one. Either no rule covers this stack's "
+                     "idioms, or the scan root is wrong. Do not report this estate as simple",
+        })
+    for suffix, detail in sorted(reach_block.get("languages_present_that_no_rule_read", {}).items(),
+                                 key=lambda kv: -kv[1]["source_lines"]):
+        warnings.append({
+            "service": None,
+            "finding": f"no rule read any {suffix} source",
+            "source_lines": detail["source_lines"],
+            "files": detail["files"],
+            "means": "a language present in program quantity that produced no fact. The "
+                     "estate's behaviour in this language is absent from the run, and every "
+                     "count below understates it by an unknown amount",
+        })
+    if partial_parse_files:
+        warnings.append({
+            "service": None,
+            "finding": f"the parser could not fully read {partial_parse_files} file(s)",
+            "means": "a construct the analyser's grammar does not accept — a language version "
+                     "newer than the parser is the usual cause. Facts inside the unparsed "
+                     "regions are absent and unrecoverable, so this count bounds every claim "
+                     "the run makes. Check the analyser version before reading the output",
+        })
     return warnings
 
 
 def main():
     root, service_map = parse_args(sys.argv[1:])
+    # **The encoding is stated, not inherited.** `text=True` alone decodes the analyser's
+    # output with the platform default, which on Windows is cp1252: one non-ASCII byte
+    # anywhere in the JSON — a typographic quote in a matched line, an accented identifier —
+    # raises UnicodeDecodeError and the run dies with a traceback and no output at all.
+    # Measured: two TypeScript estates that scan clean on a UTF-8 platform both
+    # failed this way on Windows, and the failure is total rather than partial.
     proc = subprocess.run(
         [SEMGREP, "--config", RULES, "--json", "--quiet", "--metrics=off", root],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     if proc.returncode != 0 and not proc.stdout:
         sys.exit(f"semgrep failed ({proc.returncode}):\n{proc.stderr[-2000:]}")
 
     report = json.loads(proc.stdout)
-    # **A rule file the engine could not load is fatal, not a result.** Measured 2026-09-01:
+    # **A rule file the engine could not load is fatal, not a result.** Measured:
     # one invalid escape inside a regex made the whole file unparseable, and the run reported
     # zero facts for an entire estate with no error — an empty output that reads exactly like
     # a system with no structure. The engine says so in `errors`; nothing was reading it.
@@ -541,7 +649,42 @@ def main():
         counts[kind] = counts.get(kind, 0) + 1
         by_language[ext] = by_language.get(ext, 0) + 1
 
-    facts.sort(key=lambda f: (f["file"], f["line"], f["kind"]))
+    facts.sort(key=lambda f: (f["file"], f["line"], f["kind"], f["rule"]))
+
+    # **Two rules that both find the same thing must not make it two things.** Rules overlap
+    # by design — a gRPC client call and a typed HttpClient call are different idioms that a
+    # receiver name cannot always separate — and before this, each overlap inflated the count
+    # for that kind at that location. Measured on the .NET estate: 8 locations
+    # carried a duplicate, every one of them one construct counted twice. Collapsing on
+    # (file, line, kind) keeps the first rule alphabetically and reports how many were merged,
+    # so an overlap stays visible as a number rather than becoming a silent inflation. Facts
+    # of DIFFERENT kinds at one location are left alone; `multi_kind_locations` discloses those.
+    seen, deduped, collapsed = set(), [], 0
+    for fact in facts:
+        key = (fact["file"], fact["line"], fact["kind"])
+        if key in seen:
+            collapsed += 1
+            continue
+        seen.add(key)
+        deduped.append(fact)
+    facts = deduped
+
+    counts, by_language = {}, {}
+    for fact in facts:
+        counts[fact["kind"]] = counts.get(fact["kind"], 0) + 1
+        ext = os.path.splitext(fact["file"])[1]
+        by_language[ext] = by_language.get(ext, 0) + 1
+
+    # Computed before the report is assembled, because two of its consumers — the reach
+    # verdict and the coverage warnings — both have to know the parser failed.
+    partial_parse_files = len({
+        loc.get("path")
+        for err in report.get("errors", [])
+        for loc in (err.get("type") or [None, []])[1] or []
+        if isinstance(loc, dict)
+    })
+    reach_block = reach(facts, service_map, root, partial_parse_files)
+
     json.dump({
         "root": root,
         "tool": tool_identity(RULES),
@@ -550,19 +693,17 @@ def main():
         "by_language": by_language,
         "unattributed": sum(1 for f in facts if f["service"] is None),
         "in_test": sum(1 for f in facts if f["in_test"]),
-        "reach": reach(facts, service_map, root),
+        "reach": reach_block,
         "multi_kind_locations": multi_kind_report(facts),
-        "coverage_warnings": coverage_warnings(facts),
+        "coverage_warnings": coverage_warnings(facts, reach_block, partial_parse_files),
         "rule_standing": standing_report(facts, rule_standing(RULES)),
         "provisional": provisional_report(facts, RULES),
         # Files the parser could not fully read. Facts inside those regions are absent
         # and unrecoverable, so this count bounds every claim the run makes.
-        "partial_parse_files": len({
-            loc.get("path")
-            for err in report.get("errors", [])
-            for loc in (err.get("type") or [None, []])[1] or []
-            if isinstance(loc, dict)
-        }),
+        "partial_parse_files": partial_parse_files,
+        # Same-kind facts merged at one location, so an overlap between two rules reads as a
+        # number rather than as more structure than the estate has.
+        "duplicate_locations_collapsed": collapsed,
         "semgrep_errors": report.get("errors", []),
         "facts": facts,
     }, sys.stdout, indent=2)

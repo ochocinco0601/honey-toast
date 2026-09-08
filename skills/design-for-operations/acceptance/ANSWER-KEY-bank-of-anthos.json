@@ -6,8 +6,8 @@
   "provenance": {
     "how_it_was_derived": "By hand, twice, independently — never by the extractor this key is used to score.",
     "derivations": [
-      "A hand-traced dependency map for the same business process flow (June-July 2026)",
-      "An independent hand-trace 2026-08-25 that reproduced the same citations, including the 250ms propagation sleep at src/frontend/frontend.py:342-344"
+      "A hand-traced dependency map for the same business process flow",
+      "An independent hand-trace that reproduced the same citations, including the 250ms propagation sleep at src/frontend/frontend.py:342-344"
     ],
     "why_this_matters": "A key derived by the tool being scored proves nothing. Two independent hand derivations that agree make a better answer key than either alone, and neither used the tool.",
     "corroboration": "The estate also declares its own service addresses in kubernetes-manifests/config.yaml (ConfigMap service-api-config), and describes its services in README.md. Both agree with the key."

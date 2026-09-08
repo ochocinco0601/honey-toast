@@ -45,6 +45,45 @@ in the map.
 the map's coverage is visible rather than assumed. A fact with `in_test: true` came from test
 code, which is evidence about the system and not part of it; downstream phases exclude it.
 
+## Before you trust a run — the controls
+
+```
+python selftest.py                     # every rule must fire; no negative control may. exit 0/1
+```
+
+**Run the controls from a clean directory.** Measured: the same package scored zero of its rules
+when scanned from a `dist/` directory, and every one of them when copied out. Semgrep applies a default ignore list that skips
+directories named `dist`, `build`, `vendor` and `node_modules`, so a package sitting in a
+`dist/` directory scans as empty — and so does any real repository whose code happens to live
+under one of those names.
+
+**`selftest.py` exists because a rule can be silent rather than wrong.** Semgrep does not error
+on a pattern form its grammar cannot use for a language — it returns no matches. A rule written
+in an unsupported form and an estate that genuinely has none of that construct produce
+byte-identical output: nothing. Measured: the AST pattern `@Get(...)` matched 0 of 21
+NestJS decorators actually present in the source, and every other check in the pipeline passed
+while the run reported an estate with no HTTP entry points.
+
+`fixtures/positive/` holds one small file per language containing at least one instance of every
+construct every rule claims to match; a rule that matches nothing there is reported as SILENT.
+`fixtures/negative/` holds constructs that must never match, each one a precision defect this
+rule set actually committed — Cypress selectors read as inbound routes, a `WebClient.builder()`
+bean factory read as an outbound call, ordinary `Map` and array access read as database reads,
+Camel `direct:` wiring read as a service boundary. **A new rule owes both**: add the construct to
+the positive fixture in the same edit that adds the rule, or the rule ships unable to prove it
+works.
+
+Passing is a floor and not a recall measurement. It says a rule is capable of firing, never that
+it finds everything a real estate contains.
+
+**Every rule here was written while looking at one estate, and a rule verified on one estate
+becomes a silent default on the next.** The way to find that out is to run the set against
+several codebases in several languages and read the `complete` column first: a run reporting
+fewer facts is not necessarily worse than one reporting more, but a run reporting `complete`
+while a language went unread is worse than both.
+
+`selftest.py` is the control that needs neither a network nor an estate, so it runs anywhere.
+
 ## What the output carries
 
 Each fact: `kind`, `service`, `file`, `line`, `evidence` (the source text at that location),
@@ -215,6 +254,15 @@ lives somewhere else entirely, so an edge is four hops:
 `unresolved` record naming the hop that failed. A guessed edge is worse than an absent one: it
 puts monitoring on a dependency that is not there.
 
+**Hop 4 is a lookup, and it has three sources.** A logical name is placed on disk by whichever
+declaration the estate carries: a .NET deployment declaration names a project and the project file
+is found on disk; a Spring `application.yml` names the deployable its module runs as; a Kubernetes
+workload names an image, and the skaffold build declaration that names the same image says which
+directory builds it. Nothing is guessed from the deployable's name. A deployable none of these
+place stays unlocated: its call sites are attributed by the run's service map, it has no entry in
+the name correspondence, and `deployables_located` says so. Where a build declaration did the
+placing, the correspondence entry cites both declarations (`located_by`).
+
 **A call site does not have to live in a deployable.** A shared library's call is attributed to
 every deployable whose project references it, following the project reference graph rather than
 the directory tree. A library referenced by several deployables yields an edge for each, which is
@@ -253,6 +301,9 @@ possible successor, and a branch is indistinguishable from an alternative.
   wins over the type containing it. It is one hop that can fail, never a fact.
 - **Templated manifests are read as written.** Helm and Kustomize overlays are not rendered, so an
   unrendered placeholder stays a placeholder and its hop fails visibly rather than silently.
+- **An image built outside skaffold is not placed.** A Helm chart, a Kustomize `images:` override
+  or a CI file that builds an image is not read, so a deployable declared only that way stays
+  unlocated and is reported as such rather than guessed at.
 
 The join's own `reconciliation` block scores it against the dependencies the deployment
 declaration states, where one exists. Read the independence caveat in the output before treating
@@ -284,8 +335,9 @@ different rule set means a changed answer, not an unstable one.
   rules are.
 - **Every subject so far is a reference application** — small, coherent, built to be readable.
   Nothing here says how this behaves on a system carrying several teams' conventions.
-- **Rules have no fixture tests.** Each rule should carry a fixture file with expected match lines;
-  a fixture set is what would catch the next defect before a run does.
+- **Fixture coverage is per rule and incomplete.** `fixtures/` carries positive, negative and
+  probe files, and `selftest.py` requires every rule to fire against them, but a rule can satisfy
+  a fixture and still be wrong on real source — which is what the precision samples are for.
 - **The fact base has no interchange format.** Output is this tool's own JSON. The field ships
   formats for exactly this — RSF, TA, GXL — and adopting one would be better than inventing a
   schema.

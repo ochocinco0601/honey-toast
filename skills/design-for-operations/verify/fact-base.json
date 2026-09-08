@@ -4,7 +4,7 @@
     "name": "semgrep",
     "version": "1.176.0",
     "rules_file": "rules.yaml",
-    "rules_sha256": "0d55e9c29ece",
+    "rules_sha256": "67f41aa9d4f9",
     "python": "3.12.10",
     "means": "the analyser, its version and the exact rule set. A fact base that does not carry these cannot be reproduced by anyone else, and a change in any of them changes the answer"
   },
@@ -14,18 +14,20 @@
     "message_subscription": 18,
     "inbound_route": 48,
     "message_consumer": 18,
-    "message_publisher": 13,
-    "durable_write": 15,
-    "config_ref": 9,
-    "outbound_http": 25,
-    "background_trigger": 3,
+    "durable_read": 25,
+    "event_binding": 13,
+    "message_publisher": 6,
+    "durable_write": 27,
+    "config_ref": 13,
+    "outbound_http": 28,
+    "background_trigger": 1,
     "client_binding": 5
   },
   "by_language": {
     ".ts": 8,
-    ".cs": 155
+    ".cs": 203
   },
-  "unattributed": 47,
+  "unattributed": 56,
   "in_test": 8,
   "reach": {
     "deployables_declared": 8,
@@ -39,7 +41,26 @@
       ".xml": 7,
       ".yaml": 1
     },
-    "complete": true,
+    "source_lines_by_file_type": {
+      ".cs": 21613,
+      ".json": 3845,
+      ".js": 946,
+      ".yml": 378,
+      ".ts": 180,
+      ".xml": 61,
+      ".yaml": 1
+    },
+    "languages_present_that_no_rule_read": {
+      ".js": {
+        "files": 14,
+        "source_lines": 946
+      }
+    },
+    "complete": false,
+    "incomplete_because": [
+      "source no rule read: .js (946 lines in 14 files)",
+      "the parser could not fully read 46 file(s); facts inside those regions are absent and unrecoverable"
+    ],
     "means": "a declared deployable with no facts is not a simple deployable. It is one nothing read \u2014 an unsupported language, a missed scan root, or an idiom no rule covers \u2014 and the output for it is empty rather than sparse. A run must say which, and never present the remainder as the estate",
     "how_to_read_the_silent_list": "the source-line count separates the two cases. A few dozen lines is a thin launcher whose behaviour is all framework, and zero facts is the right answer for it. Hundreds or thousands of lines with zero facts means nothing read it, and the run is missing that deployable entirely \u2014 open it before reporting anything about this estate"
   },
@@ -49,95 +70,140 @@
     "examples": [],
     "means": "a source line that produced two facts. Legitimate when the line genuinely does two things; a rule-overlap defect when it does not. Disclosed either way so a reader can tell, and so downstream counts can be corrected"
   },
-  "coverage_warnings": [],
+  "coverage_warnings": [
+    {
+      "service": "orderprocessor",
+      "finding": "no entry point extracted for a service that performs work",
+      "work_facts": 1,
+      "means": "an unmodelled entry-point idiom, not a service without entry points"
+    },
+    {
+      "service": null,
+      "finding": "no rule read any .js source",
+      "source_lines": 946,
+      "files": 14,
+      "means": "a language present in program quantity that produced no fact. The estate's behaviour in this language is absent from the run, and every count below understates it by an unknown amount"
+    },
+    {
+      "service": null,
+      "finding": "the parser could not fully read 46 file(s)",
+      "means": "a construct the analyser's grammar does not accept \u2014 a language version newer than the parser is the usual cause. Facts inside the unparsed regions are absent and unrecoverable, so this count bounds every claim the run makes. Check the analyser version before reading the output"
+    }
+  ],
   "rule_standing": {
     "thresholds": {
       "samples": 10,
       "estates": 2
     },
     "by_state": {
-      "unchecked": {
-        "facts": 163,
+      "established": {
+        "facts": 8,
         "rules": [
+          "dfo-js-env-read"
+        ]
+      },
+      "provisional": {
+        "facts": 184,
+        "rules": [
+          "dfo-csharp-ado-read",
           "dfo-csharp-background-trigger",
           "dfo-csharp-client-binding",
           "dfo-csharp-config-ref",
+          "dfo-csharp-dbset",
           "dfo-csharp-durable-write",
           "dfo-csharp-env-read",
+          "dfo-csharp-grpc-call",
           "dfo-csharp-grpc-method",
           "dfo-csharp-inbound-route",
+          "dfo-csharp-linq-read",
           "dfo-csharp-message-consumer",
-          "dfo-csharp-message-publisher",
           "dfo-csharp-message-subscription",
-          "dfo-csharp-outbound-http",
-          "dfo-js-env-read"
+          "dfo-csharp-options",
+          "dfo-csharp-outbound-http"
+        ]
+      },
+      "quarantined": {
+        "facts": 6,
+        "rules": [
+          "dfo-csharp-message-publisher"
+        ]
+      },
+      "unchecked": {
+        "facts": 13,
+        "rules": [
+          "dfo-csharp-event-binding"
         ]
       }
     },
-    "facts_on_quarantined_rules": 0,
-    "facts_not_yet_established": 163,
+    "facts_on_quarantined_rules": 6,
+    "facts_not_yet_established": 197,
     "per_rule": {
       "dfo-java-inbound-route": {
-        "state": "established",
-        "sampled": 12,
-        "correct": 12,
+        "state": "provisional",
+        "sampled": 9,
+        "correct": 9,
         "estates": 2
       },
       "dfo-python-inbound-route": {
-        "state": "provisional",
-        "sampled": 7,
-        "correct": 7,
-        "estates": 2
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0,
+        "voided_by_pattern_change": 2
       },
       "dfo-csharp-inbound-route": {
-        "state": "unchecked",
-        "sampled": 0,
-        "correct": 0,
-        "estates": 0,
-        "voided_by_pattern_change": 1
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
       },
       "dfo-csharp-message-consumer": {
-        "state": "unchecked",
-        "sampled": 0,
-        "correct": 0,
-        "estates": 0,
-        "voided_by_pattern_change": 1
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
       },
       "dfo-csharp-message-publisher": {
+        "state": "quarantined",
+        "sampled": 6,
+        "correct": 4,
+        "estates": 1
+      },
+      "dfo-csharp-event-binding": {
         "state": "unchecked",
         "sampled": 0,
         "correct": 0,
         "estates": 0
       },
       "dfo-csharp-message-subscription": {
-        "state": "unchecked",
-        "sampled": 0,
-        "correct": 0,
-        "estates": 0
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
       },
       "dfo-java-outbound-http": {
         "state": "provisional",
-        "sampled": 7,
-        "correct": 7,
-        "estates": 2
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
       },
       "dfo-python-outbound-http": {
         "state": "provisional",
-        "sampled": 6,
-        "correct": 6,
+        "sampled": 1,
+        "correct": 1,
         "estates": 1
       },
       "dfo-csharp-outbound-http": {
-        "state": "unchecked",
-        "sampled": 0,
-        "correct": 0,
-        "estates": 0
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
       },
       "dfo-csharp-client-binding": {
-        "state": "unchecked",
-        "sampled": 0,
-        "correct": 0,
-        "estates": 0
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
       },
       "dfo-go-inbound-route": {
         "state": "unchecked",
@@ -164,21 +230,63 @@
         "estates": 0
       },
       "dfo-js-inbound-route": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-js-env-read": {
+        "state": "established",
+        "sampled": 11,
+        "correct": 11,
+        "estates": 3
+      },
+      "dfo-ts-decorator-route": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-ts-repo-decl": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-ts-message-consumer": {
         "state": "unchecked",
         "sampled": 0,
         "correct": 0,
         "estates": 0
       },
-      "dfo-js-env-read": {
+      "dfo-ts-background-trigger": {
         "state": "unchecked",
         "sampled": 0,
         "correct": 0,
         "estates": 0
+      },
+      "dfo-js-outbound-http": {
+        "state": "established",
+        "sampled": 11,
+        "correct": 11,
+        "estates": 3
+      },
+      "dfo-js-durable-write": {
+        "state": "established",
+        "sampled": 12,
+        "correct": 12,
+        "estates": 2
+      },
+      "dfo-js-durable-read": {
+        "state": "established",
+        "sampled": 10,
+        "correct": 10,
+        "estates": 2
       },
       "dfo-java-env-read": {
         "state": "provisional",
-        "sampled": 6,
-        "correct": 6,
+        "sampled": 5,
+        "correct": 5,
         "estates": 1
       },
       "dfo-python-env-read": {
@@ -187,17 +295,91 @@
         "correct": 12,
         "estates": 2
       },
+      "dfo-python-django-route": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-python-django-read": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-python-django-write": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-python-django-config": {
+        "state": "provisional",
+        "sampled": 4,
+        "correct": 4,
+        "estates": 1
+      },
       "dfo-csharp-env-read": {
+        "state": "provisional",
+        "sampled": 1,
+        "correct": 1,
+        "estates": 1
+      },
+      "dfo-java-background-trigger": {
+        "state": "provisional",
+        "sampled": 1,
+        "correct": 1,
+        "estates": 1
+      },
+      "dfo-java-message-consumer": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0,
+        "voided_by_pattern_change": 1
+      },
+      "dfo-java-message-publisher": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0,
+        "voided_by_pattern_change": 1
+      },
+      "dfo-java-camel-consume": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-java-camel-trigger": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-java-camel-inbound": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-java-camel-outbound": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-java-camel-publish": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-java-batch-job": {
         "state": "unchecked",
         "sampled": 0,
         "correct": 0,
         "estates": 0
-      },
-      "dfo-java-background-trigger": {
-        "state": "provisional",
-        "sampled": 3,
-        "correct": 3,
-        "estates": 1
       },
       "dfo-python-background-trigger": {
         "state": "unchecked",
@@ -206,22 +388,21 @@
         "estates": 0
       },
       "dfo-csharp-background-trigger": {
-        "state": "unchecked",
-        "sampled": 0,
-        "correct": 0,
-        "estates": 0
+        "state": "provisional",
+        "sampled": 1,
+        "correct": 1,
+        "estates": 1
       },
       "dfo-csharp-grpc-method": {
-        "state": "unchecked",
-        "sampled": 0,
-        "correct": 0,
-        "estates": 0,
-        "voided_by_pattern_change": 1
+        "state": "provisional",
+        "sampled": 3,
+        "correct": 3,
+        "estates": 1
       },
       "dfo-java-durable-write": {
-        "state": "provisional",
-        "sampled": 7,
-        "correct": 7,
+        "state": "established",
+        "sampled": 10,
+        "correct": 10,
         "estates": 2
       },
       "dfo-python-durable-write": {
@@ -231,17 +412,16 @@
         "estates": 1
       },
       "dfo-csharp-durable-write": {
-        "state": "unchecked",
-        "sampled": 0,
-        "correct": 0,
-        "estates": 0,
-        "voided_by_pattern_change": 1
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
       },
       "dfo-java-durable-read": {
-        "state": "established",
-        "sampled": 12,
-        "correct": 12,
-        "estates": 2
+        "state": "quarantined",
+        "sampled": 11,
+        "correct": 10,
+        "estates": 3
       },
       "dfo-python-durable-read": {
         "state": "provisional",
@@ -249,11 +429,300 @@
         "correct": 3,
         "estates": 1
       },
+      "dfo-java-jdbc-read": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-java-jdbc-write": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-java-mongo": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-java-mongo-write": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-java-r2dbc": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-csharp-dbset": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-csharp-linq-read": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-csharp-dapper": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-csharp-ado-write": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-csharp-ado-read": {
+        "state": "provisional",
+        "sampled": 1,
+        "correct": 1,
+        "estates": 1
+      },
+      "dfo-csharp-mongo": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0,
+        "voided_by_pattern_change": 1
+      },
+      "dfo-csharp-mongo-write": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-python-driver-read": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-python-driver-write": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-js-driver-read": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-js-driver-write": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-java-feign-client": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-java-jaxrs-route": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-java-graphql-route": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-java-webflux-route": {
+        "state": "provisional",
+        "sampled": 1,
+        "correct": 1,
+        "estates": 1
+      },
+      "dfo-java-http-library": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-java-batch-io": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-java-batch-writer": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-java-scheduler-impl": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-java-config-props": {
+        "state": "provisional",
+        "sampled": 6,
+        "correct": 6,
+        "estates": 2
+      },
+      "dfo-csharp-masstransit-consumer": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-csharp-broker-publish": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-csharp-broker-consume": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-csharp-signalr-hub": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-csharp-function-trigger": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-csharp-refit": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-csharp-host-background": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-csharp-options": {
+        "state": "provisional",
+        "sampled": 4,
+        "correct": 4,
+        "estates": 1
+      },
+      "dfo-python-grpc-route": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-python-broker-consume": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-python-broker-publish": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-python-etl-trigger": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-python-http-session": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-python-settings-class": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-js-next-route": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-js-broker-consume": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-js-broker-publish": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-js-background": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-js-config-service": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-js-knex-read": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-csharp-grpc-call": {
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
+      },
+      "dfo-java-stream-consumer": {
+        "state": "unchecked",
+        "sampled": 0,
+        "correct": 0,
+        "estates": 0
+      },
+      "dfo-java-kafka-streams": {
+        "state": "provisional",
+        "sampled": 3,
+        "correct": 3,
+        "estates": 1
+      },
       "dfo-java-repo-decl": {
         "state": "established",
-        "sampled": 11,
-        "correct": 11,
-        "estates": 2
+        "sampled": 10,
+        "correct": 10,
+        "estates": 3
       },
       "dfo-java-poll-interval": {
         "state": "provisional",
@@ -268,10 +737,10 @@
         "estates": 1
       },
       "dfo-csharp-config-ref": {
-        "state": "unchecked",
-        "sampled": 0,
-        "correct": 0,
-        "estates": 0
+        "state": "provisional",
+        "sampled": 5,
+        "correct": 5,
+        "estates": 1
       }
     },
     "means": "a rule is established by accumulated precision evidence, never by anyone clearing a flag. `unchecked` means no precision pass has sampled it yet; `quarantined` means a sampled fact was judged wrong and the pattern needs narrowing before its facts are used."
@@ -279,6 +748,7 @@
   "provisional": {
     "provisional_rules_in_library": [
       "dfo-csharp-client-binding",
+      "dfo-csharp-event-binding",
       "dfo-csharp-message-publisher",
       "dfo-csharp-message-subscription",
       "dfo-go-env-read",
@@ -288,10 +758,11 @@
       "dfo-js-env-read",
       "dfo-js-inbound-route"
     ],
-    "facts_resting_on_them": 44,
+    "facts_resting_on_them": 50,
     "means": "these facts come from rules authored during a run and not yet ratified. They belong in the ratification queue, not in the accepted output"
   },
-  "partial_parse_files": 37,
+  "partial_parse_files": 46,
+  "duplicate_locations_collapsed": 4,
   "semgrep_errors": [
     {
       "code": 3,
@@ -1444,6 +1915,71 @@
         "PartialParsing",
         [
           {
+            "path": "eshop-dotnet\\src\\Identity.API\\UsersSeed.cs",
+            "start": {
+              "line": 4,
+              "col": 23,
+              "offset": 0
+            },
+            "end": {
+              "line": 4,
+              "col": 62,
+              "offset": 39
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\Identity.API\\UsersSeed.cs",
+            "start": {
+              "line": 4,
+              "col": 80,
+              "offset": 0
+            },
+            "end": {
+              "line": 4,
+              "col": 92,
+              "offset": 12
+            }
+          }
+        ]
+      ],
+      "message": "Syntax error at line eshop-dotnet\\src\\Identity.API\\UsersSeed.cs:4:\n `(ILogger<UsersSeed> logger, UserManager` was unexpected",
+      "path": "eshop-dotnet\\src\\Identity.API\\UsersSeed.cs",
+      "spans": [
+        {
+          "file": "eshop-dotnet\\src\\Identity.API\\UsersSeed.cs",
+          "start": {
+            "line": 4,
+            "col": 23,
+            "offset": 0
+          },
+          "end": {
+            "line": 4,
+            "col": 62,
+            "offset": 39
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\Identity.API\\UsersSeed.cs",
+          "start": {
+            "line": 4,
+            "col": 80,
+            "offset": 0
+          },
+          "end": {
+            "line": 4,
+            "col": 92,
+            "offset": 12
+          }
+        }
+      ]
+    },
+    {
+      "code": 3,
+      "level": "warn",
+      "type": [
+        "PartialParsing",
+        [
+          {
             "path": "eshop-dotnet\\src\\OrderProcessor\\Services\\GracePeriodManagerService.cs",
             "start": {
               "line": 7,
@@ -1550,6 +2086,71 @@
             "line": 65,
             "col": 2,
             "offset": 1
+          }
+        }
+      ]
+    },
+    {
+      "code": 3,
+      "level": "warn",
+      "type": [
+        "PartialParsing",
+        [
+          {
+            "path": "eshop-dotnet\\src\\OrderProcessor\\Services\\GracePeriodOrdersRepository.cs",
+            "start": {
+              "line": 12,
+              "col": 23,
+              "offset": 0
+            },
+            "end": {
+              "line": 13,
+              "col": 33,
+              "offset": 62
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\OrderProcessor\\Services\\GracePeriodOrdersRepository.cs",
+            "start": {
+              "line": 14,
+              "col": 42,
+              "offset": 0
+            },
+            "end": {
+              "line": 14,
+              "col": 49,
+              "offset": 7
+            }
+          }
+        ]
+      ],
+      "message": "Syntax error at line eshop-dotnet\\src\\OrderProcessor\\Services\\GracePeriodOrdersRepository.cs:12:\n `GracePeriodOrdersRepository(\r\n    NpgsqlDataSource dataSource,` was unexpected",
+      "path": "eshop-dotnet\\src\\OrderProcessor\\Services\\GracePeriodOrdersRepository.cs",
+      "spans": [
+        {
+          "file": "eshop-dotnet\\src\\OrderProcessor\\Services\\GracePeriodOrdersRepository.cs",
+          "start": {
+            "line": 12,
+            "col": 23,
+            "offset": 0
+          },
+          "end": {
+            "line": 13,
+            "col": 33,
+            "offset": 62
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\OrderProcessor\\Services\\GracePeriodOrdersRepository.cs",
+          "start": {
+            "line": 14,
+            "col": 42,
+            "offset": 0
+          },
+          "end": {
+            "line": 14,
+            "col": 49,
+            "offset": 7
           }
         }
       ]
@@ -1951,6 +2552,136 @@
         "PartialParsing",
         [
           {
+            "path": "eshop-dotnet\\src\\Ordering.API\\Application\\Queries\\OrderQueries.cs",
+            "start": {
+              "line": 3,
+              "col": 14,
+              "offset": 0
+            },
+            "end": {
+              "line": 3,
+              "col": 27,
+              "offset": 13
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\Ordering.API\\Application\\Queries\\OrderQueries.cs",
+            "start": {
+              "line": 3,
+              "col": 43,
+              "offset": 0
+            },
+            "end": {
+              "line": 3,
+              "col": 51,
+              "offset": 8
+            }
+          }
+        ]
+      ],
+      "message": "Syntax error at line eshop-dotnet\\src\\Ordering.API\\Application\\Queries\\OrderQueries.cs:3:\n `OrderQueries(` was unexpected",
+      "path": "eshop-dotnet\\src\\Ordering.API\\Application\\Queries\\OrderQueries.cs",
+      "spans": [
+        {
+          "file": "eshop-dotnet\\src\\Ordering.API\\Application\\Queries\\OrderQueries.cs",
+          "start": {
+            "line": 3,
+            "col": 14,
+            "offset": 0
+          },
+          "end": {
+            "line": 3,
+            "col": 27,
+            "offset": 13
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\Ordering.API\\Application\\Queries\\OrderQueries.cs",
+          "start": {
+            "line": 3,
+            "col": 43,
+            "offset": 0
+          },
+          "end": {
+            "line": 3,
+            "col": 51,
+            "offset": 8
+          }
+        }
+      ]
+    },
+    {
+      "code": 3,
+      "level": "warn",
+      "type": [
+        "PartialParsing",
+        [
+          {
+            "path": "eshop-dotnet\\src\\Ordering.API\\Infrastructure\\Services\\IdentityService.cs",
+            "start": {
+              "line": 3,
+              "col": 14,
+              "offset": 0
+            },
+            "end": {
+              "line": 3,
+              "col": 30,
+              "offset": 16
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\Ordering.API\\Infrastructure\\Services\\IdentityService.cs",
+            "start": {
+              "line": 3,
+              "col": 51,
+              "offset": 0
+            },
+            "end": {
+              "line": 3,
+              "col": 59,
+              "offset": 8
+            }
+          }
+        ]
+      ],
+      "message": "Syntax error at line eshop-dotnet\\src\\Ordering.API\\Infrastructure\\Services\\IdentityService.cs:3:\n `IdentityService(` was unexpected",
+      "path": "eshop-dotnet\\src\\Ordering.API\\Infrastructure\\Services\\IdentityService.cs",
+      "spans": [
+        {
+          "file": "eshop-dotnet\\src\\Ordering.API\\Infrastructure\\Services\\IdentityService.cs",
+          "start": {
+            "line": 3,
+            "col": 14,
+            "offset": 0
+          },
+          "end": {
+            "line": 3,
+            "col": 30,
+            "offset": 16
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\Ordering.API\\Infrastructure\\Services\\IdentityService.cs",
+          "start": {
+            "line": 3,
+            "col": 51,
+            "offset": 0
+          },
+          "end": {
+            "line": 3,
+            "col": 59,
+            "offset": 8
+          }
+        }
+      ]
+    },
+    {
+      "code": 3,
+      "level": "warn",
+      "type": [
+        "PartialParsing",
+        [
+          {
             "path": "eshop-dotnet\\src\\PaymentProcessor\\IntegrationEvents\\EventHandling\\OrderStatusChangedToStockConfirmedIntegrationEventHandler.cs",
             "start": {
               "line": 3,
@@ -2278,6 +3009,240 @@
             "line": 90,
             "col": 120,
             "offset": 3
+          }
+        }
+      ]
+    },
+    {
+      "code": 3,
+      "level": "warn",
+      "type": [
+        "PartialParsing",
+        [
+          {
+            "path": "eshop-dotnet\\src\\WebApp\\Services\\BasketService.cs",
+            "start": {
+              "line": 7,
+              "col": 14,
+              "offset": 0
+            },
+            "end": {
+              "line": 7,
+              "col": 28,
+              "offset": 14
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\WebApp\\Services\\BasketService.cs",
+            "start": {
+              "line": 7,
+              "col": 45,
+              "offset": 0
+            },
+            "end": {
+              "line": 7,
+              "col": 58,
+              "offset": 13
+            }
+          }
+        ]
+      ],
+      "message": "Syntax error at line eshop-dotnet\\src\\WebApp\\Services\\BasketService.cs:7:\n `BasketService(` was unexpected",
+      "path": "eshop-dotnet\\src\\WebApp\\Services\\BasketService.cs",
+      "spans": [
+        {
+          "file": "eshop-dotnet\\src\\WebApp\\Services\\BasketService.cs",
+          "start": {
+            "line": 7,
+            "col": 14,
+            "offset": 0
+          },
+          "end": {
+            "line": 7,
+            "col": 28,
+            "offset": 14
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\WebApp\\Services\\BasketService.cs",
+          "start": {
+            "line": 7,
+            "col": 45,
+            "offset": 0
+          },
+          "end": {
+            "line": 7,
+            "col": 58,
+            "offset": 13
+          }
+        }
+      ]
+    },
+    {
+      "code": 3,
+      "level": "warn",
+      "type": [
+        "PartialParsing",
+        [
+          {
+            "path": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+            "start": {
+              "line": 9,
+              "col": 14,
+              "offset": 0
+            },
+            "end": {
+              "line": 12,
+              "col": 37,
+              "offset": 120
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+            "start": {
+              "line": 13,
+              "col": 33,
+              "offset": 0
+            },
+            "end": {
+              "line": 13,
+              "col": 61,
+              "offset": 28
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+            "start": {
+              "line": 151,
+              "col": 13,
+              "offset": 0
+            },
+            "end": {
+              "line": 151,
+              "col": 49,
+              "offset": 36
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+            "start": {
+              "line": 151,
+              "col": 93,
+              "offset": 0
+            },
+            "end": {
+              "line": 151,
+              "col": 94,
+              "offset": 1
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+            "start": {
+              "line": 153,
+              "col": 21,
+              "offset": 0
+            },
+            "end": {
+              "line": 153,
+              "col": 34,
+              "offset": 13
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+            "start": {
+              "line": 154,
+              "col": 21,
+              "offset": 0
+            },
+            "end": {
+              "line": 154,
+              "col": 30,
+              "offset": 9
+            }
+          }
+        ]
+      ],
+      "message": "Syntax error at line eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs:9:\n `BasketState(\r\n    BasketService basketService,\r\n    CatalogService catalogService,\r\n    OrderingService orderingService,` was unexpected",
+      "path": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+      "spans": [
+        {
+          "file": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+          "start": {
+            "line": 9,
+            "col": 14,
+            "offset": 0
+          },
+          "end": {
+            "line": 12,
+            "col": 37,
+            "offset": 120
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+          "start": {
+            "line": 13,
+            "col": 33,
+            "offset": 0
+          },
+          "end": {
+            "line": 13,
+            "col": 61,
+            "offset": 28
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+          "start": {
+            "line": 151,
+            "col": 13,
+            "offset": 0
+          },
+          "end": {
+            "line": 151,
+            "col": 49,
+            "offset": 36
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+          "start": {
+            "line": 151,
+            "col": 93,
+            "offset": 0
+          },
+          "end": {
+            "line": 151,
+            "col": 94,
+            "offset": 1
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+          "start": {
+            "line": 153,
+            "col": 21,
+            "offset": 0
+          },
+          "end": {
+            "line": 153,
+            "col": 34,
+            "offset": 13
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\WebApp\\Services\\BasketState.cs",
+          "start": {
+            "line": 154,
+            "col": 21,
+            "offset": 0
+          },
+          "end": {
+            "line": 154,
+            "col": 30,
+            "offset": 9
           }
         }
       ]
@@ -2835,6 +3800,123 @@
         "PartialParsing",
         [
           {
+            "path": "eshop-dotnet\\src\\WebhookClient\\Services\\HooksRepository.cs",
+            "start": {
+              "line": 42,
+              "col": 13,
+              "offset": 0
+            },
+            "end": {
+              "line": 42,
+              "col": 39,
+              "offset": 26
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\WebhookClient\\Services\\HooksRepository.cs",
+            "start": {
+              "line": 42,
+              "col": 84,
+              "offset": 0
+            },
+            "end": {
+              "line": 42,
+              "col": 85,
+              "offset": 1
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\WebhookClient\\Services\\HooksRepository.cs",
+            "start": {
+              "line": 44,
+              "col": 21,
+              "offset": 0
+            },
+            "end": {
+              "line": 44,
+              "col": 34,
+              "offset": 13
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\WebhookClient\\Services\\HooksRepository.cs",
+            "start": {
+              "line": 46,
+              "col": 21,
+              "offset": 0
+            },
+            "end": {
+              "line": 46,
+              "col": 30,
+              "offset": 9
+            }
+          }
+        ]
+      ],
+      "message": "Syntax error at line eshop-dotnet\\src\\WebhookClient\\Services\\HooksRepository.cs:42:\n `class OnChangeSubscription` was unexpected",
+      "path": "eshop-dotnet\\src\\WebhookClient\\Services\\HooksRepository.cs",
+      "spans": [
+        {
+          "file": "eshop-dotnet\\src\\WebhookClient\\Services\\HooksRepository.cs",
+          "start": {
+            "line": 42,
+            "col": 13,
+            "offset": 0
+          },
+          "end": {
+            "line": 42,
+            "col": 39,
+            "offset": 26
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\WebhookClient\\Services\\HooksRepository.cs",
+          "start": {
+            "line": 42,
+            "col": 84,
+            "offset": 0
+          },
+          "end": {
+            "line": 42,
+            "col": 85,
+            "offset": 1
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\WebhookClient\\Services\\HooksRepository.cs",
+          "start": {
+            "line": 44,
+            "col": 21,
+            "offset": 0
+          },
+          "end": {
+            "line": 44,
+            "col": 34,
+            "offset": 13
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\WebhookClient\\Services\\HooksRepository.cs",
+          "start": {
+            "line": 46,
+            "col": 21,
+            "offset": 0
+          },
+          "end": {
+            "line": 46,
+            "col": 30,
+            "offset": 9
+          }
+        }
+      ]
+    },
+    {
+      "code": 3,
+      "level": "warn",
+      "type": [
+        "PartialParsing",
+        [
+          {
             "path": "eshop-dotnet\\src\\WebhookClient\\Services\\WebHooksClient.cs",
             "start": {
               "line": 3,
@@ -2863,6 +3945,71 @@
             "line": 3,
             "col": 47,
             "offset": 19
+          }
+        }
+      ]
+    },
+    {
+      "code": 3,
+      "level": "warn",
+      "type": [
+        "PartialParsing",
+        [
+          {
+            "path": "eshop-dotnet\\src\\Webhooks.API\\Infrastructure\\WebhooksContext.cs",
+            "start": {
+              "line": 8,
+              "col": 14,
+              "offset": 0
+            },
+            "end": {
+              "line": 8,
+              "col": 30,
+              "offset": 16
+            }
+          },
+          {
+            "path": "eshop-dotnet\\src\\Webhooks.API\\Infrastructure\\WebhooksContext.cs",
+            "start": {
+              "line": 8,
+              "col": 64,
+              "offset": 0
+            },
+            "end": {
+              "line": 8,
+              "col": 93,
+              "offset": 29
+            }
+          }
+        ]
+      ],
+      "message": "Syntax error at line eshop-dotnet\\src\\Webhooks.API\\Infrastructure\\WebhooksContext.cs:8:\n `WebhooksContext(` was unexpected",
+      "path": "eshop-dotnet\\src\\Webhooks.API\\Infrastructure\\WebhooksContext.cs",
+      "spans": [
+        {
+          "file": "eshop-dotnet\\src\\Webhooks.API\\Infrastructure\\WebhooksContext.cs",
+          "start": {
+            "line": 8,
+            "col": 14,
+            "offset": 0
+          },
+          "end": {
+            "line": 8,
+            "col": 30,
+            "offset": 16
+          }
+        },
+        {
+          "file": "eshop-dotnet\\src\\Webhooks.API\\Infrastructure\\WebhooksContext.cs",
+          "start": {
+            "line": 8,
+            "col": 64,
+            "offset": 0
+          },
+          "end": {
+            "line": 8,
+            "col": 93,
+            "offset": 29
           }
         }
       ]
@@ -3058,6 +4205,45 @@
             "line": 3,
             "col": 96,
             "offset": 7
+          }
+        }
+      ]
+    },
+    {
+      "code": 3,
+      "level": "warn",
+      "type": [
+        "PartialParsing",
+        [
+          {
+            "path": "eshop-dotnet\\src\\Webhooks.API\\Services\\WebhooksRetriever.cs",
+            "start": {
+              "line": 3,
+              "col": 31,
+              "offset": 0
+            },
+            "end": {
+              "line": 3,
+              "col": 51,
+              "offset": 20
+            }
+          }
+        ]
+      ],
+      "message": "Syntax error at line eshop-dotnet\\src\\Webhooks.API\\Services\\WebhooksRetriever.cs:3:\n `(WebhooksContext db)` was unexpected",
+      "path": "eshop-dotnet\\src\\Webhooks.API\\Services\\WebhooksRetriever.cs",
+      "spans": [
+        {
+          "file": "eshop-dotnet\\src\\Webhooks.API\\Services\\WebhooksRetriever.cs",
+          "start": {
+            "line": 3,
+            "col": 31,
+            "offset": 0
+          },
+          "end": {
+            "line": 3,
+            "col": 51,
+            "offset": 20
           }
         }
       ]
@@ -3445,12 +4631,32 @@
       "in_test": false
     },
     {
+      "kind": "durable_read",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 85,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "async (CatalogContext context) => await context.CatalogTypes.OrderBy(x => x.Type).ToListAsync())",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
       "kind": "inbound_route",
       "service": "catalog",
       "file": "src/Catalog.API/Apis/CatalogApi.cs",
       "line": 90,
       "rule": "dfo-csharp-inbound-route",
       "evidence": "api.MapGet(\"/catalogbrands\", [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, \"application/problem+json\")] async (CatalogContext context) => await context.CatalogBrands.OrderBy(x => x.Brand).ToListAsync())",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 92,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "async (CatalogContext context) => await context.CatalogBrands.OrderBy(x => x.Brand).ToListAsync())",
       "in_type": "CatalogApi",
       "in_test": false
     },
@@ -3495,12 +4701,112 @@
       "in_test": false
     },
     {
-      "kind": "message_publisher",
+      "kind": "durable_read",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 158,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var itemsOnPage = await root .Include(ci => ci.CatalogBrand) .OrderBy(c => c.Name)",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 184,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var brandCounts = await brandScope .GroupBy(c => c.CatalogBrandId) .Select(g => new CatalogFacetCount(g.Key, g.Count()))",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 194,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var typeCounts = await typeScope .GroupBy(c => c.CatalogTypeId) .Select(g => new CatalogFacetCount(g.Key, g.Count()))",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 211,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var items = await services.Context.CatalogItems.Where(item => ids.Contains(item.Id)).ToListAsync();",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 228,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var item = await services.Context.CatalogItems.Include(ci => ci.CatalogBrand).SingleOrDefaultAsync(ci => ci.Id == id);",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 255,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var item = await context.CatalogItems.FindAsync(id);",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 311,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var itemsWithDistance = await services.Context.CatalogItems .Where(c => c.Embedding != null) .Select(c => new { Item = c, Distance = c.Embedding!.CosineDistance(vector) })",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 325,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "itemsOnPage = await services.Context.CatalogItems .Where(c => c.Embedding != null) .OrderBy(c => c.Embedding!.CosineDistance(vector))",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 375,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var catalogItem = await services.Context.CatalogItems.SingleOrDefaultAsync(i => i.Id == id);",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "event_binding",
       "service": "catalog",
       "file": "src/Catalog.API/Apis/CatalogApi.cs",
       "line": 395,
-      "rule": "dfo-csharp-message-publisher",
+      "rule": "dfo-csharp-event-binding",
       "evidence": "var priceChangedEvent = new ProductPriceChangedIntegrationEvent(catalogItem.Id, productToUpdate.Price, priceEntry.OriginalValue);",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "message_publisher",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 401,
+      "rule": "dfo-csharp-message-publisher",
+      "evidence": "await services.EventService.PublishThroughEventBusAsync(priceChangedEvent);",
       "in_type": "CatalogApi",
       "in_test": false
     },
@@ -3518,9 +4824,29 @@
       "kind": "durable_write",
       "service": "catalog",
       "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 429,
+      "rule": "dfo-csharp-dbset",
+      "evidence": "services.Context.CatalogItems.Add(item);",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_write",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
       "line": 430,
       "rule": "dfo-csharp-durable-write",
       "evidence": "await services.Context.SaveChangesAsync();",
+      "in_type": "CatalogApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_write",
+      "service": "catalog",
+      "file": "src/Catalog.API/Apis/CatalogApi.cs",
+      "line": 446,
+      "rule": "dfo-csharp-dbset",
+      "evidence": "services.Context.CatalogItems.Remove(item);",
       "in_type": "CatalogApi",
       "in_test": false
     },
@@ -3558,10 +4884,60 @@
       "kind": "config_ref",
       "service": "catalog",
       "file": "src/Catalog.API/Extensions/Extensions.cs",
+      "line": 35,
+      "rule": "dfo-csharp-options",
+      "evidence": "builder.Services.AddOptions<CatalogOptions>()",
+      "in_type": "Extensions",
+      "in_test": false
+    },
+    {
+      "kind": "config_ref",
+      "service": "catalog",
+      "file": "src/Catalog.API/Extensions/Extensions.cs",
       "line": 43,
       "rule": "dfo-csharp-config-ref",
       "evidence": "else if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString(\"textEmbeddingModel\")))",
       "in_type": "Extensions",
+      "in_test": false
+    },
+    {
+      "kind": "durable_write",
+      "service": "catalog",
+      "file": "src/Catalog.API/Infrastructure/CatalogContextSeed.cs",
+      "line": 29,
+      "rule": "dfo-csharp-dbset",
+      "evidence": "context.CatalogBrands.RemoveRange(context.CatalogBrands);",
+      "in_type": "CatalogContextSeed",
+      "in_test": false
+    },
+    {
+      "kind": "durable_write",
+      "service": "catalog",
+      "file": "src/Catalog.API/Infrastructure/CatalogContextSeed.cs",
+      "line": 30,
+      "rule": "dfo-csharp-dbset",
+      "evidence": "await context.CatalogBrands.AddRangeAsync(sourceItems.Select(x => x.Brand).Distinct() .Where(brandName => brandName != null) .Select(brandName => new CatalogBrand(brandName!)));",
+      "in_type": "CatalogContextSeed",
+      "in_test": false
+    },
+    {
+      "kind": "durable_write",
+      "service": "catalog",
+      "file": "src/Catalog.API/Infrastructure/CatalogContextSeed.cs",
+      "line": 35,
+      "rule": "dfo-csharp-dbset",
+      "evidence": "context.CatalogTypes.RemoveRange(context.CatalogTypes);",
+      "in_type": "CatalogContextSeed",
+      "in_test": false
+    },
+    {
+      "kind": "durable_write",
+      "service": "catalog",
+      "file": "src/Catalog.API/Infrastructure/CatalogContextSeed.cs",
+      "line": 36,
+      "rule": "dfo-csharp-dbset",
+      "evidence": "await context.CatalogTypes.AddRangeAsync(sourceItems.Select(x => x.Type).Distinct() .Where(typeName => typeName != null) .Select(typeName => new CatalogType(typeName!)));",
+      "in_type": "CatalogContextSeed",
       "in_test": false
     },
     {
@@ -3578,10 +4954,30 @@
       "kind": "durable_write",
       "service": "catalog",
       "file": "src/Catalog.API/Infrastructure/CatalogContextSeed.cs",
+      "line": 71,
+      "rule": "dfo-csharp-dbset",
+      "evidence": "await context.CatalogItems.AddRangeAsync(catalogItems);",
+      "in_type": "CatalogContextSeed",
+      "in_test": false
+    },
+    {
+      "kind": "durable_write",
+      "service": "catalog",
+      "file": "src/Catalog.API/Infrastructure/CatalogContextSeed.cs",
       "line": 73,
       "rule": "dfo-csharp-durable-write",
       "evidence": "await context.SaveChangesAsync();",
       "in_type": "CatalogContextSeed",
+      "in_test": false
+    },
+    {
+      "kind": "message_publisher",
+      "service": "catalog",
+      "file": "src/Catalog.API/IntegrationEvents/CatalogIntegrationEventService.cs",
+      "line": 18,
+      "rule": "dfo-csharp-message-publisher",
+      "evidence": "await eventBus.PublishAsync(evt);",
+      "in_type": "CatalogIntegrationEventService",
       "in_test": false
     },
     {
@@ -3605,12 +5001,22 @@
       "in_test": false
     },
     {
-      "kind": "message_publisher",
+      "kind": "event_binding",
       "service": "catalog",
       "file": "src/Catalog.API/IntegrationEvents/EventHandling/OrderStatusChangedToAwaitingValidationIntegrationEventHandler.cs",
       "line": 28,
-      "rule": "dfo-csharp-message-publisher",
+      "rule": "dfo-csharp-event-binding",
       "evidence": "? (IntegrationEvent)new OrderStockRejectedIntegrationEvent(@event.OrderId, confirmedOrderStockItems)",
+      "in_type": "OrderStatusChangedToAwaitingValidationIntegrationEventHandler",
+      "in_test": false
+    },
+    {
+      "kind": "event_binding",
+      "service": "catalog",
+      "file": "src/Catalog.API/IntegrationEvents/EventHandling/OrderStatusChangedToAwaitingValidationIntegrationEventHandler.cs",
+      "line": 29,
+      "rule": "dfo-csharp-event-binding",
+      "evidence": ": new OrderStockConfirmedIntegrationEvent(@event.OrderId);",
       "in_type": "OrderStatusChangedToAwaitingValidationIntegrationEventHandler",
       "in_test": false
     },
@@ -3618,9 +5024,9 @@
       "kind": "message_publisher",
       "service": "catalog",
       "file": "src/Catalog.API/IntegrationEvents/EventHandling/OrderStatusChangedToAwaitingValidationIntegrationEventHandler.cs",
-      "line": 29,
+      "line": 32,
       "rule": "dfo-csharp-message-publisher",
-      "evidence": ": new OrderStockConfirmedIntegrationEvent(@event.OrderId);",
+      "evidence": "await catalogIntegrationEventService.PublishThroughEventBusAsync(confirmedIntegrationEvent);",
       "in_type": "OrderStatusChangedToAwaitingValidationIntegrationEventHandler",
       "in_test": false
     },
@@ -3935,6 +5341,26 @@
       "in_test": false
     },
     {
+      "kind": "durable_read",
+      "service": null,
+      "file": "src/IntegrationEventLogEF/Services/IntegrationEventLogService.cs",
+      "line": 21,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var result = await _context.Set<IntegrationEventLogEntry>() .Where(e => e.TransactionId == transactionId && e.State == EventStateEnum.NotPublished) .ToListAsync();",
+      "in_type": "IntegrationEventLogService",
+      "in_test": false
+    },
+    {
+      "kind": "durable_write",
+      "service": null,
+      "file": "src/IntegrationEventLogEF/Services/IntegrationEventLogService.cs",
+      "line": 41,
+      "rule": "dfo-csharp-dbset",
+      "evidence": "_context.Set<IntegrationEventLogEntry>().Add(eventLogEntry);",
+      "in_type": "IntegrationEventLogService",
+      "in_test": false
+    },
+    {
       "kind": "durable_write",
       "service": null,
       "file": "src/IntegrationEventLogEF/Services/IntegrationEventLogService.cs",
@@ -3955,12 +5381,22 @@
       "in_test": false
     },
     {
-      "kind": "background_trigger",
+      "kind": "config_ref",
+      "service": "orderprocessor",
+      "file": "src/OrderProcessor/Extensions/Extensions.cs",
+      "line": 15,
+      "rule": "dfo-csharp-options",
+      "evidence": "builder.Services.AddOptions<BackgroundTaskOptions>()",
+      "in_type": "Extensions",
+      "in_test": false
+    },
+    {
+      "kind": "event_binding",
       "service": "orderprocessor",
       "file": "src/OrderProcessor/Services/GracePeriodManagerService.cs",
-      "line": 15,
-      "rule": "dfo-csharp-background-trigger",
-      "evidence": "protected override async Task ExecuteAsync(CancellationToken stoppingToken) { var delayTime = TimeSpan.FromSeconds(_options.CheckUpdateTime);",
+      "line": 56,
+      "rule": "dfo-csharp-event-binding",
+      "evidence": "var confirmGracePeriodEvent = new GracePeriodConfirmedIntegrationEvent(orderId);",
       "in_type": "GracePeriodManagerService",
       "in_test": false
     },
@@ -3968,10 +5404,20 @@
       "kind": "message_publisher",
       "service": "orderprocessor",
       "file": "src/OrderProcessor/Services/GracePeriodManagerService.cs",
-      "line": 56,
+      "line": 60,
       "rule": "dfo-csharp-message-publisher",
-      "evidence": "var confirmGracePeriodEvent = new GracePeriodConfirmedIntegrationEvent(orderId);",
+      "evidence": "await eventBus.PublishAsync(confirmGracePeriodEvent);",
       "in_type": "GracePeriodManagerService",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "orderprocessor",
+      "file": "src/OrderProcessor/Services/GracePeriodOrdersRepository.cs",
+      "line": 33,
+      "rule": "dfo-csharp-ado-read",
+      "evidence": "await using var reader = await command.ExecuteReaderAsync(cancellationToken);",
+      "in_type": "GracePeriodOrdersRepository",
       "in_test": false
     },
     {
@@ -4045,71 +5491,81 @@
       "in_test": false
     },
     {
-      "kind": "message_publisher",
+      "kind": "event_binding",
       "service": "ordering",
       "file": "src/Ordering.API/Application/Commands/CreateOrderCommandHandler.cs",
       "line": 32,
-      "rule": "dfo-csharp-message-publisher",
+      "rule": "dfo-csharp-event-binding",
       "evidence": "var orderStartedIntegrationEvent = new OrderStartedIntegrationEvent(message.UserId);",
       "in_type": "CreateOrderCommandHandler",
       "in_test": false
     },
     {
-      "kind": "message_publisher",
+      "kind": "event_binding",
       "service": "ordering",
       "file": "src/Ordering.API/Application/DomainEventHandlers/OrderCancelledDomainEventHandler.cs",
       "line": 30,
-      "rule": "dfo-csharp-message-publisher",
+      "rule": "dfo-csharp-event-binding",
       "evidence": "var integrationEvent = new OrderStatusChangedToCancelledIntegrationEvent(order.Id, order.OrderStatus, buyer.Name, buyer.IdentityGuid);",
       "in_type": "OrderCancelledDomainEventHandler",
       "in_test": false
     },
     {
-      "kind": "message_publisher",
+      "kind": "event_binding",
       "service": "ordering",
       "file": "src/Ordering.API/Application/DomainEventHandlers/OrderShippedDomainEventHandler.cs",
       "line": 30,
-      "rule": "dfo-csharp-message-publisher",
+      "rule": "dfo-csharp-event-binding",
       "evidence": "var integrationEvent = new OrderStatusChangedToShippedIntegrationEvent(order.Id, order.OrderStatus, buyer.Name, buyer.IdentityGuid);",
       "in_type": "OrderShippedDomainEventHandler",
       "in_test": false
     },
     {
-      "kind": "message_publisher",
+      "kind": "event_binding",
       "service": "ordering",
       "file": "src/Ordering.API/Application/DomainEventHandlers/OrderStatusChangedToAwaitingValidationDomainEventHandler.cs",
       "line": 33,
-      "rule": "dfo-csharp-message-publisher",
+      "rule": "dfo-csharp-event-binding",
       "evidence": "var integrationEvent = new OrderStatusChangedToAwaitingValidationIntegrationEvent(order.Id, order.OrderStatus, buyer.Name, buyer.IdentityGuid, orderStockList);",
       "in_type": "OrderStatusChangedToAwaitingValidationDomainEventHandler",
       "in_test": false
     },
     {
-      "kind": "message_publisher",
+      "kind": "event_binding",
       "service": "ordering",
       "file": "src/Ordering.API/Application/DomainEventHandlers/OrderStatusChangedToPaidDomainEventHandler.cs",
       "line": 32,
-      "rule": "dfo-csharp-message-publisher",
+      "rule": "dfo-csharp-event-binding",
       "evidence": "var integrationEvent = new OrderStatusChangedToPaidIntegrationEvent( domainEvent.OrderId, order.OrderStatus,",
       "in_type": "OrderStatusChangedToPaidDomainEventHandler",
       "in_test": false
     },
     {
-      "kind": "message_publisher",
+      "kind": "event_binding",
       "service": "ordering",
       "file": "src/Ordering.API/Application/DomainEventHandlers/OrderStatusChangedToStockConfirmedDomainEventHandler.cs",
       "line": 30,
-      "rule": "dfo-csharp-message-publisher",
+      "rule": "dfo-csharp-event-binding",
       "evidence": "var integrationEvent = new OrderStatusChangedToStockConfirmedIntegrationEvent(order.Id, order.OrderStatus, buyer.Name, buyer.IdentityGuid);",
       "in_type": "OrderStatusChangedToStockConfirmedDomainEventHandler",
       "in_test": false
     },
     {
-      "kind": "message_publisher",
+      "kind": "durable_read",
+      "service": "ordering",
+      "file": "src/Ordering.API/Application/DomainEventHandlers/ValidateOrAddBuyerAggregateWhenOrderStartedDomainEventHandler.cs",
+      "line": 23,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var buyer = await _buyerRepository.FindAsync(domainEvent.UserId);",
+      "in_type": "ValidateOrAddBuyerAggregateWhenOrderStartedDomainEventHandler",
+      "in_test": false
+    },
+    {
+      "kind": "event_binding",
       "service": "ordering",
       "file": "src/Ordering.API/Application/DomainEventHandlers/ValidateOrAddBuyerAggregateWhenOrderStartedDomainEventHandler.cs",
       "line": 50,
-      "rule": "dfo-csharp-message-publisher",
+      "rule": "dfo-csharp-event-binding",
       "evidence": "var integrationEvent = new OrderStatusChangedToSubmittedIntegrationEvent(domainEvent.Order.Id, domainEvent.Order.OrderStatus, buyer.Name, buyer.IdentityGuid);",
       "in_type": "ValidateOrAddBuyerAggregateWhenOrderStartedDomainEventHandler",
       "in_test": false
@@ -4162,6 +5618,46 @@
       "rule": "dfo-csharp-message-consumer",
       "evidence": "public class OrderStockRejectedIntegrationEventHandler( IMediator mediator, ILogger<OrderStockRejectedIntegrationEventHandler> logger) : IIntegrationEventHandler<OrderStockRejectedIntegrationEvent>",
       "in_type": "OrderStockRejectedIntegrationEventHandler",
+      "in_test": false
+    },
+    {
+      "kind": "message_publisher",
+      "service": "ordering",
+      "file": "src/Ordering.API/Application/IntegrationEvents/OrderingIntegrationEventService.cs",
+      "line": 24,
+      "rule": "dfo-csharp-message-publisher",
+      "evidence": "await _eventBus.PublishAsync(logEvt.IntegrationEvent);",
+      "in_type": "OrderingIntegrationEventService",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "ordering",
+      "file": "src/Ordering.API/Application/Queries/OrderQueries.cs",
+      "line": 8,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var order = await context.Orders .Include(o => o.OrderItems) .FirstOrDefaultAsync(o => o.Id == id);",
+      "in_type": "OrderQueries",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "ordering",
+      "file": "src/Ordering.API/Application/Queries/OrderQueries.cs",
+      "line": 39,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "return await context.Orders .Where(o => o.Buyer.IdentityGuid == userId) .Select(o => new OrderSummary",
+      "in_type": "OrderQueries",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "ordering",
+      "file": "src/Ordering.API/Application/Queries/OrderQueries.cs",
+      "line": 52,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "await context.CardTypes.Select(c=> new CardType { Id = c.Id, Name = c.Name }).ToListAsync();",
+      "in_type": "OrderQueries",
       "in_test": false
     },
     {
@@ -4228,6 +5724,16 @@
       "kind": "durable_write",
       "service": "ordering",
       "file": "src/Ordering.API/Infrastructure/OrderingContextSeed.cs",
+      "line": 11,
+      "rule": "dfo-csharp-dbset",
+      "evidence": "context.CardTypes.AddRange(GetPredefinedCardTypes());",
+      "in_type": "OrderingContextSeed",
+      "in_test": false
+    },
+    {
+      "kind": "durable_write",
+      "service": "ordering",
+      "file": "src/Ordering.API/Infrastructure/OrderingContextSeed.cs",
       "line": 13,
       "rule": "dfo-csharp-durable-write",
       "evidence": "await context.SaveChangesAsync();",
@@ -4242,6 +5748,16 @@
       "rule": "dfo-csharp-durable-write",
       "evidence": "await context.SaveChangesAsync();",
       "in_type": "OrderingContextSeed",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": null,
+      "file": "src/Ordering.Infrastructure/Idempotency/RequestManager.cs",
+      "line": 15,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var request = await _context. FindAsync<ClientRequest>(id);",
+      "in_type": "RequestManager",
       "in_test": false
     },
     {
@@ -4265,6 +5781,66 @@
       "in_test": false
     },
     {
+      "kind": "durable_write",
+      "service": null,
+      "file": "src/Ordering.Infrastructure/Repositories/BuyerRepository.cs",
+      "line": 18,
+      "rule": "dfo-csharp-dbset",
+      "evidence": "return _context.Buyers .Add(buyer)",
+      "in_type": "BuyerRepository",
+      "in_test": false
+    },
+    {
+      "kind": "durable_write",
+      "service": null,
+      "file": "src/Ordering.Infrastructure/Repositories/BuyerRepository.cs",
+      "line": 28,
+      "rule": "dfo-csharp-dbset",
+      "evidence": "return _context.Buyers .Update(buyer)",
+      "in_type": "BuyerRepository",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": null,
+      "file": "src/Ordering.Infrastructure/Repositories/BuyerRepository.cs",
+      "line": 35,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var buyer = await _context.Buyers .Include(b => b.PaymentMethods) .Where(b => b.IdentityGuid == identity)",
+      "in_type": "BuyerRepository",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": null,
+      "file": "src/Ordering.Infrastructure/Repositories/BuyerRepository.cs",
+      "line": 45,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var buyer = await _context.Buyers .Include(b => b.PaymentMethods) .Where(b => b.Id == id)",
+      "in_type": "BuyerRepository",
+      "in_test": false
+    },
+    {
+      "kind": "durable_write",
+      "service": null,
+      "file": "src/Ordering.Infrastructure/Repositories/OrderRepository.cs",
+      "line": 17,
+      "rule": "dfo-csharp-dbset",
+      "evidence": "return _context.Orders.Add(order).Entity;",
+      "in_type": "OrderRepository",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": null,
+      "file": "src/Ordering.Infrastructure/Repositories/OrderRepository.cs",
+      "line": 23,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var order = await _context.Orders.FindAsync(orderId);",
+      "in_type": "OrderRepository",
+      "in_test": false
+    },
+    {
       "kind": "message_consumer",
       "service": "payment",
       "file": "src/PaymentProcessor/IntegrationEvents/EventHandling/OrderStatusChangedToStockConfirmedIntegrationEventHandler.cs",
@@ -4275,12 +5851,22 @@
       "in_test": false
     },
     {
-      "kind": "message_publisher",
+      "kind": "event_binding",
       "service": "payment",
       "file": "src/PaymentProcessor/IntegrationEvents/EventHandling/OrderStatusChangedToStockConfirmedIntegrationEventHandler.cs",
       "line": 23,
-      "rule": "dfo-csharp-message-publisher",
+      "rule": "dfo-csharp-event-binding",
       "evidence": "orderPaymentIntegrationEvent = new OrderPaymentSucceededIntegrationEvent(@event.OrderId);",
+      "in_type": "OrderStatusChangedToStockConfirmedIntegrationEventHandler",
+      "in_test": false
+    },
+    {
+      "kind": "event_binding",
+      "service": "payment",
+      "file": "src/PaymentProcessor/IntegrationEvents/EventHandling/OrderStatusChangedToStockConfirmedIntegrationEventHandler.cs",
+      "line": 27,
+      "rule": "dfo-csharp-event-binding",
+      "evidence": "orderPaymentIntegrationEvent = new OrderPaymentFailedIntegrationEvent(@event.OrderId);",
       "in_type": "OrderStatusChangedToStockConfirmedIntegrationEventHandler",
       "in_test": false
     },
@@ -4288,9 +5874,9 @@
       "kind": "message_publisher",
       "service": "payment",
       "file": "src/PaymentProcessor/IntegrationEvents/EventHandling/OrderStatusChangedToStockConfirmedIntegrationEventHandler.cs",
-      "line": 27,
+      "line": 32,
       "rule": "dfo-csharp-message-publisher",
-      "evidence": "orderPaymentIntegrationEvent = new OrderPaymentFailedIntegrationEvent(@event.OrderId);",
+      "evidence": "await eventBus.PublishAsync(orderPaymentIntegrationEvent);",
       "in_type": "OrderStatusChangedToStockConfirmedIntegrationEventHandler",
       "in_test": false
     },
@@ -4305,13 +5891,13 @@
       "in_test": false
     },
     {
-      "kind": "background_trigger",
-      "service": null,
-      "file": "src/Shared/MigrateDbContextExtensions.cs",
-      "line": 84,
-      "rule": "dfo-csharp-background-trigger",
-      "evidence": "protected override Task ExecuteAsync(CancellationToken stoppingToken) { return Task.CompletedTask;",
-      "in_type": "MigrationHostedService",
+      "kind": "config_ref",
+      "service": "payment",
+      "file": "src/PaymentProcessor/Program.cs",
+      "line": 8,
+      "rule": "dfo-csharp-options",
+      "evidence": "builder.Services.AddOptions<PaymentOptions>()",
+      "in_type": null,
       "in_test": false
     },
     {
@@ -4412,6 +5998,36 @@
       "rule": "dfo-csharp-config-ref",
       "evidence": "else if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString(\"chatModel\")))",
       "in_type": "Extensions",
+      "in_test": false
+    },
+    {
+      "kind": "outbound_http",
+      "service": "webapp",
+      "file": "src/WebApp/Services/BasketService.cs",
+      "line": 11,
+      "rule": "dfo-csharp-grpc-call",
+      "evidence": "var result = await basketClient.GetBasketAsync(new ());",
+      "in_type": "BasketService",
+      "in_test": false
+    },
+    {
+      "kind": "outbound_http",
+      "service": "webapp",
+      "file": "src/WebApp/Services/BasketService.cs",
+      "line": 17,
+      "rule": "dfo-csharp-grpc-call",
+      "evidence": "await basketClient.DeleteBasketAsync(new DeleteBasketRequest());",
+      "in_type": "BasketService",
+      "in_test": false
+    },
+    {
+      "kind": "outbound_http",
+      "service": "webapp",
+      "file": "src/WebApp/Services/BasketService.cs",
+      "line": 34,
+      "rule": "dfo-csharp-grpc-call",
+      "evidence": "await basketClient.UpdateBasketAsync(updatePayload);",
+      "in_type": "BasketService",
       "in_test": false
     },
     {
@@ -4585,6 +6201,16 @@
       "in_test": false
     },
     {
+      "kind": "config_ref",
+      "service": null,
+      "file": "src/WebhookClient/Extensions/Extensions.cs",
+      "line": 15,
+      "rule": "dfo-csharp-options",
+      "evidence": "builder.Services.AddOptions<WebhookClientOptions>().BindConfiguration(nameof(WebhookClientOptions));",
+      "in_type": "Extensions",
+      "in_test": false
+    },
+    {
       "kind": "client_binding",
       "service": null,
       "file": "src/WebhookClient/Extensions/Extensions.cs",
@@ -4599,7 +6225,7 @@
       "service": null,
       "file": "src/WebhookClient/Services/WebHooksClient.cs",
       "line": 7,
-      "rule": "dfo-csharp-outbound-http",
+      "rule": "dfo-csharp-grpc-call",
       "evidence": "return client.PostAsJsonAsync(\"/api/webhooks\", payload);",
       "in_type": "WebhooksClient",
       "in_test": false
@@ -4625,12 +6251,32 @@
       "in_test": false
     },
     {
+      "kind": "durable_read",
+      "service": "webhooks",
+      "file": "src/Webhooks.API/Apis/WebHooksApi.cs",
+      "line": 16,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var data = await context.Subscriptions.Where(s => s.UserId == userId).ToListAsync();",
+      "in_type": "WebHooksApi",
+      "in_test": false
+    },
+    {
       "kind": "inbound_route",
       "service": "webhooks",
       "file": "src/Webhooks.API/Apis/WebHooksApi.cs",
       "line": 20,
       "rule": "dfo-csharp-inbound-route",
       "evidence": "api.MapGet(\"/{id:int}\", async Task<Results<Ok<WebhookSubscription>, NotFound<string>>> ( WebhooksContext context, ClaimsPrincipal user,",
+      "in_type": "WebHooksApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "webhooks",
+      "file": "src/Webhooks.API/Apis/WebHooksApi.cs",
+      "line": 26,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var subscription = await context.Subscriptions .SingleOrDefaultAsync(s => s.Id == id && s.UserId == userId);",
       "in_type": "WebHooksApi",
       "in_test": false
     },
@@ -4661,6 +6307,16 @@
       "line": 66,
       "rule": "dfo-csharp-inbound-route",
       "evidence": "api.MapDelete(\"/{id:int}\", async Task<Results<Accepted, NotFound<string>>> ( WebhooksContext context, ClaimsPrincipal user,",
+      "in_type": "WebHooksApi",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "webhooks",
+      "file": "src/Webhooks.API/Apis/WebHooksApi.cs",
+      "line": 72,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "var subscription = await context.Subscriptions.SingleOrDefaultAsync(s => s.Id == id && s.UserId == userId);",
       "in_type": "WebHooksApi",
       "in_test": false
     },
@@ -4739,9 +6395,19 @@
       "service": "webhooks",
       "file": "src/Webhooks.API/Services/GrantUrlTesterService.cs",
       "line": 21,
-      "rule": "dfo-csharp-outbound-http",
+      "rule": "dfo-csharp-grpc-call",
       "evidence": "var response = await client.SendAsync(msg);",
       "in_type": "GrantUrlTesterService",
+      "in_test": false
+    },
+    {
+      "kind": "durable_read",
+      "service": "webhooks",
+      "file": "src/Webhooks.API/Services/WebhooksRetriever.cs",
+      "line": 7,
+      "rule": "dfo-csharp-linq-read",
+      "evidence": "return await db.Subscriptions.Where(s => s.Type == type).ToListAsync();",
+      "in_type": "WebhooksRetriever",
       "in_test": false
     },
     {
@@ -4749,7 +6415,7 @@
       "service": "webhooks",
       "file": "src/Webhooks.API/Services/WebhooksSender.cs",
       "line": 32,
-      "rule": "dfo-csharp-outbound-http",
+      "rule": "dfo-csharp-grpc-call",
       "evidence": "return client.SendAsync(request);",
       "in_type": "WebhooksSender",
       "in_test": false

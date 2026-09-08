@@ -15,8 +15,7 @@ output plus the source it was taken from. Determinism needs two runs and is chec
 precision question that only a reader answers; `precision.py` draws that sample. Conformance is
 necessary and not sufficient, which is stated here so nobody reads a PASS as a warrant.
 
-**The two sharpest checks are here because both defects were found in shipped output**, on
-2026-09-02, in this project's own extractor:
+**The two sharpest checks are here because both defects were found in shipped output**, in this project's own extractor:
 
 - **C6 rule-id hygiene.** Semgrep namespaces a rule id with the filesystem path of the rules
   file, so every emitted fact carried the operator's local directory tree. A fact base handed
@@ -43,7 +42,7 @@ import sys
 KINDS = {
     "inbound_route", "outbound_http", "grpc_method", "grpc_call",
     "message_consumer", "message_producer", "message_publisher",
-    "message_subscription",
+    "message_subscription", "event_binding",
     "durable_read", "durable_write", "repo_decl",
     "env_read", "config_ref",
     "background_trigger", "poll_interval",
@@ -228,13 +227,18 @@ def c8_reach(base):
                     "reach.complete is true while declared deployables produced no facts — the "
                     "block contradicts itself",
                     [{"silent": list(silent)}])
-    if not claims_complete and not silent:
+    # A silent deployable is one way to miss something; source in a language no rule reads, and
+    # regions the parser could not read, are others, and only `incomplete_because` carries those.
+    reasons = reach.get("incomplete_because") or []
+    if not claims_complete and not silent and not reasons:
         return fail("C8 reach",
-                    "reach.complete is false with no silent deployable named — a run must say "
-                    "WHAT it did not reach, not only that it did not")
+                    "reach.complete is false and neither a silent deployable nor a stated "
+                    "reason is named — a run must say WHAT it did not reach, not only that "
+                    "it did not")
     return ok("C8 reach",
               f"reach block present and self-consistent (complete={claims_complete}, "
-              f"{len(silent)} silent deployable(s); {len(unread)} file type(s) no rule reads, "
+              f"{len(silent)} silent deployable(s), {len(reasons)} stated reason(s); "
+              f"{len(unread)} file type(s) no rule reads, "
               f"which is information rather than a defect)")
 
 

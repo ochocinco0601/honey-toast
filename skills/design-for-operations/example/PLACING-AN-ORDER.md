@@ -3,6 +3,11 @@
 **eShop · 2026-09-01** · subject pinned at `b4a40872` (`dotnet/eShop`, 2026-08-28) — **every line
 number below is valid only against that revision**
 
+**Produced under the rule set of that date, which is not the one shipped beside it.** The fact count
+in *How this was produced* is that run's own; the current rules read more of the same tree and
+report different totals. The document is kept as the run recorded it — what it shows is the
+shape of the output and the two findings, not a number to reproduce.
+
 A customer buys something and waits for it to arrive. This document says what that
 business process flow is, in business terms; which code implements each part of it; and — for
 each part — whether anyone could tell if it broke.

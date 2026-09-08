@@ -95,12 +95,29 @@ Takes about 90 seconds. Expect exactly:
 
 | | |
 |---|---|
-| Facts | **163** — `inbound_route` 48, `outbound_http` 25, `message_consumer` 18, `message_subscription` 18, `durable_write` 15, `message_publisher` 13, `config_ref` 9, `env_read` 9, `client_binding` 5, `background_trigger` 3 |
-| Reach | `complete: true`, all 8 declared deployables produced facts |
+| Facts | **211** — `inbound_route` 48, `outbound_http` 28, `durable_write` 27, `durable_read` 25, `message_consumer` 18, `message_subscription` 18, `config_ref` 13, `event_binding` 13, `env_read` 9, `message_publisher` 6, `client_binding` 5, `background_trigger` 1 |
+| Reach | **`complete: false`**, with the two reasons stated: 946 lines of JavaScript in 14 files that no rule reads, and 46 files the parser could not fully read. All 8 declared deployables produced facts. This is the correct answer for this subject — see below |
 | Recall | **1.0** on gRPC methods (3 of 3) and **1.0** on HTTP operations (16 of 16), against the counts the repository declares about itself (your `coverage.json`, from the run above) |
 | Controls | Both pass — the decoy control (fabricated routes must not match) and the false-negative control (known implementations must be recognised) |
-| Join | **35 edges**, 8 unresolved, 3 of the 4 dependencies the deployment file declares, and 13 event types published against 13 subscribed with every one paired |
-| Adapter | **8 nodes, 11 edges, 12 stages** |
+| Join | **20 edges**, 11 unresolved, 3 of the 4 dependencies the deployment file declares. **3 event types published against 13 subscribed** — ten subscriptions have no publisher the tool could locate, and it says so rather than pairing them |
+| Adapter | **8 nodes, 5 edges, 12 stages** |
+| Conformance | Ten checks pass. The eleventh, determinism, needs `--compare` — the command below |
+
+**Two of those numbers look like failures and are not.**
+
+`reach.complete` is `false` because the run names two things it did not read. A run that read part
+of an estate and reported nothing missing would be worse, not better: the unread part would be
+indistinguishable from a part that holds nothing. On this subject some of it genuinely went
+unread, and the block says which.
+
+The event graph is sparse for a related reason. An earlier version of the C# publisher rule
+matched where an integration event is **constructed** rather than where it is sent. It produced
+thirteen publishes on this estate and paired every one of the thirteen subscriptions — and a
+precision sample judged it wrong about what the line does in every case it opened. The rule now
+matches the broker send. It finds six, a sample judged four of those six correct, and that verdict
+holds it in quarantine, so its facts are reported and labelled rather than treated as settled. Ten
+subscriptions with no located publisher is what reading this estate statically actually supports.
+The denser graph was not the better answer.
 
 Then let the conformance check compare your fact base with the recorded one. It reads the tool
 and rule-set fingerprints first, so a different rule set is reported as a changed answer rather
@@ -164,8 +181,8 @@ than the tally.
   labels it; nothing in a codebase supplies a business objective, a maximum tolerable disruption, or
   an owner. Those land in a ratification queue grouped by the role whose yes each needs.
 - **Mainframe subjects are out of scope** — declined, not worked around.
-- **Language coverage is per rule, not per language.** C# 11 rules, Java 8, Python 7, Go 4,
-  JavaScript/TypeScript 2. **Coverage is not the same as standing** — see below for which rules
+- **Language coverage is per rule, not per language.** Java 32 rules, C# 28, Python 19,
+  JavaScript/TypeScript 17, Go 4. **Coverage is not the same as standing** — see below for which rules
   have been judged against source. A language the parser reads but no rule covers returns nothing,
   which looks identical to a system with no structure. The `reach` block reports every deployable
   that produced nothing and every file type nothing read, and marks the run incomplete when either
@@ -175,20 +192,29 @@ than the tally.
 
 Stated so nobody has to find out the hard way.
 
-- **Four rules hold established standing** — three Java (`inbound_route`, `durable_read`,
-  `repo_decl`) and one Python (`env_read`), each judged against source on two estates at 11/11 or
-  better. **Every other rule in the library is provisional or unchecked**, and `fact-base.json` →
-  `rule_standing` reports which, on every run, with the facts resting on each.
+- **Seven of the hundred rules hold established standing** — `dfo-js-env-read`,
+  `dfo-js-outbound-http`, `dfo-js-durable-read`, `dfo-js-durable-write`, `dfo-python-env-read`,
+  `dfo-java-durable-write` and `dfo-java-repo-decl`, each judged correct against source on ten or
+  more samples across two or more estates. **Forty are provisional, fifty-one unchecked and
+  two quarantined**, and `fact-base.json` → `rule_standing` reports which, on every run, with
+  the facts resting on each.
+- **A quarantined rule keeps running, and its facts stay labelled rather than dropped.** Two are
+  quarantined. `dfo-csharp-message-publisher` had four of six sampled facts judged correct.
+  `dfo-java-durable-read` reads a hand-rolled class carrying the framework's repository annotation
+  over an in-memory list — type name, annotation and method name all say durable, only the
+  field's initialisation says otherwise, and a line-scoped rule cannot see it.
 - **Standing is computed from evidence, and evidence expires when a pattern changes.** Each
   recorded sample carries a fingerprint of the rule it was drawn from; edit the pattern and the
-  evidence is discarded rather than carried forward. This is enforced, not a convention — it fired
-  on four C# rules whose samples predated a later edit.
-- **The C# rules currently have no standing evidence** for exactly that reason.
+  evidence is discarded rather than carried forward. This is enforced, not a convention — two
+  rules in the current set carry samples voided this way.
+- **Sixteen of the C# rules have been sampled and none has reached established standing.** One is
+  quarantined; the rest sit provisional.
 - **`background_trigger` for Python matches nothing on either test estate.** A pattern that matched
   a load generator's decorators was removed as wrong, and the remaining patterns have never fired,
   so the rule is unverified rather than clean.
-- **Go and JavaScript/TypeScript rules were authored during a run**, are marked provisional, and
-  have never been sampled.
+- **The Go rules were authored during a run, are marked provisional, and have never been
+  sampled.** The JavaScript and TypeScript rules have since been sampled on real estates, and four
+  of them hold established standing.
 - **A load generator does not belong in the service map.** It is not part of the business system,
   and mapping it declares a deployable whose silence the reach check then reports.
 - **Every subject so far is a reference application** — small, coherent, built to be readable.

@@ -1,0 +1,52 @@
+{
+  "why": "rules.yaml records precision evidence per estate under `checked:`. This maps every estate name that may appear there to the language it is written in, so a `checked` entry naming an estate in another language is caught mechanically. Written after exactly that defect: an edit that located a rule's `checked:` block by searching forward from its id found the next such block in the file instead, and gave three never-sampled rules another rule's samples. Real estates are polyglot and the map must say so: the Camel integration estate carries one Python file, the .NET estate eight TypeScript ones, and the Spring Cloud estate a JavaScript front end. Narrower entries made this control cry wolf, which is the failure mode that gets a control switched off.",
+  "languages": {
+    "petclinic": [
+      "java"
+    ],
+    "petclinic-micro": [
+      "java",
+      "javascript"
+    ],
+    "java-kafka": [
+      "java"
+    ],
+    "bank-of-anthos": [
+      "java",
+      "python"
+    ],
+    "microservices-demo": [
+      "python",
+      "go"
+    ],
+    "camel-examples": [
+      "java",
+      "python"
+    ],
+    "dotnet/eShop": [
+      "csharp",
+      "javascript",
+      "typescript"
+    ],
+    "eshop": [
+      "csharp",
+      "javascript",
+      "typescript"
+    ],
+    "django-realworld": [
+      "python"
+    ],
+    "angular-realworld": [
+      "javascript",
+      "typescript"
+    ],
+    "nestjs-realworld": [
+      "javascript",
+      "typescript"
+    ],
+    "express-realworld": [
+      "javascript",
+      "typescript"
+    ]
+  }
+}

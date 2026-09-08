@@ -1,7 +1,8 @@
 """Adapter — turn a design-for-operations run into two structured blocks for onboarding a service.
 
-Usage:  python adapter.py <fact-base.json> <join.json> <stages.json>
-Output: JSON on stdout — {"dependencies_structured": {...}, "process_structured": [...], "adapter_report": {...}}
+Usage:  python adapter.py <fact-base.json> <join.json> <stages.json> [--observation observation.json]
+Output: JSON on stdout — {"dependencies_structured": {...}, "process_structured": [...],
+                          "seeds": {...} (when --observation is given), "adapter_report": {...}}
 
 **What this is for.** Onboarding a service into a monitoring practice asks two structuring
 questions — what depends on what, and what the business process is, in order — and both of them
@@ -20,11 +21,17 @@ documents at all.
         nodes[]     name · kind ("application") · failure_impact (string, never null — see
                     below) · signals[] (empty; filled by a later phase) · provenance ("extracted")
         edges[]     from · to · protocol · criticality (critical | degraded | informational) ·
-                    failure_impact (may be null) · provenance ("inferred", because criticality is)
+                    failure_impact (may be null) · provenance ("inferred", because criticality is) ·
+                    source (the file and line of the fact the join derived the edge from)
     process_structured
         [ { name, steps[] } ]   one process; each step: order · name · components[] (must name
                     nodes above) · blocking · condition · signals[] · description · owned ·
                     provenance
+    seeds           (with --observation) Phase 6's cells mapped onto service-definition fields:
+                    per signal the disposition (producible + source, watched + source), healthy,
+                    owner; per flow the too-broken cell and Phase 2's business account as a
+                    stakeholder chain. Every seed carries the run's label, the schema label it
+                    becomes, and the cell it came from. See "Seeds" below.
     adapter_report  counts, the silent and unreferenced nodes, and how criticality was inferred
 
 Whatever onboarding format you feed, map these fields into it; nothing here assumes a schema
@@ -47,6 +54,37 @@ applied and labelled:
 A fallback the code does declare — a circuit breaker, a cached default, a try/except that
 carries on — would move an edge off `critical`. **Nothing here detects one**, so `critical`
 is the conservative reading and a reviewer's first job is to demote the ones that deserve it.
+
+**Seeds, and the label table.** A run's Phase 7 writes `observation.json`: the cells Phase 6
+drafted, each with the run's own label — `extracted`, `proposed`, `gapped`. A service definition
+records provenance in its own vocabulary, and the table below is **one mapping onto one such
+format**, the one this adapter emits. Read it as a worked example and rewrite the right-hand side
+for whatever you onboard into.
+
+The target vocabulary, defined here so the output is readable without the format in front of you:
+
+  * `constructed` — a value nobody extracted, written deliberately, with the draft it came from
+    cited. `validated` — a value a person has since said yes to.
+  * **Motivation-chain fields** — the fields carrying why the service matters and to whom: the
+    stakeholders, what each expects of it, and what the impact is when that is not met.
+  * **A coverage receipt** — a per-layer record of what the definition covers and where it is
+    short, kept in five layers: `business_health`, `business_impact`, `process`, `system`,
+    `operational`. A gap is filed on the layer its cell belongs to; one with no matching receipt
+    element goes to `gaps[]`.
+  * **The review queue** — where a drafted position waits for the role whose yes it needs.
+
+    extracted  ->  extracted                        any field
+    proposed   ->  constructed, the draft cited     motivation-chain fields; a structured block
+                                                    that needs a proposed value gets inferred
+    gapped     ->  a coverage-receipt gap           same reason, on the layer the cell belongs to
+    ratified   ->  validated on structured blocks   the review queue records the yes
+
+Mapped cells: healthy -> an expectation with its target; owner -> the owner fields; too-broken
+-> `service.impact_tolerance`; the disposition -> `producible`/`producible_source` and
+`watched`/`watched_source`; Phase 2's business account -> the stakeholder chain. **A seed is
+never source material**, and never carries `extracted` unless the run extracted it. A step
+whose reading the run labelled `proposed` (its ruling) is emitted with provenance `inferred`,
+not `extracted`, because its description carries that reading.
 
 **What this file will not do.** It will not invent a node to make an edge resolve, it will
 not carry a step whose components are not in the graph, and it will not emit a stage the run
@@ -72,8 +110,8 @@ def name_map(join):
     """Declaration name -> service-map name, from the join's own correspondence block.
 
     The two halves of a run name deployables differently — the fact base by the operator's
-    service map, the join by the deployment declaration — and until 2026-09-02 nothing
-    reconciled them. `join.py` now emits the correspondence, resolved by shared directory.
+    service map, the join by the deployment declaration — and nothing reconciled them.
+    `join.py` now emits the correspondence, resolved by shared directory.
     This reads it; it does not re-derive it, and it never matches on name similarity.
     """
     correspondence = join.get("deployable_name_map")
@@ -169,7 +207,7 @@ def build_edges(join, node_names, translate):
             continue
         seen.add((src, dst))
         criticality, reason = edge_criticality(raw)
-        edges.append({
+        edge = {
             "from": src,
             "to": dst,
             "protocol": raw.get("protocol") or "HTTP",
@@ -178,7 +216,13 @@ def build_edges(join, node_names, translate):
             # Nodes are extracted; this classification is not, and says so.
             "provenance": "inferred",
             "_criticality_reason": reason,
-        })
+        }
+        # The fact the join derived the edge from: its first hop, the call site or the
+        # publish site, as file and line. Carried so a downstream signal can cite it.
+        cites = [h.get("cite") for h in (raw.get("hops") or []) if isinstance(h, dict) and h.get("cite")]
+        if cites:
+            edge["source"] = cites[0]
+        edges.append(edge)
     return edges, unanchored, unmapped
 
 
@@ -204,9 +248,148 @@ def build_process(stages_doc, node_names):
             "signals": [],
             "description": stage["description"],
             "owned": stage["owned"],
-            "provenance": stage["provenance"],
+            # A step is `inferred` when the run proposed any part of it: its reading (a ruling
+            # the description carries) or the stage itself (an absence: a stage the business
+            # names and nothing in the code performs, `components: []`). The label table has no
+            # `proposed` on a structured block, so a proposed value goes to `inferred` with the
+            # seed cited. Emitting `proposed` verbatim produces a value the target format has no
+            # meaning for, and a validator that checks its labels will reject the record.
+            "provenance": ("inferred" if "proposed" in (stage.get("reading_provenance"), stage["provenance"])
+                           else stage["provenance"]),
         })
     return [{"name": stages_doc["business_process_flow"], "steps": steps}], orphans
+
+
+# --------------------------------------------------------------------------- seeds
+LABEL_TABLE = {
+    "extracted": {"becomes": "extracted", "where": "any field"},
+    "proposed": {"becomes": "constructed", "where": "motivation-chain fields, the draft cited as the seed; a structured block needing a proposed value gets inferred"},
+    "gapped": {"becomes": "a coverage-receipt gap with the same reason", "where": "the receipt, on the cell's layer; a gap with no receipt element goes to gaps[]"},
+    "ratified": {"becomes": "validated on structured blocks; on chain fields the label stays and the review queue records the yes", "where": "the review queue"},
+}
+STANDING = ("Seeds are drafted positions from a design for operations run, mapped onto service-definition "
+            "fields under the label table. They are never source material: no field seeded here carries "
+            "'extracted' unless the run extracted it, and every seed cites the cell it came from.")
+
+
+def _slug(text):
+    return "".join(c if c.isalnum() else "_" for c in text.lower()).strip("_")[:40]
+
+
+def build_seeds(obs, process):
+    """Map observation.json's cells onto service-definition fields, label by label."""
+    records, receipt = [], {"business_health": [], "business_impact": [], "process": [], "system": [],
+                            "operational": []}
+    document_gaps = []
+    steps = {s["order"]: s for s in process[0]["steps"]}
+    src_note = obs.get("note", "")
+
+    def rec(**kw):
+        base = {"cell": None, "stage": None, "signal_name": None, "schema_field": None, "value": None,
+                "label": None, "from": None, "receipt_gap": None, "document_gap": None}
+        base.update(kw)
+        records.append(base)
+        return base
+
+    # -- the business account -> the stakeholder chain (proposed -> constructed)
+    account = obs["business_account"]
+    stakeholders, expectation_of_stage = [], {}
+    for party in account["who_depends"]:
+        pslug = _slug(party["party"])
+        exps = []
+        for order in party["stages"]:
+            stage = next(s for s in obs["stages"] if s["order"] == order)
+            eid = f"{pslug}_{order:02d}_{_slug(stage['name'])}"[:60]
+            exps.append({"expectation_id": eid, "stage": order,
+                         "text": f"{stage['name']}: {account['why_a_business_names_each_stage'][str(order)]}",
+                         "label": "constructed"})
+            expectation_of_stage.setdefault(order, []).append((party["party"], eid))
+        stakeholders.append({"schema_field": "stakeholders[]", "name": party["party"],
+                             "expects": party["expects"], "expectations": exps, "label": "constructed",
+                             "from": {"dfo_label": party["label"], "source": account["source"]}})
+    rec(cell="business_account", schema_field="stakeholders[].expectations[]", value=f"{len(stakeholders)} parties",
+        label="constructed", **{"from": {"dfo_label": account["label"], "source": account["source"]}})
+
+    # -- per stage: disposition, healthy, owner
+    for st in obs["stages"]:
+        order, sg, src = st["order"], st["signal"], st["source"]
+        step = steps.get(order)
+        if sg["producible"] == "yes":
+            name = sg["name"]
+            rec(cell="disposition", stage=order, signal_name=name, schema_field="signals[].producible",
+                value="yes", label="extracted", **{"from": {"dfo_label": sg["label"], "source": src, "cite": sg["producible_source"]}})
+            rec(cell="disposition", stage=order, signal_name=name, schema_field="signals[].producible_source",
+                value=sg["producible_source"], label="extracted", **{"from": {"dfo_label": sg["label"], "source": src}})
+            rec(cell="disposition", stage=order, signal_name=name, schema_field="signals[].watched",
+                value=sg["watched"], label=None,
+                **{"from": {"dfo_label": sg["watched_label"], "source": src, "reason": sg["watched_reason"]}},
+                document_gap=None)
+            rec(cell="disposition", stage=order, signal_name=name, schema_field="signals[].watched_source",
+                value=sg["watched_source"], label=None, **{"from": {"dfo_label": sg["watched_label"], "source": src}})
+            if step is not None:
+                step["signals"] = [name]
+            # healthy -> the expectation's target
+            h = st["healthy"]
+            if h["label"] == "gapped":
+                gap = f"stage {order} ({st['name']}): healthy is gapped, {h['reason']}; the signal exists and its target is not drafted"
+                rec(cell="healthy", stage=order, signal_name=name, schema_field="signals[].slo_target",
+                    value=None, label=None, **{"from": {"dfo_label": "gapped", "source": src, "reason": h["reason"]}},
+                    document_gap=gap)
+                document_gaps.append(gap)
+            else:
+                rec(cell="healthy", stage=order, signal_name=name, schema_field="signals[].slo_target",
+                    value=h["value"], label="constructed", **{"from": {"dfo_label": h["label"], "source": src}})
+            # owner -> the signal's owner field
+            o = st["owner"]
+            if o["label"] == "gapped":
+                rec(cell="owner", stage=order, signal_name=name, schema_field="signals[].technical_owner",
+                    value="", label=None, **{"from": {"dfo_label": "gapped", "value": o["value"], "source": src}},
+                    receipt_gap={"layer": "operational", "element": name, "reason": o["reason"]})
+                receipt["operational"].append({"element": name, "reason": o["reason"], "provenance": "extracted"})
+            else:
+                rec(cell="owner", stage=order, signal_name=name, schema_field="signals[].technical_owner",
+                    value=o["value"], label="constructed", **{"from": {"dfo_label": o["label"], "source": src}})
+        else:
+            reason = f"cannot be produced ({sg.get('ruling')}): {sg['reason']}"
+            r = rec(cell="disposition", stage=order, signal_name=None, schema_field="signals[]", value=None,
+                    label=None, **{"from": {"dfo_label": sg["label"], "source": src, "cite": sg["producible_source"], "ruling": sg.get("ruling")}},
+                    document_gap=f"stage {order} ({st['name']}): {reason}")
+            document_gaps.append(r["document_gap"])
+            if st["owned"]:
+                el = f"{order}: {st['name']}"
+                r["receipt_gap"] = {"layer": "process", "element": el, "reason": reason}
+                receipt["process"].append({"element": el, "reason": reason, "provenance": "extracted"})
+            for party, eid in expectation_of_stage.get(order, []):
+                receipt["business_health"].append({"element": eid, "reason": reason, "provenance": "extracted"})
+
+    # -- too broken -> impact_tolerance
+    tb = obs["too_broken"]
+    if tb["label"] == "gapped":
+        rec(cell="too_broken", schema_field="service.impact_tolerance", value=None, label=None,
+            **{"from": {"dfo_label": "gapped", "source": tb["source"], "would_close": tb["would_close"]}},
+            receipt_gap={"layer": "business_impact", "element": "impact_tolerance", "reason": tb["reason"]})
+        receipt["business_impact"].append({"element": "impact_tolerance", "reason": tb["reason"], "provenance": "extracted"})
+    else:
+        rec(cell="too_broken", schema_field="service.impact_tolerance", value=tb["value"], label="constructed",
+            **{"from": {"dfo_label": tb["label"], "source": tb["source"]}})
+
+    # -- owners at service level
+    unowned = obs.get("unowned_note", "")
+    rec(cell="owner", schema_field="service.product_owner; service.technical_owner", value="", label=None,
+        **{"from": {"dfo_label": "gapped", "value": "unowned", "source": "the run's Phase 0 source inventory: no owner reachable from the sources the run could reach"}},
+        document_gap="service owners: unowned; " + unowned)
+    document_gaps.append("service owners: unowned; " + unowned)
+
+    return {
+        "standing": STANDING,
+        "observation_note": src_note,
+        "label_table": LABEL_TABLE,
+        "stakeholders": stakeholders,
+        "records": records,
+        "receipt_gaps": receipt,
+        "document_gaps": document_gaps,
+        "rulings": obs.get("rulings", {}),
+    }
 
 
 def main():
@@ -214,6 +397,7 @@ def main():
     parser.add_argument("fact_base")
     parser.add_argument("join")
     parser.add_argument("stages")
+    parser.add_argument("--observation", help="the run's observation.json (Phase 7); adds the seeds block")
     args = parser.parse_args()
 
     fact_base, join, stages_doc = load(args.fact_base), load(args.join), load(args.stages)
@@ -268,14 +452,29 @@ def main():
         reason = edge.pop("_criticality_reason")
         reasons[reason] = reasons.get(reason, 0) + 1
 
-    json.dump({
+    seeds = None
+    if args.observation:
+        seeds = build_seeds(load(args.observation), process)
+
+    out = {
         "dependencies_structured": {
             "subject": subject,
             "nodes": nodes,
             "edges": edges,
         },
         "process_structured": process,
-        "adapter_report": {
+    }
+    if seeds is not None:
+        out["seeds"] = seeds
+    out["adapter_report"] = {
+            "seeds": (None if seeds is None else {
+                "records": len(seeds["records"]),
+                "stakeholders": len(seeds["stakeholders"]),
+                "receipt_gaps": {k: len(v) for k, v in seeds["receipt_gaps"].items()},
+                "document_gaps": len(seeds["document_gaps"]),
+                "steps_with_a_proposed_reading_emitted_as_inferred": [
+                    s["order"] for s in process[0]["steps"] if s["provenance"] == "inferred"],
+            }),
             "deployables_from_service_map": sorted(mapped),
             "deployables_declared_and_resolved": sorted(resolved),
             "declared_but_outside_the_service_map": outside_map,
@@ -298,10 +497,12 @@ def main():
                 "to prevent",
                 "criticality is a conservative default and wants demoting where a fallback "
                 "actually exists",
-                "signals are empty here; they are populated after the later phases",
+                "signals are empty here unless --observation supplied them; a seeded signal "
+                "name is the run's, and its target, owner and watched state are gapped as the "
+                "seeds say",
             ],
-        },
-    }, sys.stdout, indent=2)
+    }
+    json.dump(out, sys.stdout, indent=2)
 
 
 if __name__ == "__main__":

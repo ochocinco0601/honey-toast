@@ -19,7 +19,7 @@ carried by **eighteen integration-event handlers**, and the join found none of t
 published event has no call site and no address to follow.
 
 **Why it is not just a missing feature.** The extractor's documentation already lists the
-asynchronous join as not ported from the superseded script, and reads as an edge case. **On this
+asynchronous join as not built, and it reads there as an edge case. **On this
 subject it is not an edge case — it carries most of the business process.**
 
 **And the four it did find are not peripheral, which an earlier draft of this report got wrong.**

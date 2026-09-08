@@ -3,7 +3,6 @@
   "subject": "ordering",
   "subject_note": "The commit point. This is a journey document, not a single-service one, so the graph is anchored at the deployable where the order is created, shipped and cancelled. The adapter anchors the graph here and records the subject.",
   "source": "Transcribed from PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 3, the reconciliation table. Not re-derived — this is the same run's own rulings, moved from a markdown table into the shape the adapter reads.",
-  "transcribed_on": "2026-09-02",
   "stages": [
     {
       "order": 1,

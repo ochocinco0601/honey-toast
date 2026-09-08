@@ -372,7 +372,12 @@ state):
   process flow, what implements each stage, what can be seen, what cannot — in the shape of
   `example/PLACING-AN-ORDER.md`, every claim labeled. Alongside it, `stages.json` in the shape
   of `example/stages.json`: the stages in order, each with its bound components and its ruling,
-  which is what the adapter reads after the run.
+  which is what the adapter reads after the run. And `observation.json` in the shape of
+  `example/observation.json`: Phase 6's cells, per stage and per signal, each carrying its label. The
+  disposition as two pairs, `producible` with the file and line that shows it, and `watched` with the
+  inventory consulted or the words `no inventory reachable`; healthy; owner; and per business process
+  flow the too-broken cell and Phase 2's business account. The adapter reads it (`--observation`) to
+  seed onboarding under the label table in its docstring. A seed is never source material.
 - **Coverage accounting:** declare the start-set (stages, boundaries, wanted signals); every
   element ends `covered` or `gapped` with reason and provenance. **No third state.**
 - **The vocabulary above binds the specification and the judging score** — they are the

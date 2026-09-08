@@ -1,0 +1,478 @@
+{
+  "note": "Transcribed rather than emitted by the run: Phase 7 gained this output after the run was made. Every cell below is copied from PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md (the Phase 6 table, the too-broken paragraph, the Phase 4 rulings) and PHASE-0-2-FRAMING-EXTRACTION-DRAFT.md (Phase 2, the business account; Phase 0, the source inventory), with stages.json supplying the full citation paths. Nothing here is re-derived. Labels are design for operations' own: extracted, proposed, gapped, ratified.",
+  "run": "eshop-order-2026-09-01",
+  "business_process_flow": "Placing an order",
+  "subject": "ordering",
+  "labels": {
+    "extracted": "from source, cited to a file and line",
+    "proposed": "drafted by the run in the accountable role's voice; awaits a named person's yes",
+    "gapped": "no source supplies it; the reason is stated",
+    "ratified": "a named person accepted it, recorded in RATIFICATION-QUEUE.md; none yet on this run"
+  },
+  "source_inventory": {
+    "label": "extracted",
+    "source": "PHASE-0-2-FRAMING-EXTRACTION-DRAFT.md, Phase 0, 'Source inventory'",
+    "runtime_evidence": "no: nothing is running, and no telemetry or dashboard inventory exists",
+    "people": "no: a public reference application has no owners to ask"
+  },
+  "business_account": {
+    "label": "proposed",
+    "source": "PHASE-0-2-FRAMING-EXTRACTION-DRAFT.md, Phase 2: drafted from the published order-to-cash / retail order-management process, written after the extraction had been read (independence compromised and recorded)",
+    "who_depends": [
+      {
+        "party": "The customer",
+        "expects": "to choose, hold and submit an order, be acknowledged, have a short window to change their mind, be told the order is going ahead and be told it shipped; and to have a failed order handled",
+        "stages": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          8,
+          10,
+          12
+        ],
+        "label": "proposed"
+      },
+      {
+        "party": "The business running the shop",
+        "expects": "goods checked before commitment, the money taken, the order picked and shipped, failures handled",
+        "stages": [
+          6,
+          7,
+          9,
+          12
+        ],
+        "label": "proposed"
+      },
+      {
+        "party": "Partners subscribed to order events",
+        "expects": "to be told what happened to an order",
+        "stages": [
+          11
+        ],
+        "label": "proposed"
+      }
+    ],
+    "why_a_business_names_each_stage": {
+      "1": "No selection, no order",
+      "2": "An abandoned basket is a measured business loss",
+      "3": "The commitment point; the first moment a business owes something",
+      "4": "The customer's evidence that it worked",
+      "5": "A cancellation window is a policy, not a technicality",
+      "6": "Selling what you do not have is a customer-facing failure",
+      "7": "The revenue event",
+      "8": "Where a customer stops worrying",
+      "9": "The physical fulfilment",
+      "10": "The second thing a customer waits for",
+      "11": "Downstream systems and third parties depend on order state",
+      "12": "Every real order process has an unhappy path"
+    }
+  },
+  "stages": [
+    {
+      "order": 1,
+      "name": "Customer chooses what to buy",
+      "components": [
+        "catalog"
+      ],
+      "owned": false,
+      "structure_label": "extracted",
+      "signal": {
+        "name": "catalogue_request_rate_and_errors",
+        "display_name": "Catalogue request rate and errors",
+        "producible": "yes",
+        "producible_source": "src/Catalog.API/Apis/CatalogApi.cs:21",
+        "label": "extracted",
+        "watched": "unknown",
+        "watched_source": "no inventory reachable",
+        "watched_label": "gapped",
+        "watched_reason": "Phase 0 recorded that nothing is running and no telemetry or dashboard inventory exists; the watched/unwatched split cannot be settled, and settling it by reading code is what the tool-only rule forbids"
+      },
+      "healthy": {
+        "value": null,
+        "label": "gapped",
+        "reason": "no stated objective, no incident history"
+      },
+      "owner": {
+        "value": "unowned",
+        "label": "gapped",
+        "reason": "a public reference application has no owners; attaching a plausible name would be worse than a visibly empty column"
+      },
+      "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6 table, row 1"
+    },
+    {
+      "order": 2,
+      "name": "Customer holds items until ready",
+      "components": [
+        "basket"
+      ],
+      "owned": false,
+      "structure_label": "extracted",
+      "signal": {
+        "name": "basket_update_rate_and_failures",
+        "display_name": "Basket update rate and failures",
+        "producible": "yes",
+        "producible_source": "src/Basket.API/Grpc/BasketService.cs:36",
+        "label": "extracted",
+        "watched": "unknown",
+        "watched_source": "no inventory reachable",
+        "watched_label": "gapped",
+        "watched_reason": "Phase 0 recorded that nothing is running and no telemetry or dashboard inventory exists; the watched/unwatched split cannot be settled, and settling it by reading code is what the tool-only rule forbids"
+      },
+      "healthy": {
+        "value": null,
+        "label": "gapped",
+        "reason": "no expectation source: no stated objective, no industry norm this business accepts, no incident history, and no one to ask"
+      },
+      "owner": {
+        "value": "unowned",
+        "label": "gapped",
+        "reason": "a public reference application has no owners; attaching a plausible name would be worse than a visibly empty column"
+      },
+      "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6 table, row 2"
+    },
+    {
+      "order": 3,
+      "name": "Customer submits the order",
+      "components": [
+        "ordering"
+      ],
+      "owned": true,
+      "structure_label": "extracted",
+      "signal": {
+        "name": "orders_created",
+        "display_name": "Orders created",
+        "producible": "yes",
+        "producible_source": "src/Ordering.API/Apis/OrdersApi.cs:17",
+        "label": "extracted",
+        "watched": "unknown",
+        "watched_source": "no inventory reachable",
+        "watched_label": "gapped",
+        "watched_reason": "Phase 0 recorded that nothing is running and no telemetry or dashboard inventory exists; the watched/unwatched split cannot be settled, and settling it by reading code is what the tool-only rule forbids"
+      },
+      "healthy": {
+        "value": null,
+        "label": "gapped",
+        "reason": "expected volume is a business fact no code produces"
+      },
+      "owner": {
+        "value": "unowned",
+        "label": "gapped",
+        "reason": "a public reference application has no owners; attaching a plausible name would be worse than a visibly empty column"
+      },
+      "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6 table, row 3"
+    },
+    {
+      "order": 4,
+      "name": "Business acknowledges the order",
+      "components": [
+        "webapp"
+      ],
+      "owned": false,
+      "structure_label": "extracted",
+      "signal": {
+        "name": "order_submitted_notification_delivered",
+        "display_name": "Submitted notification published and consumed",
+        "producible": "yes",
+        "producible_source": "src/WebApp/Services/OrderStatus/IntegrationEvents/EventHandling/OrderStatusChangedToSubmittedIntegrationEventHandler.cs:5",
+        "label": "extracted",
+        "watched": "unknown",
+        "watched_source": "no inventory reachable",
+        "watched_label": "gapped",
+        "watched_reason": "Phase 0 recorded that nothing is running and no telemetry or dashboard inventory exists; the watched/unwatched split cannot be settled, and settling it by reading code is what the tool-only rule forbids"
+      },
+      "healthy": {
+        "value": null,
+        "label": "gapped",
+        "reason": "no expectation source: no stated objective, no industry norm this business accepts, no incident history, and no one to ask"
+      },
+      "owner": {
+        "value": "unowned",
+        "label": "gapped",
+        "reason": "a public reference application has no owners; attaching a plausible name would be worse than a visibly empty column"
+      },
+      "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6 table, row 4"
+    },
+    {
+      "order": 5,
+      "name": "Short window to change their mind",
+      "components": [
+        "orderprocessor",
+        "ordering"
+      ],
+      "owned": true,
+      "structure_label": "extracted",
+      "signal": {
+        "name": "grace_period_elapsed_and_confirmed",
+        "display_name": "Grace period elapsed and confirmed",
+        "producible": "yes",
+        "producible_source": "src/OrderProcessor/Services/GracePeriodManagerService.cs:15",
+        "label": "extracted",
+        "watched": "unknown",
+        "watched_source": "no inventory reachable",
+        "watched_label": "gapped",
+        "watched_reason": "Phase 0 recorded that nothing is running and no telemetry or dashboard inventory exists; the watched/unwatched split cannot be settled, and settling it by reading code is what the tool-only rule forbids"
+      },
+      "healthy": {
+        "value": null,
+        "label": "gapped",
+        "reason": "the window's length is a policy"
+      },
+      "owner": {
+        "value": "unowned",
+        "label": "gapped",
+        "reason": "a public reference application has no owners; attaching a plausible name would be worse than a visibly empty column"
+      },
+      "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6 table, row 5"
+    },
+    {
+      "order": 6,
+      "name": "Check the goods are available",
+      "components": [
+        "catalog",
+        "ordering"
+      ],
+      "owned": false,
+      "structure_label": "extracted",
+      "signal": {
+        "name": "stock_confirmed_vs_rejected",
+        "display_name": "Stock confirmed versus rejected",
+        "producible": "yes",
+        "producible_source": "src/Ordering.API/Application/IntegrationEvents/EventHandling/OrderStockConfirmedIntegrationEventHandler.cs:3; src/Ordering.API/Application/IntegrationEvents/EventHandling/OrderStockRejectedIntegrationEventHandler.cs:2",
+        "label": "extracted",
+        "watched": "unknown",
+        "watched_source": "no inventory reachable",
+        "watched_label": "gapped",
+        "watched_reason": "Phase 0 recorded that nothing is running and no telemetry or dashboard inventory exists; the watched/unwatched split cannot be settled, and settling it by reading code is what the tool-only rule forbids"
+      },
+      "healthy": {
+        "value": null,
+        "label": "gapped",
+        "reason": "a rejection rate a business would act on is a business number"
+      },
+      "owner": {
+        "value": "unowned",
+        "label": "gapped",
+        "reason": "a public reference application has no owners; attaching a plausible name would be worse than a visibly empty column"
+      },
+      "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6 table, row 6"
+    },
+    {
+      "order": 7,
+      "name": "Business takes the money",
+      "components": [
+        "payment"
+      ],
+      "owned": false,
+      "structure_label": "extracted",
+      "signal": {
+        "name": null,
+        "display_name": null,
+        "producible": "no",
+        "producible_source": "src/PaymentProcessor/IntegrationEvents/EventHandling/OrderStatusChangedToStockConfirmedIntegrationEventHandler.cs:3",
+        "label": "extracted",
+        "reason": "No payment occurs; the handler decides the outcome by reading a configuration flag. A success rate here measures a setting, not revenue",
+        "ruling": "R1",
+        "watched": null,
+        "watched_source": null,
+        "watched_label": null,
+        "watched_reason": "not applicable: nothing to watch"
+      },
+      "healthy": {
+        "value": null,
+        "label": "gapped",
+        "reason": "not applicable: no signal can be produced (R1)"
+      },
+      "owner": {
+        "value": "unowned",
+        "label": "gapped",
+        "reason": "a public reference application has no owners; attaching a plausible name would be worse than a visibly empty column"
+      },
+      "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6 table, row 7"
+    },
+    {
+      "order": 8,
+      "name": "Confirm the order is going ahead",
+      "components": [
+        "catalog",
+        "webhooks",
+        "webapp"
+      ],
+      "owned": false,
+      "structure_label": "extracted",
+      "signal": {
+        "name": "paid_event_fan_out",
+        "display_name": "Paid event fan-out to catalogue, webhooks and the web application",
+        "producible": "yes",
+        "producible_source": "src/Catalog.API/IntegrationEvents/EventHandling/OrderStatusChangedToPaidIntegrationEventHandler.cs:3",
+        "label": "extracted",
+        "watched": "unknown",
+        "watched_source": "no inventory reachable",
+        "watched_label": "gapped",
+        "watched_reason": "Phase 0 recorded that nothing is running and no telemetry or dashboard inventory exists; the watched/unwatched split cannot be settled, and settling it by reading code is what the tool-only rule forbids"
+      },
+      "healthy": {
+        "value": null,
+        "label": "gapped",
+        "reason": "no expectation source: no stated objective, no industry norm this business accepts, no incident history, and no one to ask"
+      },
+      "owner": {
+        "value": "unowned",
+        "label": "gapped",
+        "reason": "a public reference application has no owners; attaching a plausible name would be worse than a visibly empty column"
+      },
+      "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6 table, row 8"
+    },
+    {
+      "order": 9,
+      "name": "Pick and ship the goods",
+      "components": [
+        "ordering"
+      ],
+      "owned": true,
+      "structure_label": "extracted",
+      "signal": {
+        "name": null,
+        "display_name": null,
+        "producible": "no",
+        "producible_source": "src/Ordering.API/Apis/OrdersApi.cs:12",
+        "label": "extracted",
+        "reason": "Nothing inside this estate performs or observes fulfilment; the endpoint records that someone said it shipped",
+        "ruling": "R2",
+        "watched": null,
+        "watched_source": null,
+        "watched_label": null,
+        "watched_reason": "not applicable: nothing to watch"
+      },
+      "healthy": {
+        "value": null,
+        "label": "gapped",
+        "reason": "not applicable: no signal can be produced (R2)"
+      },
+      "owner": {
+        "value": "unowned",
+        "label": "gapped",
+        "reason": "a public reference application has no owners; attaching a plausible name would be worse than a visibly empty column"
+      },
+      "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6 table, row 9"
+    },
+    {
+      "order": 10,
+      "name": "Customer is told it shipped",
+      "components": [
+        "webapp",
+        "webhooks"
+      ],
+      "owned": false,
+      "structure_label": "extracted",
+      "signal": {
+        "name": "shipped_notification_delivered",
+        "display_name": "Shipped notification published and consumed",
+        "producible": "yes",
+        "producible_source": "src/WebApp/Services/OrderStatus/IntegrationEvents/EventHandling/OrderStatusChangedToShippedIntegrationEventHandler.cs:5",
+        "label": "extracted",
+        "watched": "unknown",
+        "watched_source": "no inventory reachable",
+        "watched_label": "gapped",
+        "watched_reason": "Phase 0 recorded that nothing is running and no telemetry or dashboard inventory exists; the watched/unwatched split cannot be settled, and settling it by reading code is what the tool-only rule forbids"
+      },
+      "healthy": {
+        "value": null,
+        "label": "gapped",
+        "reason": "no expectation source: no stated objective, no industry norm this business accepts, no incident history, and no one to ask"
+      },
+      "owner": {
+        "value": "unowned",
+        "label": "gapped",
+        "reason": "a public reference application has no owners; attaching a plausible name would be worse than a visibly empty column"
+      },
+      "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6 table, row 10"
+    },
+    {
+      "order": 11,
+      "name": "Tell partners what happened",
+      "components": [
+        "webhooks"
+      ],
+      "owned": false,
+      "structure_label": "extracted",
+      "signal": {
+        "name": "webhook_dispatch_success_and_failure",
+        "display_name": "Webhook dispatch success and failure",
+        "producible": "yes",
+        "producible_source": "src/Webhooks.API/IntegrationEvents/OrderStatusChangedToShippedIntegrationEventHandler.cs:16",
+        "label": "extracted",
+        "watched": "unknown",
+        "watched_source": "no inventory reachable",
+        "watched_label": "gapped",
+        "watched_reason": "Phase 0 recorded that nothing is running and no telemetry or dashboard inventory exists; the watched/unwatched split cannot be settled, and settling it by reading code is what the tool-only rule forbids"
+      },
+      "healthy": {
+        "value": null,
+        "label": "gapped",
+        "reason": "no expectation source: no stated objective, no industry norm this business accepts, no incident history, and no one to ask"
+      },
+      "owner": {
+        "value": "unowned",
+        "label": "gapped",
+        "reason": "a public reference application has no owners; attaching a plausible name would be worse than a visibly empty column"
+      },
+      "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6 table, row 11"
+    },
+    {
+      "order": 12,
+      "name": "Handle cancellation or failure",
+      "components": [
+        "ordering",
+        "webapp"
+      ],
+      "owned": true,
+      "structure_label": "extracted",
+      "signal": {
+        "name": "cancellation_and_failure_events",
+        "display_name": "Cancelled, payment-failed and stock-rejected events",
+        "producible": "yes",
+        "producible_source": "src/Ordering.API/Apis/OrdersApi.cs:11; src/Ordering.API/Application/IntegrationEvents/EventHandling/OrderPaymentFailedIntegrationEventHandler.cs:3; src/Ordering.API/Application/IntegrationEvents/EventHandling/OrderStockRejectedIntegrationEventHandler.cs:2",
+        "label": "extracted",
+        "watched": "unknown",
+        "watched_source": "no inventory reachable",
+        "watched_label": "gapped",
+        "watched_reason": "Phase 0 recorded that nothing is running and no telemetry or dashboard inventory exists; the watched/unwatched split cannot be settled, and settling it by reading code is what the tool-only rule forbids"
+      },
+      "healthy": {
+        "value": null,
+        "label": "gapped",
+        "reason": "no expectation source: no stated objective, no industry norm this business accepts, no incident history, and no one to ask"
+      },
+      "owner": {
+        "value": "unowned",
+        "label": "gapped",
+        "reason": "a public reference application has no owners; attaching a plausible name would be worse than a visibly empty column"
+      },
+      "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6 table, row 12"
+    }
+  ],
+  "too_broken": {
+    "value": null,
+    "label": "gapped",
+    "reason": "needs an expectation source: a stated objective, an industry norm this business accepts, or an incident history. This subject has none of the three, and there is no one to ask",
+    "would_close": "a named owner stating an order-failure rate the business would act on, and who owns that number",
+    "source": "PHASE-3-6-RECONCILE-RULE-SELECT-OBSERVE.md, Phase 6, 'Too broken'"
+  },
+  "rulings": {
+    "R1": {
+      "stage": 7,
+      "label": "proposed",
+      "position": "real hole in the application, not a wrong draft: a watch on this step would be green forever and would mean nothing",
+      "would_ratify": "whoever owns payments"
+    },
+    "R2": {
+      "stage": 9,
+      "label": "proposed",
+      "position": "real hole: the longest and least visible part of a customer's wait has no owner inside this system and no signal",
+      "would_ratify": "whoever owns fulfilment"
+    }
+  },
+  "unowned_note": "unowned throughout is the rule working, not a shortfall"
+}
