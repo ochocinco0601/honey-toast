@@ -1,0 +1,219 @@
+<!doctype html>
+<!-- Generated page: edit the vocabulary it renders and regenerate, never this file -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Business Observability Model</title>
+<style>
+:root{
+  --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;--clay:#D97757;--clay-d:#B85C3E;
+  --oat:#E3DACC;--olive:#788C5D;
+  --g50:#F4F2EC;--g100:#ECE9E1;--g200:#DDD9CF;--g300:#C4BFB3;--g400:#9A958A;
+  --g500:#736F66;--g600:#57544D;--g700:#3B3934;
+  --serif:ui-serif,Georgia,"Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ivory:#161615;--paper:#1E1E1C;--slate:#ECE9E1;--clay:#E08A6B;--clay-d:#EBA88F;
+    --oat:#3B352C;--olive:#9DB07F;
+    --g50:#222220;--g100:#2A2A27;--g200:#363631;--g300:#4B4A43;--g400:#7A776E;
+    --g500:#A19D92;--g600:#C2BEB3;--g700:#DAD6CC;
+  }
+}
+:root[data-theme="dark"]{
+  --ivory:#161615;--paper:#1E1E1C;--slate:#ECE9E1;--clay:#E08A6B;--clay-d:#EBA88F;
+  --oat:#3B352C;--olive:#9DB07F;
+  --g50:#222220;--g100:#2A2A27;--g200:#363631;--g300:#4B4A43;--g400:#7A776E;
+  --g500:#A19D92;--g600:#C2BEB3;--g700:#DAD6CC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ivory);color:var(--slate);font:14px/1.6 var(--sans);
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:74rem;margin:0 auto;padding:1.2rem 1.1rem 3.5rem}
+h1,h2,h3{font-family:var(--serif);font-weight:500;letter-spacing:-.01em;text-wrap:balance;margin:0}
+.mast{display:flex;flex-wrap:wrap;align-items:baseline;gap:.3rem 1.2rem;
+  border-bottom:1.5px solid var(--slate);padding-bottom:.55rem}
+.mast h1{font-size:1.55rem;line-height:1.15}
+.mast .sub{color:var(--g500);font-size:.95rem}
+.src{font-size:.8rem;color:var(--g500);margin:.55rem 0 .9rem;max-width:66ch}
+.src b{color:var(--g600);font-weight:600}
+.tabs{display:flex;gap:.35rem;flex-wrap:wrap;margin:0 0 .9rem}
+.tabs button{font:inherit;font-size:.86rem;cursor:pointer;background:var(--paper);color:var(--g600);
+  border:1.5px solid var(--g200);border-radius:8px;padding:.38rem .8rem;display:flex;gap:.5rem;align-items:baseline}
+.tabs button .k{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--g400)}
+.tabs button[aria-selected="true"]{border-color:var(--slate);color:var(--slate)}
+.tabs button[aria-selected="true"] .k{color:var(--slate)}
+.tabs button:focus-visible,button:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+.view[hidden]{display:none}
+.lead{font-family:var(--serif);font-size:1.15rem;line-height:1.45;max-width:60ch;margin:0 0 .25rem}
+.lead-src{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--g400);margin:0 0 1.1rem}
+.groups{display:grid;gap:1rem;grid-template-columns:1fr}
+@media(min-width:860px){.groups{grid-template-columns:1fr 1fr 1fr}}
+.group{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:.9rem 1rem 1rem}
+.group h2{font-size:1rem;margin:0 0 .5rem;color:var(--g600)}
+.group ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.45rem}
+.group li{font-size:.95rem;line-height:1.35;padding-left:.8rem;border-left:1.5px solid var(--oat)}
+.group li button{font:inherit;color:inherit;background:none;border:0;padding:0;text-align:left;cursor:pointer;
+  text-decoration:underline;text-decoration-color:var(--g300);text-underline-offset:3px}
+.group li button:hover{text-decoration-color:var(--slate)}
+.group li i{font-family:var(--serif);color:var(--g500)}
+.after{font-size:.86rem;color:var(--g500);margin:1rem 0 0;max-width:66ch}
+.depth{display:flex;gap:.35rem;flex-wrap:wrap;margin:0 0 .35rem}
+.depth button{font:inherit;font-size:.82rem;cursor:pointer;background:var(--paper);color:var(--g500);
+  border:1.5px solid var(--g200);border-radius:8px;padding:.3rem .65rem;display:flex;gap:.45rem;align-items:baseline}
+.depth button b{color:var(--slate);font-weight:600}
+.depth button[aria-pressed="true"]{border-color:var(--clay);color:var(--clay-d)}
+.depth button[aria-pressed="true"] b{color:var(--clay-d)}
+.depth-note{font-size:.82rem;color:var(--g500);max-width:60ch;margin:0 0 .7rem}
+.figure{overflow-x:auto;border:1.5px solid var(--g200);background:var(--paper);border-radius:12px;padding:.5rem}
+svg{display:block;min-width:70rem;width:100%;height:auto}
+.nbox{fill:var(--ivory);stroke:var(--g500);stroke-width:1.3}
+.nbox.undef{stroke-dasharray:4 3;stroke:var(--g400)}
+.nbox.party{stroke-dasharray:3 2}
+.ntext{font-family:var(--serif);font-size:13.5px;fill:var(--slate)}
+.ntext.sm{font-size:12px}
+.edge{stroke:var(--g500);stroke-width:1.2;fill:none}
+.rel{font-family:var(--serif);font-style:italic;font-size:12.5px;fill:var(--g600);
+  paint-order:stroke;stroke:var(--paper);stroke-width:5px;stroke-linejoin:round}
+.xtra{font-family:var(--sans);font-size:11px;fill:var(--g500);
+  paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round}
+.hit{fill:transparent;cursor:pointer}
+.hit:focus{outline:none}
+.hit:focus-visible{stroke:var(--clay);stroke-width:2;fill:transparent}
+g.sel .nbox,g.sel .edge{stroke:var(--slate);stroke-width:2.6}
+g.sel .rel{fill:var(--slate);font-weight:600}
+.legend{font-size:.78rem;color:var(--g500);margin:.45rem 0 0}
+.detail{margin-top:.8rem;border:1.5px solid var(--g200);background:var(--paper);border-radius:12px;padding:.85rem 1rem}
+.detail h2{font-size:1.15rem;margin:0 0 .15rem}
+.detail h2 i{font-weight:400;color:var(--g500)}
+.detail .alt{color:var(--g500);font-size:.86rem;margin:0}
+.detail dl{margin:.55rem 0 0;display:grid;grid-template-columns:max-content 1fr;gap:.3rem .9rem}
+.detail dt{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--g400);padding-top:.2rem}
+.detail dd{margin:0;max-width:70ch}
+.detail dd.open{color:var(--clay-d)}
+.placeholder{color:var(--g500);margin:0}
+.insight{font-family:var(--serif);font-size:1.1rem;line-height:1.45;max-width:60ch;margin:0 0 1rem}
+.stack{display:grid;gap:.55rem}
+.tier{display:grid;grid-template-columns:7.5rem 1fr;background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;overflow:hidden}
+.tier.model{border-color:var(--slate)}
+.tier .tag{padding:.8rem .85rem;font-family:var(--mono);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--g500);background:var(--g50);border-right:1.5px solid var(--g200);display:flex;align-items:flex-start}
+.tier.model .tag{color:var(--slate)}
+.tier .body{padding:.75rem .95rem .85rem}
+.tier .body h3{font-family:var(--sans);font-size:.98rem;font-weight:600;margin:0 0 .25rem}
+.tier .chars{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:.25rem .9rem;font-size:.86rem;color:var(--g500)}
+.tier .chars li::before{content:"\00b7";margin-right:.45rem;color:var(--g300)}
+.tier .items{margin:.5rem 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:.3rem}
+.tier .items li{font-size:.82rem;border:1.5px solid var(--oat);border-radius:8px;padding:.1rem .5rem;color:var(--g600)}
+.tier .here{font-size:.9rem;margin:.15rem 0 0}
+.tier .here button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;
+  text-decoration:underline;text-decoration-color:var(--g300);text-underline-offset:3px}
+footer{margin-top:1.6rem;padding-top:.5rem;border-top:1.5px solid var(--g200);font-size:.78rem;color:var(--g400)}
+@media (prefers-reduced-motion:no-preference){.tabs button,.depth button{transition:border-color 150ms ease,color 150ms ease}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="mast"><h1>The Business Observability Model</h1><div class="sub">The terms, and how they connect.</div></div>
+<p class="src">Rendered from the controlled vocabulary of the methodology, <b>2026-09-08</b>.</p>
+<div class="tabs" role="tablist"><button type="button" role="tab" data-view="one" aria-selected="true"><span class="k">1</span>In one screen</button><button type="button" role="tab" data-view="model" aria-selected="false"><span class="k">2</span>The model</button><button type="button" role="tab" data-view="stack" aria-selected="false"><span class="k">3</span>Where it stops</button></div>
+<section class="view" id="v-one">
+<p class="lead">Observability begins with defining success in business health terms — not with telemetry.</p><p class="lead-src">The methodology&rsquo;s core claim</p>
+<div class="groups"><section class="group"><h2>Why we care</h2><ol><li><button type="button" data-go="r0">Stakeholder <i>holds</i> Expectation.</button></li><li><button type="button" data-go="r1">Expectation <i>is satisfied when</i> Satisfaction condition.</button></li><li><button type="button" data-go="r2">Satisfaction condition <i>is evidenced by</i> Indicator.</button></li><li><button type="button" data-go="r3">Indicator <i>may carry</i> Objective.</button></li><li><button type="button" data-go="r4">Indicator against Objective <i>means</i> Expectation unmet.</button></li><li><button type="button" data-go="r5">Expectation unmet <i>causes</i> Impact.</button></li><li><button type="button" data-go="r6">Impact <i>falls on</i> Affected party.</button></li></ol></section><section class="group"><h2>What happens next</h2><ol><li><button type="button" data-go="r13">Expectation unmet <i>raises</i> Alert.</button></li><li><button type="button" data-go="r14">Alert <i>reaches</i> Owner.</button></li><li><button type="button" data-go="r15">Owner <i>takes</i> Action.</button></li></ol></section><section class="group"><h2>What produces it</h2><ol><li><button type="button" data-go="r7">Indicator <i>is explained by</i> Diagnostic measurement.</button></li><li><button type="button" data-go="r8">Diagnostic measurement <i>is produced by</i> Component.</button></li><li><button type="button" data-go="r9">Component <i>performs</i> Process step.</button></li><li><button type="button" data-go="r10">Component <i>depends on</i> Dependency.</button></li><li><button type="button" data-go="r11">Process step <i>composes</i> Intended Flow.</button></li><li><button type="button" data-go="r12">Intended Flow <i>delivers</i> Capability.</button></li></ol></section></div>
+<p class="after">Sixteen sentences. Each opens in the drawing, where the vocabulary&rsquo;s definition and its note on the relation sit beside it.</p>
+</section>
+<section class="view" id="v-model" hidden>
+<div class="depth"><button type="button" data-d="1" aria-pressed="true"><b>1</b> the relations</button><button type="button" data-d="2" aria-pressed="false"><b>2</b> what each relation claims</button></div>
+<p class="depth-note" id="depthnote"></p>
+<div class="figure"><svg id="fig" viewBox="0 0 1160 940" role="img" aria-label="The model: terms and the relations between them"></svg></div>
+<div class="detail" id="detail"></div>
+</section>
+<section class="view" id="v-stack" hidden>
+<p class="insight">The methodology (Layer 1) is stable and platform-agnostic. Everything else is implementation that can vary by organization, tooling, and use case.</p>
+<div class="stack"><div class="tier model"><div class="tag">Layer 1</div><div class="body"><h3>Methodology</h3><p class="here">The model on this page. <button type="button" data-go="r0">Open the drawing</button></p><ul class="chars"><li>Platform-agnostic (works with any tooling)</li><li>Stable (rarely changes)</li><li>Conceptual (how to think, not how to implement)</li></ul></div></div><div class="tier"><div class="tag">Layer 2</div><div class="body"><h3>Data Model</h3><ul class="chars"><li>Format-agnostic (YAML, JSON, SQL, CSV all valid serializations)</li><li>Structure matters, not serialization format</li><li>Can extend for use cases (Layer 4) while preserving core structure</li></ul></div></div><div class="tier"><div class="tag">Layer 3</div><div class="body"><h3>Production Systems</h3><ul class="chars"><li>Independently implementable (can use any subset)</li><li>Tool-specific (each organization chooses their tools)</li><li>Consumes Layer 2 data model as input</li></ul><ul class="items"><li>Dashboard Factory</li><li>Alert Factory</li><li>Playbook Factory</li><li>Story Factory</li><li>Graph Factory</li><li>AI/RAG Factory</li></ul></div></div><div class="tier"><div class="tag">Layer 4</div><div class="body"><h3>Use Cases</h3><ul class="chars"><li>Use cases inform expansion (new fields) at Layer 2</li><li>Layer 1 methodology stays stable across all use cases</li><li>Different organizations may prioritize different use cases</li></ul><ul class="items"><li>Batch Job Observability</li><li>API Observability</li><li>Message Handler Observability</li><li>Workflow/UI Observability</li></ul></div></div><div class="tier"><div class="tag">Layer 5</div><div class="body"><h3>Workflows</h3><ul class="chars"><li>AI-assisted extraction lives here (reducing PO burden)</li><li>Different organizations have different workflow priorities</li><li>Workflows consume artifacts from Layer 3</li></ul><ul class="items"><li>Green Field Onboarding</li><li>Brown Field Extraction</li><li>Continuous Validation</li><li>Incident Response</li><li>Dependency Analysis</li><li>Compliance Auditing</li></ul></div></div></div>
+</section>
+<footer>Rendered 2026-09-08.</footer>
+</div>
+<script>window.__MODEL__={"nodes": [{"id": "stakeholder", "label": "Stakeholder", "x": 330, "y": 20, "fan": false, "defined": true, "definition": "Person or group with interest in service health", "example": "Loan applicants (customers), the treasury team (internal), Credit bureaus (partners)", "alternatives": "Affected Party, Interested Party", "aka": ""}, {"id": "expectation", "label": "Expectation", "x": 330, "y": 120, "fan": false, "defined": true, "definition": "What a stakeholder is counting on the service to do for them, stated as an outcome in that stakeholder's own words — not as a system behaviour and not as a number. One stakeholder may hold several.", "example": "\"I can get a decision on my application while I am still on the phone\"", "alternatives": "Need, Requirement, Want", "aka": ""}, {"id": "satisfaction-condition", "label": "Satisfaction condition", "x": 330, "y": 220, "fan": false, "defined": true, "definition": "The state of affairs that has to hold for an expectation to be satisfied, stated so someone outside the team could check it, and stated before any number is chosen. An expectation is never measured directly; a condition is, and the indicator is an argument that the two correspond.", "example": "\"Applications submitted during a call reach a decision before the call ends\"", "alternatives": "", "aka": ""}, {"id": "indicator", "label": "Indicator", "x": 330, "y": 320, "fan": false, "defined": true, "definition": "A measurement chosen to evidence whether a stakeholder expectation is being met. The choosing is the substance: an indicator is an argument that this number stands for that expectation, and the argument is what can be wrong. Established term — service level indicator, SRE practice.", "example": "Credit check success rate, offered as evidence that applicants can get a decision", "alternatives": "Technical Signal, Performance Metric", "aka": "SLI, Service Level Indicator"}, {"id": "objective", "label": "Objective", "x": 610, "y": 320, "fan": false, "defined": true, "definition": "A number agreed against an indicator, over a stated window, that a named person is accountable to. A commitment, not an aspiration. Kept deliberately separate from the indicator: an indicator with no objective is still an indicator. Established term — SRE practice.", "example": "99.5% over 30 rolling days", "alternatives": "Target, Threshold, Goal", "aka": "SLO, Service Level Objective"}, {"id": "expectation-unmet", "label": "Expectation unmet", "x": 330, "y": 430, "fan": false, "defined": false, "definition": "", "example": "", "alternatives": "", "aka": ""}, {"id": "impact", "label": "Impact", "x": 170, "y": 540, "fan": false, "defined": true, "definition": "The quantified consequence when an expectation is not met, in the unit the affected party feels it in. It has a number continuously, because failures are continuous. No target is agreed for it in advance — there is no acceptable quantity of consequence — so it is not an indicator and cannot breach. A threshold on an impact is a response trigger, which is a different thing from a commitment.", "example": "Applications not decisioned per hour; billable hours at risk", "alternatives": "Business Impact Signal, Business Metric, Business Signal", "aka": ""}, {"id": "affected-party", "label": "Affected party", "x": 170, "y": 650, "fan": true, "defined": true, "definition": "Whoever bears an impact. More than one, and not only the stakeholder who held the expectation — a late disclosure lands on customers and on a compliance function at the same time.", "example": "Customers; the compliance function; the operations team", "alternatives": "Impacted stakeholder", "aka": ""}, {"id": "diagnostic-measurement", "label": "Diagnostic measurement", "x": 790, "y": 430, "fan": false, "defined": true, "definition": "A measurement about the mechanism rather than the outcome, consulted to explain why an indicator moved. Established distinction — symptom versus cause, reliability practice.", "example": "Event-store write failure rate; queue depth", "alternatives": "Cause signal, mechanism signal, supporting signal", "aka": ""}, {"id": "component", "label": "Component", "x": 790, "y": 540, "fan": false, "defined": true, "definition": "The deployable part that performs a process step. What a diagnostic measurement is about.", "example": "The Workshop Management API", "alternatives": "Application, Service (technical), Module", "aka": ""}, {"id": "process-step", "label": "Process step", "x": 790, "y": 650, "fan": false, "defined": true, "definition": "One ordered step of an intended flow. The unit at which a flow is decomposed.", "example": "Validate recipient; call the bureau; write the ledger entry", "alternatives": "Stage, Task, Activity", "aka": ""}, {"id": "dependency", "label": "Dependency", "x": 1030, "y": 540, "fan": false, "defined": true, "definition": "Something a component requires in order to perform its step, and whose failure it inherits.", "example": "The event store; the message broker; the credit bureau", "alternatives": "Downstream, Upstream, Integration", "aka": ""}, {"id": "intended-flow", "label": "Intended Flow", "x": 790, "y": 760, "fan": false, "defined": true, "definition": "The flow as designed and captured — the journey/architecture, what is supposed to happen. Authored, not measured. What onboarding captures (Define stage).", "example": "Zelle send-money journey: initiate → validate recipient → fraud/risk → debit → settle → credit → notify", "alternatives": "\"the flow\", the journey, the diagram", "aka": "design-time"}, {"id": "capability", "label": "Capability", "x": 790, "y": 870, "fan": false, "defined": true, "definition": "What the service is able to do for the business, named independently of how it is built. Decomposes into sub-capabilities.", "example": "Vehicle maintenance scheduling", "alternatives": "Function, Business capability", "aka": ""}, {"id": "alert", "label": "Alert", "x": 490, "y": 540, "fan": false, "defined": true, "definition": "Automated notification when signal violates threshold", "example": "Credit Check SLO violation alert", "alternatives": "Notification, Alarm", "aka": ""}, {"id": "owner", "label": "Owner", "x": 490, "y": 650, "fan": false, "defined": false, "definition": "", "example": "", "alternatives": "", "aka": ""}, {"id": "action", "label": "Action", "x": 490, "y": 760, "fan": false, "defined": true, "definition": "Something a named person can actually do that changes the state of a component. Distinct from the diagnosis that identified it, and distinct from the notification that summoned them.", "example": "Drain and restart the consumer; fail over to the secondary region", "alternatives": "Remediation, Fix, Next step", "aka": ""}], "edges": [{"id": "r0", "a": "stakeholder", "b": "expectation", "rel": "holds", "note": "One stakeholder may hold several; one expectation belongs to exactly one stakeholder.", "subject": "Stakeholder"}, {"id": "r1", "a": "expectation", "b": "satisfaction-condition", "rel": "is satisfied when", "note": "Stated before any measurement is chosen.", "subject": "Expectation"}, {"id": "r2", "a": "satisfaction-condition", "b": "indicator", "rel": "is evidenced by", "note": "The load-bearing claim. This is an argument, and it is the thing most often wrong.", "subject": "Satisfaction condition"}, {"id": "r3", "a": "indicator", "b": "objective", "rel": "may carry", "note": "May. An indicator with no objective is still an indicator.", "subject": "Indicator"}, {"id": "r4", "a": "indicator", "b": "expectation-unmet", "rel": "means", "note": "An inference drawn from a comparison, never a reading the number reports.", "subject": "Indicator against Objective"}, {"id": "r5", "a": "expectation-unmet", "b": "impact", "rel": "causes", "note": "", "subject": "Expectation unmet"}, {"id": "r6", "a": "impact", "b": "affected-party", "rel": "falls on", "note": "One or more. A single failure reaches several parties at once, and not only the stakeholder who held the expectation.", "subject": "Impact"}, {"id": "r7", "a": "indicator", "b": "diagnostic-measurement", "rel": "is explained by", "note": "Kept available for diagnosis. Whether each must formally hang beneath the indicator it explains is open.", "subject": "Indicator"}, {"id": "r8", "a": "diagnostic-measurement", "b": "component", "rel": "is produced by", "note": "", "subject": "Diagnostic measurement"}, {"id": "r9", "a": "component", "b": "process-step", "rel": "performs", "note": "", "subject": "Component"}, {"id": "r10", "a": "component", "b": "dependency", "rel": "depends on", "note": "", "subject": "Component"}, {"id": "r11", "a": "process-step", "b": "intended-flow", "rel": "composes", "note": "", "subject": "Process step"}, {"id": "r12", "a": "intended-flow", "b": "capability", "rel": "delivers", "note": "", "subject": "Intended flow"}, {"id": "r13", "a": "expectation-unmet", "b": "alert", "rel": "raises", "note": "Only when the indicator carries an objective: that is the only kind that can breach, so the only kind that raises an alert. An impact never raises one by itself.", "subject": "Expectation unmet"}, {"id": "r14", "a": "alert", "b": "owner", "rel": "reaches", "note": "", "subject": "Alert"}, {"id": "r15", "a": "owner", "b": "action", "rel": "takes", "note": "", "subject": "Owner"}], "depthNotes": {"1": "The relations, as the vocabulary states them. Read each as a sentence: the relation carries as much meaning as the terms. A dashed box is a term the model names and the vocabulary has not yet defined.", "2": "The note the vocabulary attaches to each relation. This is where the model commits."}};</script>
+<script>
+(function(){
+"use strict";
+var D=window.__MODEL__;
+var NW=196,NH=38,NS="http://www.w3.org/2000/svg";
+var byId={};D.nodes.forEach(function(n){byId[n.id]=n;});
+var svg=document.getElementById("fig"),depth=1,sel=null;
+var hooks={onSelect:function(){}};window.__MODEL_HOOKS__=hooks;
+
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function el(n,a){var e=document.createElementNS(NS,n);Object.keys(a||{}).forEach(function(k){e.setAttribute(k,a[k]);});return e;}
+function box(n){var w=n.fan?300:NW;return{x:n.x-w/2,y:n.y,w:w,cx:n.x,top:n.y,bot:n.y+NH};}
+function wrap(s,m){var o=[],l="";s.split(" ").forEach(function(w){if((l+" "+w).trim().length>m){o.push(l.trim());l=w;}else l=(l+" "+w).trim();});if(l)o.push(l.trim());return o;}
+function lines(g,arr,cx,cy,cls){var t=el("text",{x:cx,y:cy,"text-anchor":"middle","class":cls});arr.forEach(function(s,i){var ts=el("tspan",{x:cx,dy:i?14:0});ts.textContent=s;t.appendChild(ts);});g.appendChild(t);}
+function hit(g,attrs,id,label){var h=el("rect",attrs);h.setAttribute("class","hit");h.setAttribute("tabindex","0");h.setAttribute("role","button");h.setAttribute("aria-label",label);
+  function go(){select(id);}h.addEventListener("click",go);h.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();go();}});g.insertBefore(h,g.firstChild);}
+
+function render(){
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  var defs=el("defs"),mk=el("marker",{id:"ah",viewBox:"0 0 8 8",refX:"7",refY:"4",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"});
+  var pp=el("path",{d:"M0,0 L8,4 L0,8 z"});pp.setAttribute("fill","currentColor");mk.appendChild(pp);defs.appendChild(mk);svg.appendChild(defs);
+  D.edges.forEach(function(e){
+    var A=box(byId[e.a]),B=box(byId[e.b]),g=el("g",{"class":"eg"+(sel===e.id?" sel":"")});
+    g.style.color=getComputedStyle(document.documentElement).getPropertyValue("--g500").trim();
+    var lx,ly,an;
+    if(A.y===B.y){var y=A.y+NH/2;g.appendChild(el("path",{"class":"edge","marker-end":"url(#ah)",d:"M"+(A.cx+NW/2)+","+y+" L"+(B.cx-NW/2-6)+","+y}));lx=(A.cx+NW/2+B.cx-NW/2)/2;ly=y-6;an="middle";}
+    else if(byId[e.b].fan){[-100,0,100].forEach(function(dx){g.appendChild(el("path",{"class":"edge","marker-end":"url(#ah)",d:"M"+A.cx+","+A.bot+" L"+(B.cx+dx)+","+(B.top-6)}));});lx=A.cx+10;ly=(A.bot+B.top)/2-4;an="start";}
+    else{g.appendChild(el("path",{"class":"edge","marker-end":"url(#ah)",d:"M"+A.cx+","+A.bot+" L"+B.cx+","+(B.top-6)}));var mx=(A.cx+B.cx)/2;ly=(A.bot+B.top)/2-4;an=A.cx===B.cx?"middle":(A.cx<B.cx?"start":"end");lx=A.cx===B.cx?mx:mx+(A.cx<B.cx?12:-12);}
+    var lb=el("text",{x:lx,y:ly,"text-anchor":an,"class":"rel"});lb.textContent=e.rel;g.appendChild(lb);
+    if(depth===2&&e.note){wrap(e.note,46).forEach(function(s,i){var t=el("text",{x:lx,y:ly+16+i*12,"text-anchor":an,"class":"xtra"});t.textContent=s;g.appendChild(t);});}
+    hit(g,{x:Math.min(A.cx,B.cx)-140,y:Math.min(A.bot,A.y),width:Math.abs(A.cx-B.cx)+280,height:Math.max(Math.abs(B.top-A.bot),34)},e.id,e.subject+" "+e.rel+" "+byId[e.b].label);
+    svg.appendChild(g);
+  });
+  D.nodes.forEach(function(n){
+    var b=box(n),g=el("g",{"class":"ng"+(sel===n.id?" sel":"")});
+    if(n.fan){[-100,0,100].forEach(function(dx){g.appendChild(el("rect",{"class":"nbox party",x:n.x+dx-45,y:n.y,width:90,height:NH,rx:2}));});[-100,0,100].forEach(function(dx){lines(g,["a party"],n.x+dx,n.y+23,"ntext sm");});}
+    else{g.appendChild(el("rect",{"class":"nbox"+(n.defined?"":" undef"),x:b.x,y:b.y,width:b.w,height:NH,rx:2}));var t=wrap(n.label,22);lines(g,t,n.x,n.y+(t.length>1?16:24),"ntext");}
+    hit(g,{x:b.x-6,y:b.y-5,width:b.w+12,height:NH+10},n.id,n.label);
+    svg.appendChild(g);
+  });
+}
+
+function find(id){if(byId[id])return{k:"n",o:byId[id]};var f=null;D.edges.forEach(function(e){if(e.id===id)f=e;});return f?{k:"e",o:f}:null;}
+
+function paint(){
+  var host=document.getElementById("detail"),f=sel&&find(sel);
+  if(!f){host.innerHTML='<p class="placeholder">Select any term or relation for what the vocabulary says about it.</p>';return;}
+  var o=f.o,h="";
+  if(f.k==="e"){h+='<h2>'+esc(o.subject)+' <i>'+esc(o.rel)+'</i> '+esc(byId[o.b].label)+'</h2><dl>';
+    h+='<dt>Says</dt><dd>'+(o.note?esc(o.note):'<span class="placeholder">The vocabulary states this relation without a note.</span>')+'</dd></dl>';}
+  else{h+='<h2>'+esc(o.label)+(o.aka?' <i>'+esc(o.aka)+'</i>':'')+'</h2>';
+    if(o.alternatives)h+='<p class="alt">Also called: '+esc(o.alternatives)+'</p>';
+    h+='<dl>';
+    if(o.defined){h+='<dt>Definition</dt><dd>'+esc(o.definition)+'</dd>';if(o.example)h+='<dt>Example</dt><dd>'+esc(o.example)+'</dd>';}
+    else{h+='<dt>Definition</dt><dd class="open">No definition recorded in the vocabulary.</dd>';}
+    h+='</dl>';}
+  host.innerHTML=h;
+  hooks.onSelect(host,f);
+}
+
+function select(id){sel=id;render();paint();}
+function setDepth(d){depth=d;Array.prototype.forEach.call(document.querySelectorAll(".depth button"),function(b){b.setAttribute("aria-pressed",Number(b.getAttribute("data-d"))===d?"true":"false");});
+  document.getElementById("depthnote").textContent=D.depthNotes[d];render();}
+Array.prototype.forEach.call(document.querySelectorAll(".depth button"),function(b){b.addEventListener("click",function(){setDepth(Number(b.getAttribute("data-d")));});});
+
+var views=["one","model","stack"];
+function show(v){if(views.indexOf(v)<0)v="one";views.forEach(function(k){document.getElementById("v-"+k).hidden=(k!==v);});
+  Array.prototype.forEach.call(document.querySelectorAll(".tabs button"),function(b){b.setAttribute("aria-selected",b.getAttribute("data-view")===v?"true":"false");});
+  if(history.replaceState)history.replaceState(null,"","#"+v);}
+Array.prototype.forEach.call(document.querySelectorAll(".tabs button"),function(b){b.addEventListener("click",function(){show(b.getAttribute("data-view"));});});
+Array.prototype.forEach.call(document.querySelectorAll("[data-go]"),function(b){b.addEventListener("click",function(){show("model");select(b.getAttribute("data-go"));document.getElementById("v-model").scrollIntoView({block:"start"});});});
+window.addEventListener("hashchange",function(){show(location.hash.replace("#",""));});
+show(location.hash.replace("#","")||"one");
+setDepth(1);paint();
+window.__MODEL_API__={select:select,find:find,current:function(){return sel;}};
+})();
+</script>
+</body>
+</html>
