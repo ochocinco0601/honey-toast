@@ -20,6 +20,7 @@ Reusable GitHub Copilot skills and agents for structured thinking, writing, and 
 | **prune-instructions** | Restructure an overgrown instructions file via the residency-test method (GATE / FACT / CONDUCT). |
 | **requirements** | Elicit and structure requirements before work begins — functional requirements, quality attributes, stakeholder analysis, failure definition. |
 | **right-thing-right-way** | Two-altitude diagnostic: am I solving the right problem? am I solving it the right way? |
+| **room** | Put several advisors on one problem at once — an engineer, a mentor, a domain practitioner, a cold reader of the record — each in its own context, each blind to the others, each reporting separately. Implements Perspective-Based Reading, where the gain is the union of what the perspectives find and collapses when they overlap, so seats are chosen by question shape rather than by headcount. Ships 19 seat prompts, a convening procedure with three mechanical controls against a room grading its own work, and a scoring ledger that states its own falsifier. |
 | **skill-creator** | Create, modify, and evaluate Copilot skills. |
 | **systems-analysis** | Structured systems analysis — data flows, failure modes, leverage points, architecture (C4 + arc42). |
 | **value-analysis** | Structured value reasoning — value for whom, at what altitude, under what constraints. |
