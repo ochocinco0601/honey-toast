@@ -83,10 +83,33 @@ The right tests are: **is the position defensible, is the reasoning visible, and
 disagrees see exactly what to argue with.** Everything below is built for those three, which is why
 each assignment carries its frame, its basis and the alternative it rejected.
 
-**Nothing here says what the draft is for, and that is deliberate.** One draft is read several ways
-by people who want different things from it — a stakeholder reading only the business sentences, work
-that builds on the step and component bindings, a reviewer arguing with the alternative, someone
-taking a single assignment back to the material to check it. None of them is the intended one.
+**Nothing here says which of its readers the draft is for, and that is deliberate.** One draft is
+read several ways by people who want different things from it — a stakeholder reading only the
+business sentences, an engineer building on the step and component bindings, a reviewer arguing
+with the alternative, someone taking a single assignment back to the material to check it. None of them is the intended one.
+
+**And nothing here says how a draft should be drawn.** What the levels fix is the model — what a
+thing is, what it binds to, and the order the case meets things in. How that gets presented is a
+separate choice, made per view and per question. A sequence view lays stages and steps on one line
+and shows what the case meets in turn; a lane view groups by performer; a containment view groups
+the steps that fall between two stages under the earlier one, and must say that is what it is doing,
+because **the model does not give a step a parent stage** — a step sits between two of them, and an
+irreversibility boundary can run straight through one. Those three are common cases, not the set:
+a matrix, a state machine, a timeline are views too, and a kind of view missing from that list is
+not thereby ruled out.
+
+**None of them is the correct one, and a view is not beyond argument.** Judge it three ways:
+
+1. **Does it answer the question it declares?** Which requires the question to be declared. A
+   picture with no stated question is a drawing, not a view.
+2. **Does it follow the conventions it claims to follow?** A containment view that groups steps
+   under the earlier stage has to say so; having said so, it is wrong if it then does something
+   else.
+3. **Does it contradict the draft, or another view of the same draft?** A view asserting an order,
+   a binding or a containment the rows do not carry is wrong however well it answers its question.
+   So is one that drops rows without saying so — quietly omitting the `set aside` and `undetermined`
+   rows undoes the guarantee this procedure works hardest for, that a finished draft is
+   distinguishable from an unattempted one.
 
 **Which is why the same assignment is kept in more than one form.** *`CreditService.evaluate()`* and
 *the application is sent for a credit decision* are not a wrong answer and a right one. They are one
@@ -687,8 +710,8 @@ what lets a reader — or anything else that picks the draft up — count the `u
 without reading them, and it costs nothing at drafting time.
 
 These three are the only closed sets in this procedure. **Every other list in it is illustrative**
-— the source kinds, the things that go to `set aside`, the *Reading from* column of every
-demonstration table. Those name common cases so a reader recognises the shape; they are not
+— the source kinds, the things that go to `set aside`, the kinds of view, the *Reading from*
+column of every demonstration table. Those name common cases so a reader recognises the shape; they are not
 enumerations to match against, and a thing missing from one of them is not thereby excluded.
 
 | Field | Closed set |
@@ -706,7 +729,7 @@ enumerations to match against, and a thing missing from one of them is not there
 | **Basis** | `attested` — stated in the source or given by the declared frame, cite which · `inferred` — derived, say from what · `undetermined` — the source does not settle it | on messy input this is the line between a draft and a fabrication |
 | **Alternative** | the reading you did not take, or `none`. **It may be that the thing is not one of the six at all** — that is a reading, and a common one | this is what a reviewer disagrees with; omitting it makes the draft uncorrectable |
 | **Binding** | for a component, the step or steps it performs; for an external dependency, the component that requires it, or the step it performs where no component mediates; for the capability the walk delivers, that flow — an ability the source names but the walk does not deliver binds `undetermined`, which is what distinguishes the two kinds of capability row; for a step, `n/a` where a performer row points at it and `undetermined` where none does and none could be found — never `none`, because a step row does not name its own performer, the performer row points at the step | Step 6 demands it, and a component bound to no step is not a component in this walk |
-| **Order** | the position of a stage or step along the flow, as a single integer sequence spanning both — the case meets parks and acts interleaved, so a sequence per level gives two ladders with no rung between them and the path cannot be rebuilt from the fields alone. `parallel with <n>` where two run at once and `loops to <n>` where the case can go back — those are the branching cases the limits section names, and they belong here rather than in prose | **without this the ordered path is not recorded anywhere.** Rows in a table have adjacency, which nothing declares meaningful, and a draft reordered by any consumer loses the one structure the whole model is about |
+| **Order** | the position of a stage or step along the flow, as a single integer sequence spanning both — the case meets parks and acts interleaved, so a sequence per level gives two ladders with no rung between them and the path cannot be rebuilt from the fields alone. `parallel with <n>` where two run at once and `loops to <n>` where the case can go back — those are the branching cases the limits section names, and they belong here rather than in prose | **without this the ordered path is not recorded anywhere.** This fixes the order the case meets things in; it does not fix how any view presents them. Rows in a table have adjacency, which nothing declares meaningful, and a draft reordered by any consumer loses the one structure the whole model is about |
 
 **`undetermined` is expected, not a failure.** A model with thin material that produces confident
 assignments is worse than one that declines.
@@ -877,6 +900,18 @@ screen is this procedure's own, and is flagged rather than dressed up.
   the company-boundary exclusion explicit
 - **System of interest versus operational environment** — ISO/IEC/IEEE 15288 and INCOSE: the same
   membership split in systems-engineering terms, also drawn without reference to who owns what
+- **Architecture description** — ISO/IEC/IEEE 42010 (from IEEE 1471-2000): the model, a **view**
+  of it, and the **viewpoint** that frames a stakeholder concern and governs how that view is
+  built. Its conformance criteria are where the three-way judging rule above comes from — a view
+  with no governing viewpoint is not a view, and a view can answer its own question and still be
+  wrong by contradicting another. The standard nominates no primary view; the frameworks built on
+  top of it, ArchiMate’s viewpoint catalogue and 4+1’s scenarios, exist because an open
+  mechanism with no catalogue produces diagrams nobody can reuse
+- **Logical data independence** — ANSI/X3/SPARC three-schema architecture (1975): presentations
+  change without the underlying model changing, which is the older statement of the same claim
+- **Boundary object** — Star & Griesemer (1989), with Star’s 2010 corrective: one artifact serving
+  several identified communities at once. The corrective matters here — it works because the
+  communities are distinguished, not collapsed
 - **Bounded context** — Evans, domain-driven design: a term's meaning is bounded by the context that
   declares it. Step 0's frame is a bounded-context declaration, and *the same activity is a
   capability under one frame and a single act under another* is that claim
