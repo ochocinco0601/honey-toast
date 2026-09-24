@@ -115,37 +115,9 @@ One week later, ask one question. See `evaluation.md`.
 
 ## Blanks to fill before sending
 
-Every place the kit says `[YOUR ORGANIZATION: ...]`, by file. Fill them once in your copy. The
-one on the critical path is the repository address in `lesson-application.md`; without it the
-application lesson stops at step 1.
+Every place the training says `[YOUR ORGANIZATION: ...]` is listed, by file, line and section, in
+`BLANKS.md` beside this file. The list is rebuilt each time the pages are built, so it is always
+current. Fill them once in your copy. The one on the critical path is the repository address in
+`lesson-application.md`; without it the application lesson stops at step 1.
 
-- `README.md` line 12: who to ask when setup fails
-- `facilitator/evaluation.md` line 20: where
-- `facilitator/run-of-show.md` line 35: the generator command
-- `facilitator/run-of-show.md` line 37: two skills your teams can use today
-- `facilitator/run-of-show.md` line 54: the command to run the generator
-- `facilitator/run-of-show.md` line 75: generator command
-- `faq.md` line 14: what leaves the machine, what is retained, and which classes of data may be used with the assistant
-- `faq.md` line 24: the review rule and process, by name
-- `faq.md` line 35: how access is requested, and from whom
-- `faq.md` line 42: the policy on external skills, and where internal shared skills are published
-- `faq.md` line 48: any policy
-- `faq.md` line 54: current connectors and their status
-- `faq.md` line 63: schedule and how to join
-- `faq.md` line 67: where suggestions go
-- `faq.md` line 80: how to get VS Code and the assistant installed, how a licence is requested, and who to ask
-- `faq.md` line 94: how to install git, how to sign in to the code host, and the onboarding setup prompt
-- `how-to/analyze-an-export.md` line 11: which classes of data may be used with the assistant
-- `how-to/analyze-an-export.md` line 29: available connectors and their status
-- `how-to/ask-for-a-skill.md` line 27: where skills are stored, and where approved shared skills are published
-- `how-to/review-a-change-for-go-or-no-go.md` line 12: which classes of data may be used with the assistant
-- `how-to/set-house-rules.md` line 24: any standard instructions file your teams share, and where it lives
-- `lesson-application.md` line 22: which repositories a learner may open, and where to find the address
-- `lesson-application.md` line 45: how to confirm the generator is installed
-- `lesson-application.md` line 75: the command to run the generator, and what it produces
-- `lesson-your-files.md` line 29: which classes of data may be used with the assistant
-- `skills.md` line 33: where approved shared skills are published, how one is installed, and who maintains the list
-- `skills.md` line 37: two or three skills to start with, each with a one-line job. For example: a skill that turns a ticket export into a weekly summary; a skill that documents an application from its code; a skill that drafts a monthly review from a folder of notes
-- `skills.md` line 47: the jobs your teams share, and which have a skill today
-- `skills.md` line 54: how a skill you made is shared, reviewed and published
-- `skills.md` line 64: references on skills: the internal catalogue, the guide to writing one, and any research or comparisons the training team has assembled
+Without the build, find them in VS Code: press Ctrl+Shift+F and search for `[YOUR ORGANIZATION`.

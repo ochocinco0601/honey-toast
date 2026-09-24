@@ -1,6 +1,7 @@
-# Skills: what they are, how to use one, where ours are
+# Your organization's skills
 
-For someone who has finished README.md. This page is a reference, not a lesson: come to it when
+For someone who has done [Start here](getting-started/start-here.md). This page is a reference, not a lesson, and most of it
+is for your organization to fill in: come to it when
 you want to use a skill someone else made, find the ones your organization provides, or share
 one of your own.
 
@@ -16,7 +17,7 @@ they are done here. You can open a skill and read it; it is only text.
 Two ways, either works:
 
 - Ask for it by name in plain words, and name the file it should work on:
-  > Use the ticket-commonality skill on `export.csv` in `<your folder>`.
+  > Use the `<skill name>` skill on `<your export file>` in `<your folder>`.
 - Type a forward slash in the chat box and start typing the skill's name. A list appears; pick
   from it.
 
@@ -48,15 +49,15 @@ same way.
 
 ## Asking for a new one, and sharing it
 
-To have the assistant write you a skill for a job you repeat, see `how-to/ask-for-a-skill.md`.
+To have the assistant write you a skill for a job you repeat, see [Ask for a skill](getting-started/how-to/ask-for-a-skill.md).
 Once it works for you, others can use it.
 
 `[YOUR ORGANIZATION: how a skill you made is shared, reviewed and published]`
 
 ## Is it safe to download a skill?
 
-A skill is text. Read it before you use it, as you would any file someone sent you. Downloading
-from outside the organization may be restricted; see `faq.md`. Skills published inside your
+A skill is text. Read it before you use it, as you would any file someone sent you.
+`[YOUR ORGANIZATION: whether skills from outside the organization may be used]` Skills published inside your
 organization have already been through whatever review it applies.
 
 ## Further reading

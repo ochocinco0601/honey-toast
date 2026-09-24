@@ -1,94 +1,102 @@
-# Questions people ask
+# Questions
 
-## I am not a coder. What am I supposed to do with this?
+Something not working? See [If something goes wrong](troubleshooting.md).
 
-Use it on your own files. Nothing here requires you to write code, and the only reading of code
-is checking that a file the assistant cited contains the words it claims; you do not need to
-understand the code around them. Start with `README.md`. It ends by sending you to the lesson
-that fits your work, and `how-to/` holds the chores you can come back for.
+## About this training
 
-## Does what I type, or the files it reads, leave my computer? May I use it on customer data?
+### Can I do this on my own, without a session?
 
-This is the first question to settle, and the answer is your organization's, not this kit's.
-Until you have it, use the assistant on files that contain nothing you would not paste into an
-email to a colleague. `[YOUR ORGANIZATION: what leaves the machine, what is retained, and which classes of data may be used with the assistant]`
+Yes. The whole path is written for that. Start at [the README](getting-started/README.md) and follow the path in
+order; the assistant beside the pages is your helper when you are stuck.
 
-## What if I mess up?
+### I went to a session. Where do I pick up?
 
-On your own machine the assistant can change what you can change, and it asks before it acts
-unless you have allowed commands for the session. There is no undo button for a move, a rename or
-a deletion it makes, so for anything that changes files, ask for a plan first and for a written
-record of what it did; the organize-a-folder recipe shows the shape. With two folders open,
-name the folder you mean in every request. In a repository, the local copy is yours to break. In
-a normal setup nothing reaches the shared main copy without a review by other people.
+Every step is numbered. Open the lesson you were on and start at the step you reached. If you only
+watched, do the steps yourself from the start of that lesson; it goes quickly the second time.
+
+### I am not a coder. What am I supposed to do with this?
+
+Use it on your own files. Nothing here requires you to write code, and the only reading of code is
+checking that a file the assistant cited contains the words it claims; you do not need to
+understand the code around them.
+
+### Is this the same as the Copilot in my office suite?
+
+No. That one reaches across your organization's shared content: mail, chats, meetings, shared
+files. This one works on a folder of files on your computer and can act on them. They are for
+different things. [Why this assistant is different](explanation.md) explains in ten short ideas.
+
+## Your data and your files
+
+### Does what I type, or the files it reads, leave my computer? May I use it on customer data?
+
+This is the first question to settle, and the answer is your organization's, not this training's.
+Until you have it, use only files with no customer names, account numbers, personal details,
+passwords or system addresses. For an export, delete those columns first, or use a copy with
+made-up values. Not sure a file counts? Use the practice files in this training's `sample-files`
+folder.
+`[YOUR ORGANIZATION: what leaves the machine, what is retained, and which classes of data may be used with the assistant]`
+
+### What if I mess up?
+
+On your own machine the assistant can change what you can change. It asks before it runs a
+command, unless you have allowed commands for the session, but it may create or edit files in the
+folders you opened without asking, and then offers Keep and Undo. A move, a rename or a deletion it makes cannot
+simply be undone, so for anything that changes files, ask for a plan first and for a written record
+of what it did; [Organize a messy folder](getting-started/how-to/organize-a-folder.md) shows the shape. With two
+folders open, name the folder you mean in every request. In an application's repository, your copy
+is yours; nothing reaches the shared copy without review by other people.
 `[YOUR ORGANIZATION: the review rule and process, by name]`
 
-## Which kinds of files can it read?
+## What it can work on
 
-Plain text, markdown and CSV files it reads directly. For Word or Excel files it may need to write
-and run a small program to read them, and it will ask permission first; if that does not work in
-your setup, save the file as text or CSV and try again. Pages in a notebook application have to
-be exported to a file first.
+### Which kinds of files can it read?
 
-## Do we have access to all repositories?
+Text, markdown and CSV directly; Word and Excel usually, after asking to run a small program. See
+[It says it cannot read a file](troubleshooting.md#it-says-it-cannot-read-a-file).
 
-No. Access is per application. `[YOUR ORGANIZATION: how access is requested, and from whom]`
-
-## Can we download skills? Is it safe?
-
-A skill is a text file of instructions. The safety question is the same as for any file you bring
-in: read it before you use it. Downloading from outside may be restricted. You can always ask the
-assistant to write one for you; see `how-to/ask-for-a-skill.md`.
-`[YOUR ORGANIZATION: the policy on external skills, and where internal shared skills are published]`
-
-## Does disk space matter?
-
-Delete a cloned folder when you are done with it; you can clone it again. If size matters, ask
-the assistant how large the repository is before cloning. Ordinary housekeeping applies.
-`[YOUR ORGANIZATION: any policy]`
-
-## Can it reach our ticketing system, logs, or other systems directly?
+### Can it reach our ticketing system, logs, or other systems directly?
 
 That depends on connectors your organization has set up. Without one, export to a file and work on
-the file. That is `how-to/analyze-an-export.md`, and it is the same work you do by hand today.
+the file. That is [Analyze an exported spreadsheet](getting-started/how-to/analyze-an-export.md), and it is the
+same work you do by hand today.
 `[YOUR ORGANIZATION: current connectors and their status]`
 
-## How did you get the chat panel there?
+### Can I open any application's code?
 
-Layout is a personal setting. Everyone's screen differs. Ask the assistant: "How do I move the chat
-panel to the right?" It will tell you the setting or change it for you.
+Usually not; access is normally granted per application.
+`[YOUR ORGANIZATION: how access is requested, and from whom]`
 
-## Will there be office hours or a follow-up session?
+### Can I download skills? Is it safe?
 
-Ask whoever sent you this folder. `[YOUR ORGANIZATION: schedule and how to join]`
+A skill is a text file of instructions: read it before you use it, as you would any file someone
+sent you. See [Your organization's skills](skills.md) for where approved ones are.
 
-## Can we suggest what to cover next?
+### Does disk space matter?
+
+Delete a cloned application when you are done with it; you can clone it again. If size matters,
+ask the assistant how large the repository is before cloning. `[YOUR ORGANIZATION: any policy]`
+
+## Getting help
+
+### How do I ask it for help?
+
+Tell it what you expected and what you see, and ask it not to do the step for you. The words are
+in [When you are stuck](troubleshooting.md#when-you-are-stuck-ask-the-assistant-first), and more are at the top of
+[If something goes wrong](troubleshooting.md).
+
+### How do I move the chat panel?
+
+Layout is a personal setting, and everyone's screen differs. Ask the assistant: "How do I move the
+chat panel to the right?" It will tell you the setting or change it for you.
+
+## Your organization
+
+### Will there be office hours or a follow-up session?
+
+Ask whoever sent you this training. `[YOUR ORGANIZATION: schedule and how to join]`
+
+### Can I suggest what to cover next?
 
 Yes. `[YOUR ORGANIZATION: where suggestions go]`
 
-## Is there a hands-on guide?
-
-This folder. Start with `README.md`, then the lesson it sends you to.
-
-## Setup: nothing responds
-
-In order. Is the assistant installed: menu View, then Extensions, and type Copilot in the search
-box; it should show as installed. Is it signed in: the account icon at the bottom left of the
-window shows your name. Do you have a licence: in many organizations the assistant needs one to
-be granted to you before it will answer, and an unlicensed one fails silently or asks you to sign
-in again. Is the chat panel open: menu View, then Chat. If any of these fails, stop here.
-`[YOUR ORGANIZATION: how to get VS Code and the assistant installed, how a licence is requested, and who to ask]`
-
-## Setup: it answers but never acts
-
-The mode selector at the bottom of the chat box is not on Agent. Click it and choose Agent. In the
-other modes the assistant only writes text; in Agent mode it can create files and run commands,
-after asking you.
-
-## Setup: the clone fails
-
-Three usual causes: the version-control program, called git, is not installed on the machine; you
-are not signed in to the place the repository lives, called the code host; or the network and
-proxy settings from onboarding are not in place. Ask the assistant "Is git installed, am I signed
-in to the code host, and is a proxy configured?" and it will check.
-`[YOUR ORGANIZATION: how to install git, how to sign in to the code host, and the onboarding setup prompt]`

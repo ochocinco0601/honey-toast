@@ -1,0 +1,26 @@
+ticket,opened,category,status,assignment_group,summary
+T-1001,2026-08-03,Password reset,Closed,Service desk,User locked out after holiday
+T-1002,2026-08-04,Access request,Closed,Identity,New starter needs shared drive access
+T-1003,2026-08-06,Billing portal,Open,Web apps,Invoice page shows wrong currency
+T-1004,2026-08-07,Password reset,Closed,Service desk,Password expired
+T-1005,2026-08-11,Printer,Closed,Workplace,Floor 3 printer jams
+T-1006,2026-08-12,Billing portal,Open,Web apps,Slow page loads in the morning
+T-1007,2026-08-13,Password reset,Closed,Service desk,Forgotten password
+T-1008,2026-08-14,Access request,Open,Identity,Contractor needs reporting tool access
+T-1009,2026-08-18,Email,Closed,Workplace,Shared mailbox not visible
+T-1010,2026-08-19,Password reset,Closed,Service desk,Locked out after too many attempts
+T-1011,2026-08-20,Billing portal,Open,Web apps,Export to spreadsheet fails
+T-1012,2026-08-21,Laptop,Closed,Workplace,Battery will not charge
+T-1013,2026-08-25,Password reset,Closed,Service desk,Password expired
+T-1014,2026-08-26,Access request,Closed,Identity,Remove access for leaver
+T-1015,2026-08-27,Billing portal,Closed,Web apps,Login button does nothing
+T-1016,2026-08-28,Password reset,Open,Service desk,Reset link never arrives
+T-1017,2026-09-01,Email,Open,Workplace,Calendar invites arrive late
+T-1018,2026-09-02,Password reset,Closed,Service desk,Forgotten password
+T-1019,2026-09-03,Billing portal,Open,Web apps,Invoice totals do not match the report
+T-1020,2026-09-04,Access request,Open,Identity,Team needs access to new project folder
+T-1021,2026-09-08,Password reset,Closed,Service desk,Locked out after holiday
+T-1022,2026-09-09,Laptop,Open,Workplace,Screen flickers
+T-1023,2026-09-10,Password reset,Closed,Service desk,Password expired
+T-1024,2026-09-11,Billing portal,Open,Web apps,Slow page loads in the morning
+T-1025,2026-09-15,Access request,Open,Identity,Manager approval stuck in queue
