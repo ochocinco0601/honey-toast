@@ -34,9 +34,10 @@ The builder also writes some sentences itself. When the audience, the place prac
 help beside the learner differs from the defaults, reread these in `build_pages.py` and reword them:
 the "Using a prompt" instructions (`how_to_use`), the prompt labels and the hint shown after
 copying (`prompt_block`), the "Stuck on this step?" button and its question, the copy messages,
-"Mark this step done", the outline's and the end-of-unit block's labels ("Start the training",
-"Continue", "Next unit:", "End of the path", "Back to the training", "Not started" and the like),
-the end-of-path message, and the page foot (`page_foot`). The builder's other
+the outline's and the end-of-unit block's labels ("Start the training", "Continue", "Next unit:",
+"End of the path", "Back to the training", "Not started" and the like), the line under a unit's
+Continue button that says it marks the unit complete, "Mark as not complete", the end-of-path
+message, and the page foot (`page_foot`). The builder's other
 settings shape the menus and links: `TRAININGS` (each training's folder, name, level, time, path,
 pages before unit 1, and `stuck_from`, the first step on a unit that offers "Stuck on this step?"),
 `MENU_AFTER` (the help pages listed, in order, under "More" in the outline; its group names and
@@ -77,10 +78,14 @@ open flags are not shown), `GLOSSARY_TERMS` (words linked to the glossary) and
 - **Nothing invented.** No organization policy, contact, system name or screen label you have not
   seen: a marked blank instead (see below), with what to do meanwhile beside it. The way to get help
   is never a blank: the help beside the learner, or whoever sent them the training.
+- **Dated facts go stale.** A deadline, target or version stated in the kit is recorded with its
+  date in `facilitator/claims.md` and rechecked before every release; once it has passed, reword
+  or remove it.
 - **The recipes are practice.** Each is a worked example of one kind of task.
 - **Practice data is made up.** No real people, customers, systems or addresses in any example or
   practice file.
-- **Progress stays with the learner.** It is kept in their own browser and shown to no one else.
+- **Progress stays with the learner.** It is kept in their own browser and shown to no one else:
+  which units they have completed, and the page and step they last read.
 
 ## Where things are
 
@@ -105,7 +110,7 @@ open flags are not shown), `GLOSSARY_TERMS` (words linked to the glossary) and
 | A recipe | `<training>/how-to/<name>.md`, in the recipe shape below | A row in the table in that training's `how-to/README.md`; the outline and the recipe pages follow that table, and the build stops if a recipe is missing from it |
 | A problem and its fix | `troubleshooting.md`, under the heading for when it happens | |
 | A question | `faq.md` | |
-| A word learners will not know | A row in `glossary.md` | Add it to `GLOSSARY_TERMS` to link its first use on each page |
+| A word learners will not know | A row in `glossary.md` | Add it to `GLOSSARY_TERMS` to link its first use on each page. A glossary word means one thing in this kit: if the subject uses a word the kit also defines (such as "blank" for an empty cell) in another sense, rename the kit's term or take it out of `GLOSSARY_TERMS` |
 | A unit in a training | A new page in that training's folder, and a line in the list under "The path" in its `README.md` | Its `path` and `time` in `TRAININGS`. The breadcrumb shows each unit's number, so do not write it on the page |
 | A new training | See below | |
 | Material for presenters | `facilitator/` | |
@@ -135,6 +140,63 @@ Getting started's path.
 Reuse the shared help pages and Getting started's words for things already taught, rather than
 teaching them again.
 
+## Decisions
+
+Choices made with the people this kit is for, so they are kept when the kit is extended. Add one
+line for each: the date, what was chosen, what it was chosen over, and what the choice left
+unsettled. Choosing one version over another does not approve its details (its wording, its
+examples); say which details are still open and how they will be settled.
+
+- `[TO BE WRITTEN: date - decision - chosen over what - left open]`
+
+## Page design
+
+Decided, and implemented by the builder; keep it rather than redesigning it. Every page has:
+
+- **A course outline on the left:** the training's name and how many units are done, each unit as
+  one numbered row whose ring fills green when the unit is complete, the current unit opened to its
+  steps with a marker on the step being read, and help pages and recipes in a short "More" list at
+  the bottom. Below a narrow width it folds behind an "Outline" button.
+- **A breadcrumb across the top:** the kit, the training, the page, and the unit number.
+- **Under a unit's title:** its time and number of steps, once.
+- **At the end of each unit:** a "Next unit" block with a Continue button.
+- **Always in view:** the outline and the breadcrumb stay on screen as the page scrolls; progress
+  never scrolls away. The breadcrumb carries a thin progress line.
+- **Nothing that repeats them:** no "On this page" list and no right-hand rail on unit pages; the
+  outline already lists the unit's steps.
+- **Coming back:** the training's home page offers to continue where the learner left off: the
+  last unit or setup page they opened, at the step they were reading.
+- **Light and dark:** pages follow the reader's system theme, with a switch in the header.
+
+It follows Microsoft Learn with a persistent outline, because learners return days later and need
+to see where they are and what is done without searching. Position and progress are said once, in
+the outline and the breadcrumb; do not repeat them on the page.
+
+**Progress is by unit,** as on Microsoft Learn. Every unit on a path ends with a button: Continue,
+or on the last unit Back to the training. Selecting it marks the unit complete and then opens the
+next page; a unit with no numbered steps works the same way. A line under the button says so, and
+on a completed unit offers "Mark as not complete". Steps have no checkboxes: a box on every step
+turns reading into bookkeeping and pulls the eye from the instruction, while a unit is the size of
+thing a learner returns to. The outline, the breadcrumb and the training's home count completed
+units only. Kits built before progress was by unit kept a tick per step in the browser; those are
+ignored, so a learner who ticked steps under an older build starts again with no units complete.
+
+**The look is quiet,** so that nothing on the page is louder than the step the learner is doing.
+One accent colour marks links and where the learner is; green appears only on a completed unit. A
+check is its text led by a bold "Check:" with a thin rule beside it, not a coloured panel; a blank
+in a prompt is grey, not highlighted. Outline rows are one line each and wrap when a name is long,
+and steps are separated by space, not lines. The look meets measured standards, not a judgement by eye: text meets
+WCAG 2.2 AA contrast (4.5:1) and every edge or mark that carries meaning 3:1, in light and dark;
+seven type sizes and spacing on a 4-pixel grid; every click target at least 24 pixels; and each
+step of a unit fits on one screen, beside another window too.
+
+**The page is compact by choice.** The text column is as wide as the breadcrumb, 720 pixels or
+about 100 characters a line, and steps, paragraphs and lines are set close. This is wider than the usual reading measure of 60
+to 75 characters on purpose: a column that narrow leaves a wide screen mostly empty and makes a
+unit feel sparse. Body text stays
+at the browser's default size, so it follows each reader's zoom. If you change the look in
+`build_pages.py`, measure these again.
+
 ## How a page is written
 
 The builder reads these conventions. Anything else is ordinary markdown.
@@ -142,19 +204,21 @@ The builder reads these conventions. Anything else is ordinary markdown.
 | Write | What the learner gets |
 |---|---|
 | `# Title` on the first line | The page title and its name in search |
-| `## 3. Do something` on a unit page | A numbered step with "Mark this step done" and progress. Only units on a path track progress |
+| `## 3. Do something` on a unit page | A numbered step, listed under its unit in the outline, where a marker follows the step being read. Steps are never ticked: progress is by unit (see "Page design") |
 | `> request text` on one line | A prompt for the assistant, with a Copy button |
 | `<!-- tool -->` on the line before a prompt | Text to paste into the place practice happens, labelled with `PRACTICE_PLACE` |
 | `<!-- tutor -->` on the line before a prompt | A help question, labelled "Ask" and the `ASSISTANT` setting |
 | `<!-- frame -->` on the line before a prompt | A request or entry the learner writes themselves, with no Copy button. The text around it says where they write it |
 | `<your folder>` or any `<blank>` inside a prompt | A highlighted blank the learner replaces. `<your folder>` fills in from a folder box on the page. Blanks cannot nest: write `<name>`, not `<not sure, ask <name>>` |
-| A paragraph starting `Check:` | A check box: what the learner should see |
+| A paragraph starting `Check:` | A check: what the learner should see, led by a bold "Check:" |
 | A paragraph starting `Check your answer:` or `Answers:` | An answer hidden until the learner opens it |
 | A paragraph starting `Example:` or `Example, <what it shows>:` | A worked example, set apart, with the words before the colon as its label |
 | `` `[YOUR ORGANIZATION: what goes here]` `` | A marked blank for the organization to fill |
 | `` `[TO BE WRITTEN: what goes here]` `` | A marked placeholder for content not written yet |
 | `[text](other-page.md)` | A link to that page in the web version. Links are relative to the page's own folder |
 | `[text](https://...)` or `[text](mailto:...)` | A link out of the kit, such as to the tool's own screen, its help, or a support channel |
+| A list item followed by lines indented under it that start `- ` or `1. ` | A list nested inside that item. Indent the nested lines to line up with the item's text (two spaces under `- `, three under `1. `) |
+| `**bold**` around a link, or around text and a link together | Bold that includes the link |
 | `[text](../sample-files/name.csv)` | A link to a practice file or any other file in the kit |
 | `![what it shows](images/name.png)` on its own line | A picture, such as a screen with the control to use. Keep pictures in an `images` folder beside the page; describe what matters in the text as well, for readers who cannot see it |
 
@@ -185,8 +249,8 @@ get back. Those sentences are doing work. Beyond that:
   keyboard shortcut, if given, follows the visible action.
 - One idea to a paragraph, the important words first. Short sentences.
 - Every prompt is complete and works when pasted, apart from its marked blanks.
-- Do not add "Next:" lines to units: the page's own Next link comes after the last step's "Mark
-  this step done", and a line above it lets learners leave with that step unmarked.
+- Do not add "Next:" lines to units: each unit ends with the page's own Continue button, which
+  marks the unit complete and opens the next one.
 - If this copy is published outside your organization, keep organization details out of it; they
   belong in your organization's own copy.
 
@@ -245,8 +309,11 @@ when someone who already took a training should look again. Newest first.
   is a draft; the build counts them. A draft goes only to named pilot learners, never to everyone.
 - A change that reaches learners has a new, dated entry in `CHANGELOG.md`, and the build printed
   no NOTE about pages changed after it.
-- You walked the changed pages in a browser. If you changed a unit on a path, you marked a step
-  done and saw the progress in the outline and the breadcrumb move.
+- You walked the changed pages in a browser. If you changed a unit on a path, you marked the unit
+  complete by selecting Continue at its end, and saw it show complete in the outline, the
+  breadcrumb and the training's home, with the home offering to continue at the next unit.
 - Every organization answer you did not have is a marked blank, not a guess.
 - No real names, customers, systems or addresses in anything you added.
 - Every practice step is still one the learner performs.
+- Every choice made with the people the kit is for is recorded under "Decisions", and nothing you
+  changed undoes one.

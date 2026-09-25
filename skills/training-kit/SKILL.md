@@ -5,15 +5,35 @@ description: Build a self-paced training kit on any subject, for any audience - 
 
 # Building a training kit
 
-Skill version: 1.0 (2026-09-24). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
+Skill version: 1.1 (2026-09-25). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
 
 You build a kit that leaves its learners able to do something in their own work a week later.
 Approval at the end of a session does not count; that later behaviour is the outcome, and every
 choice below serves it.
 
 The kit is a **self-paced learning site**: a course home with a led path, units with numbered steps
-and progress, practice recipes, shared help, and web pages generated from markdown. The builder in
-`starter/` implements that kind of site's conventions; build on them rather than redesigning them.
+and progress by unit, practice recipes, shared help, and web pages generated from markdown. The
+builder in `starter/` implements that kind of site's conventions; build on them rather than
+redesigning them.
+
+**The page design is decided; keep it.** The builder renders every page the same way: a course outline on the left (the training and
+its progress, each unit as a numbered row, the current unit opened to its steps, help and recipes in
+a short "More" list at the bottom); a breadcrumb across the top with the unit number; and at the
+end of each unit a "Next unit" block with a Continue button. The outline and breadcrumb stay on
+screen as the page scrolls, so progress never scrolls away, and nothing on the page repeats them.
+It is the Microsoft Learn pattern with a persistent outline, chosen because learners come back days
+later and need to see at a glance where they are and what is done. Progress is by unit, also as
+Microsoft Learn does it: selecting Continue completes the unit, a small "Mark as not complete"
+undoes it, and the training's home resumes at the last page and step read. Steps have no
+checkboxes, because a box on every step turns reading into bookkeeping. The look is quiet so that
+the step being done is the loudest thing on the page: one accent colour for links and where the
+learner is, green only for a completed unit, checks as plain text led by a bold "Check:", grey
+blanks. The page is compact: the text column runs as wide as the breadcrumb, about 100 characters
+a line, with steps, paragraphs and lines set close, because a narrower, airier column leaves a wide screen
+mostly empty and makes a unit read as sparse. Body text stays at the browser's
+default size, so it follows each reader's zoom. Build on it; do not redesign the navigation or the look, and explain them in these terms
+when asked. The maintainer guide's "Page design" section says the same for whoever
+extends a kit.
 
 **You are the training expert.** The requester judges whether the kit fits their people and their
 work; the craft (instructional design, learning-site conventions, procedural writing, choosing the
@@ -109,7 +129,17 @@ operate the thing, missing mechanics restrict release to a pilot**.
 The first increment is the kit's home page, the first training's home, its Introduction and its
 first unit. For each increment: write the pages (step 5), build and check them (step 6), review them (step 7), then show
 the requester the rendered pages and carry on with the next increment unless their reaction changes
-the direction. Learners waiting on the training need something to use now. When the path is
+the direction. Learners waiting on the training need something to use now.
+
+**Show, do not ask.** When a choice is the requester's (which of two approaches fits their people,
+which tasks the path covers first; not the page design, which is decided), build two or three working alternatives and put them side by side
+on one labelled page that says what each is and what to look at, then ask one question. Never ask
+them to describe what they want in the abstract, or to compare unlabelled pages. A preference
+between alternatives is comparative: it chooses one, it does not approve its details. Anything the
+requester cannot judge by eye (contrast, density, brittleness, whether the teaching works) is
+settled by an independent, measured review, and they see the outcome, not the question.
+**Record every decision** made with the requester in the kit's `maintaining/README.md` under
+"Decisions", with the date and what was chosen over what, so whoever extends the kit keeps it. When the path is
 complete, it goes to real learners (step 8) before it goes to everyone.
 
 ## 5. Write the pages
@@ -136,7 +166,8 @@ Follow the maintainer guide. These principles govern it, and decide what the gui
   Fix by changing or removing before adding.
 - **Nothing invented.** No organization policy, contact, screen label or system name that you have
   not seen; a marked blank instead, with what to do meanwhile. Record every claim in
-  `facilitator/claims.md` with its source.
+  `facilitator/claims.md` with its source. A claim tied to a date (a deadline, a target, a
+  version) goes stale: record the date with it, and recheck it before every release.
 
 The starter's pre-written sentences, and the ones the builder writes itself (listed in the guide),
 assume one case: technical readers, practice in an assistant's chat, an assistant as help. Reread
@@ -176,8 +207,9 @@ If no learners can be found, the kit is untried: say so in the hand-over, and re
 
 ## 9. Hand it over
 
-The generated `read-in-browser/` pages travel with the markdown wherever the kit is published;
-without them learners get raw markdown. A kit with any `[TO BE WRITTEN: ...]` placeholder left is a
+Learners get the kit as a repository address to copy (clone) or a download to unzip, and the kit's
+home page says which. The generated `read-in-browser/` pages travel with the markdown wherever the
+kit is published; without them learners get raw markdown. A kit with any `[TO BE WRITTEN: ...]` placeholder left is a
 draft, and goes to named pilot learners only, never to everyone. The kit's first release sets its
 version and dates its first entry in `CHANGELOG.md`, as the guide's "Versions" says. Tell the requester where the kit is, the
 settings used, what is still blank and what would fill it, the claims still unverified, what the
@@ -214,3 +246,27 @@ Each is a case of a principle above, stated where it bites.
 Read the kit's own `maintaining/README.md` and follow it; its settings table says who the kit is
 for, and `facilitator/claims.md` and `facilitator/evaluation.md` hold what the kit rests on. Run
 review 5 after your change.
+
+**Bringing a kit up to this version.** If the kit's `SKILL_VERSION` is older than this skill's:
+
+1. Before replacing anything, list the sentences the kit reworded inside its `build_pages.py`
+   (the maintainer guide names the sentences the builder writes itself). Only the settings
+   between the two "What a maintainer changes" marker lines survive the next step.
+2. Replace the kit's `maintaining/build_pages.py`, `check_text.py` and `check_structure.py` with
+   the starter's, then put back everything between the marker lines from the kit's own copy and
+   the rewordings from step 1. Set `SKILL_VERSION` to this version.
+3. Bring every passage of the kit's maintainer guide that describes the pages, the builder or
+   progress in line with the starter's, keeping the kit's own settings table and "Decisions".
+4. Rebuild, and add a CHANGELOG entry that raises the minor number and says what learners will
+   notice.
+
+If a choice recorded under the kit's "Decisions" conflicts with what this version changes, keep
+the choice and tell the requester.
+
+What 1.1 changed from 1.0:
+- Progress is by unit: Continue completes a unit and steps have no checkboxes. Ticks a learner made
+  on steps under 1.0 are ignored, so their progress starts again.
+- The look is quieter and measured: contrast, type sizes and spacing meet the standards in the
+  guide's "Page design".
+- The page is compact: the text column is as wide as the breadcrumb, with tighter spacing.
+- A list can nest inside a list item, and bold can wrap a link.

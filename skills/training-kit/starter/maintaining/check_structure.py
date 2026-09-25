@@ -53,7 +53,7 @@ for p, full in pages.items():
         if not os.path.isfile(os.path.normpath(os.path.join(os.path.dirname(p), s))):
             bad += 1
             print("PICTURE", os.path.relpath(p, out), s)
-    ols_md = len(re.findall(r"^1\. ", md, flags=re.M)) + len(re.findall(r"^   1\. ", md, flags=re.M))
+    ols_md = len(re.findall(r"^\s*1\. ", md, flags=re.M))
     ols_page = content.count("<ol>") + content.count('<ol class="units">')
     if ols_md != ols_page:
         bad += 1

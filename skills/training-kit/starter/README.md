@@ -18,6 +18,8 @@ short as you like.
 
 ## Reading these trainings
 
+- **Getting a copy:** `[YOUR ORGANIZATION: the address of this training's repository, or where to download it]`
+  Copy (clone) the repository, or download and unzip it, into a folder of your own.
 - **In a web browser:** open this folder, then `read-in-browser`, and double-click `README.html`.
   Anything you paste has a Copy button there, and the side menu lists every page.
 - **As plain pages:** each page is a markdown file in this folder, readable in any editor or on a

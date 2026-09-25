@@ -15,7 +15,7 @@ def md_text(t):
         s = re.sub(r"^#{1,6} ", "", s)
         s = re.sub(r"^> ", "", s)
         s = re.sub(r"^- ", "", s)
-        if ln.startswith(tuple("0123456789")) and not ln.startswith("#"):
+        if re.match(r"^\s*\d+\. ", ln):
             s = re.sub(r"^\d+\. ", "", s)
         if s.startswith("|"):
             s = " ".join(c.strip() for c in s.strip("|").split("|"))
