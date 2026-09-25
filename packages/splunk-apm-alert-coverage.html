@@ -1,0 +1,227 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What Splunk APM Alerts On</title>
+<style>
+:root{
+  --bg:#ffffff; --bg2:#f7f7f7; --ink:#1b1b1b; --ink2:#4f4f4f; --ink3:#6b6b6b;
+  --rule:#e6e6e6; --accent:#0065b3; --accent-soft:#eef4fa; --dim:#cfcfcf; --half:#8fb8dc; --code:#f4f4f4; --loss:#b3261e;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --bg:#171717; --bg2:#1e1e1e; --ink:#e6e6e6; --ink2:#bdbdbd; --ink3:#9c9c9c;
+  --rule:#303030; --accent:#75b6e7; --accent-soft:#1c2630; --dim:#3d3d3d; --half:#3f6a8c; --code:#232323; --loss:#f08a80;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#171717; --bg2:#1e1e1e; --ink:#e6e6e6; --ink2:#bdbdbd; --ink3:#9c9c9c;
+  --rule:#303030; --accent:#75b6e7; --accent-soft:#1c2630; --dim:#3d3d3d; --half:#3f6a8c; --code:#232323; --loss:#f08a80;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:1rem/1.65 "Segoe UI",SegoeUI,-apple-system,BlinkMacSystemFont,"Helvetica Neue",system-ui,sans-serif}
+main{max-width:1060px;margin:0 auto;padding-inline:20px;padding-block:40px 80px}
+main>h1,main>h2,main>h3,main>p,main>ul,main>ol,main>dl,.stmt{max-width:80ch}
+a{color:var(--accent);text-underline-offset:2px}
+h1{font-size:2rem;line-height:1.25;font-weight:600;letter-spacing:-.01em;margin:0 0 10px;text-wrap:balance}
+h2{font-size:1.4rem;line-height:1.3;font-weight:600;margin:56px 0 12px;text-wrap:balance}
+h3{font-size:1.0625rem;font-weight:600;margin:28px 0 6px}
+p{margin:12px 0}
+ul,ol{padding-left:22px;margin:12px 0}
+li{margin:8px 0}
+.byline{font-size:.875rem;color:var(--ink3);margin:0 0 20px}
+.lede{font-size:1.0625rem}
+code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:.875em;font-family:ui-monospace,Consolas,monospace}
+.note{font-size:.9375rem;color:var(--ink2)}
+
+.trace{margin:20px 0 8px}
+.tr{display:grid;grid-template-columns:minmax(180px,1fr) minmax(120px,1.3fr) minmax(190px,1.4fr);gap:16px;align-items:center;padding:9px 0}
+.tn{line-height:1.35}
+.tn .op{font-family:ui-monospace,Consolas,monospace;font-size:.875rem}
+.tn .k{display:block;font-size:.8125rem;color:var(--ink3)}
+.in{padding-left:18px}
+.track{position:relative;height:6px;background:var(--bg2);border-radius:3px}
+.bar{position:absolute;top:0;bottom:0;border-radius:3px}
+.b-yes{background:var(--accent)} .b-half{background:var(--half)} .b-no{background:var(--loss)}
+.to{font-size:.9375rem;color:var(--ink2);line-height:1.4}
+.gapline{font-size:.8125rem;color:var(--ink3);padding-top:18px}
+.key{font-size:.875rem;color:var(--ink3);display:flex;flex-wrap:wrap;gap:6px 20px;margin:4px 0 0}
+.key span{display:inline-flex;align-items:center;gap:8px}
+.key i{display:inline-block;width:22px;height:6px;border-radius:3px}
+
+.scroll{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font:inherit;color:inherit;font-size:.9375rem;min-width:760px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px 10px 0;border-bottom:1px solid var(--rule);line-height:1.45}
+thead th{font-weight:600;color:var(--ink2);font-size:.875rem;border-bottom:1px solid var(--ink3)}
+td:first-child{font-weight:500;width:24%}
+td .k{display:block;font-weight:400;font-size:.8125rem;color:var(--ink3);font-family:ui-monospace,Consolas,monospace}
+tr.conditional td{color:var(--ink3);font-style:italic}
+.flag{display:block;font-weight:600;font-size:.8125rem;color:var(--loss);margin-top:2px}
+th:last-child,td:last-child{border-left:1px solid var(--rule);padding-left:12px}
+details{margin:16px 0;max-width:80ch}
+summary{cursor:pointer;color:var(--accent);font-weight:500}
+dl{margin:12px 0}
+dt{font-weight:600;margin-top:20px;color:var(--ink)}
+dd{margin:4px 0 0}
+.stmt{margin:22px 0}
+.stmt .claim{font-weight:600}
+.stmt .src{color:var(--ink3);font-size:.875rem}
+.stmt p{margin:4px 0}
+.sources{font-size:.875rem;color:var(--ink2)}
+.sources li{margin:4px 0}
+@media (max-width:640px){
+  h1{font-size:1.6rem}
+  .tr{grid-template-columns:1fr;gap:6px;padding:12px 0}
+}
+</style>
+
+<main>
+<h1>What Splunk APM alerts on, and what it only records</h1>
+<p class="byline">A draft from public product documentation, September 2026, written to be corrected by the team that runs the platform</p>
+
+<p class="lede">When application performance monitoring (APM) moves from AppDynamics to Splunk Observability Cloud, the question comes up whether Splunk "covers" a service's dependencies. This page walks through one request and asks four things of each step: is a failure recorded, is it measured, can it raise an alert, and does the alert say what broke.</p>
+
+<h2>Splunk alerts where work enters a service, not on what the service calls</h2>
+<ul>
+  <li>Splunk records every step of a request in the trace. It builds alertable metrics only where work enters a service (a request it receives, a message it consumes), plus calls to third-party HTTP APIs.</li>
+  <li>A failing database call, Kafka publish, call to another in-house service or internal step has no alert of its own.</li>
+  <li>If that failure brings the whole request down, the endpoint alert fires, but it does not name the database or topic. If the request survives, nothing alerts.</li>
+  <li>AppDynamics alerts on each database and remote service directly and by name. Switching loses that.</li>
+  <li>RED metrics generated for root spans of kind CLIENT, PRODUCER or INTERNAL cover work a service starts on its own, such as a scheduled job. They do not cover the calls made while handling a request, and alerts can use them only if they are monitoring metrics.</li>
+</ul>
+
+<h2>In one request, only the first step raises its own alert</h2>
+<p>A checkout service receives an order. While handling it, the service reads a database, calls a payment service, validates the cart and publishes an event to Kafka. The trace records each of these as a <em>span</em>. The first span of a trace is its <em>root span</em>; the others are steps inside it. Each span has a kind: <code>SERVER</code> for a request received, <code>CLIENT</code> for a call made, <code>PRODUCER</code> for a message sent, <code>CONSUMER</code> for a message received, <code>INTERNAL</code> for work inside the service. <em>RED metrics</em> are the standard three: requests, errors and duration.</p>
+
+<div class="trace" role="table" aria-label="One request as a trace, and what alerts on each step">
+  <div class="tr" role="row">
+    <div class="tn"><span class="op">POST /orders</span><span class="k">request received · SERVER</span></div>
+    <div class="track"><div class="bar b-yes" style="left:0;width:100%"></div></div>
+    <div class="to">Alerts, and names the endpoint</div>
+  </div>
+  <div class="tr" role="row">
+    <div class="tn in"><span class="op">SELECT orders</span><span class="k">database call · CLIENT</span></div>
+    <div class="track"><div class="bar b-no" style="left:4%;width:20%"></div></div>
+    <div class="to">No alert of its own. If the order fails too, the endpoint alert fires without naming the database</div>
+  </div>
+  <div class="tr" role="row">
+    <div class="tn in"><span class="op">POST payment-service /charge</span><span class="k">call to another service · CLIENT</span></div>
+    <div class="track"><div class="bar b-half" style="left:26%;width:34%"></div></div>
+    <div class="to">Only the payment service's own alert, and only if the call reaches it</div>
+  </div>
+  <div class="tr" role="row">
+    <div class="tn in"><span class="op">validateCart</span><span class="k">internal step · INTERNAL</span></div>
+    <div class="track"><div class="bar b-no" style="left:61%;width:8%"></div></div>
+    <div class="to">No alert. The error is in the trace only</div>
+  </div>
+  <div class="tr" role="row">
+    <div class="tn in"><span class="op">send order.created</span><span class="k">Kafka publish · PRODUCER</span></div>
+    <div class="track"><div class="bar b-no" style="left:71%;width:15%"></div></div>
+    <div class="to">No alert of its own. If nothing waits for the publish, nothing alerts</div>
+  </div>
+  <div class="gapline">A separate trace, for work the service starts on its own</div>
+  <div class="tr" role="row">
+    <div class="tn"><span class="op">reconcile-orders</span><span class="k">nightly job · INTERNAL root span</span></div>
+    <div class="track"><div class="bar b-no" style="left:0;width:100%"></div></div>
+    <div class="to">No alert, as documented. Metrics for root spans would cover this; whether alerts can use them is the open question</div>
+  </div>
+</div>
+<p class="key">
+  <span><i class="b-yes"></i>alerts on this step</span>
+  <span><i class="b-half"></i>alerts only somewhere else</span>
+  <span><i class="b-no"></i>no alert of its own</span>
+</p>
+<p class="note">The red dependency steps are where the gap shows in practice: metrics for database calls and Kafka publishes cannot drive an alert.</p>
+
+<h2>Every step is recorded; database, Kafka and service calls lose their own alerts</h2>
+<p>"Is it covered?" gets a different answer depending on which of these is meant. Each one goes further than the one before it.</p>
+<ol>
+  <li><b>Recorded:</b> is the failure in the trace data at all?</li>
+  <li><b>Measured:</b> is it counted as metrics (requests, errors, duration) that can be charted?</li>
+  <li><b>Alertable:</b> can an alert fire on it without anyone looking?</li>
+  <li><b>Names what broke:</b> does the alert say which dependency or endpoint failed?</li>
+</ol>
+
+<p class="note">Every step is recorded in the trace, so question 1 is yes on every row and the table starts at question 2.</p>
+<div class="scroll">
+<table>
+  <thead><tr>
+    <th>Step that fails</th><th>2. Measured</th><th>3. Alertable</th><th>4. Names what broke</th><th>AppDynamics today</th>
+  </tr></thead>
+  <tbody>
+    <tr><td>A request the service receives<span class="k">SERVER</span></td><td>Yes, per endpoint</td><td>Yes</td><td>Yes, the endpoint</td><td>Alerts per business transaction</td></tr>
+    <tr><td>A message the service consumes<span class="k">CONSUMER</span></td><td>Yes, per operation</td><td>Yes</td><td>Yes, the operation</td><td>Alerts per business transaction</td></tr>
+    <tr><td>A call to a third-party API<span class="k">CLIENT, uninstrumented HTTP</span></td><td>Yes, as an inferred service</td><td>Yes</td><td>The API, not the endpoint</td><td>Alerts per remote service</td></tr>
+    <tr><td>A call to another in-house service<span class="k">CLIENT, HTTP or gRPC</span><span class="flag">Lost on switch</span></td><td>Only at the called service</td><td>Only the called service's alert; none if the call never arrives</td><td>No</td><td>Alerts per remote service, from the caller</td></tr>
+    <tr><td>A database call<span class="k">CLIENT, database</span><span class="flag">Lost on switch</span></td><td>Troubleshooting charts, 8 days</td><td>Only through the endpoint alert, if the request fails or slows</td><td>No</td><td>Alerts per database</td></tr>
+    <tr><td>Publishing a message<span class="k">PRODUCER, Kafka</span><span class="flag">Lost on switch</span></td><td>Troubleshooting charts, 8 days</td><td>Only through the endpoint alert, if the request fails with it</td><td>No</td><td>Alerts per topic, as a remote service</td></tr>
+    <tr><td>An internal step fails, the request succeeds<span class="k">INTERNAL</span></td><td>No</td><td>No</td><td>No</td><td>Alerts on error types, if the error is thrown or logged</td></tr>
+    <tr><td>Work the service starts on its own<span class="k">root span not SERVER or CONSUMER</span></td><td>No</td><td>No</td><td>No</td><td>Alerts if set up as a background transaction</td></tr>
+    <tr class="conditional"><td>…where RED metrics for root spans are generated</td><td>Yes</td><td>Only if they are monitoring metrics</td><td>Not documented</td><td></td></tr>
+  </tbody>
+</table>
+</div>
+<p class="note"><span style="color:var(--loss);font-weight:600">Lost on switch</span> marks a step AppDynamics alerts on directly that Splunk does not.</p>
+
+<details>
+<summary>What each row rests on</summary>
+<dl class="note">
+  <dt>Requests and consumed messages</dt>
+  <dd>Splunk creates its alertable metrics, called Monitoring MetricSets, "for spans where the span.kind has a value of SERVER or CONSUMER". Detectors, Splunk's alert rules, run on these; they are kept 13 months.</dd>
+  <dt>Third-party APIs</dt>
+  <dd>Only third-party or uninstrumented HTTP services that Splunk infers get Monitoring MetricSets. What the operation field holds for them is not documented.</dd>
+  <dt>Calls to in-house services</dt>
+  <dd>Error metrics come from SERVER and CONSUMER spans, so a call's error is counted at the service that received it, with all its callers mixed together. A call that fails before arriving (refused connection, DNS, timeout) has no SERVER span, so no metric counts it.</dd>
+  <dt>Database calls and Kafka publishes</dt>
+  <dd>Databases and topics get troubleshooting MetricSets only, which feed investigation views and are kept 8 days. AppDynamics health rules can target "all databases and remote services", and Kafka topics appear there as remote services.</dd>
+  <dt>Internal steps and self-started work</dt>
+  <dd>A failure the request survives stays in the trace. Splunk notes that self-initiated work has no SERVER or CONSUMER span. Where RED metrics are generated for root CLIENT, PRODUCER and INTERNAL spans, detectors can use them only if they are monitoring metrics.</dd>
+</dl>
+</details>
+
+<h2>Common statements about coverage are true for fewer steps than they sound</h2>
+
+<div class="stmt"><span class="claim">RED metrics are generated for root spans of kind CLIENT, PRODUCER or INTERNAL.</span>
+<p>True for work a service starts on its own. Not true for the database calls, publishes, service calls and internal steps made while handling a request, because those are not root spans.</p></div>
+
+<div class="stmt"><span class="claim">Outbound dependencies, messaging and internal processing are monitored.</span>
+<p>True only when that work is the root of a trace. The gaps are in the dependency calls inside a request.</p></div>
+
+<div class="stmt"><span class="claim">The data is in the traces.</span>
+<p>True for question 1 on every row. It does not answer question 3: someone reads a trace after they already know to look.</p></div>
+
+<div class="stmt"><span class="claim">Troubleshooting metrics already cover databases and topics.</span>
+<p>True for question 2, for 8 days. Detectors run on monitoring metrics, not troubleshooting ones, so it does not answer question 3.</p></div>
+
+<div class="stmt"><span class="claim">You can alert on trace attributes.</span>
+<p>True for one to five attributes chosen in advance and added to endpoint and service metrics, within the licence limit. Not true for any attribute in the trace chosen after the fact.</p></div>
+
+<div class="stmt"><span class="claim">A future analytics interface will cover it.</span>
+<p>That describes searching traces for a pattern. It is not an alert that fires today.</p></div>
+
+<h2>Metrics measured by the calling service would close most gaps</h2>
+<p>For discussion. Which to use, and at what cost, is for the platform team and the application teams to decide.</p>
+<ul>
+  <li><b>Database calls:</b> the service emits the OpenTelemetry metric <code>db.client.operation.duration</code>, which detectors can use like any custom metric. The standard is stable and reports per database, operation and table. Work falls on application teams.</li>
+  <li><b>Calls to in-house services:</b> the service emits <code>http.client.request.duration</code>. That names the called service; naming the endpoint needs the opt-in <code>url.template</code> attribute. Application teams.</li>
+  <li><b>Kafka publishes:</b> OpenTelemetry messaging metrics, whose standard is still in development. Application teams.</li>
+  <li><b>All of the above, plus internal steps:</b> the platform derives metrics from every span kind in the OpenTelemetry Collector's span metrics connector. The component is alpha and needs cardinality limits. Platform team.</li>
+  <li><b>Self-started work:</b> confirm that root-span metrics exist in the running environment, with a working alert on one such span. Platform team.</li>
+</ul>
+
+<h2>Five questions for the platform team would settle what is still unknown</h2>
+<ol>
+  <li>Are the RED metrics for root CLIENT, PRODUCER and INTERNAL spans monitoring MetricSets, which detectors can use, or troubleshooting ones?</li>
+  <li>Do they apply to any span that is not the root of its trace?</li>
+  <li>Do the services already emit <code>http.client.request.duration</code> or <code>db.client.operation.duration</code>? If they do, detectors can use them today.</li>
+  <li>Can a custom MetricSet be defined on CLIENT spans for calls to in-house services? The documentation does not say.</li>
+  <li>Which AppDynamics health rules on databases, remote services and error types are active today? That is what teams would actually lose.</li>
+</ol>
+
+<h2>Sources</h2>
+<p class="sources">Public product documentation, read September 2026. A correction with evidence replaces what it corrects.</p>
+<ul class="sources">
+  <li>Splunk: <a href="https://help.splunk.com/en/splunk-observability-cloud/monitor-application-performance/analyze-services-with-span-tags-and-metricsets/learn-about-monitoring-metricsets">Monitoring MetricSets</a>, <a href="https://help.splunk.com/en/splunk-observability-cloud/monitor-application-performance/analyze-services-with-span-tags-and-metricsets/learn-about-troubleshooting-metricsets">Troubleshooting MetricSets</a>, <a href="https://help.splunk.com/en/splunk-observability-cloud/monitor-application-performance/manage-services-spans-and-traces-in-splunk-apm/inferred-services-in-splunk-apm">Inferred services</a>, <a href="https://help.splunk.com/en/splunk-observability-cloud/monitor-application-performance/manage-services-spans-and-traces-in-splunk-apm/analyze-error-spans">Error spans</a>, <a href="https://help.splunk.com/en/splunk-observability-cloud/monitor-application-performance/analyze-services-with-span-tags-and-metricsets/learn-about-monitoring-metricsets/create-a-monitoring-metricset-with-custom-dimensions">Custom MetricSets</a>, <a href="https://help.splunk.com/en/splunk-observability-cloud/create-alerts-detectors-and-service-level-objectives/create-service-level-objectives-slos/measure-and-track-your-service-health-metrics-with-slos">Detectors on custom metrics</a></li>
+  <li>AppDynamics: <a href="https://help.splunk.com/en/appdynamics-on-premises/get-started/26.1.0/alert-and-respond/health-rules/health-rule-entities">Health rule entities</a></li>
+  <li>OpenTelemetry: <a href="https://opentelemetry.io/docs/specs/semconv/http/http-metrics/">HTTP client metrics</a>, <a href="https://opentelemetry.io/docs/specs/semconv/database/database-metrics/">Database client metrics</a>, <a href="https://opentelemetry.io/docs/specs/semconv/messaging/messaging-metrics/">Messaging metrics</a>, <a href="https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/spanmetricsconnector/README.md">Span metrics connector</a></li>
+</ul>
+</main>
