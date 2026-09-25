@@ -41,8 +41,8 @@ SLO/SLI practice (Google SRE, Hidalgo) is compatible and upstream-consumed: an S
 
 ## How this relates to telemetry pillars
 
-The industry-standard pillars (metrics, logs, traces, profiles) are a classification by data shape. The Four-Layer Model is a classification by business meaning. Both are valid; they answer different questions. A well-instrumented service has signals across all pillars — this methodology organizes them by layer first, pillar second.
+The telemetry pillars — metrics, logs and traces, with profiles a more recent addition that is not yet standard — are a classification by data shape. The Four-Layer Model is a classification by business meaning. Both are valid; they answer different questions. A well-instrumented service has signals across all pillars — this methodology organizes them by layer first, pillar second.
 
 ## What this BOK organizes
 
-The rest of the BOK is the practitioner knowledge that makes this methodology operational — across the observability lifecycle (Define, Implement, Enforce, Observe, Respond), across the enabling capabilities (platform, integration, governance), and across the management practices (strategy, stakeholders, capability, adoption, improvement). 13 Knowledge Areas, 23 Practice Instruments. See [How the BOK is Organized](how-the-bok-is-organized.md).
+The rest of the BOK is the practitioner knowledge that makes this methodology operational — across the observability lifecycle (Define, Implement, Enforce, Observe, Respond), across the enabling capabilities (platform, integration, governance), and across the management practices (strategy, stakeholders, capability, adoption, improvement). 13 Knowledge Areas, 24 Practice Instruments. See [How the BOK is Organized](how-the-bok-is-organized.md).

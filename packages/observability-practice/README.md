@@ -4,10 +4,11 @@ This is the observability discipline: a body of knowledge, an interview instrume
 
 **What's in here**
 - **`walk-kit/`** — a focused nine-page rendering for a team's first business process: the run plan, the discovery conversation, the capture templates, and a worked example. Run `walk-kit/build-kit.sh` to build it as a browsable site. Start here to run the practice; read the body of knowledge for the depth behind it.
-- **`walk-kit-preview/`** — the walk kit as a pre-built, browsable site: open `walk-kit-preview/index.html` directly, no build step needed.
+- **`walk-kit-preview/`** — a pre-built, browsable preview of seven of the walk kit's pages: open `walk-kit-preview/index.html` directly, no build step needed. It leaves out the discovery conversation guide and how to walk a question; build `walk-kit/` for all nine.
 - **`observability-bok/`** — the body of knowledge: knowledge areas, instruments (including the standard, IN-23), and platform perspectives. Begin at `observability-bok/README.md` — it routes by question. To grow or maintain it, see `observability-bok/contribute.md` and `observability-bok/maintaining-the-bok.md` — the latter includes a test suite an AI agent can run to keep the body of knowledge healthy.
 - **`the-practice-system.md`** — the delivery model: who consumes observability work at which altitude, and how to slot an ask to the fitted form. Read before producing. The BOK is the depth behind it; this document is how you choose what to hand a given consumer.
 - **`observability-bok.yaml`** — the machine-readable registry of the body of knowledge (its knowledge areas, instruments, perspectives, and relationships). An AI copilot consumes it to read the fabric structurally, and the maintainer-guide's mechanical checks validate against it.
+- **`the-model.html`** — the model on one page: its terms and how they relate, from a capability down through intended flow, stage, process step and component to external dependency. Open it in a browser.
 - **`the-instrument-sud-v2.yaml`** — the interview that walks a team through defining what "working" means for one of their services.
 - **`acceptance-test.md`** — a comprehension check: does a reader hold the whole of the discipline?
 

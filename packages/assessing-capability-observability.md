@@ -30,8 +30,8 @@ gaps being sought are at the seams, and a seam exists only relative to a path cr
 **The flow's boundary is the expectation's boundary.**
 
 It begins where the stakeholder's expectation begins and ends where that expectation is
-satisfied or not. This is why a flow's stages are named as states reached rather than as
-activities performed.
+satisfied or not. This is why a flow's stages are named for what each achieves for the
+case, not for who performs it.
 
 **The capability is the anchor, because an expectation must outlive the implementation.**
 
@@ -106,8 +106,10 @@ destroys a distinction somebody downstream needs.
 **They are not one ladder, and the relations between them are four different things.** A capability
 and an intended flow are cross-mapped, many to many, and neither contains the other — one path
 serves several capabilities, and one capability is served by several paths. A flow contains its
-stages and its steps. A component realises a step. An external dependency is required by a
-component.
+stages, and a stage contains its steps. A component performs a step, or supports one it does not
+perform; a component depends on an external dependency, which can also perform a step itself.
+Each relation is defined once, in the methodology's controlled vocabulary, whose relation table the
+model page (`the-model.html`) renders.
 
 **What that forbids is rolling anything up past the flow.** Summing across a many-to-many
 cross-map double counts, and a realisation does not sum into the thing it realises. Measures

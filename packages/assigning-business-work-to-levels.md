@@ -17,7 +17,7 @@ place by passing one of four tests, and each test names the distinction it justi
 | **Failure response** — does knowing this change what can be done when the thing fails? | The line between step and component, and the split between component and external dependency. Above the line a failure is something the business did not get; below it, something a technology team can act on |
 | **Durability** — does this survive the work being re-implemented? | The capability. A new path, a new service, a re-platform: an expectation tied to the flow is orphaned by all of them, and tied to the capability it survives |
 | **Structure** — does this record the shape of the path itself? | The intended flow, which holds the order the stages run in. Without it a draft is a set of stages and no sequence |
-| **Decomposition** — does this separate time spent waiting from time spent working? | The line between stage and step. In most business work the waiting term dominates by an order of magnitude, and a model that collapses them cannot see it at all |
+| **Decomposition** — does this separate time spent waiting from time spent working? | The line between stage and step. A stage's elapsed time, entry to exit, less the time inside its steps, is the waiting. In most business work the waiting term dominates by an order of magnitude, and a model that collapses stage into step cannot see it at all |
 
 A distinction that passes none of the four is decoration. **Anything proposed as a seventh level has
 to name which of the four it passes**, and may not invent a fifth test to fit — that is how a set
@@ -38,8 +38,11 @@ there is; Test 1 and Test 2 are what separate them.
 **The six are not one axis, and the relations between them are four different things.** A capability
 and a flow are **cross-mapped**, many to many, and neither contains the other — one path serves
 several capabilities and one capability is served by several paths, which Step 7 treats as the
-normal case. A flow **contains** its stages and steps. A component **realises** a step. An external
-dependency is **required by** a component. Four relations, not one ladder.
+normal case. A flow **contains** its stages, and a stage **contains** its steps. A component
+**performs** a step, or **supports** one it does not perform. A component **depends on** an
+external dependency, which can also perform a step itself where no component mediates it. Four
+kinds of relation, not one ladder. Each is defined once, in the methodology's controlled
+vocabulary, whose relation table the model page (`the-model.html`) renders; this paragraph summarises it.
 
 **What this forbids: rolling anything up past the flow.** Summing across a many-to-many cross-mapping
 double counts, and summing a realisation into the thing it realises is a category error — a
@@ -91,10 +94,9 @@ with the alternative, someone taking a single assignment back to the material to
 **And nothing here says how a draft should be drawn.** What the levels fix is the model — what a
 thing is, what it binds to, and the order the case meets things in. How that gets presented is a
 separate choice, made per view and per question. A sequence view lays stages and steps on one line
-and shows what the case meets in turn; a lane view groups by performer; a containment view groups
-the steps that fall between two stages under the earlier one, and must say that is what it is doing,
-because **the model does not give a step a parent stage** — a step sits between two of them, and an
-irreversibility boundary can run straight through one. Those three are common cases, not the set:
+and shows what the case meets in turn; a lane view groups by performer; a containment view nests
+each stage's steps under it, which is the model's own structure: every step belongs to exactly one
+stage. Those three are common cases, not the set:
 a matrix, a state machine, a timeline are views too, and a kind of view missing from that list is
 not thereby ruled out.
 
@@ -102,9 +104,8 @@ not thereby ruled out.
 
 1. **Does it answer the question it declares?** Which requires the question to be declared. A
    picture with no stated question is a drawing, not a view.
-2. **Does it follow the conventions it claims to follow?** A containment view that groups steps
-   under the earlier stage has to say so; having said so, it is wrong if it then does something
-   else.
+2. **Does it follow the conventions it claims to follow?** A view that groups or orders by a rule of
+   its own has to say which rule; having said so, it is wrong if it then does something else.
 3. **Does it contradict the draft, or another view of the same draft?** A view asserting an order,
    a binding or a containment the rows do not carry is wrong however well it answers its question.
    So is one that drops rows without saying so — quietly omitting the `set aside` and `undetermined`
@@ -133,7 +134,7 @@ the definitions of record** — this table only says which neighbouring sense to
 | **case** | process mining's *case* — the `case id` every event log is keyed on; the *process instance* of the Workflow Management Coalition (WfMC) reference model | a support ticket, the *Case* object in CRM and service-management tools; a test case |
 | **capability** | business architecture's *business capability* — the BIZBOK Guide, and TOGAF's business architecture | capability maturity; a security capability or token; POSIX capabilities |
 | **intended flow** | the *de jure* process model (van der Aalst) — the process as designed, against the *de facto* process as it actually runs. *Flow / stage / step* as a naming triple is in monitoring use too | BPMN's *sequence flow*, which is an edge between two elements rather than the whole path |
-| **stage** | the *place* of a place/transition net, where the token rests between transitions; the queue term of queueing theory, as against the service term; the accumulation point a value-stream map cuts at. A Kanban buffer column and a CRM pipeline stage are the same idea in working use | the *stage* of CMMN, the OMG's case management notation — a nestable container of tasks rather than a position reached; a CI/CD pipeline stage; a deployment environment |
+| **stage** | business architecture's *value stream stage* — the BIZBOK Guide, and TOGAF's business architecture: an ordered stretch of the path with entrance and exit criteria, containing the work done in it. Step 4 says where the entry and exit fall. A Kanban column and a CRM pipeline stage are the same idea in working use | the *place* of a place/transition net, a state the case rests in between acts — that is a **park**, which opens a stage rather than being one; the *stage* of CMMN, the OMG's case management notation, which nests inside other stages; a CI/CD pipeline stage; a deployment environment |
 | **process step** | the *task* / *activity* of BPMN, the OMG's business process notation; the *step* in flow / stage / step. The numbered sections of this procedure are also called Steps — the level is always written *process step*, the sections always *Step 4*, *Step 6* | a click, a field validation, an internal function call — Step 5 sets the floor |
 | **component** | ArchiMate's *Application Component*, at the granularity of C4's **container** (Level 2) | C4's *component* (Level 3), which is code inside a container |
 | **external dependency** | something the application consumes but is **not part of** — a platform, another application, a vendor; Step 6 defines it | a package or library dependency — one compiled into the application's deployable is part of the component, not a dependency of it |
@@ -164,12 +165,13 @@ component. Test the thing, not the label the source gave it.
 
 > Can you sensibly ask **"has the case reached it yet?"**
 
-- **Yes** → it sits on the case's path. It is a **stage** or a **step**: a state the case sits in is a
-  stage, an act between two such states is a step. **A container the case sits in is not a
+- **Yes** → it sits on the case's path. It is a **stage** or a **step**: a stretch the case moves through,
+  from one boundary to the next, is a stage; an act inside that stretch is a step, and belongs to
+  it. **A container the case sits in is not a
   position.** *Has the application reached the underwriting queue?* is sensible, and the queue is
-  still the mechanism holding the case, not the state it is in — the stage is *awaiting
-  underwriting*, and the queue, if it runs anywhere, is a component. Ask what became true of the
-  case, not where it is being held. Go to Step 4, which cuts them from the walk.
+  still the mechanism holding the case, not what the case is going through — the stage is
+  *Underwrite the loan*, and the queue, if it runs anywhere, is a component. Ask what the case is
+  going through, not where it is being held. Go to Step 4, which cuts them from the walk.
 - **No — the question is malformed** → it is not a position on the path. Either it is a flow, or it
   is off the path entirely; the next paragraph separates those two before Test 2 runs.
 
@@ -301,9 +303,10 @@ Neither event changed what the applicant was waiting for.
 
 Two consequences follow from this and nothing else in the procedure justifies them:
 
-- **It is why stages are named as states reached** rather than as activities performed. The
-  segments of the walk are positions between *"they are counting on it"* and *"they have it"*, and
-  positions are states.
+- **It is why a stage is named for what it achieves for the case,** not for the department or
+  system that does it. The segments of the walk are stretches between *"they are counting on it"*
+  and *"they have it"*; what each achieves for the case survives a reorganisation, and who performs
+  it does not.
 - **It is why the capability is the anchor.** A stakeholder does not expect a particular flow to
   execute; they expect the business can do a thing. The flow is the means, and means change — a new
   path, a new service, a re-platform. An expectation tied to the flow is orphaned by every
@@ -462,40 +465,39 @@ The first turns a five-stage flow into forty — a retry is the act still workin
 the case down. The second inherits someone else's routing design: status fields are built to drive
 a queue, not to record where work waits.
 
-**Name each stage by the state the case has reached**, not the activity performed — *awaiting
-appraisal*, *decision recorded*, *funds released*. A stage must answer *"where is this case right
-now?"* for a case in flight. If your stage names cannot, you have written activities and collapsed
-two levels.
+**Name each stage for what it achieves for the case,** verb first, in two or three words —
+*Take the application*, *Underwrite the loan*, *Fund the loan* — as business architecture names
+value stream stages. A stage must still answer *"where is this case right now?"* for a case in
+flight, and it does: *in Underwrite the loan*. Where the case stands at a boundary, *decision
+recorded*, *funded*, is the stage's exit criterion, recorded as such, not its name.
 
-**What the separation buys, and the reason to defend it.** Keeping the resting positions apart from
-the acts decomposes elapsed time into waiting and working. That split is the whole of flow
-efficiency, and in most business work the waiting term dominates by an order of magnitude — a model
-that collapses stage into step cannot see it at all, and will report a process as slow without ever
-being able to say that almost none of the time was spent working. Process notations and workflow
-boards generally do collapse them; formal models of work — Petri nets, state machines, queueing
-models — keep them apart by construction, for this reason. The reason is in Step 0: the walk runs between *they are counting on it* and *they have
-it*, so every segment of it is a position, and positions are states.
+**What the separation buys, and the reason to defend it.** A stage runs from one boundary to the
+next and its steps are the acts inside it, so a stage's elapsed time, entry to exit, less the time
+inside its steps, is the time the case spent waiting. That split is the whole of flow efficiency,
+and in most business work the waiting term dominates by an order of magnitude — a model that
+collapses stage into step cannot see it at all, and will report a process as slow without ever
+being able to say that almost none of the time was spent working. Process mining computes the same
+split from each step's start and end: service time inside the steps, waiting time between them.
 
-**This inverts a standing convention, deliberately, and only for stages.** Verb-first naming is the
-rule for process *activities* in BPMN and in process-classification frameworks, and a reader who
-knows those will see a contradiction unless it is said plainly: steps here are activities and are
-named as such; stages are not activities and are not. The same inversion is already conventional one
-discipline over — a Kanban board names its buffer columns as states for exactly this reason, so that
-*where is this card now* has an answer, and shipment status vocabularies do the same. Where a setting
-expects verb phrases at this level, note the difference rather than treating a naming convention as a
-modelling error.
+**A stage and a step are both named verb first, at different sizes.** That is the convention of
+BPMN, process-classification frameworks and value stream practice alike, so nothing here departs
+from it. What tells a stage from a step is its size and its boundaries, never its grammar: a stage
+runs between two of Step 4's boundaries and contains steps; a step is one act inside it with one
+outcome. A stage with a single step can carry nearly the same words as that step, and that is not a
+defect.
 
 **The rule applied — how a stage is named.**
 
 | Reading from | Wrong | Right |
 |---|---|---|
-| Source code or architecture | *Perform appraisal* · *Review documents* · *Underwrite* — activities | *Awaiting appraisal* · *Documents reviewed* · *Decision recorded* |
-| A process document or org chart | *Underwriting* · *Processing* · *Closing* — the department that handles it | *Awaiting underwriting decision* · *Conditions cleared* · *Funded* |
-| A system of record | *In the loan origination system* · *In the pricing engine* — where the record currently sits | The state the case is in, which outlives the system holding it. The system goes in Evidence — it is where the state is recorded |
+| Source code or architecture | *LoanService* · *Call the bureau adapter* — a component, or a call inside a step | *Underwrite the loan* · *Appraise the property* — what the stretch achieves |
+| A process document or org chart | *Underwriting* · *Processing* · *Closing* — the department that handles it | *Underwrite the loan* · *Process the application* · *Close the loan* |
+| A system of record | *In the loan origination system* · *In the pricing engine* — where the record currently sits | What the stretch achieves for the case, which outlives the system holding it. The system goes in Evidence |
 
-Ask *where is this case right now?* of *perform appraisal* and there is no answer for a case in
-flight. The other two answer, but with something that is not about the case: a department can be
-reorganised and a system replaced without any case changing state. Name stages after either and the
+Ask *where is this case right now?* of *LoanService* and the answer is about the machinery, not
+the case. The department and the system answer too, but with something that is not about the case:
+a department can be reorganised and a system replaced without the case going through anything
+different. Name stages after either and the
 model dies when they do — which is the argument Step 0 already made about tying an expectation to
 the means rather than the capability.
 
@@ -507,7 +509,7 @@ the means rather than the capability.
   because it has dozens of waypoints. If a smaller number is wanted for reporting, make that
   aggregation explicit and say which stages were merged. Do not suppress boundaries to hit a count.
 
-## Step 5 — Steps are the acts between parks
+## Step 5 — Steps are the acts inside a stage
 
 One act, one outcome, that either happened or did not.
 
@@ -534,12 +536,12 @@ outcome still not arrived.
 A step **may** contain a wait if something is actively working through it — Step 4's test, applied
 downward.
 
-**An irreversibility boundary can fall inside a step, and does not split it.** Step 4's third cut
-fires where the case passes a point of no return, which is often mid-act — the commit, the
-disbursement, the filing. Splitting the step there would manufacture two halves that the business
-does not recognise as having separately happened, which this floor forbids. Record the boundary on
-the stage side and leave the step whole. The two cuts genuinely cross, and that is the clearest
-reason stage and step are different levels rather than two names for one.
+**A point of no return inside a step does not split it.** Step 4's third cut fires where the case
+passes a point of no return, which is often mid-act — the commit, the disbursement, the filing.
+Splitting the step there would manufacture two halves that the business does not recognise as
+having separately happened, which this floor forbids. The stage boundary falls where that step
+completes instead: the step is the last one in the stage it closes, and every step still belongs to
+exactly one stage.
 
 ## What each level makes obtainable
 
@@ -720,7 +722,7 @@ enumerations to match against, and a thing missing from one of them is not there
 | **Kind** | on a `set aside` row only: `role` · `rule or policy` · `target` · `form or document` · `team` · `other`. `n/a` at every level |
 | **Basis** | `attested` · `inferred` · `undetermined` |
 | **Binding** | a named step, component, capability or flow · `none` · `undetermined` · `n/a` |
-| **Order** | **one integer sequence across stages and steps together**, not a sequence per level · `parallel with <n>` · `loops to <n>` · `n/a` at the other levels, the flow row included: the order lives on the rows that are ordered, not restated on the flow |
+| **Order** | on a stage, its place along the flow as an integer · on a step, `<n> in <stage>`, its place inside the stage it belongs to · `parallel with <n>` · `loops to <n>` · `n/a` at the other levels, the flow row included: the order lives on the rows that are ordered, not restated on the flow |
 
 | Label | Values | Why |
 |---|---|---|
@@ -729,7 +731,7 @@ enumerations to match against, and a thing missing from one of them is not there
 | **Basis** | `attested` — stated in the source or given by the declared frame, cite which · `inferred` — derived, say from what · `undetermined` — the source does not settle it | on messy input this is the line between a draft and a fabrication |
 | **Alternative** | the reading you did not take, or `none`. **It may be that the thing is not one of the six at all** — that is a reading, and a common one | this is what a reviewer disagrees with; omitting it makes the draft uncorrectable |
 | **Binding** | for a component, the step or steps it performs; for an external dependency, the component that requires it, or the step it performs where no component mediates; for the capability the walk delivers, that flow — an ability the source names but the walk does not deliver binds `undetermined`, which is what distinguishes the two kinds of capability row; for a step, `n/a` where a performer row points at it and `undetermined` where none does and none could be found — never `none`, because a step row does not name its own performer, the performer row points at the step | Step 6 demands it, and a component bound to no step is not a component in this walk |
-| **Order** | the position of a stage or step along the flow, as a single integer sequence spanning both — the case meets parks and acts interleaved, so a sequence per level gives two ladders with no rung between them and the path cannot be rebuilt from the fields alone. `parallel with <n>` where two run at once and `loops to <n>` where the case can go back — those are the branching cases the limits section names, and they belong here rather than in prose | **without this the ordered path is not recorded anywhere.** This fixes the order the case meets things in; it does not fix how any view presents them. Rows in a table have adjacency, which nothing declares meaningful, and a draft reordered by any consumer loses the one structure the whole model is about |
+| **Order** | the position of a stage along the flow, and of a step inside its stage. A step's order names its stage, so the path can be rebuilt from the fields alone: the stages in order, and each stage's steps in order. `parallel with <n>` where two run at once and `loops to <n>` where the case can go back — those are the branching cases the limits section names, and they belong here rather than in prose | **without this the ordered path is not recorded anywhere.** This fixes the order the case meets things in; it does not fix how any view presents them. Rows in a table have adjacency, which nothing declares meaningful, and a draft reordered by any consumer loses the one structure the whole model is about |
 
 **`undetermined` is expected, not a failure.** A model with thin material that produces confident
 assignments is worse than one that declines.
@@ -804,19 +806,18 @@ the same systems.
 | `set aside` | `rule or policy` | The credit policy | policy document §7 | `attested` — named throughout the source | a rule, not a level. Test 2's *Set aside* | attaches to *score against policy* | `n/a` |
 | `set aside` | `role` | Underwriter | org chart; interview 2026-03-04 | `attested` — the handbook assigns the work to this role | could be `team` rather than `role` if the work is pooled and no individual owns a case | attaches to *clear the outstanding conditions* | `n/a` |
 | Intended flow | `n/a` | Originating a loan | the declared frame | `attested` — given by the declared frame | `none` — the frame decides it | `n/a` | `n/a` |
-| Stage | `n/a` | Submitted | status enum, `LoanApplication.java:41` | `attested` — the source names it as the entry state | `none` | `n/a` | 2 |
-| Stage | `n/a` | Awaiting credit decision | bureau call site, `CreditClient.java:88` | `inferred` — the case parks on the bureau | could sit inside *submitted* if the bureau answers inline | `n/a` | 4 |
-| Stage | `n/a` | Decision recorded | status enum, `LoanApplication.java:41` | `attested` — named in the source | `none` | `n/a` | 7 |
-| Stage | `n/a` | Awaiting conditions cleared | ops handbook §4 names conditions; nothing shows parking | `undetermined` — conditions are mentioned, parking is not | may not be a distinct stage at all | `n/a` | 8 |
-| Stage | `n/a` | Awaiting signature | callback handler, `SigningController.java:29` | `inferred` — the case parks on the applicant | could sit inside *awaiting conditions cleared* | `n/a` | parallel with 8 |
-| Stage | `n/a` | Funded | status enum, `LoanApplication.java:41` | `attested` — named in the source | `none` | `n/a` | 11 |
-| Process step | `n/a` | Submit the application | web form handler, `OriginationController.java:17` | `attested` — named in the source | `none` | `n/a` | 1 |
-| Process step | `n/a` | Pull the credit file | `CreditService.evaluate()`, `CreditClient.java:88` | `attested` — named in the source | `none` | `n/a` | 3 |
-| Process step | `n/a` | Score against policy | policy document §7; no call site found | `inferred` — from a policy the source references but no step performs | may be part of pulling the file if the bureau scores | `undetermined` — nothing in the source says what performs it | 5 |
-| Process step | `n/a` | Record the decision | `DecisionService.record()`, `DecisionService.java:52` | `attested` — named in the source | `none` | `n/a` | 6 |
-| Process step | `n/a` | Clear the outstanding conditions | ops handbook §4, which assigns it to the underwriter | `inferred` — the section assigns it to a person, and names no system | may be automated policy checks rather than a person | `n/a` — the *Underwriter* row points at it | 9 |
-| Process step | `n/a` | Sign the disclosures | `SigningController.java:29`; ops handbook §5 | `attested` — named in the source | `none` | `n/a` | parallel with 9 |
-| Process step | `n/a` | Release the funds | ops handbook §6; no call site found | `inferred` — the declared ending outcome, with no system evidence | may be performed outside the delivering application entirely | `undetermined` — nothing in the source says what performs it | 10 |
+| Stage | `n/a` | Take the application | status enum, `LoanApplication.java:41`; entered at the starting event, left where the case parks on the bureau | `attested` — the source names it as the entry state | `none` | `n/a` | 1 |
+| Stage | `n/a` | Underwrite the loan | bureau call site, `CreditClient.java:88`; left at *decision recorded*, status enum `LoanApplication.java:41` | `inferred` — the case parks on the bureau | could sit inside *Take the application* if the bureau answers inline | `n/a` | 2 |
+| Stage | `n/a` | Clear the conditions | ops handbook §4 names conditions; nothing shows parking | `undetermined` — conditions are mentioned, parking is not | may not be a distinct stage at all | `n/a` | 3 |
+| Stage | `n/a` | Collect signatures | callback handler, `SigningController.java:29` | `inferred` — the case parks on the applicant | could sit inside *Clear the conditions* | `n/a` | parallel with 3 |
+| Stage | `n/a` | Fund the loan | ops handbook §6; left at *funded*, status enum `LoanApplication.java:41`, the frame's ending outcome | `inferred` — release follows clearing and signing, and nothing shows it running inside either | may sit inside *Clear the conditions* if release follows it directly | `n/a` | 4 |
+| Process step | `n/a` | Submit the application | web form handler, `OriginationController.java:17` | `attested` — named in the source | `none` | `n/a` | 1 in *Take the application* |
+| Process step | `n/a` | Pull the credit file | `CreditService.evaluate()`, `CreditClient.java:88` | `attested` — named in the source | `none` | `n/a` | 2 in *Take the application* |
+| Process step | `n/a` | Score against policy | policy document §7; no call site found | `inferred` — from a policy the source references but no step performs | may be part of pulling the file if the bureau scores | `undetermined` — nothing in the source says what performs it | 1 in *Underwrite the loan* |
+| Process step | `n/a` | Record the decision | `DecisionService.record()`, `DecisionService.java:52` | `attested` — named in the source | `none` | `n/a` | 2 in *Underwrite the loan* |
+| Process step | `n/a` | Clear the outstanding conditions | ops handbook §4, which assigns it to the underwriter | `inferred` — the section assigns it to a person, and names no system | may be automated policy checks rather than a person | `n/a` — the *Underwriter* row points at it | 1 in *Clear the conditions* |
+| Process step | `n/a` | Sign the disclosures | `SigningController.java:29`; ops handbook §5 | `attested` — named in the source | `none` | `n/a` | 1 in *Collect signatures* |
+| Process step | `n/a` | Release the funds | ops handbook §6; no call site found | `inferred` — the declared ending outcome, with no system evidence | may be performed outside the delivering application entirely | `undetermined` — nothing in the source says what performs it | 1 in *Fund the loan* |
 | Component | `n/a` | Origination API | inbound handler, `OriginationController.java:17`; no deployment manifest seen | `inferred` — implied by the entry handler, not named as a deployable | could be the same deployable as the bureau interface | performs *submit the application* and *pull the credit file* | `n/a` |
 | Component | `n/a` | Bureau interface | arc42 §5 building block view; deployment manifest, `bureau-interface` | `attested` — named in the source | `none` | performs *pull the credit file* | `n/a` |
 | Component | `n/a` | Decision service | `DecisionService.java:52` | `inferred` — not named as a deployable, implied by a step that records a decision | could be a module inside the origination API rather than a deployable of its own | performs *record the decision* | `n/a` |
@@ -827,13 +828,16 @@ the same systems.
 Note the Evidence column against *pull the credit file*. The method name is not an error the draft
 had to avoid — it is what makes the sentence next to it checkable.
 
+Note where *release the funds* sits. It passes the point of no return, so the stage it belongs to
+ends where it completes — at *funded*, the frame's ending outcome — and the step is not split.
+
 **Note what the example declines to do.** Two rows disagree with each other and stay that way.
 Five rows are `set aside` or `undetermined` rather than assigned. One capability is recorded as
 unreachable by the walk that was performed. A draft with none of these on thin material is not a
 better draft — it is one that did not report what it could not establish.
 
 **Note what the frame did.** *Credit underwriting* is absent from the capability level, because under
-this frame it is a position the application reaches — the one recorded above as *decision recorded*.
+this frame it is a stretch the application moves through — the one recorded above as *Underwrite the loan*.
 Take a different case — one credit file moving through the lender's risk operation, whose expectation
 belongs to the risk officer — and underwriting
 becomes the flow, with the ability to underwrite the capability it delivers. Both are right; the
@@ -872,8 +876,8 @@ screen is this procedure's own, and is flagged rather than dressed up.
 - **Workflow nets and soundness** — van der Aalst: a case as a token traversing the net, correctness
   stated per case. Test 1 asks that question
 - **Workflow Management Coalition (WfMC) reference model** — case as process instance: what an engine instantiates and routes
-- **CMMN (Case Management Model and Notation)** — OMG: *case* and *stage* as first-class modelled elements. Its stage is a nestable
-  container of tasks, not a position reached — the nearest term and a real difference
+- **CMMN (Case Management Model and Notation)** — OMG: *case* and *stage* as first-class modelled elements. Its stage is a container of
+  tasks that can nest inside other stages — the nearest term, and the nesting is the difference
 - **Object-centric process mining** — van der Aalst: convergence and divergence where one case notion
   does not hold. The named limit *a changing unit of case* is this problem
 - **Operational definition** — Bridgman (1927), Deming (1986): a measurement is meaningless until
@@ -916,7 +920,10 @@ screen is this procedure's own, and is flagged rather than dressed up.
   declares it. Step 0's frame is a bounded-context declaration, and *the same activity is a
   capability under one frame and a single act under another* is that claim
 - **Value streams and process classification** — the APQC Process Classification Framework and value-stream practice: the verb-phrase
-  naming convention at the stage level, noted in Step 4 as a difference rather than an error
+  naming convention, which stages and steps here both follow
+- **Value stream stage** — the BIZBOK Guide and TOGAF business architecture: an ordered stretch of a
+  value stream with entrance and exit criteria, containing the work done in it. The sense *stage*
+  takes here
 
 **Step 4 — where the cut falls, and what the segment is called**
 
@@ -927,23 +934,25 @@ screen is this procedure's own, and is flagged rather than dressed up.
 - **Pivot transaction** — the saga pattern (Garcia-Molina & Salem, 1987; Richardson, 2018): the
   point after which the work cannot be compensated. The precise name for the third park
 - **Commit point** — Gray & Reuter (1993): the same boundary in transaction terms
-- **Buffer columns named as states** — Kanban (Anderson, 2010), where *where is this card now* is
-  the stated purpose of the naming; and shipment status vocabularies (ANSI X12 214, GS1 EPCIS
-  disposition), which name dispositions rather than activities for the same reason
+- **Status recorded as a state** — Kanban columns (Anderson, 2010) and shipment status vocabularies
+  (ANSI X12 214, GS1 EPCIS disposition) record where a case is as a state. Here that is what a
+  stage's exit criterion records, *decision recorded*, *funded*; the stage itself is named for what
+  it achieves
 
 **Step 7 — deriving it twice**
 - **Place / transition** — Petri (1962) and the place/transition net: a token rests in a **place**
-  and moves through a **transition**. Stage and step are those two, and the net is bipartite by
-  construction — which is the strongest statement available that they are not a modelling
-  preference but the two halves of one structure
+  and moves through a **transition**. A park is a place and a step is a transition, and the net is
+  bipartite by construction, which is why a wait and an act are never the same thing. A stage is a
+  stretch of the net between two boundaries, not a place
 - **Queue time against service time** — queueing theory (Kendall, 1953): waiting decomposes into
-  time queued and time served. Stage is the first, step the second, and that is what makes the
-  separation pay rather than merely be tidy
+  time queued and time served. Inside a stage the waiting is the first and its steps the second,
+  and that is what makes the separation pay rather than merely be tidy. Process mining computes both
+  from each step's start and end events (van der Aalst, the time perspective)
 - **Accumulation as the cut** — value-stream mapping (Rother & Shook, 1999): the map breaks where
   inventory piles up, and the whole flow-efficiency calculation rests on it
-- **Buffer columns named as states** — Kanban (Anderson, 2010), where *where is this card now* is
-  the stated reason for the naming; and pipeline stages in sales and case management, which do the
-  same thing in ordinary business use
+- **Where is this case now** — Kanban (Anderson, 2010) and pipeline stages in sales and case
+  management, where the question has an answer at every moment; here it is answered by the stage
+  the case is in
 - **Flow / stage / step** — the triple also appears as a monitoring vocabulary, with health
   composing upward; a naming precedent rather than a source of the distinction
 - **Software reflexion model** — Murphy, Notkin & Sullivan: a model read from the source compared

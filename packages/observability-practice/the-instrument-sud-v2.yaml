@@ -263,7 +263,7 @@ shared_questions:
     id: q16c
     bare: "Who owns this signal?"
     enhanced: "Per-signal technical owner — may differ from service owner by layer"
-    prior_art: ["SRE three-actor ownership model — ownership varies by observability layer"]
+    prior_art: ["Three-actor ownership model (Product Owner defines, Developer implements, Platform operates) — technical ownership varies by observability layer", "Team Topologies — platform vs stream-aligned ownership boundaries"]
     populates: ["sliDefinitions[].technicalOwner"]
     schema_ahead: false
     evidence:
@@ -571,24 +571,61 @@ parts:
           Using the dependency analysis from q9 and the source material, produce
           a structured dependency graph with two arrays: nodes[] and edges[].
 
-          **Nodes** — every component in the dependency picture:
-            - The service itself (type: service)
-            - Each dependency it calls (type: critical if failure = service failure;
-              type: degraded if failure = partial/silent impact)
-            - What calls it (type: upstream)
-            - What consumes from it (type: downstream)
+          **Nodes carry intrinsic facts only** — what a component IS, independent of
+          who is looking at it. Include the service itself, each dependency it calls,
+          what calls it, and what consumes from it — but classify none of them by
+          position or criticality. Those are not node properties (see below).
 
-          For each node: name, type, protocol (HTTP/SQL/AMQP/gRPC/null),
-          failure_impact (what happens when unavailable, in consumer terms),
-          signals[] (signal_names that monitor this node's health), provenance.
+          For each node: name, kind, technology (optional free text — 'PostgreSQL 15',
+          'RabbitMQ'), protocol (HTTP/SQL/AMQP/gRPC/null), failure_impact (what happens
+          when unavailable, in consumer terms), signals[] (signal_names that monitor
+          this node's health), provenance.
 
-          **Edges** — directed relationships between nodes:
-            - from → to (must match node names exactly)
+          **kind** — what kind of resource this is. Pick one:
+            - application — runs code and serves requests (service, API, worker, batch job)
+            - database — durable structured storage queried by the application
+            - cache — volatile store fronting something slower
+            - message_queue — asynchronous transport (queue, topic, stream, event bus)
+            - object_store — blob / file storage addressed by key
+            - file_system — mounted disk or shared volume
+            - external_api — a system outside the org's control, reached over the network
+            - identity_provider — authentication / authorization / token issuance
+            - other — does not fit; **requires** a technology note saying what it is
+
+          `other` is expected to be used and is not a failure. Every component taxonomy
+          is wrong at the edges. A rising `other` rate is the signal to extend the enum,
+          not a defect in the SUD. `kind` is what lets coverage evaluation say *what*
+          belongs in an empty Utilization / Saturation / Errors cell — a database's
+          saturation is connection-pool wait; a queue's is consumer lag.
+
+          **Edges carry everything relational** — directed relationships between nodes:
+            - from → to. **Direction convention: `from` calls / sends to `to`.** Apply it
+              without exception. Position is derived from this direction, so an edge
+              pointed the wrong way is silently wrong — nothing downstream can detect it.
+            - must match node names exactly
             - protocol on the edge
             - criticality: critical (source fails), degraded (source works but
               impact propagates), informational (no direct impact on source)
             - failure_impact (specific to this edge, if different from node-level)
             - provenance
+
+          **Position is derived, never declared.** A node with an edge into the subject
+          is upstream; one the subject has an edge to is a dependency; one that consumes
+          the subject's output is downstream. The same component is upstream in one SUD
+          and downstream in another — position belongs to the viewpoint, not the
+          component. Every non-subject node must connect to the subject through some
+          chain of edges; one that does not is an incomplete extraction, not a node with
+          no position.
+
+          **Criticality is a property of the relationship, not the component.** A
+          dependency is critical *to this service*; to another service it may be
+          informational. Record it on the edge only.
+
+          **The subject** is the service this SUD documents — the document already names
+          it in metadata. Include a node for it, named to match. If the graph is anchored
+          on a node whose name does not match the document subject — e.g. a journey SUD
+          anchored at its commit-point service — state that node's name in
+          `dependencies_structured.subject`.
 
           **Criticality classification** uses the Azure WAF Health Model:
             - critical = synchronous, no fallback — if target fails, source fails
@@ -614,7 +651,7 @@ parts:
         evidence:
           section_pattern: "(dependencies_structured|dependency.*node|dependency.*edge)"
           content_patterns:
-            - pattern: "(nodes:|edges:|type: critical|type: degraded|criticality:)"
+            - pattern: "(nodes:|edges:|kind: |criticality:)"
               description: "structured dependency graph present"
 
       - id: q10
