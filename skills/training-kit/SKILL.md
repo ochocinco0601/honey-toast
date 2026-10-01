@@ -5,14 +5,15 @@ description: Build a self-paced training kit on any subject, for any audience - 
 
 # Building a training kit
 
-Skill version: 1.1 (2026-09-25). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
+Skill version: 1.2 (2026-10-01). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
 
 You build a kit that leaves its learners able to do something in their own work a week later.
 Approval at the end of a session does not count; that later behaviour is the outcome, and every
 choice below serves it.
 
 The kit is a **self-paced learning site**: a course home with a led path, units with numbered steps
-and progress by unit, practice recipes, shared help, and web pages generated from markdown. The
+and progress by unit, a workbook that keeps what the learner writes, practice recipes, shared help,
+and web pages generated from markdown. The
 builder in `starter/` implements that kind of site's conventions; build on them rather than
 redesigning them.
 
@@ -107,6 +108,12 @@ operate the thing, missing mechanics restrict release to a pilot**.
   worked example first and support that fades to the learner doing it on their own work. Split the
   outcome into its actions: reading a result and acting on it are two. The last unit is their own
   work, this week.
+- **The path ends as a well-run session ends,** for the learner who takes it alone: the last unit
+  opens with the learner writing down the real task they will do this week, when, and what done
+  looks like (their commitment), and closes with them rating how sure they are of each objective.
+  Every step that asks the learner to write something gives them a note box; the training's
+  workbook gathers what they wrote, under the unit and step, to read, download or print. The
+  maintainer guide gives the markup.
 - Practice is designed around the critical decisions from the inventory: varied cases, one of them
   a near miss, and a short attempt a few days after the path. Add a cue when the outcome is a
   habit, and a way for experienced learners to skip what they know.
@@ -254,7 +261,9 @@ review 5 after your change.
    between the two "What a maintainer changes" marker lines survive the next step.
 2. Replace the kit's `maintaining/build_pages.py`, `check_text.py` and `check_structure.py` with
    the starter's, then put back everything between the marker lines from the kit's own copy and
-   the rewordings from step 1. Set `SKILL_VERSION` to this version.
+   the rewordings from step 1. Set `SKILL_VERSION` to this version. From 1.1 or older, also copy
+   the starter's `getting-started/workbook.md` into each training's folder, and give the last unit
+   the commitment note and the objectives' rating list as the starter's last unit has them.
 3. Bring every passage of the kit's maintainer guide that describes the pages, the builder or
    progress in line with the starter's, keeping the kit's own settings table and "Decisions".
 4. Rebuild, and add a CHANGELOG entry that raises the minor number and says what learners will
@@ -262,6 +271,16 @@ review 5 after your change.
 
 If a choice recorded under the kit's "Decisions" conflicts with what this version changes, keep
 the choice and tell the requester.
+
+What 1.2 changed from 1.1:
+- Note boxes (`<!-- note -->`): a step that asks the learner to write something keeps their answer in
+  the browser.
+- Ratings (`<!-- rate -->`): the learner says how sure they are of each objective at the end of the
+  path.
+- A workbook page per training gathers both, under the unit and step they came from, and downloads
+  or prints them.
+- The starter's last unit opens with the learner's written commitment to a real task this week and
+  closes with the rating.
 
 What 1.1 changed from 1.0:
 - Progress is by unit: Continue completes a unit and steps have no checkboxes. Ticks a learner made

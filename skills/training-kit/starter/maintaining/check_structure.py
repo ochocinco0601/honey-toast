@@ -19,6 +19,8 @@ for p, full in pages.items():
     h = full.split("<script")[0]
     content = re.split(r'<main id="main"[^>]*>', full, 1)[1].split('<nav class="pager"')[0]
     content = re.sub(r'<details class="toc-inline">.*?</details>', " ", content, flags=re.S)
+    content = re.sub(r'<p class="kept">.*?</p>', " ", content, flags=re.S)
+    content = re.sub(r'<section class="workbook">.*?</section>', " ", content, flags=re.S)
     md = io.open(os.path.join(kit, md_for(p)), encoding="utf-8").read().replace("\r\n", "\n")
     want_prompts = len(re.findall(r"^\s*> ", md, flags=re.M))
     want_frames = len(re.findall(r"<!--\s*frame\s*-->", md))

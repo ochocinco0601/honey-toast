@@ -85,14 +85,16 @@ open flags are not shown), `GLOSSARY_TERMS` (words linked to the glossary) and
 - **Practice data is made up.** No real people, customers, systems or addresses in any example or
   practice file.
 - **Progress stays with the learner.** It is kept in their own browser and shown to no one else:
-  which units they have completed, and the page and step they last read.
+  which units they have completed, the page and step they last read, and what they wrote in the
+  note boxes and ratings. The workbook page gathers their notes and lets them download or print a
+  copy, which is the only way they leave the browser.
 
 ## Where things are
 
 | Path | What it is |
 |---|---|
 | `README.md` | The programme's home page: the trainings, help for every training, how to read them |
-| `getting-started/` | The beginners' training: its `README.md` (home: what you will be able to do, the path, before you start), its units, and `how-to/`, its practice recipes |
+| `getting-started/` | The beginners' training: its `README.md` (home: what you will be able to do, the path, before you start), its units, `workbook.md` (the page that gathers the learner's notes; the build fills it), and `how-to/`, its practice recipes |
 | `troubleshooting.md`, `faq.md`, `glossary.md` | Help for every training: problems by when they happen, questions, words |
 | `explanation.md` | Background: why the subject works as it does; read after a lesson |
 | `CHANGELOG.md` | What's new: the kit's versions, newest first. The kit's version is its newest entry |
@@ -131,6 +133,7 @@ Getting started's path.
 1. **Its folder:** a `README.md` shaped like `getting-started/README.md`: what you will be able to
    do, "The path" as a numbered list of its units with their times, before you start. Its
    "Before you start" names Getting started as the training to finish first, and links to it.
+   Copy `getting-started/workbook.md` into the folder too.
 2. **Its units and recipes** in the same folder, written to the conventions below.
 3. **`TRAININGS` in `build_pages.py`:** its `folder`, `name`, `level`, `time` and `path`. A training
    with an empty path shows as "coming later"; filling the path makes it available.
@@ -167,6 +170,9 @@ Decided, and implemented by the builder; keep it rather than redesigning it. Eve
 - **Coming back:** the training's home page offers to continue where the learner left off: the
   last unit or setup page they opened, at the step they were reading.
 - **Light and dark:** pages follow the reader's system theme, with a switch in the header.
+- **The learner's notes:** a box under each note's question, a line saying the answer is kept in
+  this browser and is also in the workbook, and the workbook page itself, which prints without the
+  outline, header and buttons.
 
 It follows Microsoft Learn with a persistent outline, because learners return days later and need
 to see where they are and what is done without searching. Position and progress are said once, in
@@ -219,11 +225,21 @@ The builder reads these conventions. Anything else is ordinary markdown.
 | `[text](https://...)` or `[text](mailto:...)` | A link out of the kit, such as to the tool's own screen, its help, or a support channel |
 | A list item followed by lines indented under it that start `- ` or `1. ` | A list nested inside that item. Indent the nested lines to line up with the item's text (two spaces under `- `, three under `1. `) |
 | `**bold**` around a link, or around text and a link together | Bold that includes the link |
+| `<!-- note -->` on the line before a paragraph | The paragraph as a question, with a box under it for the learner's answer. The answer is kept in their browser and also appears in the training's workbook, where it can be read, changed, downloaded or printed. Use one wherever a step asks the learner to write something down, ending the question with a colon. An answer is tied to the step the note sits under and its place among that step's notes: rewording the question keeps learners' answers, but renaming the step or moving the note shows them an empty box |
+| `<!-- rate -->` on the line before a list | Each item with a choice of "I can do this", "With the page open" or "Not yet", kept and gathered like a note. For the objectives at the end of a path, in the same words as the training's home page. The list ends at its first blank line |
+| `<!-- workbook -->` on its own line | Where the build puts every note and rating from the training's pages, under the unit and step each came from, with Download and Print buttons. Only in a training's `workbook.md` |
 | `[text](../sample-files/name.csv)` | A link to a practice file or any other file in the kit |
 | `![what it shows](images/name.png)` on its own line | A picture, such as a screen with the control to use. Keep pictures in an `images` folder beside the page; describe what matters in the text as well, for readers who cannot see it |
 
-**The last unit on a path** ends with a section headed `## You have finished the path`, saying what
-the learner can now do. When every unit is done, the training's home page links to it.
+**The last unit on a path** is the learner's own work this week. Its first step has them write down,
+in a note box, the real task they will do, when, and what done looks like: that is their
+commitment. It ends with a section headed `## You have finished the path`, saying what the learner
+can now do, then a rating list of the training's objectives (`<!-- rate -->`). When every unit is
+done, the training's home page links to it.
+
+**Every training has a `workbook.md`** once any of its pages has a note or a rating; the build stops
+without one. It appears in the outline under More as the page's title. Copy it from
+`getting-started/workbook.md` for a new training.
 
 **A recipe** has, in order: **You end with**, **Before you start**, **When**, numbered steps, a
 **Check:** paragraph, and a line pointing to `troubleshooting.md`.

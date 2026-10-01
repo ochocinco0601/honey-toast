@@ -19,7 +19,7 @@ import sys
 # ---- What a maintainer changes when the kit grows (see maintaining/README.md) ----
 # A record, not a setting: the version of the training-kit skill that built this kit. It goes into
 # each page's generated-file comment only. The kit's own version is the newest entry in CHANGELOG.md.
-SKILL_VERSION = "1.1"
+SKILL_VERSION = "1.2"
 PROGRAM_NAME = "Training programme"
 # Who the learner asks for help, and where they paste a prompt for it.
 ASSISTANT = "the assistant"
@@ -67,7 +67,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 KIT = os.path.normpath(os.path.join(HERE, ".."))
 OUT_DIR = "read-in-browser"
 OUT = os.path.join(KIT, OUT_DIR)
-MARKER = re.compile(r"^<!--\s*(frame|tutor|tool)\s*-->$")
+MARKER = re.compile(r"^<!--\s*(frame|tutor|tool|note|rate|workbook)\s*-->$")
+# What a learner can say of each objective at the end of a path (see <!-- rate --> in maintaining/README.md).
+RATINGS = ("I can do this", "With the page open", "Not yet")
 CHEVRON_SVG = ('<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" '
                'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>')
 ARROW_SVG = ('<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">'
@@ -314,17 +316,36 @@ def item_html(lines, src):
 
 def render(lines, src):
     h, i, kind = [], 0, None
+    # A note's or rating's key is the step it sits under and its place there, so rewording a question
+    # keeps the learner's answer; renaming the step or reordering its notes does not.
+    head, count = "top", {}
+
+    def key(prefix):
+        count[head] = count.get(head, 0) + 1
+        return "%s-%s-%d" % (prefix, head, count[head])
+
+    def misplaced(what):
+        sys.exit("%s: a <!-- %s --> marker must be followed by %s, but the next block is %s. Move the marker "
+                 "or remove it." % (src, kind, "a paragraph (the question)" if kind == "note" else "a list", what))
     while i < len(lines):
         ln, s = lines[i], lines[i].strip()
         m = MARKER.match(s)
-        if m:
+        if m and kind in ("note", "rate"):
+            misplaced("another marker")
+        if m and m.group(1) == "workbook":
+            h.append(WORKBOOK_HERE)
+            i += 1
+        elif m:
             kind = m.group(1)
             i += 1
         elif not s:
             i += 1
         elif ln.startswith(("## ", "### ", "#### ")):
+            if kind in ("note", "rate"):
+                misplaced("a heading")
             level = len(ln.split(" ", 1)[0])
             t = ln[level + 1:].strip()
+            head = slug(t) or head
             num = re.match(r"^(\d+)\.\s+(.*)$", t)
             if num:
                 # A numbered step: its number in a badge; the full stop stays for screen readers.
@@ -334,24 +355,31 @@ def render(lines, src):
                 h.append('<h%d id="%s">%s</h%d>' % (level, slug(t), inline(t, src), level))
             i += 1
         elif s.startswith("> "):
+            if kind in ("note", "rate"):
+                misplaced("a prompt")
             h.append(prompt_block(s[2:], kind))
             kind = None
             i += 1
         elif s.startswith("|"):
+            if kind in ("note", "rate"):
+                misplaced("a table")
             rows = []
             while i < len(lines) and lines[i].strip().startswith("|"):
                 rows.append(lines[i])
                 i += 1
             h.append(table(rows, src))
         elif ln.startswith("- ") or re.match(r"^\d+\.\s", ln):
+            if kind == "note":
+                misplaced("a list")
             lkind = "ul" if ln.startswith("- ") else "ol"
             items = []
             while i < len(lines):
                 cur = lines[i]
                 if not cur.strip():
                     nxt = next((l for l in lines[i + 1:] if l.strip()), "")
-                    same = (lkind == "ul" and nxt.startswith("- ")) or \
-                           (lkind == "ol" and re.match(r"^\d+\.\s", nxt) and not re.match(r"^1\.\s", nxt))
+                    # A rating list ends at its first blank line, so an ordinary list can follow it.
+                    same = kind != "rate" and ((lkind == "ul" and nxt.startswith("- ")) or
+                                               (lkind == "ol" and re.match(r"^\d+\.\s", nxt) and not re.match(r"^1\.\s", nxt)))
                     if same:
                         i += 1
                         continue
@@ -371,6 +399,10 @@ def render(lines, src):
                 else:
                     break
                 i += 1
+            if kind == "rate":
+                kind = None
+                h.append(rating_list(items, src, key("rate")))
+                continue
             h.append("<%s>%s</%s>" % (lkind, "".join("<li>%s</li>" % item_html(it, src) for it in items), lkind))
         else:
             para = []
@@ -379,6 +411,17 @@ def render(lines, src):
                 para.append(lines[i].strip())
                 i += 1
             text = " ".join(para)
+            if kind == "rate":
+                misplaced("a paragraph")
+            if kind == "note":
+                # The paragraph is the question; the box under it keeps the learner's answer.
+                kind = None
+                nid = key("note")
+                shown = inline(text, src)
+                h.append('<div class="note" data-note="%s" data-u="%s" data-label="%s"><label for="%s">%s</label>'
+                         '<textarea id="%s" rows="3" autocomplete="off"></textarea>%s</div>'
+                         % (nid, html.escape(out_name(src)), plain_attr(shown), nid, shown, nid, kept_line(src)))
+                continue
             ans = re.match(r"^(Check your answer|Answers):\s*", text)
             if ans:
                 if h and h[-1].startswith("<p>") and h[-1].endswith("?</p>"):
@@ -403,6 +446,43 @@ def render(lines, src):
                 continue
             h.append("<p>%s</p>" % inline(text, src))
     return "\n".join(h)
+
+
+WORKBOOK_HERE = '<div id="workbook-here"></div>'
+
+
+def workbook_of(t):
+    """A training's workbook page, where the notes and ratings from its pages are gathered; None if it has none."""
+    wb = in_training(t, "workbook.md") if t else None
+    return wb if wb in FILES else None
+
+
+def kept_line(src):
+    wb = workbook_of(page_training(src))
+    where = ' It is also in <a href="%s">your workbook</a>.' % rel(src, out_name(wb)) if wb and wb != src else ""
+    return '<p class="kept">Kept in this browser only.%s</p>' % where
+
+
+def plain_attr(shown):
+    """Rendered text as a plain attribute value, escaped once."""
+    return html.escape(html.unescape(re.sub(r"<[^>]+>", "", shown)))
+
+
+def radios(name):
+    return "".join('<label><input type="radio" name="%s" value="%d" autocomplete="off"> %s</label>'
+                   % (name, k, html.escape(r)) for k, r in enumerate(RATINGS))
+
+
+def rating_list(items, src, base):
+    """Each item, usually an objective, with a choice of how sure the learner is of it."""
+    rows = []
+    for n, it in enumerate(items, 1):
+        rid = "%s-%d" % (base, n)
+        shown = inline(" ".join(l.strip() for l in it if l.strip()), src)
+        rows.append('<li class="note rate" data-note="%s" data-u="%s" data-label="%s"><fieldset><legend>%s</legend>'
+                    '<div class="opts">%s</div></fieldset></li>'
+                    % (rid, html.escape(out_name(src)), plain_attr(shown), shown, radios(rid)))
+    return '<ul class="rates" role="list">%s</ul>%s' % ("".join(rows), kept_line(src))
 
 
 def nav_title(md):
@@ -441,6 +521,7 @@ for _t in TRAININGS:
     _t["units"] = [in_training(_t, f) for f, _, _ in _t["path"]]
     _t["recipes"] = recipes_of(_t)
     _t["seq"] = [_t["readme"]] + _t["before"] + _t["units"]
+    _t["workbook"] = workbook_of(_t)
 UNITS = {}
 for _t in TRAININGS:
     for _n, (_f, _, _time) in enumerate(_t["path"], 1):
@@ -450,7 +531,8 @@ for _t in TRAININGS:
 ORDER = ["README.md"]
 for _t in TRAININGS:
     _index = [in_training(_t, "how-to/README.md")] if _t["recipes"] else []
-    for _f in [_t["readme"]] + _t["before"] + _t["units"] + _index + _t["recipes"]:
+    _wb = [_t["workbook"]] if _t["workbook"] else []
+    for _f in [_t["readme"]] + _t["before"] + _t["units"] + _index + _t["recipes"] + _wb:
         if _f not in ORDER:
             ORDER.append(_f)
 for _, _, _items in MENU_AFTER:
@@ -637,6 +719,8 @@ def outline(md):
     more, seen, lis = [], set(), []
     if t:
         more += [(f, nav_title(f), "", "") for f in t["before"]]
+        if t["workbook"]:
+            more.append((t["workbook"], nav_title(t["workbook"]), "", ""))
         if t["recipes"]:
             more.append((in_training(t, "how-to/README.md"), "Practice recipes", "", str(len(t["recipes"]))))
     for _, _, items in MENU_AFTER:
@@ -870,11 +954,71 @@ def link_glossary(md, rest):
     return "".join(parts)
 
 
+NOTES = {}
+
+
+def gather_notes(rest):
+    """A page's notes and ratings, in order, each with the step heading it sits under."""
+    found, under = [], ("", "")
+    for m in re.finditer(r'<h([23]) id="([^"]+)"[^>]*>(.*?)</h\1>|<(?:div|li) class="(note(?: rate)?)" data-note="([^"]+)" '
+                         r'data-u="([^"]+)" data-label="([^"]*)"', rest):
+        if m.group(1):
+            under = (m.group(2), re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", "", m.group(3)))).strip())
+        else:
+            found.append({"rate": m.group(4) == "note rate", "id": m.group(5), "u": html.unescape(m.group(6)),
+                          "label": html.unescape(m.group(7)), "step": under})
+    return found
+
+
+def workbook_section(t, md):
+    """The workbook page's body: every note and rating from the training's pages, under the unit and step
+    it came from, with the same boxes, so an answer can be read or changed in either place."""
+    parts, n = [], 0
+    for page in [t["readme"]] + t["before"] + t["units"] + t["recipes"]:
+        notes = NOTES.get(page) or []
+        if not notes:
+            continue
+        head = ("Unit %d: %s" % (UNITS[page][1], unit_name(page))) if page in UNITS else \
+            (t["name"] if page == t["readme"] else nav_title(page))
+        parts.append('<h2 id="wb-%s">%s</h2>' % (slug(head), html.escape(head)))
+        step, rates = None, []
+        for e in notes + [None]:
+            if rates and (e is None or not e["rate"]):
+                parts.append('<ul class="rates" role="list">%s</ul>' % "".join(rates))
+                rates = []
+            if e is None:
+                break
+            if (e["step"], e["rate"]) != step:
+                step = (e["step"], e["rate"])
+                if e["step"][0]:
+                    name = "How sure you are of each" if e["rate"] else e["step"][1]
+                    parts.append('<h3><a href="%s#%s">%s</a></h3>' % (rel(md, out_name(page)), e["step"][0], html.escape(name)))
+            n += 1
+            wid = "wb%d" % n
+            attrs = 'data-note="%s" data-u="%s"' % (e["id"], html.escape(e["u"]))
+            if e["rate"]:
+                rates.append('<li class="note rate" %s><fieldset><legend>%s</legend><div class="opts">%s</div></fieldset></li>'
+                             % (attrs, html.escape(e["label"]), radios(wid)))
+            else:
+                parts.append('<div class="note" %s><label for="%s">%s</label>'
+                             '<textarea id="%s" rows="3" autocomplete="off"></textarea></div>'
+                             % (attrs, wid, html.escape(e["label"]), wid))
+    acts = ('<div class="wbacts"><button type="button" class="btn" id="wb-download">Download a copy</button>'
+            '<button type="button" class="copy" id="wb-print">Print or save as PDF</button></div>')
+    if not parts:
+        return '<section class="workbook"><p class="kept">Nothing here yet: this training has no notes to write.</p></section>'
+    return '<section class="workbook">%s%s</section>' % (acts, "".join(parts))
+
+
 def write(md):
     lines = read(md)
     title = title_of(md)
     rest = link_glossary(md, render(lines[1:], md))
-    INDEX.extend(search_entries(md, title, rest))
+    NOTES[md] = gather_notes(rest)
+    if WORKBOOK_HERE in rest:
+        rest = rest.replace(WORKBOOK_HERE, workbook_section(training_of(md), md))
+    INDEX.extend(search_entries(md, title, re.sub(r'<p class="kept">.*?</p>|<div class="opts">.*?</div>|'
+                                                  r'<div class="wbacts">.*?</div>', " ", rest, flags=re.S)))
     if "data-folder" in rest:
         f = rest.rfind('<div class="prompt', 0, rest.index("data-folder"))
         rest = rest[:f] + folder_box() + rest[f:]
@@ -994,6 +1138,15 @@ def main():
         if listed != t["units"]:
             sys.exit("The list under '## The path' in %s (%s) does not match its path in TRAININGS (%s)."
                      % (t["readme"], ", ".join(listed), ", ".join(t["units"])))
+    noted = [md for md in FILES if any(re.fullmatch(r"<!--\s*(note|rate)\s*-->", l.strip()) for l in read(md))]
+    for md in noted:
+        t = page_training(md)
+        if not t or md not in [t["readme"]] + t["before"] + t["units"] + t["recipes"]:
+            sys.exit("%s has a note or rating, but only a training's home, units and recipes may: elsewhere no "
+                     "workbook gathers it." % md)
+        if not t["workbook"]:
+            sys.exit("%s has notes or ratings for the learner (%s) but no %s/workbook.md to gather them. Copy the "
+                     "starter's getting-started/workbook.md into the folder." % (t["name"], md, t["folder"]))
     if os.path.isdir(OUT):
         shutil.rmtree(OUT)
     for md in ORDER:
@@ -1316,7 +1469,29 @@ main{padding-top:20px}
 @media (forced-colors:active){.ph,.org{border-color:CanvasText}.line span,.obar span{background:Highlight}
 .check{border-color:CanvasText}.ostep.here,.omore a[aria-current]{outline:2px solid CanvasText}.oring .arc{stroke:CanvasText}
 .odot{forced-color-adjust:none}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}"""
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* notes the learner writes, and how sure they are of each objective: kept in this browser, gathered in the workbook */
+.note{margin:12px 0}
+.note > label{display:block;margin:0 0 6px}
+.note textarea{display:block;width:100%;min-height:76px;padding:8px 10px;font:inherit;line-height:1.5;color:var(--ink);
+background:var(--bg);border:1px solid var(--field);border-radius:4px;resize:vertical}
+.note textarea:hover{border-color:var(--ink3)}
+.kept{margin:4px 0 0;font-size:.8rem;color:var(--ink3)}
+main ul.rates{list-style:none;padding:0;margin:12px 0}
+.rate{margin:0 0 4px}
+.rate fieldset{margin:0;padding:8px 0;border:0;border-bottom:1px solid var(--rule)}
+.rate legend{padding:0;margin:0 0 4px}
+.rate .opts{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:.875rem;color:var(--ink2)}
+.rate .opts label{display:inline-flex;align-items:center;gap:6px;min-height:28px;cursor:pointer}
+.rate input{width:16px;height:16px;margin:0;accent-color:var(--accent)}
+.wbacts{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;margin:20px 0 8px}
+.wbacts button.btn{font:inherit;font-weight:600;cursor:pointer}
+.wbacts button.copy{font-size:.875rem;padding:7px 14px}
+.workbook h3 a{color:inherit;text-decoration:none}
+.workbook h3 a:hover{color:var(--accent);text-decoration:underline}
+@media print{.site,.side,.scrim,.crumbs,.pager,.pagefoot,.steprow,.wbacts,.kept,.skip{display:none!important}
+.layout{display:block}main{max-width:none;margin:0;padding:0}
+.note textarea{border:0;padding:0;min-height:0;resize:none;overflow:visible}}"""
 
 JS = r"""(function(){
 function lget(k,d){try{var v=localStorage.getItem(k);return v===null?d:v;}catch(e){return d;}}
@@ -1519,6 +1694,50 @@ function paintUnitCards(){
     go("Continue with unit "+(k+1),ROOT+T.units[k].u,"Next: "+T.units[k].name);
   }else go(ctaStart.t,ctaStart.h,ctaStart.n);
 }
+/* notes and ratings, kept in this browser only ("kit.note.<page>#<note>"); the workbook shows the same ones */
+var notes=[].slice.call(main.querySelectorAll(".note[data-note]"));
+function noteKey(el){return "kit.note."+pathOf(el.getAttribute("data-u"))+"#"+el.getAttribute("data-note");}
+function fit(ta){ta.style.height="auto";ta.style.height=Math.max(76,ta.scrollHeight+2)+"px";}
+/* fill every box from storage: on load, when the page comes back with Back (the browser may restore an
+   older value), and when another page changes an answer */
+function fillNotes(){
+  notes.forEach(function(el){
+    var v=lget(noteKey(el),""), ta=el.querySelector("textarea");
+    if(ta){if(ta.value!==v) ta.value=v; fit(ta);}
+    else [].forEach.call(el.querySelectorAll("input[type=radio]"),function(r){r.checked=r.value===v;});
+  });
+}
+notes.forEach(function(el){
+  var k=noteKey(el), ta=el.querySelector("textarea");
+  if(ta) ta.addEventListener("input",function(){lput(k,ta.value);fit(ta);});
+  else [].forEach.call(el.querySelectorAll("input[type=radio]"),function(r){
+    r.addEventListener("change",function(){if(r.checked) lput(k,r.value);});
+  });
+});
+fillNotes();
+window.addEventListener("pageshow",fillNotes);
+window.addEventListener("storage",function(e){if(e.key&&e.key.indexOf("kit.note.")===0) fillNotes();});
+var wbDown=document.getElementById("wb-download"), wbPrint=document.getElementById("wb-print");
+if(wbPrint) wbPrint.addEventListener("click",function(){window.print();});
+if(wbDown) wbDown.addEventListener("click",function(){
+  var title=((main.querySelector("h1")||{}).textContent||"Workbook")+(T?" - "+T.name:""), out=[];
+  [].forEach.call(main.querySelectorAll(".workbook h2,.workbook h3,.workbook .note"),function(el){
+    if(el.tagName==="H2"||el.tagName==="H3"){out.push("<"+el.tagName.toLowerCase()+">"+esc(el.textContent)+"</"+el.tagName.toLowerCase()+">");return;}
+    var ta=el.querySelector("textarea"), q, a;
+    if(ta){q=el.querySelector("label").textContent;a=ta.value;}
+    else{q=el.querySelector("legend").textContent;var c=el.querySelector("input:checked");a=c?c.parentNode.textContent.trim():"";}
+    out.push("<p><b>"+esc(q)+"</b></p><p class=a>"+(a?esc(a):"<i>Not answered</i>")+"</p>");
+  });
+  var doc="<!DOCTYPE html><html lang=en><head><meta charset=utf-8><title>"+esc(title)+"</title><style>"+
+    "body{font:16px/1.5 system-ui,sans-serif;max-width:720px;margin:32px auto;padding:0 16px;color:#1b1b1b}"+
+    "h2{margin:28px 0 6px}h3{margin:18px 0 4px;font-size:1rem}p{margin:4px 0}p.a{white-space:pre-wrap;padding:0 0 8px;border-bottom:1px solid #ddd}"+
+    "</style></head><body><h1>"+esc(title)+"</h1><p>"+esc(main.getAttribute("data-program"))+". Saved "+esc(new Date().toLocaleDateString())+".</p>"+
+    out.join("")+"</body></html>";
+  var a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([doc],{type:"text/html"}));
+  a.download=title.replace(/[^\w -]+/g,"").trim().replace(/\s+/g,"-").toLowerCase()+".html";
+  document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1000);
+  say.textContent="Downloaded a copy of your workbook.";
+});
 function paint(){paintCrumbs(paintOutline());paintNudge();paintTrainCards();paintUnitCards();}
 paint();
 /* a page brought back with the browser's Back button shows the progress made since */

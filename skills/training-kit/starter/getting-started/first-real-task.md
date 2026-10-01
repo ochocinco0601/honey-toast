@@ -7,7 +7,11 @@ checked.
 
 `[TO BE WRITTEN: how to pick a task from the learner's own week that fits what the training taught: small, real, and checkable.]`
 
-Check: you have written down what done looks like, and where you will look to confirm it.
+<!-- note -->
+The task you will do this week, when, and what done looks like:
+
+Check: you have written down the task, the day you will do it, and where you will look to confirm
+it is done.
 
 ## 2. Do it
 
@@ -18,8 +22,10 @@ colleague who does this work, and ask them to check it.
 
 ## 3. Note what happened
 
-Write down, for yourself, how long it took and what you had to fix. That note is how you will know,
-next week, whether this saved you anything.
+That note is how you will know, next week, whether this saved you anything.
+
+<!-- note -->
+How long it took, and what you had to fix:
 
 ## 4. In two or three days
 
@@ -28,6 +34,13 @@ next week, whether this saved you anything.
 ## You have finished the path
 
 `[TO BE WRITTEN: two or three lines: what the learner can now do, in the words of the objectives on the training's home page.]`
+
+How sure are you of each?
+
+<!-- rate -->
+- `[TO BE WRITTEN: each objective from the training's home page, one per line, in the same words]`
+
+To keep what you wrote, download a copy of [your workbook](workbook.md).
 
 - More tasks of this kind: [the recipes](how-to/README.md).
 - The next training: [all the trainings](../README.md).

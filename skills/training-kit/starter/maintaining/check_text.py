@@ -6,7 +6,7 @@ def md_text(t):
     lines = []
     for ln in t.replace("\r\n", "\n").split("\n"):
         s = ln.strip()
-        if re.fullmatch(r"<!--\s*(frame|tutor|tool)\s*-->", s):
+        if re.fullmatch(r"<!--\s*(frame|tutor|tool|note|rate|workbook)\s*-->", s):
             continue
         s = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", s)
         s = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", s)
@@ -68,6 +68,10 @@ for root, _, fs in os.walk(out):
         body = re.sub(r'<summary>.*?</summary>', " ", body, flags=re.S)
         body = re.sub(r'<nav class="foot"[^>]*>.*?</nav>', " ", body, flags=re.S)
         body = re.sub(r'<div id="say".*?</div>', " ", body, flags=re.S)
+        # The learner's notes: the line saying where they are kept, the rating choices, and the workbook's gathered copy.
+        body = re.sub(r'<p class="kept">.*?</p>', " ", body, flags=re.S)
+        body = re.sub(r'<div class="opts">.*?</div>', " ", body, flags=re.S)
+        body = re.sub(r'<section class="workbook">.*?</section>', " ", body, flags=re.S)
         got = re.sub(r"\s+", "", html.unescape(re.sub(r"<[^>]+>", " ", body)))
         if want == got:
             print("OK  ", os.path.relpath(page, out), len(want), "chars")
