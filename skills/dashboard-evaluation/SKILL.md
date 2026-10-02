@@ -182,7 +182,7 @@ Two gates, both required, on any surface:
 
   | Poor | Lands |
   |------|-------|
-  | `TRID` | **TRID — Closing Disclosure delayed past 3-day window — 7 customers affected** |
+  | `TRID` | **TRID — Closing Disclosure not received 3 business days before closing — 7 customers affected** |
   | `409 incidents` | **409 incidents — 6× normal — payment auth degraded since 14:20** |
 
 - **Handoff.** The surface must surface enough context that the consumer can reach

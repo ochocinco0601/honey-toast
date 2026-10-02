@@ -191,14 +191,19 @@ Seven projection patterns:
 ### 3.5 Coloring a tile
 
 Use the **two-threshold pattern** (Nagios): a warning threshold and a critical
-threshold, both explicit, both from OpenSLO. Never render a traffic light whose
-thresholds are invisible (fails diagnostic position 3).
+threshold, both explicit. OpenSLO has no warning field. For a ratio SLI, state each
+as its own objective (OpenSLO allows several), the critical one at the target the
+owner commits to and the warning one above it; a threshold SLI allows only one
+objective, so the warning line is the dashboard's own threshold, labelled as such.
+Never render a traffic light whose thresholds are invisible (fails
+diagnostic position 3).
 
 ### 3.6 The grounding rule (non-negotiable)
 
 **Every field on a panel must trace to named prior art, or be explicitly marked as
 a gap.** Use element types and field names from published specs, in their real
-namespaces (`archimate:name`, `openslo:target`, `dcterms:source`). When a concept
+namespaces, or for a YAML spec without one, a prefix naming the spec
+(`archimate:name`, `dcterms:source`; `openslo:target`). When a concept
 is needed but no framework is identified, label it `prior-art-unresolved` with a
 pointer — do not silently invent. **Tie-breaker** when multiple standards apply:
 (1) a framework already adopted in the practice or estate you are working in
@@ -270,26 +275,39 @@ single-process; scale it by stacking one such chain per workflow step.
 ```
 [1] Stakeholder  = Regulator
 [2] Driver       = Regulatory Compliance
-[3] Requirement  = "Closing Disclosure delivered within 3-day window"
-                     dcterms:source           = "12 CFR 1026.19(f)(1)(ii)"
-                     openslo:target           = 100
-                     openslo:warningThreshold = 95
-                     openslo:operator         = "gte"
-[4] Outcome      = "CD on-time delivery rate"
-                     openslo:indicator.metricSource = Prometheus
-                     openslo:reportingWindow        = 24h rolling
+[3] Requirement  = "Closing Disclosure received at least 3 business days before closing"
+                     dcterms:source          = "12 CFR 1026.19(f)(1)(ii)"  (the deadline)
+                     openslo:budgetingMethod = Occurrences
+                     openslo:objectives      = [{displayName: Critical, target: 0.95},
+                                                {displayName: Warning,  target: 0.98}]
+                     openslo:timeWindow      = duration 24h, isRolling true
+[4] Outcome      = "CD on-time receipt rate"
+                     openslo:ratioMetric     = good: CDs received on time;
+                                               total: CDs due  (each with its metricSource)
 [5] Subject      = Document Generation (archimate:BusinessProcess)
 [6] Object       = Closing Disclosure (archimate:BusinessObject)   via archimate:Access
+[7] Role         = Document Generation process owner (archimate:BusinessRole),
+                   who owns the two targets      via archimate:Assignment from [5]
 ```
 
+The regulation sets the deadline and allows no misses; the two targets are the
+operating objectives the process owner commits to, so the panel turns red before
+regulatory exposure grows. Because every miss is a violation, the impact line
+appears whenever the count of late disclosures is above zero, whatever the colour.
+"Critical" and "Warning" are display names this skill uses, not OpenSLO keys. OpenSLO paths are shortened here: objectives sit under
+`spec.objectives[]`, the window under `spec.timeWindow[]`, and the ratio under
+`spec.indicator.spec.ratioMetric`. `openslo:` is a naming convention, since OpenSLO
+is YAML with `apiVersion: openslo/v1` rather than a namespace.
+
 **Step 3 — Project** to the "is it healthy?" panel: measurement (4) + target (3) +
-RAG status. When degraded, the impact projection adds stakeholder (1) + consequence.
+RAG status. When any disclosure is late, the impact projection adds stakeholder
+(1) + consequence, even on a green or amber tile.
 
 **Step 4 — Render** so it passes the acceptance gates:
 
-> **Document Generation — Closing Disclosure on-time delivery**
-> 🔴 **93%** (target ≥ 95%) · rolling 24h
-> **TRID — Closing Disclosure delayed past 3-day window — 7 customers affected**
+> **Document Generation — Closing Disclosure on-time receipt**
+> 🔴 **93%** (target ≥ 95%, −2 pts; warning below 98%) · rolling 24h
+> **TRID — Closing Disclosure not received 3 business days before closing — 7 customers affected**
 > → *Next: why is it red?* (root-cause panel) · *Who do I call?* (ownership)
 
 That last line satisfies **combinatorial meaning** (regulation + deadline + impact
