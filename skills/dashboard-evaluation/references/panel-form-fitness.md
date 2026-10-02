@@ -68,7 +68,7 @@ of visualization names.
 | **Is it moving, and which way?** | A trajectory | Line over time, with the threshold drawn | Time series (with threshold line) | Line / area chart on a timechart |
 | **When did it change?** | An event in time | State over time, or an annotated line | State timeline · Time series with annotations | Line chart with an overlay · Event listing |
 | **How is it spread?** | A distribution | Histogram, or density over time | Histogram · Heatmap | Column chart on binned values · Punchcard |
-| **Are these peers behaving alike?** | Side-by-side, same scale | Small multiples (Tufte) | Repeated panel by variable | Repeating panel via a multi-value token |
+| **Are these peers behaving alike?** | Side-by-side, same scale | Small multiples (Tufte) | Repeated panel by variable | Trellis, split by a field |
 | **What is it made of?** | Part-to-whole | Bars, stacked or grouped | Bar chart · Pie only for a few coarse slices | Stacked column · Pie under the same limit |
 | **Where is the problem?** | A position in a structure | Topology with state on the nodes | Node graph · Canvas | Custom viz — Splunk has no native topology form |
 | **What exactly happened?** | Specific records to read | Rows | Logs · Table · Traces | Event listing · Statistics table |

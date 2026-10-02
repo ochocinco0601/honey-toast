@@ -4,7 +4,7 @@
 > and the acceptance gates are defined there and are not repeated. This file
 > supplies what's specific to observability: the domain vocabulary for each chain
 > position, the sequenced triage chain, the production machinery to build a panel
-> at scale, and the resolved multi-workflow layout opinions.
+> at scale, and the formed multi-workflow layout opinions.
 
 ---
 
@@ -46,8 +46,8 @@ the most expensive gap.
 **Name the occasion before you use any question set.** The same subject generates
 different questions depending on *when and why* someone is asking. A surface built
 for one occasion and read on another fails without any individual panel being
-wrong — and that mismatch is the most common structural finding on a real
-dashboard.
+wrong — and that mismatch is a structural finding no panel-by-panel check will
+surface.
 
 Nine occasions, each with its own governing prior art and its own recurring
 question:
@@ -68,12 +68,12 @@ Each occasion crosses the three altitudes (§3.2), so a question set is an
 occasion **and** an altitude — "readiness at the business altitude" asks something
 different from "readiness at the technology altitude."
 
-**Honest confidence split.** Occasion 1 is the one worked in depth: its seven-step
-chain (§2) is validated across 21 worked examples spanning 8 domains and all three
-altitudes. **Occasions 2–9 are derived from the named prior art above and have not
-been walked.** Their governing questions are sound; their step-by-step
-decompositions are not established the way §2's is. Say which you are using, and
-do not present a derived question set as a proven one.
+**Honest confidence split.** Occasion 1 is the one specified in depth: §2 gives its
+seven-step chain, §3 its traversal and altitude bindings, and §5 walks it end to end.
+**Occasions 2–9 are derived from the named prior art above and have no walked
+decomposition.** Their governing questions are sound; their step-by-step
+decompositions are not specified here. Say which you are using, and do not present
+a derived question set as a walked one.
 
 **Two consequences for a diagnostic run.**
 
@@ -130,7 +130,7 @@ every level. Positions 5–6 are the **subject extension** —
 *altitude-parameterized.* Positions 7–9 are optional branches.
 
 ```
-Motivation core  (altitude-INDEPENDENT — proven across all altitudes):
+Motivation core  (altitude-INDEPENDENT — the same at every altitude):
 
   [1] Stakeholder ──Association──▶ [2] Driver ──Realization──▶
   [3] Requirement ──Realization──▶ [4] Outcome ──Influence(±)──▶
@@ -150,7 +150,7 @@ the target), 4 = *the measured outcome*, 5–6 = *what it's about.*
 
 ### 3.2 Altitude bindings
 
-Only positions 5–6 change by altitude. Three bindings, all proven:
+Only positions 5–6 change by altitude. Three bindings:
 
 | Altitude | Position 5 (Subject) | Position 6 (Object) | Relationship 5→6 |
 |----------|----------------------|---------------------|------------------|
@@ -175,7 +175,7 @@ The same data chain answers many questions by varying **which positions project
 onto the panel.** "Is it healthy?" projects measurement + target. "What's the
 business impact?" projects stakeholder + consequence. *Same data, different
 display.* Define the traversal once, add questions cheaply via new projections.
-Seven proven patterns:
+Seven projection patterns:
 
 1. **One-to-one, single altitude** — one subject, one panel.
 2. **One-to-many fan-out** — one parent projects to many children.
@@ -209,12 +209,11 @@ pointer — do not silently invent. **Tie-breaker** when multiple standards appl
 
 ## 4. Formed design opinions — multi-workflow business apps
 
-These are layout opinions **already resolved against real cases.** They are the
-current "what good looks like" for the case these were worked against:
-**real business applications that contain multiple workflows.** Treat them as
-defaults. *Status:* Proven = held up in worked cases; Reasoned = argued from the model,
-not yet tested in a build; Hypothesis = plausible, untested. Don't present a
-Hypothesis as settled fact.
+These are layout opinions for one case: **business applications that contain
+multiple workflows.** Treat them as defaults. *Status:* Default = apply unless your
+case argues otherwise; Reasoned = argued from the model, test it in your build;
+Hypothesis = plausible, test before relying on it. Don't present a Hypothesis as
+settled fact.
 
 ### The governing case
 
@@ -233,13 +232,13 @@ not, where?"* **A single rolled-up health tile destroys that** — it says
 
 | # | Opinion | Layout implication | Status |
 |---|---------|--------------------|--------|
-| 1 | **Sequential steps, not parallel peers.** A step-3 failure *blocks* steps 4–6. | Left-to-right pipeline; give a gated step a distinct **BLOCKED** state vs **DEGRADED** (own failure) vs **HEALTHY**. | Proven |
+| 1 | **Sequential steps, not parallel peers.** A step-3 failure *blocks* steps 4–6. | Left-to-right pipeline; give a gated step a distinct **BLOCKED** state vs **DEGRADED** (own failure) vs **HEALTHY**. | Default |
 | 2 | **A step's health rule is a business decision, not a roll-up.** One step may depend on several services with *different* criticality (fraud down = blocking; credit-risk down = degraded-but-proceed). | Each step owns an explicit composition rule (blocking / degradable / optional), authored once by the process owner, applied mechanically. Don't worst-case everything to red. | Reasoned |
-| 3 | **Structure visible upfront for naive readers.** | First view shows *all* steps (the pipeline), not "1 CRITICAL · 2 WARNING" cards that hide the flow. | Proven |
+| 3 | **Structure visible upfront for naive readers.** | First view shows *all* steps (the pipeline), not "1 CRITICAL · 2 WARNING" cards that hide the flow. | Default |
 | 4 | **Journey is per-workflow, owned, its own view.** Each workflow has a name, a business question, an owner, ordered steps. | Each workflow gets its own view/section — never all workflows compressed into one generic "journey." | Reasoned |
 | 5 | **Journey is a *perspective on* a service, not a replacement.** Service home answers "is this service healthy?"; journey view answers "where in the flow is the problem?" | Service home is the hub (health + context, always on); the flow view is reachable *from* it, for process-shaped services. | Reasoned |
-| 6 | **Heterogeneous steps stay coherent when self-contained.** Steps measure different things (success rate vs timeliness vs coverage). | Don't fuse into one score. Each step is a self-contained micro-panel with its own labeled measurement; the step's outcome label is load-bearing. | Proven |
-| 7 | **Enumerate up to ~7, aggregate above.** (Few's data density + Miller's 7±2.) | ≤7 items: show all equally. >7: headline aggregation + grouped/collapsible detail. | Proven |
+| 6 | **Heterogeneous steps stay coherent when self-contained.** Steps measure different things (success rate vs timeliness vs coverage). | Don't fuse into one score. Each step is a self-contained micro-panel with its own labeled measurement; the step's outcome label is load-bearing. | Default |
+| 7 | **Enumerate up to ~7, aggregate above.** (Few's data density + Miller's 7±2.) | ≤7 items: show all equally. >7: headline aggregation + grouped/collapsible detail. | Default |
 | 8 | **Signal → stakeholder → impact must be visually direct.** "This signal is critical" is half the meaning; whose expectation and what cost is the other half. | Carry stakeholder + impact inline with each signal (chips/badges), not in a separate section. | Reasoned |
 | 9 | **Health is scoped to the *need*; a signal's role is contextual.** The same signal can be *outcome* for one need and *diagnostic* for another. | Label a signal with its role in context ("Outcome for *detection*"), not a fixed global label. | Hypothesis |
 
@@ -321,14 +320,10 @@ findings exists, and its verdict outranks the panel-level ones.
 ---
 
 *Everything in this file is the engine in `../SKILL.md` instantiated for
-observability. The engine generalizes; this is its most fully validated
-application — demonstrated end-to-end across 21 worked examples spanning 8 domains
-(including mortgage origination, card authorization, ACH, credit decisioning,
-e-commerce checkout, and vendor-integrated flows), all three altitudes, and both
-real-time and batch, with no structural exceptions. That is why the patterns in §4
-are given as defaults, not suggestions.*
+observability. The engine generalizes; this is its most developed application,
+which is why the patterns in §4 are given as defaults, not suggestions.*
 
-***Scope of that claim.** Those 21 walks are all incident triage — occasion 1 of
-the nine in §1b. The chain, the traversal, the altitude bindings and the projection
-rules are proven there. Occasions 2–9 carry sound governing questions from named
-prior art and unwalked decompositions. When a run uses one of them, say so.*
+***Scope of that claim.** It covers incident triage — occasion 1 of the nine in
+§1b. The chain, the traversal, the altitude bindings and the projection
+rules are specified for it, and §5 walks it end to end. Occasions 2–9 carry sound
+governing questions from named prior art and no walked decomposition. When a run uses one of them, say so.*

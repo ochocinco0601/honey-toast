@@ -208,7 +208,7 @@ rather than implying a depth that is not in the box.
 | **Status report / briefing** | A leader deciding where to spend attention | Fund, intervene, stay the course | The engine only |
 
 **What "the engine only" gets you.** The chain, the six-step method, and the
-four-line general diagnostic below. Enough to ask whether a need, an uncertainty
+four-line general diagnostic above. Enough to ask whether a need, an uncertainty
 and a decision are named — and nothing more. No form fitness, no run procedure, no
 per-item record, no closing checks. Every one of those is written for panels.
 
@@ -218,7 +218,7 @@ engine — it's done.
 
 > **Observability panels** are the most fully developed instance — they carry a
 > sequenced triage chain, a full ArchiMate production traversal, altitude-specific
-> health frameworks, projection rules, and resolved multi-workflow layout
+> health frameworks, projection rules, and formed multi-workflow layout
 > opinions. Load `references/observability-panels.md` when the surface is an
 > observability dashboard or panel. Two further references sit under it:
 > `references/panel-form-fitness.md` (is a panel drawn in the right form for the
@@ -226,12 +226,11 @@ engine — it's done.
 > `references/dashboard-rationalization.md` (the run for an existing dashboard
 > that has grown: per-panel disposition on stated grounds, plus coverage the
 > other way). Everything there is *this engine, instantiated*
-> — read this file first. It is also the most heavily validated instance, **for
-> one occasion**: its patterns held across 21 worked examples in 8 domains
-> and all three altitudes without exception *for incident triage*, which is why
-> they're stated as defaults rather than suggestions there. The other eight
+> — read this file first. It is also the most developed instance, **for one
+> occasion**: incident triage, which is why its patterns are stated as defaults
+> there rather than suggestions. The other eight
 > occasions in `references/observability-panels.md` §1b are derived from named
-> prior art and have not been walked — sound questions, unproven decompositions.
+> prior art and have not been walked — sound questions, no walked decomposition.
 > Name which you are using.
 
 ---
@@ -254,9 +253,10 @@ engine — it's done.
 - Form is the **second** question. Chain diagnostic first (does this panel serve a
   named consumer and decision), then `references/panel-form-fitness.md` (is it
   drawn in the right shape). A panel can be beautifully shaped and serve nobody.
-- Two evidence sources, neither substituting for the other: the surface's
-  **definition** (what is configured) and its **render**
-  (`references/reading-the-render.md` — what is perceived). No render seen, no
+- Three evidence sources, neither definition nor render substituting for the
+  other: the surface's **definition** (what is configured), its **render**
+  (`references/reading-the-render.md` — what is perceived), and, where the
+  platform exposes it, **use** data (who opens it, how often). No render seen, no
   visual verdict.
 - Evaluating a dashboard that already exists and has grown →
   `references/dashboard-rationalization.md`. Its governing move: the burden of

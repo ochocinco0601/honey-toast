@@ -113,19 +113,54 @@ says where.
 
 Structural anchors are stable; **option names are not.** Read them off the file in
 hand rather than assuming — this holds within a platform across versions, and
-sharply between Splunk's Simple XML and Dashboard Studio.
+sharply between Grafana's classic and v2 formats and between Splunk's Simple XML
+and Dashboard Studio. Settle the format before using the table.
 
-| Fact | Grafana JSON | Splunk Simple XML | Splunk Dashboard Studio |
-|---|---|---|---|
-| Panels | `panels[]`, recursing into any `type: "row"` | `<row>` → `<panel>` | `visualizations`, keyed by id |
-| Form | `type` | the child element — `<chart>`, `<single>`, `<table>`, `<event>`, `<map>` | `type` on the visualization |
-| Query | `targets[]` | `<search><query>` | `dataSources`, referenced by the visualization |
-| Thresholds | `fieldConfig.defaults.thresholds.steps` | range options on a single value | `options` on the visualization |
-| Bounds / units | `fieldConfig.defaults.min` / `.max` / `.unit` | charting axis options | `options` |
-| Grouping | enclosing row panel title; `gridPos` | `<row>` order and `<panel>` grouping | `layout` |
-| Handoff | `links[]`, and drill targets in `options` | `<drilldown>` | drilldown in `options` |
-| Repetition | `repeat` | multi-value tokens on a panel | `inputs` driving dynamic options |
-| Reader inputs | `templating.list` | `<input>` on `<form>` | `inputs` |
+**Which Grafana format.** First find the dashboard body: `spec` in an API object
+(`kind: "Dashboard"` with a `spec`); `dashboard` in some tools' output, which may
+carry an `apiVersion` or `isV2` beside it; otherwise the file itself. In the body,
+`elements` and `layout` mean v2, and `panels` means classic. An `apiVersion`,
+at the top of an API object or beside a tool's `dashboard`, agrees: `dashboard.grafana.app/v2` or `v2beta1` is v2;
+`v0alpha1`, `v1beta1` or `v1` is classic; `v2alpha1` is an earlier draft of v2
+that uses the v2 column except that a panel's form is `vizConfig.kind`. Never
+decide by searching the whole file for `apiVersion` or `panels`: an API object
+repeats both in its metadata. Grafana can return the same dashboard in either
+format. Panel paths are relative to `elements.<name>.spec` in the v2 column and
+to each entry of `panels[]` in the classic column; `elements`, `layout`,
+`variables`, `panels` and `templating` sit in the body.
+
+**Which Splunk format.** A file whose root is `<dashboard version="2">` is a
+Dashboard Studio dashboard with its JSON definition inside `<definition>`: use the
+Studio column on that JSON. Other `<dashboard>` or `<form>` roots are Simple XML.
+A bare JSON file with `visualizations` and `dataSources` at its top is a Studio
+definition, not Grafana v2, even though it also has a `layout`.
+
+| Fact | Grafana JSON (classic) | Grafana v2 (`v2`, `v2beta1`) | Splunk Simple XML | Splunk Dashboard Studio |
+|---|---|---|---|---|
+| Panels | `panels[]`, recursing into any `type: "row"`; a panel with `libraryPanel` is a reference only | walk `layout` and resolve each element reference into `elements` (keyed by name); an element no layout references is not on the page. An element of `kind: "LibraryPanel"` is a reference only | `<row>` → `<panel>` | `visualizations`, keyed by id, placed by `layout` |
+| Identity | `id`, `title`; for a library panel, `libraryPanel.name` | the element's name, `id`, `title`; for a library panel, `libraryPanel.name` | `<title>` on the panel or its visualization | visualization id and `title` |
+| Stated purpose | `description` | `description` | none per panel: `<description>` exists only on the `<dashboard>` or `<form>` | `description` on the visualization |
+| Form | `type` | `vizConfig.group` | the child element — `<chart>`, `<single>`, `<table>`, `<event>`, `<map>`, `<viz>`, `<html>`; for a `<chart>`, `<option name="charting.chart">` (line, column, pie, radialGauge…) and `charting.axisY2.enabled` for a second axis | `type` on the visualization |
+| Query | `targets[]` | `data.spec.queries[]`, each query at `spec.query.spec` | `<search><query>`; or `<search ref="…">`, a saved report; or `<search base="id">`, a post-process tail on the base `<search id="id">` | `dataSources`, referenced by the visualization: `ds.search` (`options.query`), `ds.chain` (`options.extend` plus a tail query), `ds.savedSearch` (`options.ref`) |
+| Thresholds | `fieldConfig.defaults.thresholds.steps`, or per field in `fieldConfig.overrides[]`; drawn on a time series only if `fieldConfig.defaults.custom.thresholdsStyle.mode` says so; a legacy `type: "graph"` panel keeps them in a panel-level `thresholds[]` | `vizConfig.spec.fieldConfig.defaults.thresholds.steps`, or per field in `.overrides[]` under the same `fieldConfig`; drawn on a time series only if `.custom.thresholdsStyle.mode` under `defaults` says so | `rangeValues` / `rangeColors` on a `<single>`; `charting.chart.rangeValues` on a gauge; `<format type="color">` with a threshold `<scale>` on a table | `options`, usually as a dynamic expression whose ranges sit in `context` |
+| Bounds / units | `fieldConfig.defaults.min` / `.max` / `.unit` | `vizConfig.spec.fieldConfig.defaults.min` / `.max` / `.unit` | charting axis options; on a gauge, the first and last `charting.chart.rangeValues` | `options` |
+| Grouping | the row panel a panel follows in `panels[]` (an expanded row's panels come after it) or sits inside (a row with `collapsed: true` holds them in its own `panels`), and its `title`; `gridPos` | `layout`, which nests (tabs, rows, grid). The group's name is the row or tab `title`; a first row with `hideHeader: true` and an empty title is a wrapper, not a section the owner made. Order is row or tab first, then `y` and `x` within it; `y` restarts in each row; an `AutoGridLayout` has no coordinates, so item order is the reading order; `collapse: true` hides a row's panels until it is opened | `<row>` order and `<panel>` grouping | `layout` |
+| Handoff | `links[]`, and data links at `fieldConfig.defaults.links` (or per field in `overrides[]`; on a legacy graph panel, `options.dataLinks`) | `links[]`, and data links at `vizConfig.spec.fieldConfig.defaults.links` (or per field in `overrides[]`) | `<drilldown>` | `eventHandlers` on the visualization (`drilldown.linkToSearch`, `.linkToDashboard`, `.customUrl`, `.setToken`), which fire only when `options.drilldown` is set to a value other than `none` |
+| Repetition | `repeat` | `repeat` on a layout item, row or tab | trellis: `<option name="trellis.enabled">` with `trellis.splitBy` | trellis layout on the visualization |
+| Reader inputs | `templating.list` | `variables`, plus any `variables` on a row or tab | `<input>` on `<form>` | `inputs` |
+
+**A reference is not an absence.** A library panel's form, query and thresholds
+live in a shared library element, not in the dashboard — unless the file is an
+external export that carries library panels' models in a top-level `__elements`
+map; then read the panel's facts from `__elements.<libraryPanel.uid>.model`. Otherwise identify the panel by its library name, get those facts from the
+library panel or the render, and record them as not in the file, never as
+missing. The same holds for a Splunk search held by reference (`ref`, `base`,
+`extend`): follow it before judging the query. **A threshold in the file is not
+a threshold someone set, and no threshold in the file is not no threshold
+drawn.** Grafana gives a panel default steps (a green base, then red at 80), and
+a stat or gauge with none in the file still draws with those defaults. Treat
+default-shaped steps, and their absence, as unconfirmed: ask the owner or check
+the render, and on a time series look for a drawn line.
 
 **A cross-cutting caution.** A dashboard's *definition format* and its *query
 language* are independent axes. A Grafana dashboard can query Splunk; a Splunk
@@ -267,8 +302,8 @@ A rounded percentage line reading the same at both ends does not establish that
 nothing changed. The underlying counts may have moved inside the rounding, the
 denominator may have grown, and the panel beside it may report the exact
 minimum and maximum. **Reading one panel and asserting a trend, while a more
-precise statement of the same quantity sits unread on the same screen, is the
-most common way a review states something false with confidence.**
+precise statement of the same quantity sits unread on the same screen, is how a
+review comes to state something false with confidence.**
 
 The check is cheap: for every number you are about to assert, scan the surface for
 that number stated again.
@@ -324,7 +359,7 @@ remediate — at the altitude the consumer works at. For the other eight, §1b g
 the governing question and its prior art; enumerate that occasion's questions
 first, then map panels onto them.
 
-**This is the step most often done wrong.** Running the triage chain against a
+**This is the step easiest to get wrong.** Running the triage chain against a
 readiness, review or capacity surface reports gaps that were never that surface's
 job. A coverage table reading "four of seven uncovered" against the wrong
 occasion's ruler is a defect in the *review*, not in the dashboard — and it is
