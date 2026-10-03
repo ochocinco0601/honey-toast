@@ -44,6 +44,20 @@ stable when any of those change underneath.
 
 *BIZBOK; TOGAF Business Architecture.*
 
+**The views are anchored there too: one system of interest, seen from one seat.**
+
+Every view of the assessment is drawn from the capability and its flow, followed as one case.
+Another party's system, a shared platform or an outside vendor, appears in it as a dependency,
+judged by what it does to the flow's cases, not by how it works inside. That party rightly
+anchors its own view on its own system, where this flow is one of its consumers; the two views
+meet at the dependency. A question asked from the other party's seat, such as which of its
+settings changed, belongs to its view; this one asks which step's cases failed, since when,
+through which dependency, and who owns it. Without a fixed anchor, the views have no common
+subject, and the questions they answer cannot test the model.
+
+*System of interest (ISO/IEC/IEEE 15288, INCOSE); viewpoint and stakeholder concern
+(ISO/IEC/IEEE 42010).*
+
 ---
 
 ## The method, in four established steps
@@ -94,20 +108,30 @@ cannot return a clean result without appearing to have failed.
 Six kinds of thing. They differ in what observing them can tell you, and collapsing any two
 destroys a distinction somebody downstream needs.
 
-- **Capability** — reports coverage, and reports it derived rather than emitted: it has no
-  executions of its own.
-- **Intended flow** — reports completion. It finished or it did not.
-- **Stage** — reports duration: how far one case got — one loan application, one payment, one
-  order — and how long that stage took.
-- **Process step** — reports health. It happened or it did not, and produced something or did not.
-- **Component** — reports a diagnostic.
-- **External dependency** — reports a diagnostic.
+The level decides what a measure is counted on; the question it asks decides its layer.
+Business health asks whether the expectation is met, business impact for how many cases it is
+not, and both are asked at the flow, the stage and the step, each over its own scope.
+
+- **Capability** — reports coverage, and any health figure for it is derived from its flows or
+  asserted: it has no executions of its own.
+- **Intended flow** — business health and impact over each case, start to end.
+- **Stage** — business health and impact over each case between the stage's entry and exit:
+  cases in it now, the age of the oldest, the time to get through, and how many are past the
+  stage's promise.
+- **Process step** — business health and impact over one event per case: did it happen for this
+  case, and was what it produced right.
+- **Component** — reports a diagnostic: why.
+- **External dependency** — reports a diagnostic: why.
+
+What each level can report in full, and the working rules for placing a measure and counting
+impact in cases, are in `what-each-level-can-report.md`.
 
 **They are not one ladder, and the relations between them are four different things.** A capability
 and an intended flow are cross-mapped, many to many, and neither contains the other — one path
 serves several capabilities, and one capability is served by several paths. A flow contains its
 stages, and a stage contains its steps. A component performs a step, or supports one it does not
-perform; a component depends on an external dependency, which can also perform a step itself.
+perform; a component depends on an external dependency, which can also support a step, or perform one
+itself.
 Each relation is defined once, in the methodology's controlled vocabulary, whose relation table the
 model page (`the-model.html`) renders.
 
@@ -163,6 +187,9 @@ above was invented for this.
 
 ## Related
 
+- **`what-each-level-can-report.md`** — what each level can report, the sets of measures a part
+  reports by its kind, an agent as its own system of interest, and the working rules for placing
+  a measure and counting business impact in cases.
 - **`assigning-business-work-to-levels.md`** — the procedure for deciding which of the six levels
   a given piece of business work belongs to, with the tests that justify each cut.
 - **`design-for-operations.md`** — the method run as a sequence of passes, with the four views it
