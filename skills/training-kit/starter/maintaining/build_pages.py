@@ -19,7 +19,7 @@ import sys
 # ---- What a maintainer changes when the kit grows (see maintaining/README.md) ----
 # A record, not a setting: the version of the training-kit skill that built this kit. It goes into
 # each page's generated-file comment only. The kit's own version is the newest entry in CHANGELOG.md.
-SKILL_VERSION = "1.2"
+SKILL_VERSION = "1.9"
 PROGRAM_NAME = "Training programme"
 # Who the learner asks for help, and where they paste a prompt for it.
 ASSISTANT = "the assistant"
@@ -27,8 +27,8 @@ ASSISTANT_CHAT = "the assistant's chat box"
 # Where practice happens when it is not the assistant's chat: the tool, screen or console the
 # learner works in. Prompts marked <!-- tool --> are labelled with it.
 PRACTICE_PLACE = "the tool"
-# True when learners open the kit's folder where the assistant can read it, so a question can
-# name the page and step and the assistant can look them up. False: the question carries the step.
+# True when learners open the kit's folder where the assistant can read it. The "Stuck?" question
+# carries the step's own words either way, so it never relies on kit files the assistant lacks.
 KIT_OPEN_IN_ASSISTANT = True
 # True gives each step a "Stuck on this step?" button that copies a question for ASSISTANT. Set it
 # False when the help beside the learner is a person rather than an assistant.
@@ -37,30 +37,34 @@ STUCK_BUTTON = True
 # README.md. "path" lists its units in order: (file in the folder, name in the menu, time). A
 # training with no path yet is shown as "coming later". "before" lists pages, by their place in
 # the kit, that a learner goes through before unit 1, such as a setup page. "stuck_from" gives the
-# first step on a unit that offers "Stuck on this step?"; 1 unless listed.
+# first step on a unit that offers "Stuck on this step?"; 1 unless listed. The times are stand-ins:
+# replace each with the time computed as maintaining/README.md, "Time estimates", says.
 TRAININGS = [
     {"folder": "getting-started", "name": "Getting started", "level": "Beginner",
      "time": "about an hour",
      "path": [("introduction.md", "Introduction", "about five minutes"),
               ("start-here.md", "Start here", "about fifteen minutes"),
-              ("lesson-one.md", "The first lesson", "about thirty minutes"),
-              ("first-real-task.md", "Your first real task", "on your own work, this week")],
+              ("lesson-one.md", "The first lesson", "about thirty minutes")],
      "before": [], "stuck_from": {}},
 ]
 # The side menu's groups shared by every page: (group, open by default, [(file, name, anchor)]).
 MENU_AFTER = [
     ("Help", True, [("troubleshooting.md", "When you are stuck", "when-you-are-stuck"),
-                    ("troubleshooting.md", "If something goes wrong", ""),
-                    ("faq.md", "Questions", ""),
+                    ("troubleshooting.md", "Help", ""),
                     ("glossary.md", "Glossary", "")]),
     ("More", True, [("explanation.md", "Background", ""),
                     ("CHANGELOG.md", "What's new", "")]),
 ]
 # Glossary words linked where first used on a page, and on-screen labels never to link.
-GLOSSARY_TERMS = ["Blank", "Check"]
+GLOSSARY_TERMS = ["Check"]
 UI_LABELS = ()
 # Folders that are not learner pages.
 NOT_FOR_LEARNERS = ("facilitator/", "sample-files/", "maintaining/", "read-in-browser/")
+# Off by default: the assistant creates the practice files from complete requests on the page, so
+# the training needs no download. Set a name, such as "training-files.zip", only when a later
+# training truly needs ready-made files: the build then packs the learner pages (as markdown) and
+# the practice files beside the web pages, and the request fetches the zip from there.
+FILES_ZIP = ""
 # ---- End of what a maintainer changes ----
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -68,6 +72,9 @@ KIT = os.path.normpath(os.path.join(HERE, ".."))
 OUT_DIR = "read-in-browser"
 OUT = os.path.join(KIT, OUT_DIR)
 MARKER = re.compile(r"^<!--\s*(frame|tutor|tool|note|rate|workbook)\s*-->$")
+# Folded content: everything between <!-- more: Label --> and <!-- /more --> opens on request.
+MORE_OPEN = re.compile(r"^<!--\s*more:\s*(.+?)\s*-->$")
+MORE_CLOSE = re.compile(r"^<!--\s*/more\s*-->$")
 # What a learner can say of each objective at the end of a path (see <!-- rate --> in maintaining/README.md).
 RATINGS = ("I can do this", "With the page open", "Not yet")
 CHEVRON_SVG = ('<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" '
@@ -175,9 +182,17 @@ def link_href(src, target):
     full = os.path.normpath(os.path.join(os.path.dirname(src), path)).replace("\\", "/")
     if full in FILES:
         return rel(src, out_name(full)) + ("#" + anchor if anchor else "")
+    if FILES_ZIP and full == FILES_ZIP:
+        return rel(src, FILES_ZIP)
     if not full.endswith(".md") and os.path.isfile(os.path.join(KIT, full)):
-        # A picture or practice file: link to it where it sits in the kit.
         page_dir = os.path.dirname(os.path.join(OUT, out_name(src)))
+        if full.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp")):
+            # A picture is copied in beside the pages, so it shows wherever the pages are served.
+            dest = os.path.join(OUT, full)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            shutil.copyfile(os.path.join(KIT, full), dest)
+            return os.path.relpath(dest, page_dir).replace("\\", "/")
+        # A practice file: link to it where it sits in the kit.
         return os.path.relpath(os.path.join(KIT, full), page_dir).replace("\\", "/")
     return None
 
@@ -218,16 +233,8 @@ def inline_parts(text, src):
     return "".join(out)
 
 
-def prompt_text(raw, fill):
-    shown = html.escape(raw.replace("`", ""), quote=False)
-    out = []
-    for p in re.split(r"(&lt;.+?&gt;)", shown):
-        if p.startswith("&lt;") and p.endswith("&gt;"):
-            folder = " data-folder" if fill and p == "&lt;your folder&gt;" else ""
-            out.append('<span class="ph"%s>%s</span>' % (folder, p))
-        else:
-            out.append(p)
-    return "".join(out)
+def prompt_text(raw):
+    return html.escape(raw.replace("`", ""), quote=False)
 
 
 BLANK = re.compile(r"\[(YOUR ORGANIZATION|TO BE WRITTEN):[^\]]*\]")
@@ -248,18 +255,16 @@ def prompt_block(raw, kind=None):
         return ('<div class="prompt%s orgprompt"><p class="lab">%s</p>'
                 '<div class="t">%s</div></div>' % (" " + kind if kind else "", who, inline(raw.strip(), "")))
     if kind == "frame":
-        return ('<div class="prompt frame"><p class="lab">Write this yourself, filling in each part:</p>'
-                '<div class="t">%s</div></div>' % prompt_text(raw, False))
+        return ('<div class="prompt frame"><p class="lab">An example to write yours from:</p>'
+                '<div class="t">%s</div></div>' % prompt_text(raw))
     first = re.sub(r"[`<>]", "", raw)
     first = first if len(first) <= 40 else first[:40].rsplit(" ", 1)[0] + "…"
     cls = {"tutor": "prompt tutor", "tool": "prompt tool"}.get(kind, "prompt")
     lab = {"tutor": '<p class="lab">Ask %s:</p>' % setting_html(ASSISTANT),
            "tool": '<p class="lab">Paste this into %s:</p>' % setting_html(PRACTICE_PLACE)}.get(kind, "")
-    where = setting_html(PRACTICE_PLACE if kind == "tool" else ASSISTANT_CHAT)
     return ('<div class="%s">%s<div class="t">%s</div>'
-            '<button class="copy" type="button" aria-label="Copy: %s">Copy</button>'
-            '<p class="after" hidden>Pasted it into %s? Change any highlighted part before you go on.</p></div>'
-            % (cls, lab, prompt_text(raw, True), html.escape(first), where))
+            '<button class="copy" type="button" aria-label="Copy: %s">Copy</button></div>'
+            % (cls, lab, prompt_text(raw), html.escape(first)))
 
 
 def table(rows, src):
@@ -332,14 +337,30 @@ def render(lines, src):
         m = MARKER.match(s)
         if m and kind in ("note", "rate"):
             misplaced("another marker")
+        mo, mc = MORE_OPEN.match(s), MORE_CLOSE.match(s)
         if m and m.group(1) == "workbook":
             h.append(WORKBOOK_HERE)
+            i += 1
+        elif mo:
+            h.append('<details class="more"><summary>%s</summary><div class="m">' % html.escape(mo.group(1)))
+            i += 1
+        elif mc:
+            h.append("</div></details>")
             i += 1
         elif m:
             kind = m.group(1)
             i += 1
         elif not s:
             i += 1
+        elif s.startswith("```"):
+            # A file shown as it is: every line kept, nothing rendered inside it.
+            i += 1
+            body = []
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                body.append(lines[i])
+                i += 1
+            i += 1
+            h.append('<pre class="file"><code>%s</code></pre>' % html.escape("\n".join(body)))
         elif ln.startswith(("## ", "### ", "#### ")):
             if kind in ("note", "rate"):
                 misplaced("a heading")
@@ -348,8 +369,9 @@ def render(lines, src):
             head = slug(t) or head
             num = re.match(r"^(\d+)\.\s+(.*)$", t)
             if num:
-                # A numbered step: its number in a badge; the full stop stays for screen readers.
-                h.append('<h%d id="%s" class="step"><span class="n">%s<span class="sr">.</span></span> '
+                # A step's number is for screen readers only: on screen, numbers belong to the actions
+                # inside a step and to the units in the outline, so a step shows its name alone.
+                h.append('<h%d id="%s" class="step"><span class="sr">%s. </span>'
                          '<span class="tt">%s</span></h%d>' % (level, slug(t), num.group(1), inline(num.group(2), src), level))
             else:
                 h.append('<h%d id="%s">%s</h%d>' % (level, slug(t), inline(t, src), level))
@@ -357,9 +379,14 @@ def render(lines, src):
         elif s.startswith("> "):
             if kind in ("note", "rate"):
                 misplaced("a prompt")
-            h.append(prompt_block(s[2:], kind))
-            kind = None
+            # Consecutive "> " lines are one request, shown and copied one sentence to a line.
+            parts = [s[2:]]
             i += 1
+            while i < len(lines) and lines[i].strip().startswith("> "):
+                parts.append(lines[i].strip()[2:])
+                i += 1
+            h.append(prompt_block("\n".join(parts), kind))
+            kind = None
         elif s.startswith("|"):
             if kind in ("note", "rate"):
                 misplaced("a table")
@@ -372,6 +399,8 @@ def render(lines, src):
             if kind == "note":
                 misplaced("a list")
             lkind = "ul" if ln.startswith("- ") else "ol"
+            # A numbered list may resume after a prompt or a picture: "4." carries on from 3.
+            first = int(re.match(r"^(\d+)\.", ln).group(1)) if lkind == "ol" else 1
             items = []
             while i < len(lines):
                 cur = lines[i]
@@ -403,7 +432,8 @@ def render(lines, src):
                 kind = None
                 h.append(rating_list(items, src, key("rate")))
                 continue
-            h.append("<%s>%s</%s>" % (lkind, "".join("<li>%s</li>" % item_html(it, src) for it in items), lkind))
+            opening = '<ol start="%d">' % first if first > 1 else "<%s>" % lkind
+            h.append("%s%s</%s>" % (opening, "".join("<li>%s</li>" % item_html(it, src) for it in items), lkind))
         else:
             para = []
             while i < len(lines) and lines[i].strip() and not lines[i].strip().startswith(("> ", "|", "<!--")) \
@@ -428,6 +458,12 @@ def render(lines, src):
                     h[-1] = '<p class="question">' + h[-1][3:]
                 h.append('<details class="answer"><summary>Show the answer</summary><div class="a"><p>'
                          '<span class="sr">%s: </span>%s</p></div></details>' % (ans.group(1), inline(text[ans.end():], src)))
+                continue
+            imp = re.match(r"^(\*\*)?Important:(\*\*)?\s*", text)
+            if imp:
+                # A fact that, missed, would leave the learner believing something wrong. Rare by design.
+                h.append('<div class="callout" role="note"><p><b class="lbl">Important:</b> %s</p></div>'
+                         % inline(text[imp.end():], src))
                 continue
             chk = re.match(r"^(\*\*)?Check:(\*\*)?\s*", text)
             if chk:
@@ -594,14 +630,12 @@ def course_panel(t, md):
     if t["before"]:
         start, note = t["before"][0], "It begins with %s, then unit 1" % html.escape(nav_title(t["before"][0]))
     else:
-        start, note = first, "Unit 1 of %d, %s" % (n_units, html.escape(first_time))
+        start, note = first, "%s, %s" % (html.escape(unit_name(first)), html.escape(first_time))
     return ('<section class="course" aria-label="Your progress">'
-            '<p class="meta">%s &middot; %d units &middot; %s &middot; at your own pace</p>'
-            '<div class="overall"><div class="bar" aria-hidden="true"><span id="bar"></span></div>'
-            '<span id="overall">0 of %d units done</span></div>'
-            '<p class="cta"><a class="btn" id="cta" href="%s">Start the training</a>'
+            '<p class="meta">%s &middot; %d units &middot; %s</p>'
+            '<p class="cta"><a class="btn" id="cta" href="%s">Go to unit 1</a>'
             '<span id="cta-note">%s</span></p></section>'
-            % (html.escape(t["level"]), n_units, html.escape(t["time"]), n_units, rel(md, out_name(start)), note))
+            % (html.escape(t["level"]), n_units, html.escape(t["time"]), rel(md, out_name(start)), note))
 
 
 def unit_cards(t, md):
@@ -609,10 +643,11 @@ def unit_cards(t, md):
     for n, (target, title, outcome) in enumerate(list_items(md, "## The path", True), 1):
         text = outcome[:1].upper() + outcome[1:]
         lis.append('<li class="unitcard" data-u="%s">'
-                   '<span class="un">Unit %d</span><a href="%s">%s</a><p class="uo">%s</p>'
+                   '<span class="un">Unit %d%s</span><a href="%s">%s</a><p class="uo">%s</p>'
                    '<p class="us">Not started</p></li>'
-                   % (html.escape(out_name(target)), n, html.escape(rel(md, out_name(target))), html.escape(title),
-                      inline(text, md)))
+                   % (html.escape(out_name(target)), n,
+                      (" &middot; " + html.escape(t["path"][n - 1][2])) if n <= len(t["path"]) else "",
+                      html.escape(rel(md, out_name(target))), html.escape(title), inline(text, md)))
     return '<ol class="units">%s</ol>' % "".join(lis)
 
 
@@ -649,8 +684,7 @@ def outline_training(md):
 
 
 def unit_name(md):
-    t, n, _ = UNITS[md]
-    return t["path"][n - 1][1]
+    return title_of(md)
 
 
 def plural(n, word):
@@ -664,30 +698,47 @@ def ring(label):
 
 
 def outline(md):
-    """The left-hand outline: a training's units and their steps, or, where no one training applies,
-    the programme's trainings; then the help pages, quietly, under More."""
+    """The left-hand outline: every training, always, so the learner sees the whole programme; the
+    training the page belongs to is open, with its units and their steps. Then the help pages, under More."""
     t = outline_training(md)
 
     def cur(target):
         return ' aria-current="page"' if target == md else ""
+
+    def link(target, text, count=""):
+        mark = ' aria-current="page"' if target == md else (' aria-current="true"' if count and md in t["recipes"] else "")
+        return '<li><a href="%s"%s>%s%s</a></li>' % (
+            html.escape(rel(md, out_name(target))), mark, html.escape(text),
+            '<span class="cnt"><span class="sr">, </span>%s</span>' % count if count else "")
     close = '<button class="oclose" id="oclose" type="button" aria-label="Close the outline">&times;</button>'
-    rows = []
+    trains = []
+    for x in TRAININGS:
+        mark = ' aria-current="true"' if x is t else ""
+        meta = html.escape(x["level"]) if x["path"] else "Coming later"
+        trains.append('<li class="ot ou%s" data-t="%s"><a class="otrow" href="%s"%s><span class="oname">%s</span>'
+                      '<span class="sr">, </span><span class="olevel">%s<span class="oprog" data-base=""></span></span></a></li>'
+                      % ("" if x["path"] else " later", html.escape(x["folder"]), rel(md, out_name(x["readme"])),
+                         mark, html.escape(x["name"]), meta))
+    block = ""
     if t:
-        head = ('<div class="ohead"><p class="okicker">%s</p><a class="otitle" href="%s"%s>%s</a>'
+        head = ('<div class="ohead"><a class="otitle" href="%s"%s>%s</a>'
                 '<p class="ototal">%s &middot; %s</p><div class="obar" aria-hidden="true"><span id="obar"></span></div>'
-                '<p class="opct" id="opct"></p>%s</div>'
-                % (html.escape(PROGRAM_NAME), rel(md, out_name(t["readme"])), cur(t["readme"]), html.escape(t["name"]),
-                   plural(len(t["units"]), "unit"), html.escape(t["time"]), close))
-        for n, (u, (_, name, time)) in enumerate(zip(t["units"], t["path"]), 1):
+                '<p class="opct" id="opct"></p></div>'
+                % (rel(md, out_name(t["readme"])), cur(t["readme"]), html.escape(t["name"]),
+                   plural(len(t["units"]), "unit"), html.escape(t["time"])))
+        before = "".join(link(f, nav_title(f)) for f in t["before"])
+        rows = []
+        for n, (u, (_, _, time)) in enumerate(zip(t["units"], t["path"]), 1):
+            name = unit_name(u)
             steps = unit_steps(u)
             here = u == md
             base = "" if steps[0][0] == "unit" else " &middot; " + plural(len(steps), "step")
             # One line per unit: its ring and its name. The time and step count are said on the unit's
             # own page and in the row's tooltip; the full line stays for screen readers.
             tip = "Unit %d · %s%s" % (n, time, "" if steps[0][0] == "unit" else " · " + plural(len(steps), "step"))
-            row = ('<a class="orow" href="%s"%s>%s<span class="otext" title="%s"><span class="oname">%s</span>'
+            row = ('<a class="orow" href="%s"%s>%s<span class="otext" title="%s"><span class="oname">%s</span><span class="otime" aria-hidden="true">%s</span>'
                    '<span class="ometa">Unit %d &middot; %s<span class="oprog" data-base="%s">%s</span></span></span></a>'
-                   % (rel(md, out_name(u)), cur(u), ring(n), html.escape(tip), html.escape(name), n, html.escape(time),
+                   % (rel(md, out_name(u)), cur(u), ring(n), html.escape(tip), html.escape(name), html.escape(time[:1].upper() + time[1:]), n, html.escape(time),
                       base, base))
             toggle = sub = ""
             if base:
@@ -701,44 +752,23 @@ def outline(md):
                           % ("true" if here else "false", n, n, CHEVRON_SVG))
             rows.append('<li class="ou%s" data-u="%s"><div class="ohd">%s%s</div>%s</li>'
                         % (" current open" if here else "", out_name(u), row, toggle, sub))
-    else:
-        head = ('<div class="ohead"><p class="okicker">All trainings</p><a class="otitle" href="%s"%s>%s</a>'
-                '<p class="ototal">%s</p>%s</div>'
-                % (rel(md, "README.html"), cur("README.md"), html.escape(PROGRAM_NAME),
-                   plural(len(TRAININGS), "training"), close))
-        for n, x in enumerate(TRAININGS, 1):
-            if x["path"]:
-                meta = " &middot; ".join(html.escape(p) for p in (x["level"], plural(len(x["units"]), "unit"), x["time"]) if p)
-            else:
-                meta = "Coming later"
-            rows.append('<li class="ou%s" data-t="%s"><div class="ohd"><a class="orow" href="%s"%s>%s'
-                        '<span class="otext"><span class="oname">%s</span><span class="ometa">%s'
-                        '<span class="oprog" data-base=""></span></span></span></a></div></li>'
-                        % ("" if x["path"] else " later", html.escape(x["folder"]), rel(md, out_name(x["readme"])),
-                           cur(x["readme"]), ring(n), html.escape(x["name"]), meta))
-    more, seen, lis = [], set(), []
-    if t:
-        more += [(f, nav_title(f), "", "") for f in t["before"]]
+        after = ""
         if t["workbook"]:
-            more.append((t["workbook"], nav_title(t["workbook"]), "", ""))
+            after += link(t["workbook"], nav_title(t["workbook"]))
         if t["recipes"]:
-            more.append((in_training(t, "how-to/README.md"), "Practice recipes", "", str(len(t["recipes"]))))
+            after += link(in_training(t, "how-to/README.md"), "Practice recipes", str(len(t["recipes"])))
+        block = ('<div class="ocur">%s%s<ol class="ounits" aria-label="Units in %s">%s</ol>%s</div>'
+                 % (head, '<ul class="oextras">%s</ul>' % before if before else "", html.escape(t["name"]),
+                    "".join(rows), '<ul class="oextras">%s</ul>' % after if after else ""))
+    lis = []
     for _, _, items in MENU_AFTER:
-        more += [(f, text, anchor, "") for f, text, anchor in items]
-    if t:
-        more.append(("README.md", "All trainings", "", ""))
-    for target, text, anchor, count in more:
-        if (target, anchor) in seen:
-            continue
-        seen.add((target, anchor))
-        href = rel(md, out_name(target)) + ("#" + anchor if anchor else "")
-        mark = ' aria-current="page"' if target == md and not anchor else \
-            (' aria-current="true"' if count and md in t["recipes"] else "")
-        lis.append('<li><a href="%s"%s>%s%s</a></li>' % (html.escape(href), mark, html.escape(text),
-                   '<span class="cnt"><span class="sr">, </span>%s</span>' % count if count else ""))
-    return ('<nav id="side" class="side" aria-label="Course outline">%s<ol class="ounits">%s</ol>'
+        for f, text, anchor in items:
+            href = rel(md, out_name(f)) + ("#" + anchor if anchor else "")
+            lis.append('<li><a href="%s"%s>%s</a></li>' % (html.escape(href), cur(f) if not anchor else "", html.escape(text)))
+    return ('<nav id="side" class="side" aria-label="Course outline"><div class="otop"><p class="omh" id="oth">Trainings</p>%s</div>'
+            '<ol class="otrains" aria-labelledby="oth">%s</ol>%s'
             '<div class="omore"><p class="omh" id="omh">More</p><ul aria-labelledby="omh">%s</ul></div></nav>'
-            '<div class="scrim" id="scrim" aria-hidden="true"></div>' % (head, "".join(rows), "".join(lis)))
+            '<div class="scrim" id="scrim" aria-hidden="true"></div>' % (close, "".join(trains), block, "".join(lis)))
 
 
 def crumbs(md):
@@ -793,9 +823,12 @@ def pager(md):
         # On a unit, this button is what marks the unit complete (see the script); nothing is ticked per step.
         nudge = ('<p class="nudge" id="nudge" aria-live="polite" data-btn="%s"></p>' % btn) if md in UNITS else ""
         done = ' data-complete="1"' if md in UNITS else ""
+        # The end of a path is where a learner looks for what to do next, so the optional recipes are offered there.
+        extra = ('<p class="lbl">Optional: <a href="%s">Practice recipes</a>, new tasks that use what this training taught</p>'
+                 % rel(md, out_name(in_training(t, "how-to/README.md")))) if not next_ and t["recipes"] else ""
         return ('<nav class="pager" aria-label="What comes next"><div class="nextunit"><p class="lbl">%s</p><h2>%s</h2>'
-                '<div class="nextrow"><a class="btn" href="%s"%s>%s%s</a>%s</div>%s</div></nav>'
-                % (lbl, html.escape(title), href, done, btn, ARROW_SVG, back, nudge))
+                '<div class="nextrow"><a class="btn" href="%s"%s>%s%s</a>%s</div>%s%s</div></nav>'
+                % (lbl, html.escape(title), href, done, btn, ARROW_SVG, back, extra, nudge))
     links = []
     if md == "README.md":
         if AVAILABLE:
@@ -806,7 +839,11 @@ def pager(md):
     elif prev_:
         links.append('<a class="prev" href="%s">&lsaquo; Previous: %s</a>' % (rel(md, out_name(prev_)), html.escape(nav_title(prev_))))
     if next_:
-        links.append('<a class="next" href="%s">Next: %s &rsaquo;</a>' % (rel(md, out_name(next_)), html.escape(nav_title(next_))))
+        pid = ' id="pager-next"' if t and md == t["readme"] else ""
+        links.append('<a class="next"%s href="%s">Next: %s &rsaquo;</a>' % (pid, rel(md, out_name(next_)), html.escape(nav_title(next_))))
+    elif t and md in t["recipes"]:
+        # The last recipe would otherwise offer only "Previous"; the training's home is where to go next.
+        links.append('<a class="next" href="%s">Back to %s &rsaquo;</a>' % (rel(md, out_name(t["readme"])), html.escape(t["name"])))
     return '<nav class="pager" aria-label="Previous and next page"><div class="nextrow quiet">%s</div></nav>' % "".join(links)
 
 
@@ -815,21 +852,8 @@ def page_foot(md):
     version, which links to What's new."""
     day = PAGE_DATES.get(md) or KIT_DATE
     updated = '<span>Last updated %s</span>' % day if day else ""
-    return ('<footer class="pagefoot">%s<a href="%s">Version %s &middot; updated %s</a></footer>'
-            % (updated, rel(md, out_name(CHANGELOG)), html.escape(KIT_VERSION), inline(KIT_DATE_AS_WRITTEN, CHANGELOG)))
-
-
-def how_to_use():
-    return ('<aside class="howto" aria-label="How to use a prompt"><b>Using a prompt:</b> select <b>Copy</b> '
-            'beside it. Then right-click where the page says to paste it (%s, unless it is labelled otherwise) '
-            'and select <b>Paste</b>, or press <kbd>Ctrl</kbd>+<kbd>V</kbd>. Change any '
-            '<span class="ph">highlighted blank</span> to your own, then go on.</aside>' % setting_html(ASSISTANT_CHAT))
-
-
-def folder_box():
-    return ('<div class="setup"><label for="folder">Optional: the name of your own folder for this page '
-            '(not the training&rsquo;s folder). The prompts on this page will use it.</label>'
-            '<input id="folder" placeholder="your folder&rsquo;s name" autocomplete="off"></div>')
+    return ('<footer class="pagefoot">%s<a href="%s">Version %s</a></footer>'
+            % (updated, rel(md, out_name(CHANGELOG)), html.escape(KIT_VERSION)))
 
 
 def search_entries(md, title, rest):
@@ -874,7 +898,7 @@ TEMPLATE = """<!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
 {nav}
 <div class="content">
 {crumbs}
-<main id="main" data-steps="{steps}" data-page="{page}" data-stuck-from="{stuckfrom}" data-kit-open="{kitopen}" data-stuck="{stuck}" data-program="{program}">
+<main id="main" data-steps="{steps}" data-page="{page}" data-stuck-from="{stuckfrom}" data-kit-open="{kitopen}" data-stuck="{stuck}" data-program="{program}" data-assistant="{assistant}" data-chat="{chat}">
 {body}
 {pager}
 </main>
@@ -892,9 +916,9 @@ INDEX = []
 
 
 NO_LINK = ("a", "code", "h1", "h2", "h3", "h4", "summary", "kbd", "button", "label")
-# Elements never given a glossary link, by class: a prompt's text and blanks, and every label the
+# Elements never given a glossary link, by class: a prompt's text, a marked blank, and every label the
 # page sets on a block (Check, Example, a prompt's "Ask ..." line, a card's unit number or status).
-NO_LINK_CLASSES = {"t", "ph", "org", "lab", "lbl", "tag", "un", "us", "unit"}
+NO_LINK_CLASSES = {"t", "org", "lab", "lbl", "tag", "un", "us", "unit"}
 # Glossary terms that are also the name of a label the page draws (see link_glossary).
 LABEL_WORDS = ("Check",)
 
@@ -941,15 +965,20 @@ def link_glossary(md, rest):
         if stack or not todo:
             continue
         masked = part
-        for ui in UI_LABELS:
+        for ui in UI_LABELS + tuple(x["name"] for x in TRAININGS):
             masked = masked.replace(ui, "\0" * len(ui))
-        for key in sorted(list(todo), key=len, reverse=True):
-            mo = re.search(r"(?<![\w-])(%s)(?![\w-])" % re.escape(key), masked, flags=re.I)
-            if mo and key in todo:
-                term = todo.pop(key)
-                part = part[:mo.start()] + '<a class="gl" href="%s#%s" title="%s">%s</a>' % (
-                    href, slug(term), html.escape(GLOSSARY_DEFS.get(slug(term), "Glossary")), mo.group(1)) + part[mo.end():]
-                break
+        # Every term's first use in this text, plural included, longest term first so a shorter one
+        # never claims part of a longer one.
+        spans = []
+        for key in sorted(todo, key=len, reverse=True):
+            for mo in re.finditer(r"(?<![\w-])(%ss?)(?![\w-])" % re.escape(key), masked, flags=re.I):
+                if all(mo.end() <= a or mo.start() >= b for a, b, _ in spans):
+                    spans.append((mo.start(), mo.end(), key))
+                    break
+        for a, b, key in sorted(spans, reverse=True):
+            term = todo.pop(key)
+            part = part[:a] + '<a class="gl" href="%s#%s" title="%s">%s</a>' % (
+                href, slug(term), html.escape(GLOSSARY_DEFS.get(slug(term), "Glossary")), part[a:b]) + part[b:]
         parts[n] = part
     return "".join(parts)
 
@@ -1019,24 +1048,15 @@ def write(md):
         rest = rest.replace(WORKBOOK_HERE, workbook_section(training_of(md), md))
     INDEX.extend(search_entries(md, title, re.sub(r'<p class="kept">.*?</p>|<div class="opts">.*?</div>|'
                                                   r'<div class="wbacts">.*?</div>', " ", rest, flags=re.S)))
-    if "data-folder" in rest:
-        f = rest.rfind('<div class="prompt', 0, rest.index("data-folder"))
-        rest = rest[:f] + folder_box() + rest[f:]
-    k = [x for x in (rest.find('<div class="prompt"'), rest.find('<div class="prompt tutor"'),
-                     rest.find('<div class="prompt tool"'), rest.find('<div class="setup"')) if x >= 0]
-    if k:
-        rest = rest[:min(k)] + how_to_use() + rest[min(k):]
     t = training_of(md)
     if md == "README.md":
         a = rest.index('<h2 id="the-trainings">')
-        b = rest.index("<h2", a + 1)
+        b = rest.find("<h2", a + 1) % (len(rest) + 1)
         rest = rest[:a] + '<h2 id="the-trainings">The trainings</h2>\n' + training_cards() + "\n" + rest[b:]
     elif t and t["path"] and md == t["readme"]:
         a = rest.index('<h2 id="the-path">')
-        b = rest.index("<h2", a + 1)
+        b = rest.find("<h2", a + 1) % (len(rest) + 1)
         rest = rest[:a] + '<h2 id="the-path">The path</h2>\n' + unit_cards(t, md) + "\n" + rest[b:]
-        k = rest.find("<h2")
-        rest = rest[:k] + course_panel(t, md) + "\n" + rest[k:]
     # Position and progress are said once, in the breadcrumb and the outline; a unit's own
     # steps are listed in the outline, so only long help pages get an "On this page" list.
     landing = md == "README.md" or any(md == x["readme"] for x in TRAININGS)
@@ -1051,7 +1071,7 @@ def write(md):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     root = rel(md, "x")[:-1]
     ot = outline_training(md)
-    doc = TEMPLATE.format(source=md, title=html.escape(title), root=root, program=html.escape(PROGRAM_NAME),
+    doc = TEMPLATE.format(source=md, title=html.escape(title), root=root, program=html.escape(PROGRAM_NAME), assistant=html.escape(ASSISTANT), chat=html.escape(ASSISTANT_CHAT),
                           tabtitle=html.escape(title if title.startswith(t["name"] if t else PROGRAM_NAME)
                                                else "%s - %s" % (title, t["name"] if t else PROGRAM_NAME)),
                           tfolder=html.escape(t["folder"] if t else ""), ofolder=html.escape(ot["folder"] if ot else ""),
@@ -1094,15 +1114,48 @@ def write_blanks():
     return len(rows)
 
 
+SLOT = re.compile(r"<[^<>]+>")
+
+
+def check_prompt_slots():
+    """A prompt a learner copies runs as written: no <slot> left for them to fill in. Each one found is
+    reported like the other checks' findings, with the page, its line and the slot; returns how many."""
+    found = 0
+    for md in ORDER:
+        for n, line in enumerate(read(md), 1):
+            if not re.match(r"^\s*> ", line):
+                continue
+            for m in SLOT.finditer(line.replace("`", "")):
+                found += 1
+                print("PROMPTSLOT", md, n, m.group(0))
+    print("prompt slots:", found)
+    return found
+
+
+def check_unit_positions():
+    """The breadcrumb and the unit's header give its number and time; written by hand on a page, they
+    go stale when the path changes, as does "step 3" in running text. Each one found is reported."""
+    found = 0
+    for md in ORDER:
+        for n, line in enumerate(read(md), 1):
+            if line.startswith("#"):
+                continue
+            for m in re.finditer(r"\bUnit \d+ of (?:the path|\d+)|\b[Ss]tep \d+\b", line):
+                found += 1
+                print("UNITPOSITION", md, n, m.group(0))
+    print("hand-written unit positions:", found)
+    return found
+
+
 # The starter's own titles, unit names and step headings. They name a stage of the method, not what the
-# learner does there, so a kit is a draft while any is left.
+# learner does there, so a kit is a draft while any is left. "Getting started" is not one: the guide
+# names the beginner training that, as published courses do.
 STARTER_NAMES = {
-    "Training programme", "Getting started", "Start here", "Start here: your first fifteen minutes",
-    "The first lesson", "Your first real task", "Your first real task this week", "An example recipe",
+    "Training programme", "Start here", "Start here: your first fifteen minutes",
+    "The first lesson", "An example recipe",
     "First step", "Second step", "Open what you will practise in", "Try the help beside you",
-    "Produce a first result", "What this unit covered", "Look before you change anything",
-    "See it done first", "Do the task", "Check it yourself", "Apply it to a second case", "Pick the task",
-    "Do it", "Note what happened", "In two or three days"}
+    "Have the assistant create the practice files", "Produce a first result", "What this unit covered", "Look before you change anything",
+    "See it done first", "Do the task", "Check it yourself", "Apply it to a second case"}
 
 
 def starter_names_left():
@@ -1125,6 +1178,35 @@ def check_step_numbers():
                      "check the order still follows the task." % (md, ", ".join(map(str, nums)), len(nums)))
 
 
+def check_unit_links():
+    """A link that opens a unit uses the unit's title, so a renamed unit can't leave old names behind."""
+    bad = []
+    for md in FILES:
+        for i, ln in enumerate(read(md), 1):
+            for m in re.finditer(r"\[([^\]]+)\]\(([^)#\s]+\.md)\)", ln):
+                target = os.path.normpath(os.path.join(os.path.dirname(md), m.group(2))).replace("\\", "/")
+                if target in UNITS and m.group(1) != title_of(target):
+                    bad.append("%s:%d [%s] opens \"%s\"" % (md, i, m.group(1), title_of(target)))
+    if bad:
+        sys.exit("Links that open a unit must use its title:\n  " + "\n  ".join(bad))
+
+
+def write_files_zip():
+    """The learner pages as markdown and the practice files, packed beside the web pages for a
+    request to fetch, when FILES_ZIP is set. Files sit at the top of the zip, so extracting it makes one folder
+    named after the zip."""
+    import zipfile
+    count = 0
+    with zipfile.ZipFile(os.path.join(OUT, FILES_ZIP), "w", zipfile.ZIP_DEFLATED) as z:
+        for root, dirs, files in os.walk(KIT):
+            relroot = os.path.relpath(root, KIT).replace(os.sep, "/")
+            dirs[:] = sorted(d for d in dirs if not (relroot == "." and d in ("maintaining", "facilitator", OUT_DIR)))
+            for f in sorted(files):
+                z.write(os.path.join(root, f), f if relroot == "." else relroot + "/" + f)
+                count += 1
+    return count
+
+
 def main():
     check_step_numbers()
     listed = [x for x, _, _ in list_items("README.md", "## The trainings", False)]
@@ -1138,6 +1220,16 @@ def main():
         if listed != t["units"]:
             sys.exit("The list under '## The path' in %s (%s) does not match its path in TRAININGS (%s)."
                      % (t["readme"], ", ".join(listed), ", ".join(t["units"])))
+        for u, (_, name, _) in zip(t["units"], t["path"]):
+            if name != title_of(u):
+                sys.exit("TRAININGS names %s \"%s\", but its title is \"%s\". A unit's name is its title; "
+                         "make the two the same." % (u, name, title_of(u)))
+    check_unit_links()
+    for t in TRAININGS:
+        if t["recipes"] and not any("(how-to/README.md)" in l for l in read(t["readme"])):
+            sys.exit("%s has recipes but its home page, %s, doesn't link them in its text. Add a line under "
+                     "the path: Once you finish the path, you can try the [practice recipes](how-to/README.md)."
+                     % (t["name"], t["readme"]))
     noted = [md for md in FILES if any(re.fullmatch(r"<!--\s*(note|rate)\s*-->", l.strip()) for l in read(md))]
     for md in noted:
         t = page_training(md)
@@ -1165,6 +1257,8 @@ def main():
         "window.KIT_INDEX=" + json.dumps(INDEX, ensure_ascii=False) + ";\n"
         "window.KIT_TRAININGS=" + json.dumps(trainings, ensure_ascii=False) + ";\n")
     print("total prompts: %d; search entries: %d" % (total, len(INDEX)))
+    if FILES_ZIP:
+        print("files zip: %d files in %s" % (write_files_zip(), FILES_ZIP))
     print("blanks still to fill: %d, listed in facilitator/BLANKS.md" % write_blanks())
     generic = starter_names_left()
     if generic:
@@ -1178,8 +1272,14 @@ def main():
     if newer:
         print("NOTE: pages changed after the newest CHANGELOG.md entry (%s): %s. If a change reaches learners, "
               "add an entry for it (see 'Versions' in maintaining/README.md)." % (KIT_DATE, ", ".join(newer)))
-    failed = False
-    for checker in ("check_text.py", "check_structure.py"):
+    failed = check_prompt_slots() > 0
+    failed = check_unit_positions() > 0 or failed
+    stray = [(md, n) for md in ORDER for n, line in enumerate(read(md), 1) if "[YOUR ORGANIZATION:" in line]
+    for md, n in stray:
+        print("ORGBLANK", md, n)
+    print("organization fields on learner pages:", len(stray))
+    failed = failed or bool(stray)
+    for checker in ("check_text.py", "check_structure.py", "check_rulings.py"):
         r = subprocess.run([sys.executable, os.path.join(HERE, checker), KIT, OUT], capture_output=True, text=True)
         problems = [l for l in r.stdout.splitlines() if not l.startswith("OK")]
         print("\n".join(problems))
@@ -1193,15 +1293,15 @@ CSS = r"""/* One accent (links and where you are), neutrals for everything else,
    mark on a completed unit. Nothing on the page is louder than the step the reader is doing. */
 :root{--bg:#ffffff;--bg2:#f7f7f7;--surface:#ffffff;--ink:#1b1b1b;--ink2:#4f4f4f;--ink3:#6b6b6b;
 --rule:#e6e6e6;--rule2:#cdcdcd;--accent:#0065b3;--accent-ink:#ffffff;--accent-soft:#eef4fa;--ok:#107c10;--ok-ink:#ffffff;
---ctl:#8a8a8a;--blank:#f0f0f0;--ph:#e2e2e2;--code:#f4f4f4;--focus:#0065b3;
+--ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;
 --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.06)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
 --bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;--rule:#303030;--rule2:#4a4a4a;
 --accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--ph:#383838;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
+--ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
 :root[data-theme="dark"]{--bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;
 --rule:#303030;--rule2:#4a4a4a;--accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--ph:#383838;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
+--ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
 :root[data-theme="dark"]{color-scheme:dark}:root[data-theme="light"]{color-scheme:light}
 :root{--side:var(--bg2);--cur:var(--accent-soft);--field:var(--ctl);--okink:var(--ok-ink);--hdr:52px;--crb:42px}
 *{box-sizing:border-box}
@@ -1247,12 +1347,28 @@ background:none;color:var(--ink3);cursor:pointer}
 background:var(--side);border-right:1px solid var(--rule);font-size:.875rem;line-height:1.4}
 .side ol,.side ul{list-style:none;margin:0;padding:0}
 .side li{margin:0}
-.ohead{padding:24px 20px 12px}
-.okicker{display:none}
+.otop{padding:20px 20px 4px}
+.otop .omh{margin:0}
+.side .otrains{padding:0 10px 12px}
+.otrow{display:flex;align-items:baseline;gap:8px;min-height:36px;padding:7px 10px;border-radius:6px;color:var(--ink);text-decoration:none}
+.otrow:hover{background:var(--cur)}
+.otrow .oname{font-weight:500}
+.olevel{margin-left:auto;font-size:.8rem;color:var(--ink3);white-space:nowrap;text-align:right}
+.otrow[aria-current]{background:var(--cur);box-shadow:inset 3px 0 0 var(--accent)}
+.otrow[aria-current] .oname{color:var(--accent);font-weight:600}
+.ou.later .otrow{color:var(--ink3)}
+.ocur{border-top:1px solid var(--rule);margin-top:4px}
+.ohead{padding:16px 20px 4px}
+.side .oextras{padding:0 20px 8px}
+.oextras a{display:flex;align-items:center;gap:8px;min-height:36px;padding:6px 10px;margin:0 -10px;border-radius:6px;
+color:var(--ink2);font-size:.875rem;text-decoration:none}
+.oextras a:hover{background:var(--cur);color:var(--ink)}
+.oextras a[aria-current]{color:var(--accent);font-weight:600}
+.oextras .cnt{margin-left:auto;font-size:.8rem;color:var(--ink3)}
 .otitle{display:block;font-size:1rem;font-weight:600;color:var(--ink);text-decoration:none;line-height:1.3}
 .otitle:hover{text-decoration:underline}
 .otitle[aria-current]{color:var(--accent)}
-.ototal{display:none}
+.ototal{margin:2px 0 0;font-size:.8125rem;color:var(--ink3)}
 .obar{height:3px;border-radius:2px;background:var(--rule);overflow:hidden;margin:12px 0 6px}
 .obar span{display:block;height:100%;width:0;background:var(--ink);transition:width .3s}
 .opct{margin:0;font-size:.8rem;color:var(--ink3)}
@@ -1274,6 +1390,7 @@ color:var(--ink);text-decoration:none}
 .ou.later .oring{opacity:.55}
 .otext{display:flex;flex-direction:column;min-width:0}
 .oname{font-weight:500;line-height:1.35;overflow-wrap:anywhere}
+.otime{display:block;font-size:.8125rem;font-weight:400;color:var(--ink3);line-height:1.35}
 .ou.current .oname{font-weight:600}
 .ometa{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .otoggle{flex:none;width:36px;height:36px;margin-right:10px;display:flex;align-items:center;justify-content:center;
@@ -1292,6 +1409,11 @@ background:var(--side)}
 .ostep.here{color:var(--accent);font-weight:600}
 .ostep.here .odot{border-color:var(--accent)}
 .ostep.here .odot{background:var(--accent);box-shadow:inset 0 0 0 2px var(--side)}
+.content pre.file{margin:16px 0;padding:14px 16px;overflow-x:auto;background:var(--bg2);border:1px solid var(--rule);border-radius:8px;font:.875rem/1.55 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.content pre.file code{background:none;padding:0;font:inherit}
+.content .callout{margin:20px 0;padding:12px 16px;border:1px solid var(--accent);border-left-width:4px;border-radius:6px;background:var(--bg2)}
+.content .callout p{margin:0}
+.content .callout .lbl{color:var(--accent)}
 .omore{margin:18px 20px 0;padding-top:14px;border-top:1px solid var(--rule)}
 .omh{margin:0 0 4px;font-size:.8rem;font-weight:600;color:var(--ink3)}
 .omore a{display:flex;align-items:center;gap:8px;min-height:36px;padding:6px 10px;margin:0 -10px;border-radius:6px;
@@ -1343,8 +1465,6 @@ a.gl:hover{color:var(--accent);text-decoration-color:var(--accent)}
 /* a blank still to fill: marked as unfinished by a light ground and a dotted line, not a box */
 .org{background:var(--blank);border-bottom:1px dotted var(--ink3);padding:0 3px;color:var(--ink2);
 -webkit-box-decoration-break:clone;box-decoration-break:clone}
-.ph{background:var(--ph);border-bottom:1px dotted var(--ink2);border-radius:2px;padding:0 3px}
-.ph.filled{background:none;border-bottom:1px solid var(--ink3)}
 /* a Check: a short label in the body's colour, set off by a thin rule */
 .check{margin:12px 0;padding:0 0 0 16px;border-left:2px solid var(--ctl)}
 .check p{margin:0}
@@ -1363,16 +1483,18 @@ transform:rotate(-45deg);transition:transform .15s}
 details.answer[open] summary::before{transform:rotate(45deg)}
 details.answer[open] summary{border-bottom:1px solid var(--rule)}
 details.answer .a{padding:4px 14px 10px}
-.howto{margin:16px 0;padding:0 0 0 16px;border-left:2px solid var(--ctl);font-size:.875rem;color:var(--ink2)}
-.setup{margin:16px 0}
-.setup label{display:block;font-size:.875rem;color:var(--ink2);margin-bottom:5px}
-.setup input{width:100%;padding:7px 9px;font:inherit;border:1px solid var(--field);border-radius:4px;background:var(--bg);color:var(--ink)}
-.carried{margin:6px 0 0;font-size:.8rem;color:var(--ink2)}
+details.more{margin:8px 0}
+details.more summary{display:inline-flex;align-items:center;gap:8px;cursor:pointer;list-style:none;font-size:.9375rem;
+font-weight:500;color:var(--accent)}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+transform:rotate(-45deg);transition:transform .15s}
+details.more[open] summary::before{transform:rotate(45deg)}
+details.more .m{margin-top:6px;padding-left:14px;border-left:2px solid var(--rule)}
 .prompt{margin:16px 0;background:var(--code);border-radius:6px;
 padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-start}
 .prompt .t{flex:1 1 260px;white-space:pre-wrap;overflow-wrap:anywhere}
 .prompt .lab{flex-basis:100%;margin:0;font-size:.8rem;font-weight:600;color:var(--ink2)}
-.prompt .after{flex-basis:100%;margin:0;font-size:.875rem;color:var(--ink2)}
 .prompt.orgprompt{background:var(--blank)}
 .prompt.frame{background:var(--code)}
 button.copy{font:inherit;font-size:.8rem;font-weight:500;padding:3px 12px;cursor:pointer;border:1px solid var(--ctl);
@@ -1448,8 +1570,8 @@ body.nav-open .side{transform:none;visibility:visible;transition:transform .2s}
 .scrim{display:block;position:fixed;inset:var(--hdr) 0 0;z-index:24;background:rgba(0,0,0,.35);opacity:0;visibility:hidden;
 transition:opacity .2s,visibility .2s}
 body.nav-open .scrim{opacity:1;visibility:visible}
-.ohead{position:relative;padding-right:56px}
-.oclose{display:flex;position:absolute;right:10px;top:14px;width:40px;height:40px;align-items:center;justify-content:center;
+.otop{position:relative;padding-right:56px;min-height:40px}
+.oclose{display:flex;position:absolute;right:10px;top:8px;width:40px;height:40px;align-items:center;justify-content:center;
 border:0;border-radius:6px;background:none;color:var(--ink2);cursor:pointer;font-size:1.4rem;line-height:1}
 .oclose:hover{background:var(--cur);color:var(--ink)}
 }
@@ -1466,7 +1588,7 @@ main h2.step{margin-top:32px}
 main{padding-top:20px}
 }
 @media (max-width:420px){.brand{display:none}}
-@media (forced-colors:active){.ph,.org{border-color:CanvasText}.line span,.obar span{background:Highlight}
+@media (forced-colors:active){.org{border-color:CanvasText}.line span,.obar span{background:Highlight}
 .check{border-color:CanvasText}.ostep.here,.omore a[aria-current]{outline:2px solid CanvasText}.oring .arc{stroke:CanvasText}
 .odot{forced-color-adjust:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -1505,28 +1627,13 @@ function labelTheme(){tb.setAttribute("aria-label",isDark()?"Switch to light the
 labelTheme();
 if(window.matchMedia){var mq=matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",labelTheme);}
 tb.addEventListener("click",function(){var t=isDark()?"light":"dark";rootEl.setAttribute("data-theme",t);lput("kit.theme",t);labelTheme();});
-/* the folder box fills <your folder> in this page's prompts */
-var FK="kit.folder", fin=document.getElementById("folder");
-function paintFolder(){
-  var f=fin?(fin.value||"").trim():"";
-  document.querySelectorAll(".ph[data-folder]").forEach(function(p){
-    p.textContent=f||"<your folder>"; p.classList.toggle("filled",!!f);});
-}
-if(fin){
-  fin.value=lget(FK,"");
-  if(fin.value){var n=document.createElement("p");n.className="carried";
-    n.textContent="Filled in from an earlier page. Change it if this page is about a different folder.";
-    fin.insertAdjacentElement("afterend",n);}
-  fin.addEventListener("input",function(){lput(FK,fin.value);paintFolder();});
-}
-paintFolder();
-function copyText(b,txt,open,after){
+function copyText(b,txt){
   function done(ok){
     b.classList.toggle("ok",ok); var old=b.getAttribute("data-label")||b.textContent; b.setAttribute("data-label",old);
-    b.textContent=ok?"Copied":"Copy failed";
-    if(after) after.hidden=!(ok&&open);
-    say.textContent=ok?(open?"Copied. Change the highlighted part after you paste.":"Copied."):"Copy failed. Drag across the text to select it, then right-click it and select Copy.";
-    setTimeout(function(){b.classList.remove("ok");b.textContent=old;},2500);
+    var okText=b.getAttribute("data-ok");
+    b.textContent=ok?(okText||"Copied"):"Copy failed";
+    say.textContent=ok?(okText||"Copied."):"Copy failed. Drag across the text to select it, then right-click it and select Copy.";
+    setTimeout(function(){b.classList.remove("ok");b.textContent=old;},okText?8000:2500);
   }
   function fallback(){
     var ta=document.createElement("textarea");ta.value=txt;ta.setAttribute("readonly","");
@@ -1539,15 +1646,24 @@ function copyText(b,txt,open,after){
 }
 document.addEventListener("click",function(e){
   var b=e.target.closest("button.copy"); if(!b) return;
-  var box=b.parentNode;
-  var open=[].some.call(box.querySelectorAll(".ph"),function(p){return !p.classList.contains("filled");});
-  copyText(b,box.querySelector(".t").textContent,open,box.querySelector(".after"));
+  copyText(b,b.parentNode.querySelector(".t").textContent);
 });
 /* a unit's steps: where offered, each ends with the quiet "stuck" link. Nothing is ticked per step:
    a unit is complete when the learner selects the button at its end (Continue, or Back to the training) */
 var main=document.getElementById("main"), page=main.getAttribute("data-page");
 var heads=[].slice.call(main.querySelectorAll("h2[id],h3[id]")).filter(function(h){return !h.closest(".pager");});
 var isUnit=main.getAttribute("data-steps")==="1";
+/* A step's words as plain text. innerText needs layout, which a detached copy doesn't have, so
+   numbers, bullets and line breaks are written here. */
+function plain(c){
+  function all(sel){return (c.matches(sel)?[c]:[]).concat([].slice.call(c.querySelectorAll(sel)));}
+  all("ol").forEach(function(ol){var i=parseInt(ol.getAttribute("start")||"1",10);
+    [].slice.call(ol.children).forEach(function(li){li.insertBefore(document.createTextNode("\n"+(i++)+". "),li.firstChild);});});
+  all("ul").forEach(function(ul){
+    [].slice.call(ul.children).forEach(function(li){li.insertBefore(document.createTextNode("\n- "),li.firstChild);});});
+  all("p,pre,.t").forEach(function(p){p.appendChild(document.createTextNode("\n"));});
+  return c.textContent.replace(/[ \t]+\n/g,"\n").replace(/\n{2,}/g,"\n").trim();
+}
 var steps=isUnit?heads.filter(function(h){return /^\d/.test(h.textContent);}):[];
 var pagerEl=main.querySelector(".pager");
 if(main.getAttribute("data-stuck")==="1") steps.forEach(function(h){
@@ -1556,14 +1672,21 @@ if(main.getAttribute("data-stuck")==="1") steps.forEach(function(h){
   var lv=+h.tagName[1], next=heads.slice(heads.indexOf(h)+1).filter(function(x){return +x.tagName[1]<=lv;})[0];
   var row=document.createElement("div"); row.className="steprow";
   var s=document.createElement("button"); s.type="button"; s.className="stuck";
-  s.textContent="Stuck on this step?";
-  s.setAttribute("aria-label","Stuck on this step? Copy a question to ask for help with step "+num);
-  s.title="Copies a question to ask for help";
+  var who=main.getAttribute("data-assistant")||"for help", box=main.getAttribute("data-chat")||"the chat";
+  s.textContent="Stuck? Copy a question for "+who;
+  s.setAttribute("aria-label","Stuck on step "+num+"? Copy a question about it to ask "+who);
+  s.title="Copies a question about this step, for you to paste into "+box;
+  s.setAttribute("data-ok","Copied. Paste it into "+box+" and press Enter.");
   s.addEventListener("click",function(){
-    var q=main.getAttribute("data-kit-open")==="1"
-      ? "I am on step "+num+" of \""+page+"\" in the training folder. What does it ask me to do, and what should I see? Do not do it for me."
-      : "I am working through the training \""+main.getAttribute("data-program")+"\", page \""+page+"\", step \""+h.textContent.trim()+"\". I will paste the step's text below. What does it ask me to do, and what should I see? Do not do it for me.";
-    copyText(s,q,false,null);
+    /* the question carries the step's own words, so it works whatever folder is open */
+    var said=[];
+    for(var n=h.nextElementSibling;n&&!n.matches("h2,h3,.steprow,.pager");n=n.nextElementSibling){
+      if(n.matches("details,.callout")) continue;
+      var c=n.cloneNode(true); [].slice.call(c.querySelectorAll("button,.lab")).forEach(function(x){x.remove();});
+      var t=plain(c); if(t) said.push(t);
+    }
+    var q="I am working through the training \""+((T&&T.name)||main.getAttribute("data-program"))+"\", unit \""+page+"\", step \""+((h.querySelector(".tt")||h).textContent.trim())+"\". The step says:\n\n"+said.join("\n")+"\n\nWhat does it ask me to do, and what should I see? Do not do it for me.";
+    copyText(s,q);
   });
   row.appendChild(s);
   (next||pagerEl).insertAdjacentElement("beforebegin",row);
@@ -1606,7 +1729,7 @@ function paintOutline(){
   [].forEach.call(document.querySelectorAll(".ou[data-t]"),function(li){
     var t=TRAININGS.filter(function(x){return x.f===li.getAttribute("data-t");})[0]; if(!t) return;
     var s=trainingState(t), N=t.units.length, all=s.done===N;
-    paintRing(li.querySelector(".oring"),s.done/N,all);
+    var r=li.querySelector(".oring"); if(r) paintRing(r,s.done/N,all);
     setProg(li,all?" &middot; Done":(s.done?" &middot; "+s.done+" of "+units(N)+" done":null));
   });
   if(!T) return null;
@@ -1666,7 +1789,7 @@ var cards=[].slice.call(document.querySelectorAll(".unitcard:not(.traincard)"));
 var cta=document.getElementById("cta"), ctaNote=document.getElementById("cta-note");
 var ctaStart=cta?{t:cta.textContent,h:cta.getAttribute("href"),n:ctaNote.textContent}:null;
 function paintUnitCards(){
-  if(!cards.length||!T||!cta) return;
+  if(!cards.length||!T) return;
   var s=trainingState(T), N=T.units.length, last=getLast(T);
   var li_=last?T.units.map(function(u){return u.u;}).indexOf(last.u):-1;
   var lb=last?(T.before||[]).filter(function(b){return b.u===last.u;})[0]:null;
@@ -1676,23 +1799,34 @@ function paintUnitCards(){
     li.querySelector(".us").textContent=r.ok?"✓ Completed":(going?"In progress":"Not started");
     li.classList.toggle("done",r.ok); li.classList.toggle("going",going);
   });
-  document.getElementById("overall").textContent=(s.done===N?"✓ All ":"")+s.done+" of "+units(N)+" done";
-  document.getElementById("bar").style.width=(100*s.done/N)+"%";
+  var ov=document.getElementById("overall"), br=document.getElementById("bar");
+  if(ov) ov.textContent=(s.done===N?"✓ All ":"")+s.done+" of "+units(N)+" done";
+  if(br) br.style.width=(100*s.done/N)+"%";
   var todo=s.units.map(function(r,k){return r.ok?-1:k;}).filter(function(k){return k>=0;});
-  function go(t,h,n){cta.textContent=t;cta.setAttribute("href",h);ctaNote.textContent=n;}
+  function go(t,h,n){if(!cta) return;cta.textContent=t;cta.setAttribute("href",h);ctaNote.textContent=n;}
+  /* the quiet "Next" at the foot of a training's home goes where the button above goes */
+  var pn=document.getElementById("pager-next");
+  function pnext(h,name){if(pn){pn.setAttribute("href",h);pn.textContent="Next: "+name+" ›";}}
   if(!todo.length){
     go("You have finished the path",ROOT+T.units[N-1].u+"#you-have-finished-the-path","See what you can now do");
+    var nt=TRAININGS[TRAININGS.indexOf(T)+1];
+    if(nt) pnext(ROOT+nt.readme,nt.name); else pnext(ROOT+"README.html","All trainings");
   }else if(li_>=0&&!s.units[li_].ok){
     var u=T.units[li_], si=-1;
     (u.steps||[]).forEach(function(x,j){if(last.h&&x[0]===last.h) si=j;});
     go("Continue with unit "+(li_+1),ROOT+u.u+(si>=0?"#"+last.h:""),
        "Where you left off: "+(si>=0?"step "+(si+1)+" of "+u.steps.length+", "+u.steps[si][1]:u.name));
+    pnext(ROOT+u.u,u.name);
   }else if(lb){
     go("Continue",ROOT+lb.u,"Where you left off: "+lb.name);
+    pnext(ROOT+lb.u,lb.name);
   }else if(li_>=0||s.done){
     var k=todo.filter(function(k){return k>li_;})[0]; if(k===undefined) k=todo[0];
     go("Continue with unit "+(k+1),ROOT+T.units[k].u,"Next: "+T.units[k].name);
-  }else go(ctaStart.t,ctaStart.h,ctaStart.n);
+    pnext(ROOT+T.units[k].u,T.units[k].name);
+  }else if(ctaStart) go(ctaStart.t,ctaStart.h,ctaStart.n);
+  /* a training's home has no start button (its first unit card is the way in): with nothing done,
+     there is nothing to repaint, and going on matters, since the outline and search are set up below */
 }
 /* notes and ratings, kept in this browser only ("kit.note.<page>#<note>"); the workbook shows the same ones */
 var notes=[].slice.call(main.querySelectorAll(".note[data-note]"));
@@ -1766,6 +1900,8 @@ function markHere(){
   var at=hereHeads[0], lim=window.innerHeight*0.35, reached=false;
   hereHeads.forEach(function(h){if(h.getBoundingClientRect().top<=lim){at=h;reached=true;}});
   if(window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-4){at=hereHeads[hereHeads.length-1];reached=true;}
+  /* at the top, or in a frame tall enough to show every heading at once, the first step is being read */
+  if(window.scrollY<=4){at=hereHeads[0];reached=false;}
   hereLinks.forEach(function(a){var on=a.getAttribute("data-id")===at.id;a.classList.toggle("here",on);
     if(on) a.setAttribute("aria-current","location"); else a.removeAttribute("aria-current");});
   /* remember the step being read, so the training's home can pick up there */
@@ -1779,6 +1915,16 @@ markHere();
 hereLinks.forEach(function(a){a.addEventListener("click",function(){if(document.body.classList.contains("nav-open")) closeNav();});});
 var side=document.getElementById("side"), curA=side.querySelector("a[aria-current]");
 if(curA){side.scrollTop=Math.max(0,curA.offsetTop-side.clientHeight/2);}
+/* a page opened without a step in its address starts at its title, wherever the previous page was scrolled */
+function toTop(){
+  var t=null; try{t=location.hash&&document.getElementById(decodeURIComponent(location.hash.slice(1)));}catch(e){}
+  if(t) return;
+  window.scrollTo(0,0);
+  var h1=document.querySelector("h1"); if(h1&&h1.scrollIntoView) h1.scrollIntoView({block:"end"});
+  window.scrollTo(0,0);
+}
+try{history.scrollRestoration="manual";}catch(e){}
+toTop(); window.addEventListener("load",toTop); window.addEventListener("pageshow",toTop);
 /* search over every page of the kit */
 var q=document.getElementById("q"), res=document.getElementById("results");
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}

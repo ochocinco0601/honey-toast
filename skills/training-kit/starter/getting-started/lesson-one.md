@@ -32,6 +32,20 @@ Check your answer: `[TO BE WRITTEN: the right answer, the likeliest wrong answer
 `[TO BE WRITTEN: a second case that differs from the first where real cases differ, with less support, so the learner writes or chooses the steps themselves. Say where they do it.]`
 
 <!-- frame -->
-> `[TO BE WRITTEN: a request or entry the learner writes themselves, with <blanks> for each part]`
+> `[TO BE WRITTEN: one complete example of the request the learner writes themselves; the line before it says "Write yours in the same shape."]`
 
 Check: `[TO BE WRITTEN: what the learner should see.]`
+
+## You have finished the path
+
+`[TO BE WRITTEN: two or three lines: what the learner can now do, in the words of the objectives on the training's home page.]`
+
+How sure are you of each?
+
+<!-- rate -->
+- `[TO BE WRITTEN: each objective from the training's home page, one per line, in the same words]`
+
+To keep what you wrote, download a copy of [your workbook](workbook.md).
+
+- More tasks of this kind: [the recipes](how-to/README.md).
+- Other trainings: [all the trainings](../README.md).

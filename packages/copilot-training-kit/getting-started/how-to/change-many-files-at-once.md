@@ -1,34 +1,60 @@
-# How to: change many files at once
+# Change many files at once
 
-**You end with:** changed copies of your files in a new folder, with the originals untouched.
+**You end with:** updated copies of a folder of files, with the originals unchanged.
 
-**Before you start:** VS Code open with this training's folder, the chat in Agent mode. New to it?
-Do [Start here](../start-here.md) first. If you have done the
-lessons, try writing the request yourself first, then compare it with the one below. About ten
-minutes.
+**You need:** the copilot-practice folder open in VS Code. If another folder is open, on the **File** menu, select **Open Recent**, and then select
+`copilot-practice`.
 
-**When:** a job you would never do by hand: rename two hundred files by a pattern, replace a term
-across a whole folder, pull every date or every address out of thirty notes into one table.
+**When:** the same change is needed in many files, such as a new phone number, a renamed team or
+a replaced term.
 
-1. Add the folder to VS Code: menu File, then Add Folder to Workspace, then choose it. This
-   training stays open beside it.
-2. Ask for the outcome, and protect the originals. With two folders open, the assistant must be
-   told which one, and this job changes files:
-   > Copy every file in `<your folder>` into a new folder called `sanitized` inside it, and in the copies replace every occurrence of `<the old term>` with `<the new term>`. Tell me how many files you copied and how many replacements you made.
-3. The assistant writes a small program, and a button appears in its reply asking permission to
-   run it. You do not need to read the program: check the folder it names is `sanitized`, as in
-   [Reading a permission request](../start-here.md#reading-a-permission-request). Then click Allow.
-   It runs and reports. You asked for the outcome, not the program.
-4. The same shape, different job:
-   > Read every note in `<your folder>`. Make one table in `<your folder>/dates.md` of every date mentioned, the file it came from, and the sentence around it.
+## 1. Have Copilot create practice notices
 
-**Check:** in the list on the left, right-click the `sanitized` folder, choose Find in Folder, and
-type the old term: there should be no results. Then open one original file and confirm it still
-has the old term. If you want
-to see the program, ask for it; you do not need to:
+Five of the notices give the same phone number, so you know how many files should change.
 
-> Show me what you ran.
+1. If the control at the bottom of the chat box doesn't show **Agent**, select the control, and
+   then select **Agent**.
+2. In the chat box, enter:
 
-**Why this matters:** you did not need to know how to code to take advantage of code.
+> In the copilot-practice folder, create a folder named notices.
+> In it, write eight short, made-up notices to staff about office services.
+> In five of them, give the service desk's phone number as 555-0100.
+> Add or change no other file.
 
-If it does not work: [If something goes wrong](../../troubleshooting.md).
+Check: `notices` holds eight files. If it holds a different number, expect that number below.
+
+## 2. Ask what would change, and change nothing yet
+
+Seeing which files a change touches lets you catch a wrong match before anything changes.
+
+1. Enter:
+
+> In the notices folder of the copilot-practice folder, list each file that gives the phone number 555-0100, with the sentence it's in.
+> Don't change any file yet.
+
+Check: the reply lists five files. If it lists a different number of files, expect that number below.
+
+## 3. Make the change on copies
+
+Working on copies leaves the originals as they were.
+
+1. Enter:
+
+> In the copilot-practice folder, create a folder named notices-updated.
+> Copy every file from the notices folder into it.
+> In the copies, replace 555-0100 with 555-0199, and change nothing else in them.
+> Tell me how many files you copied and how many you changed.
+> Add or change no other file.
+
+2. If a permission request appears, allow it if it copies files from `notices` and changes only
+   files in `notices-updated`.
+
+Check: Copilot reports eight files copied and five changed, and `notices-updated` holds eight
+files. Open one of the five in `notices-updated`. It gives 555-0199. Open the same file in
+`notices`. It still gives 555-0100.
+
+To use your own folder: open the folder that holds it. Send the same requests, except the one that
+creates practice files. Use your folder's name in place of notices and your change in place of the
+phone numbers, and leave out the practice folder names.
+
+If it does not work: [Help](../../troubleshooting.md).

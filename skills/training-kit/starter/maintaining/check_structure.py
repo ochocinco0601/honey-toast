@@ -1,6 +1,9 @@
 import io, os, re, sys
 kit, out = sys.argv[1], sys.argv[2]
 bad = 0
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from check_rulings import ruled_pages
+RULED = ruled_pages(kit)
 
 def md_for(page):
     r = os.path.relpath(page, out).replace("\\", "/")
@@ -22,7 +25,21 @@ for p, full in pages.items():
     content = re.sub(r'<p class="kept">.*?</p>', " ", content, flags=re.S)
     content = re.sub(r'<section class="workbook">.*?</section>', " ", content, flags=re.S)
     md = io.open(os.path.join(kit, md_for(p)), encoding="utf-8").read().replace("\r\n", "\n")
-    want_prompts = len(re.findall(r"^\s*> ", md, flags=re.M))
+    mdl = md.split("\n")
+    # Consecutive "> " lines at the start of a line are one request; an indented one, inside a list, stands alone.
+    starts = [i for i, l in enumerate(mdl) if l.startswith("> ") and not (i and mdl[i - 1].startswith("> "))]
+    want_prompts = len(starts) + len([l for l in mdl if l.startswith(" ") and l.lstrip().startswith("> ")])
+    # A request is short lines, one instruction each, so the learner can read what it asks.
+    for i in (starts if md_for(p).replace(os.sep, "/") in RULED else []):
+        block = []
+        for l in mdl[i:]:
+            if not l.lstrip().startswith("> "):
+                break
+            block.append(l.lstrip()[2:])
+        long = [b for b in block if len(b.split()) > 25]
+        if len(block) > 8 or long:
+            bad += 1
+            print("PROMPTLINES", md_for(p), "line %d: a request over 8 lines, or a line over 25 words" % (i + 1))
     want_frames = len(re.findall(r"<!--\s*frame\s*-->", md))
     got_prompts = h.count('class="prompt')
     got_frames = h.count("prompt frame")
@@ -60,4 +77,11 @@ for p, full in pages.items():
     if ols_md != ols_page:
         bad += 1
         print("OL", os.path.relpath(p, out), ols_md, ols_page)
+    if re.search(r'class="step"><span class="n">', content):
+        bad += 1
+        print("STEPNUMBER", os.path.relpath(p, out), "a step heading shows its number; only actions and units are numbered on screen")
+    for part in re.split(r"<h[23][ >]", content):
+        if part.count('class="callout"') > 1:
+            bad += 1
+            print("CALLOUT", os.path.relpath(p, out), "more than one Important callout in one step")
 print("structure problems:", bad)

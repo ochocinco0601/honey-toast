@@ -1,37 +1,78 @@
-# How to: organize a messy folder
+# Organize a folder
 
-**You end with:** a sorted folder, and `moves.md`, a record of every move.
+**You end with:** a folder sorted into subfolders, and `moves.md`, a record of where each file was
+and where it went.
 
-**Before you start:** VS Code open with this training's folder, the chat in Agent mode. New to it?
-Do [Start here](../start-here.md) first. If you have done the
-lessons, try writing the request yourself first, then compare it with the one below. About ten
-minutes. The first time, try it on a small folder, or on a copy of one.
+**You need:** the copilot-practice folder open in VS Code. If another folder is open, on the **File** menu, select **Open Recent**, and then select
+`copilot-practice`.
 
-**When:** your downloads folder, your desktop, a project folder that grew without a plan. A
-downloads folder can hold exports with customer data. The plan in step 2 reads only file names,
-but until your organization tells you otherwise, use a folder with no customer names, account
-numbers, personal details, passwords or system addresses in its files.
+**When:** a folder grew without a plan, such as your desktop or a shared project folder.
 
-1. Add the folder to VS Code: menu File, then Add Folder to Workspace, then choose it. This
-   training stays open beside it. Adding a folder moves nothing.
-2. Ask for a plan before any action. With two folders open, the assistant needs to be told which
-   one:
-   > Tell me how many files are in `<your folder>`. List them grouped by type and by month. Propose a folder structure. Do not move anything yet.
-3. Read the plan. Change it in words, for example "Put all the vendor PDFs under vendors/
-   instead":
-   > `<your change to the plan>`
-4. Save the plan first, then move. The record exists before anything moves:
-   > Save the plan as `moves.md` in `<your folder>`: one row per file, where it is now and where it will go. Then move the files as `moves.md` says, and tell me any that did not move.
-5. Before you allow each command, check it as in
-   [Reading a permission request](../start-here.md#reading-a-permission-request): it should only move
-   files inside your folder, as the plan said. Then allow it and watch the list on the left of VS
-   Code change.
+## 1. Have Copilot create a cluttered folder
 
-**Check:** in File Explorer, right-click the folder and choose Properties. "Contains" shows the
-number of files, including those in the new sub-folders. It should equal the number from step 2,
-plus one for `moves.md`. Then open two files where they landed.
+The folder gives you files to sort without touching your own.
 
-**If it went wrong:** ask it to move the files back, and point it at `moves.md`, which records
-where everything was. That record is why step 4 saves it first.
+1. If the control at the bottom of the chat box doesn't show **Agent**, select the control, and
+   then select **Agent**.
+2. In the chat box, enter:
 
-If it does not work: [If something goes wrong](../../troubleshooting.md).
+> In the copilot-practice folder, create a folder named inbox.
+> In it, create 12 short, made-up files: meeting notes, drafts of team emails, and ticket exports as .csv files.
+> Put a date from August or September in each file's name.
+> Add or change no other file.
+
+Check: `inbox` holds 12 files. If it holds a different number, expect that number below.
+
+## 2. Ask for a plan, and change nothing yet
+
+Reading the plan first lets you correct it before any file moves.
+
+1. Enter:
+
+> List the files in the inbox folder of the copilot-practice folder, grouped by kind and by month.
+> Propose subfolders inside inbox to sort them into.
+> Don't change any file yet.
+
+Check: the reply lists all 12 files and proposes subfolders, and `inbox` hasn't changed.
+
+## 3. Change the plan by asking again
+
+You don't have to accept the first plan. Asking again changes it.
+
+1. Enter:
+
+> Change the plan so the email drafts go in a subfolder named emails.
+> In the new plan, leave the .csv files where they are.
+> Don't change any file yet.
+
+Check: the new plan has an `emails` subfolder and leaves the .csv files in `inbox`.
+
+## 4. Save the plan, then move the files
+
+Saving the plan first gives you a record of where everything was.
+
+1. Enter:
+
+> In the inbox folder, create moves.md: one row per file, with where it is now and where it will go.
+> Then move the files as moves.md says.
+> Tell me any file the plan moves that didn't move.
+> Add or change no other file.
+
+2. If a permission request appears, allow it if everything it creates or moves is inside
+   `inbox`.
+
+Check: `inbox` holds the new subfolders, the .csv files and `moves.md`, and `moves.md` has a row
+for each of the 12 files. 
+
+<!-- more: If you want the files back where they were -->
+`moves.md` records where each file was, so Copilot can put them back. Enter:
+
+> Move every file in the inbox folder back to where moves.md says it was.
+> Add or change no other file.
+<!-- /more -->
+
+To use your own folder: make a copy of it, and open the copy. Send the same requests, except the
+one that creates practice files. Use the copy's name in place of inbox, and leave out the practice
+folder names.
+
+If it does not work: [Help](../../troubleshooting.md).

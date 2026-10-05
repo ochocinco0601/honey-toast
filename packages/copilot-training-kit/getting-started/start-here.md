@@ -1,141 +1,77 @@
-# Start here: your first fifteen minutes
+# Make your first request to Copilot
 
-The first unit of the training. You end with a folder the assistant made on your computer, and a
-check you did yourself. Before you begin, see [Before you start](README.md#before-you-start).
+In this unit, you open the chat in VS Code, have GitHub Copilot create a folder to practice in, and
+open that folder.
 
-Do these in order. Nothing here changes a file you already have.
+## 1. Open VS Code and the chat
 
-## 1. Open VS Code
+You type your requests to Copilot in the chat.
 
-Press the Windows key, type `code`, and press Enter. A program called Visual Studio Code opens.
+1. Press the Windows key, type `code`, and press Enter.
+2. On the **View** menu, select **Chat**.
 
-Check: a window titled Visual Studio Code, usually showing a Welcome page. If nothing by that name
-appears, see [Getting set up](../troubleshooting.md#getting-set-up).
+Check: the chat is open, and a control at the bottom of the chat box says **Agent**.
 
-## 2. Open this training in VS Code
-
-If this training is already on your computer: menu File, then Open Folder. Choose the training's
-own folder, the one that contains the `getting-started` and `read-in-browser` folders (not either
-of those), and
-click Select Folder. Reading these pages in a browser? The browser's address bar shows where they
-are: the training's folder is the one that holds `read-in-browser`.
-
-If you were given its web address instead: on VS Code's Welcome page, click Clone Git Repository,
-paste the address, press Enter, and choose where to save it; your Documents folder is a good
-place. When VS Code asks whether to open it, click Open. `[YOUR ORGANIZATION: the training's address]` If VS Code says Git is not installed,
-asks you to sign in, or the copy fails, see
-[Copying the training or an application fails](../troubleshooting.md#copying-the-training-or-an-application-fails).
-If it came as a zip file, see [The training came as a zip file](../troubleshooting.md#the-training-came-as-a-zip-file).
-
-A box may ask whether you trust the authors of the files. This training is plain text pages, so
-click the button that begins "Yes, I trust".
-
-Check: the list on the left of VS Code includes `README.md` and the `getting-started` folder. If there is
-no list on the left: menu View, then Explorer.
-
-To read these pages inside VS Code as pages rather than raw text: click `README.md` in the list,
-then press Ctrl+Shift+V.
-
-## 3. Open the chat and choose Agent
-
-Menu View, then Chat. A chat box opens, usually on the right. At its bottom is a small mode
-selector. It should say Agent; if not, click it and choose Agent. Agent means the assistant may
-do things, not only answer.
-
-Check: the selector reads Agent. If the chat asks you to sign in, or no chat appears, see
+<!-- more: If the control doesn't say Agent, or the chat won't open -->
+With **Agent** selected, Copilot can run commands and create files, not only answer questions. In a narrow chat, the controls may show only icons. If no control says **Agent**, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select **Agent**. Leave the other controls as they are. If VS Code doesn't open, no chat
+appears, or the chat asks you to sign in, see
 [Getting set up](../troubleshooting.md#getting-set-up).
-
-## 4. Say something
-
-Type this into the chat box, or paste it, and press Enter:
-
-> What can you do in this folder?
-
-Check: a reply arrives within a few seconds. What it says does not matter yet; that it answered
-does.
-
-## 5. Ask it to explain the next step
-
-This training's pages are in the folder you opened, so the assistant can read them. From now on
-it is also your helper. Try it before you need it:
-
-<!-- tutor -->
-> Read getting-started/start-here.md in this folder. In plain words, what does step 6 ask me to do, and what will I see? Do not do it yet.
-
-Check: compare its answer with step 6 below. If they differ, the page is right; tell it so. Its
-directions about VS Code are sometimes for a different version: your screen is the truth.
-
-## 6. Have it do one real thing
-
-Type or paste:
-
-> Create a folder named practice inside this folder, and inside it a file named hello.txt that contains today's date.
-
-Before the assistant runs a command on your computer, it asks you: a button appears in its reply.
-That question is the safeguard, so read it before you answer; see
-[Reading a permission request](#reading-a-permission-request) just below. It may also create or
-edit files in the folders you opened without asking; when it does, the reply lists the changed
-file with Keep and Undo. Click Keep when the file is what you asked for; Undo removes the change. Here, whichever happens, it should only create one folder and one file.
-
-Check: on the left, a folder named practice appears; click it, then hello.txt, and it opens with
-today's date. Open Windows File Explorer and go to the training's folder: the practice folder is
-there, on your disk.
+<!-- /more -->
 
 ### Reading a permission request
 
-The request has two buttons: Allow, and one beside it that declines (it may say Skip or Cancel).
-Declining is always safe: nothing runs, and the assistant waits for you. You do not need to
-understand the whole command. Look for three things:
+Copilot doesn't ask before it creates or edits files in the folder you have open. Before it runs a command that could change something on your computer, it
+asks in the chat and waits.
 
-1. **Which folder.** Does it name only the folder you asked about? A folder you did not mention
-   means decline.
-2. **Danger words.** Remove, Delete, del, rm, Move, mv, Rename. If you did not ask for something to
-   be deleted, moved or renamed, decline.
-3. **Too long to read?** Decline it, then ask the question below. If its answer names only what
-   you asked for, reply "Go ahead". It asks again; this time, allow it. Afterwards check the list
-   on the left: its answer is a claim, not proof.
+![The Allow and Skip buttons at the bottom of a permission request](images/permission-request.png)
 
-<!-- tutor -->
-> In one sentence, which files will this create, change, move or delete? Name the folders.
+- Look at what it's about to do. If it matches what you asked, select **Allow**.
+- If it doesn't, select **Skip**. Skipping is always safe: nothing runs.
 
-An example to decline: you asked for a new file, and the request reads
-`Remove-Item -Recurse practice\old`. That deletes a folder you did not mention. Decline it.
+## 2. Have Copilot create a practice folder
 
-Practise: you asked the assistant to write `summary.md` in your folder `team-notes`. Allow or
-decline each of these?
+Your first request: Copilot makes the folder you practice in.
 
-- a. `New-Item team-notes\summary.md`
-- b. `Move-Item team-notes\*.docx archive\`
-- c. A long program that ends by writing `C:\Users\you\Documents\team-notes\summary.md`
+1. In the chat box, enter:
 
-Answers: a, allow: it creates the file you asked for, in your folder. b, decline: it moves files,
-and you did not ask for a move. c, too long to read: decline, ask which files it will create,
-change, move or delete, and allow it when the answer is only `summary.md` in `team-notes`.
+> Create a new, empty folder named copilot-practice.
+> Put it in the folder Windows uses as my Documents folder, which may be under OneDrive.
+> Change nothing else on my computer.
 
-While you are learning, do not choose any option that allows commands without asking.
+2. If a permission request appears, allow it if it looks for your Documents folder or creates
+   `copilot-practice` there.
+3. In Windows File Explorer, select **Documents** on the left.
 
-## 7. Have it look at your real files, changing nothing
+Check: Documents has a `copilot-practice` folder, and it's empty.
 
-If your Downloads folder holds exports from work systems, use your Documents folder instead, and
-change the prompt to match. This request reads only the names and sizes of files, not what is in
-them. Type or paste:
+<!-- more: If you can't find the folder -->
+If Documents has no copilot-practice folder, tell Copilot:
 
-> Look at my Downloads folder. Tell me how many files are in it, grouped by type, and name the five largest. Do not move, rename or change anything.
+> I don't see copilot-practice in Documents in File Explorer.
+> Tell me where you created it.
+> Create it in the Documents folder File Explorer shows, and remove the other one.
+> Change nothing else.
+<!-- /more -->
 
-If a permission request appears, read it as above, then click Allow.
+## 3. Open the practice folder in VS Code
 
-Check: open the same folder in Windows File Explorer, sort by size, and compare the largest file
-with what the assistant named. If they differ, say so:
+Copilot works on the files in the folder you open.
 
-> That is not the largest file. Look again.
+1. On the **File** menu, select **Open Folder**.
+2. In Documents, select `copilot-practice`, and then **Select Folder**.
+3. If VS Code asks whether you trust the authors of the files, select **Yes, I trust the
+   authors**. If a bar at the top says the folder is in Restricted Mode instead, select **Manage**,
+   and then **Trust**.
 
-## You have done the thing
+Check: the list on the left shows `COPILOT-PRACTICE`, with nothing in it yet.
 
-You told an assistant what you wanted in plain words, watched it act on your computer, and checked
-its work against what you can see yourself. Everything else here is that same move on things that
-matter to you.
+<!-- more: If the chat or file list looks different -->
+VS Code reopens with the folder, and the chat starts empty. If no control at the bottom of the chat box says **Agent** now, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select **Agent**. If the list on the left is missing, open the **View** menu and select **Explorer**.
+<!-- /more -->
 
-Look back at step 7's request: it said which folder, what to find, and what not to do. In the
-next lesson you learn to write requests like that yourself.
+## What you did
 
-Next: [Lesson: your own files](lesson-your-files.md).
+You opened the chat, had Copilot create a practice folder, checked it in File Explorer, and opened
+it in VS Code.
+
+Screenshots: Visual Studio Code documentation, Microsoft, CC BY 3.0.

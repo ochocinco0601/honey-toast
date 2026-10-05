@@ -1,54 +1,37 @@
 ---
 name: training-kit
-description: Build a self-paced training kit on any subject, for any audience - a small learning site of led lessons, practice recipes, shared help, presenter notes and a maintainer's guide, generated as web pages from markdown. Use when asked to build, create or start training, a training kit, a course, a tutorial, a workshop, a hands-on lab, enablement or a learning path that teaches people a tool, a process or a platform ("teach my team to..."), or to extend a kit this skill built. Not for a repository's contributor README.
+description: Build a self-paced training kit on any subject, for any audience - a small learning site of led lessons, practice recipes, shared help and a maintainer's guide, generated as web pages from markdown. Use when asked to build, create or start training, a training kit, a course, a tutorial, a workshop, a hands-on lab, enablement or a learning path that teaches people a tool, a process or a platform ("teach my team to..."), or to extend a kit this skill built. Not for a repository's contributor README.
 ---
 
 # Building a training kit
 
-Skill version: 1.2 (2026-10-01). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
+Skill version: 1.9 (2026-10-04). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
 
-You build a kit that leaves its learners able to do something in their own work a week later.
-Approval at the end of a session does not count; that later behaviour is the outcome, and every
-choice below serves it.
+You build a kit that leaves its learners able to do something in their own work. What they can do
+when they finish is the outcome, and every choice below serves it; the maintainer guide's opening
+says where it is written and where the kit ends.
 
 The kit is a **self-paced learning site**: a course home with a led path, units with numbered steps
 and progress by unit, a workbook that keeps what the learner writes, practice recipes, shared help,
-and web pages generated from markdown. The
-builder in `starter/` implements that kind of site's conventions; build on them rather than
-redesigning them.
-
-**The page design is decided; keep it.** The builder renders every page the same way: a course outline on the left (the training and
-its progress, each unit as a numbered row, the current unit opened to its steps, help and recipes in
-a short "More" list at the bottom); a breadcrumb across the top with the unit number; and at the
-end of each unit a "Next unit" block with a Continue button. The outline and breadcrumb stay on
-screen as the page scrolls, so progress never scrolls away, and nothing on the page repeats them.
-It is the Microsoft Learn pattern with a persistent outline, chosen because learners come back days
-later and need to see at a glance where they are and what is done. Progress is by unit, also as
-Microsoft Learn does it: selecting Continue completes the unit, a small "Mark as not complete"
-undoes it, and the training's home resumes at the last page and step read. Steps have no
-checkboxes, because a box on every step turns reading into bookkeeping. The look is quiet so that
-the step being done is the loudest thing on the page: one accent colour for links and where the
-learner is, green only for a completed unit, checks as plain text led by a bold "Check:", grey
-blanks. The page is compact: the text column runs as wide as the breadcrumb, about 100 characters
-a line, with steps, paragraphs and lines set close, because a narrower, airier column leaves a wide screen
-mostly empty and makes a unit read as sparse. Body text stays at the browser's
-default size, so it follows each reader's zoom. Build on it; do not redesign the navigation or the look, and explain them in these terms
-when asked. The maintainer guide's "Page design" section says the same for whoever
-extends a kit.
+and web pages generated from markdown. The builder in `starter/` implements that kind of site's
+conventions, and its page design is decided: the maintainer guide's "Page design" section states
+it with its reasons. Build on it, and explain the navigation and the look in those terms when
+asked.
 
 **You are the training expert.** The requester judges whether the kit fits their people and their
 work; the craft (instructional design, learning-site conventions, procedural writing, choosing the
-reviewers) is yours. Make those calls and state them. Obvious defects are for your reviews to find,
-not for the requester.
+reviewers) is yours. Make those calls and state them.
 
 ## What you start from
 
 - `starter/` - copy it whole into a new folder named for the programme, outside this skill's
   folder, unless the requester names a place. Its `[TO BE WRITTEN: ...]` placeholders say what goes
-  where. **`starter/maintaining/README.md` is the single home of the page rules** - how a page is
-  written, marked up, built and checked - and travels with every kit. Read it in full before
-  writing; this file does not repeat it.
+  where. **`starter/maintaining/README.md`, the maintainer guide, is the single home of the page
+  rules** - how a page is written, marked up, built and checked - and travels with every kit. Read
+  it as its opening says before writing anything; this file does not repeat it.
 - `reviews.md` - the briefs for the review passes in step 7.
+- `references/reference-exercise.md` - a published hands-on exercise, unchanged: the form every
+  unit is written in (the guide's "The form of a unit").
 
 Beside the kit, keep a `sources` folder holding a copy of every source you used, including material
 you were given only as pasted text, so the reviewers you start can read what you read. Keep your own
@@ -56,26 +39,29 @@ working notes elsewhere; reviewers never see them.
 
 ## 1. Fix the settings, and ask once
 
-Five settings shape every page. Write them into the table at the top of the new kit's
-`maintaining/README.md`, with the writing standard from step 2 in its last row, and the matching
-values at the top of `maintaining/build_pages.py`.
+Five settings shape every page: the subject, the audience, where practice happens, the help beside
+the learner, and what learners can do. Write them into the settings table at the top of the new
+kit's `maintaining/README.md`, whose placeholders say what each holds, with the writing standard
+from step 2 in its last row; the guide says below the table how the builder's settings follow.
 
-| Setting | What to decide |
-|---|---|
-| Subject | What the trainings teach, in one line |
-| Audience | Who the learners are, by the work they do; what they already know of this subject; and how expert they are in their own work |
-| Where practice happens | The tool, screen or console the learner operates; an assistant's chat; or, for a process, the cases, documents and decisions it works on |
-| Help beside the learner | Who or what a stuck learner asks, and whether it can read the kit. If the learners have an assistant, it comes first, with a person for what it cannot answer; if not, the person comes first |
-| Outcome a week later | The observable thing a learner does in their own work that shows the training worked |
-
-Take them from the request and your own context. **The audience and the outcome are the requester's
-to confirm**: play your reading back in two lines, and wait for the answer before writing pages.
+Take them from the request and your own context. **The audience and the objectives are the
+requester's to confirm**: play your reading back in two lines, and wait for the answer before
+writing pages. State the audience as the requester states it, never split into kinds of learner
+you have not been told of. Do not build on guesses about who the learners are or what their work
+is: an audience you were told is wide stays wide.
 
 In the same message, ask for everything the later steps need that you cannot reach yourself:
 people who do the work, or a recording of it; samples of what the learners' main tasks use (the
-screens of a tool, the documents or cases of a process); a person for what the help beside the
-learner cannot answer; and two or three learners to try the kit later. Start step 2 while you wait.
-Whatever does not arrive becomes a marked blank, and the kit goes on.
+screens of a tool, the documents or cases of a process); and two or three learners to try the kit
+later. Start step 2 while you wait. Whatever does not arrive becomes a marked blank, and the kit
+goes on.
+
+**Settle the assumptions before writing pages, on one page.** List the starter's defaults this kit
+would inherit, and everything you have inferred about the audience and their work, as one
+assumptions page the requester answers card by card. Facts about how the tool works are not on it:
+check those yourself, from the source the guide's "Nothing invented" names, and assume standard
+features work. Never ask the requester to test normal behaviour. Build from the answers. Never
+raise these one at a time as they surface in a unit.
 
 ## 2. Inventory before you design
 
@@ -84,16 +70,18 @@ Whatever does not arrive becomes a marked blank, and the kit goes on.
   kind of task; the instances come from the inventory.
 - **The critical decisions and common errors,** from people who do the work, recordings, or incident
   and support records; documents describe the procedure, not where people go wrong. Notes in which
-  practitioners describe their work count, recorded as told. What you infer yourself is recorded as
-  unverified.
-- **Objectives in performance form,** on the training's home page where learners read them.
-- **The week-later measure,** in `facilitator/evaluation.md`, before any unit is written: a record or
-  artefact that shows the behaviour, a baseline, and who can reach learners who took the training
-  alone.
+  practitioners describe their work count, recorded as told. What you infer yourself goes in the
+  claims register as unverified.
+- **Objectives,** in the form the guide's settings table gives them.
+- **What the established trainings on this subject teach,** unit by unit and in what order,
+  read from their published pages: the vendor's own courses and tutorials first. The sources'
+  shared order is the default order of the path; a unit no source teaches needs its own reason,
+  written down.
 - **A writing standard,** before writing. If your environment has an editorial skill or house
   standard for instructional documents, it governs. Otherwise, the Microsoft Writing Style Guide is
   primary, with the Google developer documentation style guide's procedure conventions alongside
-  it. Set a budget too: minutes per unit and words per page.
+  it. The prompts follow the maintainer guide's "Prompts" section, which is fixed and not the
+  environment's to override. Set a budget too: words per page, and minutes per unit computed by the guide's "Time estimates".
 
 **A kit has two layers, from different sources.** The *judgment* layer (what a result means, what to
 do about it) comes from documents, records and people. The *mechanics* layer (where to go, what each
@@ -104,77 +92,103 @@ operate the thing, missing mechanics restrict release to a pilot**.
 
 ## 3. Design the path backward from the outcome
 
-- Every action the week-later outcome names is practised on the path before the last unit, with a
-  worked example first and support that fades to the learner doing it on their own work. Split the
-  outcome into its actions: reading a result and acting on it are two. The last unit is their own
-  work, this week.
-- **The path ends as a well-run session ends,** for the learner who takes it alone: the last unit
-  opens with the learner writing down the real task they will do this week, when, and what done
-  looks like (their commitment), and closes with them rating how sure they are of each objective.
-  Every step that asks the learner to write something gives them a note box; the training's
-  workbook gathers what they wrote, under the unit and step, to read, download or print. The
-  maintainer guide gives the markup.
+- Every action an objective names is practised on the path, with support that fades from the
+  worked example to the learner doing it on their own work. Split an objective into its actions:
+  reading a result and acting on it are two.
+- **The path opens with an Introduction and ends on its last unit's practice,** with the
+  learner's notes and ratings kept, as the guide's "The first unit on a path", "The last unit on a
+  path" and its markup say.
+- **One worked example runs through a training's path,** as a published course runs one
+  scenario, on practice files every learner has, so every learner can follow it and check it.
+  How those files are made, and where the learners' own come in, is the guide's "Nothing to
+  download" and its "Prompts" rule 2; how examples and learners are labelled is its "The kit's
+  practice data is made up" and "No learner categories".
 - Practice is designed around the critical decisions from the inventory: varied cases, one of them
-  a near miss, and a short attempt a few days after the path. Add a cue when the outcome is a
-  habit, and a way for experienced learners to skip what they know.
-- **The path opens with an Introduction unit** that grounds the learner before any doing (as every
-  Microsoft Learn module does; Gagné's first events, Ausubel's advance organizer): the real
-  situation they are in and why it matters to them now; a short map of the few ideas the path uses,
-  each named once in plain words; what they will be able to do; and how the path is laid out. A few
-  minutes to read, no practice, no lecture. Without it the first unit starts cold.
+  a near miss. Give experienced learners a way to skip what they know.
 - Size the path from the inventory: usually three or four units after the Introduction, the first
   of them short with a real result in minutes.
-- Levels divide by experience (a beginners' training first, advanced ones beside it) or by role (one
-  starting training per role, side by side). Default to experience unless the roles do different
-  tasks. Advanced topics are sibling trainings, never extra units on the beginner path.
-- Recipes cover other tasks from the inventory, one each.
+- Levels and further trainings follow the guide's opening and its "Adding a more advanced
+  training".
+- Recipes cover other tasks from the inventory (the guide's "The recipes are practice").
 - The front page leads: the learner's problem in their terms, what they will be able to do, how
   long, and the single first action.
 
 ## 4. Work in increments
 
 The first increment is the kit's home page, the first training's home, its Introduction and its
-first unit. For each increment: write the pages (step 5), build and check them (step 6), review them (step 7), then show
-the requester the rendered pages and carry on with the next increment unless their reaction changes
-the direction. Learners waiting on the training need something to use now.
+first unit. For each increment: write the pages (step 5), build and check them (step 6), review them
+in rounds until one comes back clean (step 7), then show the requester the rendered pages.
+
+**The requester agrees each piece before the next.** Start nothing new until they have reacted to
+what is in front of them, in the order a learner reads, from the front page. Once they accept the
+first unit of a training, build the rest of that training and show it whole. A handoff or an
+instruction to another session never removes this. Waiting here is the process, not a stall.
+
+**While they read, their edits go straight in.** Apply each within minutes, rebuild until the
+build's checks pass, and republish; the full review runs once before they first see a piece and
+once after they finish it, not on every edit of theirs. That holds for a change of wording. A
+correction that cuts, adds or moves steps, or changes what a page is for, runs the learner walk and
+the editorial check on the changed pages before it goes back to them; say which ran. A small edit of your own takes the short path in step 7.
+
+**One stable link, opened at the front page.** Update it in place after each piece. Never a
+before-and-after page, never a new link per piece, never a link that opens on the newest piece.
+
+**Talking to the requester while they review.** Use the site's own words and no others: a
+*training* (such as Getting started), a *unit* (one page on its path, given by number and title),
+a *step* (a heading in a unit). Every message has one shape: a status line ("Ready to read: ..." or
+"Rebuilding: ... Don't read it yet."), the answer to their question in one sentence, at most three
+supporting points, and one line saying what they do now. One concern per message. "Ready to read"
+lists exactly which units, which changed since they last read them, where to stop, and which pages
+are still old. When pointing at text, quote its exact words and say where it is. "Rebuilding" means
+you are working: never end a turn on it.
+
+**You own the orchestration and the editing.** Decide, sequence and drive; never hand the next move
+or the coordination back to the requester. They react to finished pieces for fit; they are not the
+editor and not the tester. A basic fault they find means your checks failed, and is handled as a
+correction, below, so they never raise it twice.
+
+**When the requester corrects you.** Record it the moment it arrives as a row in the kit's
+"Corrections" table; the guide's "Corrections" says what a row holds and what an open row stops.
+Fix the whole class across every page. Generalize it to a rule for any training; put that rule
+where it is enforced (a check if a pattern can find it, `references/review-checklist.md` if it
+needs judgement); and if it is about training design in general rather than this kit, add it to
+this skill in the same pass and raise the skill's version.
+
+**An outside service is the requester's choice.** Which service, site or system the training has
+learners connect to, sign in to or send their work to is a fit decision about their organization,
+not craft: show the candidates with what each needs and what leaves the machine, and build on the
+one they choose. Never pick one and present it as settled.
+
+**Where their notes arrive.** Where the published page takes comments, the requester leaves each note
+as a comment on the text it is about, so edits stay off the chat. Answer each on its thread with
+what changed or what was found, then resolve it; the chat gets one status line. A note they mark
+out of scope (for example "Parking lot: ...") is a real observation about something other than the
+piece under review: log it in the kit's plan with their words and the page, reply that it is
+logged and nothing changed, resolve it, and do not act on it until they bring it into scope.
+
+**Handing the work to another session.** Keep `maintaining/HANDOFF.md` in the kit and update it
+before handing over. It opens with the commander's intent (the purpose, the end state, what the
+receiving session owns, how it will know it is going wrong), then the review cadence in force,
+the requester's rulings in their words, where they are in their review, and the open rows of the
+Corrections table. Cold-read it with an agent that has not seen the work before you trust it.
 
 **Show, do not ask.** When a choice is the requester's (which of two approaches fits their people,
-which tasks the path covers first; not the page design, which is decided), build two or three working alternatives and put them side by side
-on one labelled page that says what each is and what to look at, then ask one question. Never ask
-them to describe what they want in the abstract, or to compare unlabelled pages. A preference
-between alternatives is comparative: it chooses one, it does not approve its details. Anything the
+which tasks the path covers first; not the page design, which is decided), build two or three working alternatives and show them
+on one labelled page that says what each is and what to look at, then ask one question. That page
+is for a choice between options, never a before-and-after (see the link, above). Never ask
+them to describe what they want in the abstract, or to compare unlabelled pages. What their
+choice settles, and what it leaves open, is the guide's "Decisions". Anything the
 requester cannot judge by eye (contrast, density, brittleness, whether the teaching works) is
 settled by an independent, measured review, and they see the outcome, not the question.
-**Record every decision** made with the requester in the kit's `maintaining/README.md` under
-"Decisions", with the date and what was chosen over what, so whoever extends the kit keeps it. When the path is
-complete, it goes to real learners (step 8) before it goes to everyone.
+**Record every decision** made with the requester under the kit's "Decisions", as the guide says
+there. When the path is complete, it goes to real learners (step 8) before it goes to everyone.
 
 ## 5. Write the pages
 
-Follow the maintainer guide. These principles govern it, and decide what the guide does not cover:
-
-- **The learner does it.** Every practice step is performed by the learner in the place practice
-  happens; help explains and checks, never does. Every check compares against something the learner
-  can see for themselves.
-- **Plain is not simplistic.** Write to two separate facts about the reader: how little they know of
-  this subject, which sets how plainly you explain, and how capable they are in their own work, as
-  the audience setting states, which sets the register. Never let the first lower the second. Test:
-  would you say it this way, in person, to the audience as stated? Name their work the way they
-  name it.
-- **The wording is calibrated, not a matter of taste.** For self-paced procedural pages for people
-  new to the subject, the standard is plain-language concision with one exception, safety
-  reassurance and orientation; the guide's Writing section states it. Apply it; do not ask the
-  requester how terse or conservative they like the wording.
-- **Names lead.** Every title, heading, link and menu label tells the learner what they will do or
-  get there, in their words (information scent). The starter's titles and headings name stages of
-  this method and are stand-ins; the build counts any left.
-- **Less is more.** A page carries what the next action needs. The elements the guide requires come
-  first, each in the least intrusive form that serves its moment; everything else opens on request.
-  Fix by changing or removing before adding.
-- **Nothing invented.** No organization policy, contact, screen label or system name that you have
-  not seen; a marked blank instead, with what to do meanwhile. Record every claim in
-  `facilitator/claims.md` with its source. A claim tied to a date (a deadline, a target, a
-  version) goes stale: record the date with it, and recheck it before every release.
+Follow the maintainer guide. Its "The rules that do not change", "Writing" and "Prompts" sections
+are the page rules, and they decide what its other sections do not cover. The wording they set is
+calibrated by the audience and the kind of document, not by taste: apply it, and never ask the
+requester how terse or conservative they like it.
 
 The starter's pre-written sentences, and the ones the builder writes itself (listed in the guide),
 assume one case: technical readers, practice in an assistant's chat, an assistant as help. Reread
@@ -190,21 +204,54 @@ devices become:
 
 ## 6. Build and check
 
-From the kit's folder, `python maintaining/build_pages.py`, until it ends "All checks passed." A
-"DRAFT" line means placeholders are still unwritten; a draft goes to named pilot learners only. Then
-walk `read-in-browser/README.html` as a learner, at the width of a window beside the place practice
-happens. If you cannot operate a browser, say so, and have the requester walk it when you show the
-increment.
+Build and walk the pages as the guide's "Build and check" says, until the build ends "All checks
+passed." A "DRAFT" line means placeholders are still unwritten, which makes the kit a draft (the
+guide's "Before you hand it over"). If you cannot operate a browser, say so, and have the
+requester walk it when you show the increment.
 
 ## 7. Review with readers who did not build it
 
-Each pass in `reviews.md` is run by a fresh session or subagent given only its brief, the kit and
-the `sources` folder. Scale the set to the kit: every increment gets review 1 (first-time learner),
-review 10 (sequence) and, after fixes, review 5 (regression); a complete path gets the rest. A small
-kit still gets reviews 1, 3, 4, 5, 9 and 10. A reviewer that cannot operate a browser or the tool reads the pages and
-says which steps it could not perform. If you cannot start a fresh session yourself, give the requester the
-increment's briefs in one message to paste into new chats, and say the kit is unreviewed until they
-do.
+Each pass in `reviews.md` is run as that file's opening says. Scale the set to the kit: every
+increment gets review 1 (first-time learner), review 10 (sequence), review 11 (prompts as sent)
+and, after fixes, review 5 (regression); a complete path gets the rest. A small kit still gets
+reviews 1, 3, 4, 5, 9, 10 and 11. A reviewer that cannot operate a browser or the tool reads the
+pages and says which steps it could not perform. If you cannot start a fresh session yourself,
+give the requester the increment's briefs in one message to paste into new chats, and say the kit
+is unreviewed until they do.
+
+**Before every "Ready to read", run `references/review-checklist.md` on the built pages,** as its
+opening says, after the build's `maintaining/check_rulings.py` has caught the mechanical half.
+Its item 11, the titles and headings read alone, is a pass of its own: a sentence read does not
+catch a vague heading.
+**The review ends when these checks pass, each of which can fail without anyone judging how much
+a finding matters:**
+1. **Build:** the build and its rulings checks pass.
+2. **Facts:** every claim about the tool on a changed page has a sourced line in the kit's facts
+   file, and every claim about what is on screen is confirmed against the version the learners
+   run (its source at that version's commit, or the screen itself), or is taken off the page.
+3. **Learner walk:** a fresh first-time-learner walk (review 1) records no STOP, and that
+   learner answers the unit's own self-check correctly from the page alone.
+4. **Editorial:** one full editorial pass, every finding applied, none declined; then checks 1
+   to 3 run again. There is no second editorial round.
+
+Time matters: keep the checking in proportion to the change. A fact already confirmed for this
+version is cited, never checked again; checks 2, 3 and 4 run at the same time; a unit or two
+takes well under an hour, not an afternoon. A failed check is fixed and only that check runs again. The requester sees nothing until all
+four pass. Record each check's result in a report file under `reviews/` and name it in the "Ready
+to read" message. Rounds until one returns no findings never end: a fresh reviewer always finds
+a wording to prefer.
+**A small edit of your own takes the short path:** rebuild, run the checks, have a fresh reviewer
+run review 5 on the changed page, then republish. Keep the full rounds for a new or rewritten unit.
+
+**Before the requester sees a link, an editorial review reads every page in the order they will
+read it, from the front page,** not only the piece that changed: for each sentence, what it says,
+to whom, and whether that reader understands it on first read.
+
+**Then walk the published link by clicking, from the front page,** as a learner arrives: each card,
+each unit, each Continue, at 1,440 pixels with the folds closed. Reading the markdown and a
+screenshot of a local file does not show what the hosted viewer does: a unit that opens scrolled
+down, a picture of the wrong control. If you cannot click inside the hosted page, say so, and walk
+a local build the same way.
 
 ## 8. Try it with real learners
 
@@ -214,13 +261,13 @@ If no learners can be found, the kit is untried: say so in the hand-over, and re
 
 ## 9. Hand it over
 
-Learners get the kit as a repository address to copy (clone) or a download to unzip, and the kit's
-home page says which. The generated `read-in-browser/` pages travel with the markdown wherever the
-kit is published; without them learners get raw markdown. A kit with any `[TO BE WRITTEN: ...]` placeholder left is a
-draft, and goes to named pilot learners only, never to everyone. The kit's first release sets its
-version and dates its first entry in `CHANGELOG.md`, as the guide's "Versions" says. Tell the requester where the kit is, the
-settings used, what is still blank and what would fill it, the claims still unverified, what the
-reviews and the learner tryout found and fixed, and what has not been checked.
+The learner's way in is the web pages (the guide's first rule), and the address they are served at
+is what the hand-over gives out. How practice files reach the learner is the guide's "Nothing to
+download". A kit with a placeholder left is a draft, with the release the guide's "Before you hand
+it over" gives it. The kit's first release sets its version and dates its first entry in
+`CHANGELOG.md`, as the guide's "Versions" says. Tell the requester where the kit is, the settings
+used, what is still blank and what would fill it, the claims still unverified, what the reviews
+and the learner tryout found and fixed, and what has not been checked.
 
 ## Gotchas
 
@@ -228,30 +275,27 @@ Each is a case of a principle above, stated where it bites.
 
 - A site that is not recognisably a course (a checklist of files, no front door) has to be rebuilt,
   and the rebuild throws away every page written to the wrong shape.
-- Keyboard shortcuts given without the visible action strand newcomers in a screen-based tool. Name
-  the action as the learner performs it in the place practice happens, in the standard's form.
-- A kit that names a professional's work in words they would never use for it (calling an
-  auditor's evidence review "paperwork"), praises simple acts, or explains what their job taught
-  them talks down to them. The register test catches the sentence; the naming rule catches the
-  title and the file name.
-- A "Next:" line above a unit's end lets a learner leave before the unit is recorded, and resume
-  then sends them back to a finished unit. Leave the way on to the builder's end-of-unit block.
-- A kit whose every help route is a blank strands the learner at the first stop. The way to get
-  help is never a blank: the help beside the learner, or whoever sent the training.
-- A rule to use only look-only actions, with no screen confirmed, leaves the first units with
-  nothing to do. An action not yet confirmed goes on the path as a marked blank, and the kit goes
-  to a pilot.
-- Sources that explain what results mean but hold no screens produce a kit that teaches judgment
-  and not the clicks. Ask for the mechanics in the step 1 message.
-- Cutting one element at a time removes what something else depends on. Cut from the whole page:
-  each element's job, the moment it serves, what depends on it.
 - A requester's or reviewer's example written in as the rule overfits the kit to one case. Keep
   the general form.
+- Reviewers asked to play roles in the requester's organization (a manager, a trainer, a
+  presenter) invent that organization: a data rule, a measurement owner, an untested setup.
+  Their findings about the organization are questions to check against what the requester has
+  already said, never decisions to hand the requester.
 
 ## Extending a kit this skill built
 
+**A kit built before this skill, or with another builder,** moves onto the starter's builder
+before any page is rewritten: copy the starter's `maintaining/` scripts in, carry the kit's
+settings into the block between the marker lines, add a `CHANGELOG.md`, and build. Otherwise every
+round of fixes is made on pages the skill's design has already replaced.
+
+**Before rewriting the pages of a kit, audit them.** Judge every page against the established
+trainings' unit lists (step 2): keep, change, merge, move, cut, or add a missing one, each with
+the source it rests on, and have an instructional designer who did not write the audit check it.
+Rewrite only what survives. A page polished before it is judged may be one that should not exist.
+
 Read the kit's own `maintaining/README.md` and follow it; its settings table says who the kit is
-for, and `facilitator/claims.md` and `facilitator/evaluation.md` hold what the kit rests on. Run
+for, and `facilitator/claims.md` holds what the kit rests on. Run
 review 5 after your change.
 
 **Bringing a kit up to this version.** If the kit's `SKILL_VERSION` is older than this skill's:
@@ -263,14 +307,143 @@ review 5 after your change.
    the starter's, then put back everything between the marker lines from the kit's own copy and
    the rewordings from step 1. Set `SKILL_VERSION` to this version. From 1.1 or older, also copy
    the starter's `getting-started/workbook.md` into each training's folder, and give the last unit
-   the commitment note and the objectives' rating list as the starter's last unit has them.
+   the objectives' rating list as the starter's last unit has it. From 1.6 or older, remove the
+   kit's closing "this week" unit, its organization page and any "ask whoever sent the training"
+   line, and move the rating list to the last remaining unit. From 1.7 or older, also copy the
+   starter's `check_rulings.py` and set it for the pages not yet rebuilt, as the guide's "Build and
+   check" says.
 3. Bring every passage of the kit's maintainer guide that describes the pages, the builder or
    progress in line with the starter's, keeping the kit's own settings table and "Decisions".
-4. Rebuild, and add a CHANGELOG entry that raises the minor number and says what learners will
-   notice.
+   From 1.2 or older, this adds the guide's "Prompts" section.
+4. Rebuild. From 1.2 or older, the build names each prompt with a slot (PROMPTSLOT): rewrite each
+   by the guide's Prompts rules, then delete the kit glossary's "Blank" row and any page text
+   telling learners to replace blanks, and build again. Then add a CHANGELOG entry that raises the
+   minor number and says what learners will notice.
 
-If a choice recorded under the kit's "Decisions" conflicts with what this version changes, keep
-the choice and tell the requester.
+A choice recorded under the kit's "Decisions" that conflicts with what this version changes is
+handled as the guide's "Decisions" says.
+
+What 1.9 changed from 1.8 (where rules live; four rules added):
+- The review ends on four pass-or-fail checks (build, sourced facts, a learner walk with no STOP
+  and a correct self-check, one editorial pass fully applied), not on a round with no findings,
+  which never arrives (step 7).
+- The requester's notes arrive as comments on the page; a note marked out of scope is logged
+  in a parking lot and not acted on (step 4, "Where their notes arrive").
+- Two rules, both in the guide under "Writing": a control is named in the
+  words on the screen, checked there rather than taken from the vendor's documentation; and a
+  unit's name is its title, stated once, which the build now enforces. On a training's home, the
+  "Next" link at the foot follows the learner's progress and, once every unit is done, points to
+  the next training.
+- Each rule is stated in one place. The page rules are in the maintainer guide alone, and this
+  file points at them; the review checklist names the guide rule each item judges; the review
+  briefs point at the guide.
+- Rules this file held for pages moved into the guide: the Introduction unit, the assistant doing
+  the file work, tool facts from the vendor's current documentation, the permission request, and
+  the scope of a customization the training creates. Each guide rule a check enforces names the
+  check.
+- Three copies that disagreed now say one thing: the learner's own files are offered after the
+  worked prompt; the requester's edits go straight in while they read, and any other small edit
+  takes the short review path; where practice is in an assistant, ready-made files are fetched by
+  it, otherwise the learner downloads them.
+- Gotchas that only repeated a rule are gone.
+- Guide, "Nothing invented"; checklist item 8: where a setting
+  the page leaves alone changes what the screen shows, such as VS Code's Session Target, a page
+  names only what every value shows, or has the learner select the value it assumes.
+- Checklist item 7: a decision exercise's cases each have one right
+  answer under everything earlier units taught, with the hardest distinction beside a near miss.
+- Checklist item 11: "no two start alike" holds within a training; across trainings, the same
+  kind of unit titled the same way is the parallel the set needs.
+- Guide, "Time estimates": each time is written as the writing standard writes numbers (for
+  Microsoft's, words below 10 and numerals from 10), so the cards don't mix "25" with "fifteen".
+- Guide, "Every step has a recovery route": a recovery finds a control in the wrong state by what it
+  does, never by the label it no longer shows.
+- Builder: the "Stuck on this step?" question now keeps each action's number and line; it ran a
+  step's numbered actions together. A training's home with no progress no longer stops its script
+  (the start button it looked for was removed with the start box), which had left the outline and
+  search dead on a first visit.
+- `measure.py` no longer counts the practice files in
+  `sample-files/` as pages, and the build no longer reports "Getting started" as a stand-in name,
+  since the guide names the beginner training that.
+- Upgrading from 1.8: bring the kit's maintainer guide in line with the starter's (step 3 of
+  "Bringing a kit up to this version"); its pages need no change.
+
+What 1.8 changed from 1.7:
+- Working with the requester (step 4): they agree each piece before the next, with direction set by
+  each training's first unit; their edits go straight in while they read; one stable link opened
+  at the front page; one message shape (status line, answer first, at most three points, what to
+  do now); exact units, words and places, never "read Skills"; you own the orchestration and the
+  editing, and every fault they find becomes a rule, a sweep and a check in the same pass;
+  handoffs open with commander's intent.
+- Step 1: the assumptions page carries defaults and inferences only; tool facts are checked
+  against the vendor's documentation, never put to the requester.
+- Step 7: reviews run in rounds until one comes back clean; `references/review-checklist.md` runs
+  before every "Ready to read", and covers a unit or a line, lesson not mechanism, the example
+  that misinforms, headings and unit titles read cold as a list, and where a created
+  customization applies.
+- Pages: worked examples run on practice files the assistant creates, so nothing is downloaded by
+  default; requests name their target folder, write nothing else, and are laid out one
+  instruction per line; step headings are never numbered; positions and times are generated, not
+  typed; a callout (Note, Important) only for a fact that changes what the learner does, at most
+  one per step; no presenter material.
+- `maintaining/check_rulings.py` fails the build on faults otherwise found only by hand,
+  for every learner page by default; its tool-specific rules switch on with `TOOL`.
+
+What 1.7 changed from 1.6:
+- The outcome is what learners can do when they finish; the week-later measure, the closing
+  "this week" unit and the written commitment are gone, and measuring transfer is outside the kit.
+- Levels divide by difficulty only, never by role. No kinds of learner, and no example dressed up
+  as someone's job; learners may use their real work files.
+- No organization page and no "ask whoever sent the training": help is the help beside the
+  learner and the kit's help page.
+- Each training and unit says what it needs from earlier ones, so learners can start anywhere.
+
+What 1.6 changed from 1.5:
+- Units are written in the form of a published hands-on exercise, kept in
+  `references/reference-exercise.md`: the unit and each step open with why, actions are numbered
+  one to a number, and what the learner sees follows each action. This replaces 1.4's sentence
+  rule, which moved every "why" to the explanation page.
+- Word budgets are a ceiling checked after writing, never a reason to shorten a sentence.
+  Reviews 1 and 6 now report sentences that need a second read and steps with no reason given.
+- A numbered list can carry on after a prompt (`4. ` resumes the numbering).
+- A kit built before this skill moves onto its builder first.
+- Step 2 reads the established trainings' unit lists before design; step 3 runs one worked
+  example through a path, with a contrasting sample per unit, instead of branching by kind of
+  learner; an existing kit is audited page by page before it is rewritten.
+- Where practice is in an assistant, the assistant does the file work and the learner directs
+  and checks; the first unit has it fetch the kit from a public repository. The build's
+  training-files zip (`FILES_ZIP`) is for kits without one, and `""` turns it off.
+- A step shows only what the learner acts on: a one-line reason, one to three short actions, a
+  picture where something must be found on screen, and a one-line Check that never folds; the
+  rest folds (`<!-- more: -->`). The numbers, measured from VS Code's quickstart and GitHub Skills,
+  are in the guide's "What a step shows", with a ten-second test at 1,440 pixels before anyone
+  sees a page. Pictures are copied in beside the pages, so they show wherever the pages are
+  served.
+
+What 1.5 changed from 1.4:
+- No learner page shows a template. A `[YOUR ORGANIZATION: ...]` field may appear only in
+  `facilitator/`; the build refuses one on any learner page (ORGBLANK). Links to the web open in
+  a new tab. (1.5's organization page was removed in 1.7.)
+
+What 1.4 changed from 1.3:
+- The learner's way in is the web pages at an address; the files come to their computer in the
+  first unit. The home page no longer explains how to read the kit (section 9; the guide's first
+  rule).
+- The guide's "Writing" section carries the sentence rule (a sentence in a step stays only if the
+  learner needs it to act, to know where to look, to know what they should see, or to act
+  safely) and word budgets per page kind, each from a measured published training, with
+  `maintaining/measure.py` to count every page against them. Review 6 cites them.
+- The home page and the side menu use one set of group names in one order.
+- The build refuses a bracketed organization field on a learner page (ORGBLANK). (1.4's
+  organization page was removed in 1.7.)
+
+What 1.3 changed from 1.2:
+- Prompts are sent as written. The highlighted blank, the folder box that filled one in, and the
+  aside telling learners to change any blank are gone from the pages.
+- The build fails (PROMPTSLOT) on any prompt line carrying an angle-bracket slot, naming the page
+  and line.
+- The maintainer guide has a "Prompts" section: the rules the established trainings follow, which
+  every prompt in a kit is written to.
+- A frame (`<!-- frame -->`) is a complete example to write from, never a skeleton with gaps.
 
 What 1.2 changed from 1.1:
 - Note boxes (`<!-- note -->`): a step that asks the learner to write something keeps their answer in
@@ -279,8 +452,7 @@ What 1.2 changed from 1.1:
   path.
 - A workbook page per training gathers both, under the unit and step they came from, and downloads
   or prints them.
-- The starter's last unit opens with the learner's written commitment to a real task this week and
-  closes with the rating.
+- The starter's last unit closes with the rating. (1.2's written commitment was removed in 1.7.)
 
 What 1.1 changed from 1.0:
 - Progress is by unit: Continue completes a unit and steps have no checkboxes. Ticks a learner made

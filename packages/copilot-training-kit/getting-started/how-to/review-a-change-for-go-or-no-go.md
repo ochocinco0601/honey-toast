@@ -1,39 +1,70 @@
-# How to: review a change request for go or no-go
+# Review a change request for go or no-go
 
-**You end with:** `review.md`, one row per change: go, no-go, or ask, and why, with your decision
-still yours.
+**You end with:** `review.md`, one row per change request: a suggested go, no-go or ask for more
+information, and why.
 
-**Before you start:** VS Code open with this training's folder, the chat in Agent mode. New to it?
-Do [Start here](../start-here.md) first. If you have done the
-lessons, try writing the request yourself first, then compare it with the one below. About fifteen
-minutes.
+**You need:** the copilot-practice folder open in VS Code. If another folder is open, on the **File** menu, select **Open Recent**, and then select
+`copilot-practice`.
 
-**When:** a change request has landed on you for approval, or you are the one who says go or
-no-go, and the answer depends on reading what was submitted against what you require.
+**When:** a change request needs your go or no-go, and the answer depends on checking what was
+submitted against what you require.
 
-**Before you export:** until your organization tells you otherwise, use only records with no
-customer names, account numbers, personal details, passwords or system addresses. Delete those
-columns first, or use a copy with made-up values. Not sure? Practise on this training's
-`sample-files` folder first.
-`[YOUR ORGANIZATION: which classes of data may be used with the assistant]`
+## 1. Have Copilot create practice change requests
 
-1. Export the change record, or the list of changes awaiting you, to a file. Put it in a folder
-   with your checklist: the things a change must have before you approve it, such as a rollback
-   plan, a test result, a change window, a named owner, whatever your team requires. If the
-   checklist is in your head, write it down first as a short file called `checklist.md`. Add the
-   folder to VS Code: menu File, then Add Folder to Workspace.
-2. Ask:
-   > Read `<your export file>` in `<your folder>` and `checklist.md`. For each change, say which checklist items are met, which are missing, and which you cannot tell from the record. Do not guess; if the record does not say, write "not stated".
-3. Ask the question you would put to the submitter:
-   > For the changes missing a rollback plan, what would I need to ask the submitter?
-4. Keep it:
-   > Write `review.md` next to the export, one row per change: a suggested go, no-go, or ask, and why.
+Copilot leaves items out of two of the change requests on purpose, so you know what it should find.
 
-**Check:** open one change the assistant marked as fully met and confirm each item is really in
-the record. "Not stated" is the answer to trust; a confident "met" with nothing to point at is a
-guess.
+1. If the control at the bottom of the chat box doesn't show **Agent**, select the control, and
+   then select **Agent**.
+2. In the chat box, enter:
 
-**What this is not:** the assistant does not approve anything. It reads the record against your
-list and shows you where to look. The decision is yours, as it was before.
+> In the copilot-practice folder, create a folder named change-practice.
+> In it, create checklist.md: the four things a change must have before it is approved.
+> The four are an owner, a time window, a rollback plan and a test result.
+> Then create change-requests.md in the same folder, with three made-up change requests named CHG-201, CHG-202 and CHG-203.
+> Give CHG-201 all four things.
+> Leave the rollback plan out of CHG-202.
+> Leave the owner and the test result out of CHG-203.
+> Add or change no other file.
 
-If it does not work: [If something goes wrong](../../troubleshooting.md).
+Check: `change-practice` holds `checklist.md` and `change-requests.md`.
+
+## 2. Check each change request against the checklist
+
+A quote shows where a change request meets an item. "Not stated" gives Copilot a way to report a
+missing item instead of guessing.
+
+1. Enter:
+
+> Read change-requests.md and checklist.md in the change-practice folder of the copilot-practice folder.
+> For each change request and each checklist item, quote the words in the request that meet it.
+> Where the request doesn't say, write "not stated".
+> Don't guess.
+> Don't change any file.
+
+Check: CHG-201 meets all four. CHG-202's rollback plan is "not stated", and so are CHG-203's owner
+and test result. For CHG-201, find each quote in `change-requests.md`.
+
+If an item that was left out has a quote instead, or CHG-201 has an item "not stated", find the
+item in `change-requests.md`. A quote such as "Rollback: none provided" doesn't meet the item. Tell
+Copilot what you found, and ask it to correct the item.
+
+## 3. Save a suggested decision
+
+Copilot only suggests. The decision stays yours.
+
+1. In the same chat, enter:
+
+> In the change-practice folder, create review.md: a table with one row per change request.
+> In each row, give a suggested go, no-go, or ask for more information, and why.
+> Add or change no other file.
+
+2. In the list on the left, right-click `review.md` and select **Open Preview**.
+
+Check: CHG-201 is a go, and the other two are no-go or ask for more information, each with its
+missing items as the reason.
+
+To use your own change requests: save them in one folder with your checklist, and open that
+folder. Send the same requests, except the one that creates practice files. Use your files' names,
+and leave out the practice folder names.
+
+If it does not work: [Help](../../troubleshooting.md).

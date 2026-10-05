@@ -1,9 +1,10 @@
 # Review briefs
 
 Each pass is run by a reader that did not build the kit: a fresh session or a subagent. Give it the
-brief below with the blanks filled, the path to the kit and to its `sources` folder, and nothing
-else: not your notes, not your opinion of the kit, not earlier reviews. Its report comes back to
-you; you decide what to fix.
+brief below with each part in angle brackets filled in, the path to the kit and to its `sources`
+folder, and nothing else: not your notes, not your opinion of the kit, not earlier reviews. Its report comes back to
+you; you decide what to fix. When the review ends is set by four pass-or-fail checks (SKILL.md, step 7),
+not by how many findings a brief returns.
 
 Fill `<learner>` from the kit's settings table: who the learners are, by the work they do, what
 they know of this subject, and how expert they are in their own work. Describe the learner. Do not
@@ -11,7 +12,7 @@ describe the kit.
 
 ## 1. First-time learner walk
 
-> You are <learner>. You have never seen this training and have no one to ask. Open <path to the kit>/read-in-browser/README.html and follow the path from the first page, doing every step as written in <where practice happens>, or saying exactly what you would do where you cannot. At each step, write OK, HESITATE (you could go on but were unsure) or STOP (you could not go on), with the words on the page that caused it. Note every place the page assumed you knew something, and every place you left the training and could not see how to get back. Do not fix anything. Report the STOPs first.
+> You are <learner>. You have never seen this training and have no one to ask. Open <path to the kit>/read-in-browser/README.html and follow the path from the first page, doing every step as written in <where practice happens>, or saying exactly what you would do where you cannot. At each step, write OK, HESITATE (you could go on but were unsure) or STOP (you could not go on), with the words on the page that caused it. Note every place the page assumed you knew something, every place you left the training and could not see how to get back, every sentence you had to read twice, and every step where you did not know why you were doing it. Do not fix anything. Report the STOPs first.
 
 ## 2. Naive reader
 
@@ -19,7 +20,7 @@ describe the kit.
 
 ## 3. Instructional design
 
-> Review the training in <path to the kit> as an instructional designer. Its learners are <learner>; the outcome it must produce a week later is <outcome a week later>. Judge: whether the path opens by grounding the learner (the situation they are in and why it matters, a short map of the ideas the path uses, what they will be able to do, how the path is laid out) before any doing; whether the objectives are stated where learners read them, in performance form; whether the learner practises rather than watches; whether support fades from a worked example to the learner's own task; whether the sequence contradicts itself; whether the checks let a learner catch an error; and whether the week-later measure can tell if the training worked. Report holes in the teaching, ranked by how much each weakens the outcome.
+> Review the training in <path to the kit> as an instructional designer. Its learners are <learner>; what they must be able to do when they finish is <what learners can do>. Judge: whether the path opens, before any doing, with the Introduction that the kit's maintainer guide (<path to the kit>/maintaining/README.md, "The first unit on a path") describes; whether the objectives are stated where learners read them, in performance form; whether the learner practises rather than watches; whether support fades from a worked example to the learner's own task; whether the sequence contradicts itself; whether the checks let a learner catch an error; and whether the rating list at the end of the path names the same objectives as the home page. Report holes in the teaching, ranked by how much each weakens what learners can do when they finish. Measuring what happens after the training is outside the kit's scope: do not report its absence.
 
 ## 4. Claims check
 
@@ -31,7 +32,7 @@ describe the kit.
 
 ## 6. Procedure style
 
-> Review every instruction in the learner pages of <path to the kit> against <the writing standard the kit adopted: the environment's editorial standard for instructional documents if there is one, otherwise the Microsoft Writing Style Guide with the Google developer documentation style guide's procedure conventions>. Go sentence by sentence. Report every word that is not doing work, every long word where a short one serves, every sentence with more than one idea, each step that holds more than one action, names an action the learner cannot see or perform in <where practice happens>, names a control or artefact differently from how it appears, says what to do before saying where, leaves out what the learner should see afterwards, or runs longer than it needs to. Give the page, the exact words, and the rewrite the standard calls for. Do not cut safety reassurance or orientation a first-timer needs to act safely (what an action will and will not change, what they may ignore for now, where they are and how to get back): those words are doing work.
+> Review every instruction in the learner pages of <path to the kit> against <the writing standard in the kit's settings table>. Go sentence by sentence. Report every word that is not doing work, every long word where a short one serves, every sentence with more than one idea, each step that holds more than one action, names an action the learner cannot see or perform in <where practice happens>, names a control or artefact differently from how it appears, says what to do before saying where, leaves out what the learner should see afterwards, or runs longer than it needs to. Give the page, the exact words, and the rewrite the standard calls for. The kit's maintainer guide is <path to the kit>/maintaining/README.md: do not cut the reassurance or orientation its "Writing" section keeps, and do report any caution its "Say what a step will change" rules out. Then compare each unit with the guide's "The form of a unit" and the reference exercise it names (<path to the skill>/references/reference-exercise.md), and report each unit and step that departs from that form. Report every sentence you had to read twice to understand, with the split it needs. Then run `python maintaining/measure.py` from the kit folder and report the pages over budget, with what on each could go, as the guide's "Word budgets" says.
 
 ## 7. Learning-site experience
 
@@ -39,14 +40,18 @@ describe the kit.
 
 ## 8. The whole programme
 
-Run once per seat, one reader each. The seats: a learning-and-development designer, one learner for each audience the settings name, and, if the kit is also presented live, a presenter.
+Run once per seat, one reader each. The seats: a learning-and-development designer, and a learner as the settings describe them.
 
 > Judge the whole training programme in <path to the kit> from one seat: <seat>. From that seat only, report what the programme gets wrong or leaves out as a whole: who it fails to serve, what it assumes, what order or level is wrong, what is missing. Do not proofread individual pages.
 
 ## 9. Register and naming
 
-> Read every learner page in <path to the kit> as it would land on <learner>. Report each sentence you would not say that way, in person, to that reader: for each, quote it, name what it implies about the reader, and give the rewrite. Do not report a sentence for being plain, only for implying a less capable reader than the one described. Safety reassurance and orientation a first-timer needs to act safely (what an action will and will not change, what they may ignore for now) are not talking down: report only their wording, never their presence. Then list every name the kit uses for the learner's own work and tasks, including page titles, headings and file names, and for each say whether <learner> would call their work that, and what the name implies about the work if not.
+> Read every learner page in <path to the kit> as it would land on <learner>. Report each sentence you would not say that way, in person, to that reader: for each, quote it, name what it implies about the reader, and give the rewrite. Do not report a sentence for being plain, only for implying a less capable reader than the one described. The reassurance and orientation that the "Writing" section of the kit's maintainer guide (<path to the kit>/maintaining/README.md) keeps are not talking down: report only their wording, never their presence. Then list every name the kit uses for the learner's own work and tasks, including page titles, headings and file names, and for each say whether <learner> would call their work that, and what the name implies about the work if not.
 
 ## 10. Sequence
 
 > Do a structural edit of the order in <path to the kit>, as a technical editor checks a procedure. Its learners are <learner>. For each unit and recipe, check: that the steps follow the order in which the task is actually done in <where practice happens>; that each step's result is what the next step needs; that anything a step relies on (access, a file, a concept, a term, a setting) is introduced before that step, with no forward references; that a condition ("if you see…") comes before the action it governs; that each numbered step is one step of the task and the numbering follows that logic, sub-steps included. Then check the units: they build on each other in order, and the order in the training's path list, the outline and the pages agree. Report each problem with the page, the exact words and the order it should be in.
+
+## 11. Prompts as sent
+
+> Read every prompt in the learner pages of <path to the kit> as the learner who will send it, in <where practice happens>. For each prompt with a Copy button: send it exactly as written against the practice files the kit's earlier requests created, or, if you cannot operate the tool, say exactly what it would do as written. Report every prompt, and every request the learner is told to write themselves, that breaks a rule in the "Prompts" section of the kit's maintainer guide (<path to the kit>/maintaining/README.md), and every prompt that names something no earlier request opened or created. Give the page, the exact words, the rule, and the sentence the rule calls for. Do not rewrite the pages.

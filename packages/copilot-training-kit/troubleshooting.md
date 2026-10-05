@@ -1,200 +1,183 @@
-# If something goes wrong
+# Help
 
-Find what happened below, grouped by when it happens. Most answers end with words to give the
-assistant; it can read the files in the folders you have open, including this training, and it is
-usually the fastest help.
+## When you're stuck, ask Copilot
 
-## When you are stuck, ask the assistant first
+Copilot can see your chat, so it can tell you what happened and what to try.
 
-Tell it what you expected and what you see. These words work for most problems.
+**On a step:** most steps have **Stuck? Copy a question for Copilot** under them. Select it and
+paste into the chat box. The question asks Copilot to explain the step without doing it for you.
 
-**A step you do not understand:**
-
-<!-- tutor -->
-> I am on step `<number>` of `<page name>` in the training folder. In plain words, what does it ask me to do, and what should I see? Do not do it for me.
-
-**A step that did not work:**
+**A request that didn't do what you expected:**
 
 <!-- tutor -->
-> I asked you to `<what you asked>`. Instead, `<what happened>`. What went wrong, and what should I try?
+> My last request didn't do what I expected.
+> Tell me what you did, what went wrong, and what I should try next.
+> Don't change anything.
 
-**A message or error:**
-
-<!-- tutor -->
-> I see this: `<paste the message>`. What does it mean, and what is the one thing I should do next? Do not change anything.
-
-**Something you cannot find on the screen:**
+**An error in the chat:**
 
 <!-- tutor -->
-> I cannot find `<the thing>` in VS Code. Tell me where it is, one step at a time.
+> Explain the last error in this chat in plain words.
+> Tell me the one thing to do next.
+> Don't change anything.
 
-**What it just did.** Then check its list against the files yourself:
-
-<!-- tutor -->
-> List every file you created, changed, moved or deleted in this chat.
-
-**A permission request you cannot read:**
+**What Copilot has done so far:**
 
 <!-- tutor -->
-> In one sentence, which files will this create, change, move or delete? Name the folders.
-
-**A word:**
-
-<!-- tutor -->
-> What does `<word>` mean here, in plain words?
-
-**Which recipe fits your chore:**
-
-<!-- tutor -->
-> Read the getting-started/how-to folder in the training. My chore is `<describe it>`. Which recipe fits, and what would I change in it?
-
-**Coming back after a break:**
-
-<!-- tutor -->
-> I am coming back to the Getting started training. Look at the getting-started folder in this training, the practice folder and my own folder. Which steps look done, and which should I do next? Do not change anything.
-
-Do what it suggests only once you have found on screen what it describes. It can be wrong about
-VS Code's menus and about what it did, so check against the screen and the files. It cannot tell
-you what your organization allows: whether a kind of data may be used, which applications you may
-open, your licence or sign-in. For those, and for more help, see
-the sections below.
+> List every file you created, changed or deleted in this chat.
 
 ## Getting set up
 
-### VS Code will not open, or is not installed
+### VS Code doesn't open
 
-If pressing the Windows key and typing `code` finds nothing, VS Code is not installed. You cannot
-go on without it. `[YOUR ORGANIZATION: how to get VS Code and the assistant installed, and who to ask]`
+If pressing the Windows key and typing `code` finds nothing, VS Code isn't installed. Install it
+from code.visualstudio.com, then try again.
 
-### The chat does not answer, or Copilot is not responding
+### The chat asks you to sign in, or doesn't answer
 
-In order. Is the assistant installed: menu View, then Extensions, and type Copilot in the search
-box; it should show as installed. Is it signed in: the account icon at the bottom left of the
-window shows your name. Do you have a licence: in many organizations the assistant needs one to be
-granted to you before it will answer, and an unlicensed one fails silently or asks you to sign in
-again. Is the chat panel open: menu View, then Chat. If any of these fails, stop here and ask.
-`[YOUR ORGANIZATION: how a licence is requested, and who to ask]`
+Copilot is built into VS Code; there's nothing to install. In order:
 
-### It answers but never does anything
+1. At the bottom of the VS Code window, hover over the Copilot icon. If it offers **Use AI
+   Features** or **Sign in to use Copilot**, select it and sign in with the GitHub account that has
+   your Copilot plan.
+2. Update VS Code: press Ctrl+Shift+P, type `Check for Updates`, and press Enter.
+3. If a reply says you've sent too many requests, wait a few minutes and send it again. If it says
+   you've used your monthly allowance, select the Copilot icon at the bottom of the window to see
+   your usage; the allowance resets each month.
 
-The mode selector at the bottom of the chat box is not on Agent. Click it and choose Agent. In the
-other modes the assistant only writes text; in Agent mode it can create files and run commands,
-after asking you.
+<!-- more: Signed in with the wrong account -->
+Select the **Accounts** icon at the bottom of the bar on the far left of the window, then
+**Sign out**. Then sign in again from the Copilot icon with the account that has your plan.
+<!-- /more -->
 
-### The list on the left does not show the training's files
+### The chat isn't there
 
-If there is no list at all: menu View, then Explorer. If there is a list but not `README.md` and
-the `getting-started` folder, you opened a different folder: menu File, then Open Folder, and choose the
-training's folder again.
+On the **View** menu, select **Chat**. Or press Ctrl+Alt+I.
 
-### The training came as a zip file
+### Copilot answers but doesn't create or change files
 
-Right-click it in Windows File Explorer, choose Extract All, and note where it went. Then open that
-folder in VS Code: menu File, then Open Folder.
+Copilot may be set to another agent. Select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select **Agent**. If **Agent** is already selected, Copilot may be set only to plan the work. A control below the chat box, not inside it, then shows **Plan**. In a narrow chat, it shows only an icon. Select **Plan**, and then select **Interactive** in the list that opens. With **Interactive**, Copilot does the work instead of only planning it.
 
-### The page is full of # and * symbols
+## While Copilot is working
 
-You are reading the raw text of a page in VS Code. Press Ctrl+Shift+V to read it as a page.
+### Nothing seems to happen, or it's taking a long time
 
-### Copying the training or an application fails
-
-Three usual causes: the version-control program, called Git, is not installed; you are not signed
-in to the place the repository lives, called the code host; or network and proxy settings are not
-in place.
-
-If this happens while copying the training itself, the chat cannot help yet. Get the training as a
-zip file instead: on its web page, the green Code button, then Download ZIP; then see
-[The training came as a zip file](#the-training-came-as-a-zip-file). Or ask the person who gave you
-the training.
-
-If it happens while copying an application, ask the assistant:
-
-> Is git installed, am I signed in to the code host, and is a proxy configured?
-
-It will check. `[YOUR ORGANIZATION: how to install git, how to sign in to the code host, and the network setup]`
-
-## While it is working
-
-### I pressed Enter and nothing seems to happen, or it has been working a long time
-
-A moving indicator in the chat means it is still working. Some jobs take minutes: a set of pages
-about an application takes five to ten. If you want it to stop, use the stop control in the chat
-box, then say what you want instead.
+A moving indicator in the chat means Copilot is still working. Some requests take a few minutes.
+To change course, type what you want instead and press Enter. Copilot finishes its current action, and then takes your new message.
 
 ### A panel full of text opened at the bottom of the window
 
-That is where the commands it runs show their output. You do not need to type there. If the text
-worries you, copy it and ask the assistant what it means.
+That's the terminal, where the commands Copilot runs show their output. You don't need to type
+there.
 
-### It asks me to allow something and I do not understand it
+### A permission request you don't understand
 
-See [Reading a permission request](getting-started/start-here.md#reading-a-permission-request): which folder, danger
-words, and what to ask when it is too long to read. If in doubt, decline and ask:
+If you can't tell whether the command matches what you asked for, select **Skip**. Nothing runs. Then send:
 
-> In one sentence, which files will this create, change, move or delete? Name the folders.
+<!-- tutor -->
+> What command did you want to run, and which files and folders would it have changed?
+> Don't run it.
 
-While you are learning, do not choose any option that allows commands without asking.
+More on reading one: [Reading a permission request](getting-started/start-here.md#reading-a-permission-request).
 
-### A file changed and I was not asked
+### Copilot asks you a question, or offers choices
 
-The assistant may create or edit files in the folders you opened without asking; only commands it
-runs need your permission. When it edits a file, the reply lists it with Keep and Undo. Undo
-reverses that edit. It does not reverse commands it ran, such as moves and deletions.
+Answer in the chat box, as you would answer a person.
 
-### It asks me a question back, or offers choices
+### Copilot says it can't read a file
 
-Answer in plain words. If you are unsure, ask it which choice changes nothing.
+Word, Excel and PDF files aren't plain text, so Copilot may ask to run a small command to read them. If it
+reads the file you named, allow it. If it still can't, save the file as plain text (for an Excel file, choose CSV in Save As) and ask again.
 
-### It says it cannot read a file
+### The reply is too long or too technical
 
-Plain text, markdown and CSV files it reads directly. For Word or Excel files it may need to write
-and run a small program to read them, and it will ask permission first. If that does not work in
-your setup, save the file as text or CSV and try again. Pages in a notebook application have to be
-exported to a file first.
+Say so in a follow-up:
 
-### The reply is too long, too technical, or disorganized
+> Explain that in plain words, in five lines or fewer.
 
-Say so. It redoes the work:
+## When the result is wrong
 
-> Organize your response.
+### Copilot says something you can't find in the file
 
-> That does not make sense to me; explain it in plain words.
+Ask Copilot:
 
-## When the result is wrong or surprising
+> Name the file and line numbers where that is, and quote those lines.
 
-### It says something I cannot find in the file it names
+If the quote isn't in the file, send:
 
-Treat that item as a guess, and say so:
+> That isn't in the file. Look again, and quote only what's in the file.
 
-> That does not appear in the file you named. Re-do it using only what the files say, and name the file for every item.
+### Copilot changed something you didn't want changed
 
-### It did something I did not ask for
+Hover over the request that made the change and select **Restore Checkpoint**, as in
+[Undo the table](getting-started/lesson-your-files.md#3-undo-the-table).
+Restore Checkpoint puts the files back as they were before that request, and removes that request
+and every later one from the chat. It doesn't reverse a
+command already run, such as a move or a delete.
+For those, ask:
 
-Stop it if it is still working. Then ask:
+> List every file you moved or deleted in this chat, and put each one back where it was.
+> If you can't restore one exactly, say so instead of recreating it.
+> Change nothing else.
 
-> List every file you created, changed, moved or deleted in this chat.
+### Copilot worked in the wrong folder
 
-Check that list against the list on the left or File Explorer, since its account of itself is not
-proof. Then ask it to put things back, using that list. If the chat offers to undo its edits to a
-file, that undoes edits only; it does not reverse commands it ran, such as moves and deletions.
-This is why the recipes that change files ask for a plan first and a record of what was done.
+If the files it changed are in the folder you have open, select **Restore Checkpoint** on that
+request. For files anywhere else, use the request in
+[Copilot changed something you didn't want changed](#copilot-changed-something-you-didn-t-want-changed).
+Then ask again, and name the folder in the request.
 
-### It worked on the wrong folder
+### Copilot has forgotten what you did
 
-With two folders open, it has to be told which one. Name the folder in every request.
+A new chat starts empty, but the files stay. Name the file in your request, for example:
 
-### It has forgotten what we did
+> Read actions.md in the copilot-practice folder and continue from there.
 
-A new chat remembers nothing of the last one; the files do. Point it at the file: "Read
-`summary.md` in `<your folder>` and continue from there."
+### The chat is going in circles
 
-### The conversation has gone in circles
+Select **New Chat** (+) at the top of the chat, and ask again in one request: which folder, what to
+read, what to make, and where to put it.
 
-Start a new chat with the plus button at the top of the chat panel, and state the request again:
-which folder, what to read, what to make, what not to do, and to show its sources.
+## Skills and custom agents
 
-## When to ask a person
+### A skill isn't used, or does the wrong thing
 
-The assistant cannot settle these, even if it answers confidently: installing or signing in,
-access to an application, and what data may be used.
-`[YOUR ORGANIZATION: who to ask when setup fails]` If there is no one named here, ask whoever sent you this training.
+Tell Copilot what you asked and what happened, and ask it to review the skill and fix it. A skill
+saved in a folder works only while that folder is open; one in your personal skills folder works
+everywhere.
+
+### A custom agent isn't in the list of agents
+
+Ask Copilot:
+
+<!-- tutor -->
+> List the custom agent files in the .github/agents folder of the folder open in VS Code.
+> Also list those in my personal agents folder: the agents folder inside .copilot in my user folder.
+> For each, check where it is saved, that its header is complete, and that nothing in it hides it from the list.
+> Tell me which of them VS Code can't list, and why.
+> Don't change any file.
+
+Then ask Copilot to fix what it found.
+
+## Questions
+
+### Do I need to write code?
+
+No. You ask in plain words, and Copilot reads and writes the files.
+
+### Is this the same as Copilot in my office suite?
+
+No. That one reaches across the shared content at your work: mail, chats, meetings and shared
+files. This one works on a folder of files on your computer and can act on them.
+
+### Can Copilot reach other systems, such as a ticketing system, directly?
+
+Only through a connection to that system; VS Code calls these MCP servers. Without one, export the
+data to a file and ask Copilot about the file.
+
+### How do I put the chat on the other side of the window?
+
+Ask Copilot:
+
+> How do I put the chat on the other side of the VS Code window?
+> Tell me the steps; don't change anything.

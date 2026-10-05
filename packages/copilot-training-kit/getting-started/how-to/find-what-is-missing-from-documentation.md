@@ -1,37 +1,63 @@
-# How to: find what is missing from documentation you were handed
+# Find what is missing from documentation
 
-**You end with:** `gaps.md`, the things the documents do not say, written as questions to send
-back.
+**You end with:** `gaps.md`, the things a set of documents doesn't say, written as questions for the team
+that sent them.
 
-**Before you start:** VS Code open with this training's folder, the chat in Agent mode. New to it?
-Do [Start here](../start-here.md) first. If you have done the
-lessons, try writing the request yourself first, then compare it with the one below. About fifteen
-minutes.
+**You need:** the copilot-practice folder open in VS Code. If another folder is open, on the **File** menu, select **Open Recent**, and then select
+`copilot-practice`.
 
-**When:** an application team has sent you their documentation, an engineering spec, an export
-from the wiki, a game plan for a release or an event, and you have to support or approve
-something on the strength of it. You need to know what it does not say before you need it at
-two in the morning.
+**When:** a team hands you documentation for an application or a process, and you have to support
+or approve something based on it.
 
-1. Save the documents into one folder. If they live in a wiki, export or copy them to files
-   first; the assistant reads files. Write a second short file, `what-support-needs.md`, listing
-   what you need to find in any application's documentation: who to call, what it depends on,
-   how to tell it is healthy, how to restart it, known failure modes, whatever your team's list
-   is. No list yet? Ask the assistant to draft one for your kind of work, then cut and add until
-   it is your team's. Add the folder to VS Code: menu File, then Add Folder to Workspace.
-2. Ask:
-   > Read every document in `<your folder>`. For each item in `what-support-needs.md`, say where in the documents it is answered, quoting the passage, or write "not found". Do not fill gaps from general knowledge.
-3. Ask for the list you will send back:
-   > Write `gaps.md` in `<your folder>`: the items marked not found, each written as a question I can send to the application team.
-4. If the documents disagree with each other, ask it to list the contradictions with both
-   passages quoted.
+## 1. Have Copilot create practice documents
 
-**Check:** open one item marked "answered" and read the quoted passage in the source. Open one
-marked "not found" and search the documents yourself for the obvious word; if you find it, tell
-the assistant it missed one and ask it to look again.
+Copilot leaves two things out of the documents on purpose, so you know what it should find.
 
-**Why this works:** the assistant is good at reading a lot of text against a short list. It is
-not good at knowing what your team needs; that is what the list is for, and it is worth writing
-once and keeping.
+1. If the control at the bottom of the chat box doesn't show **Agent**, select the control, and
+   then select **Agent**.
+2. In the chat box, enter:
 
-If it does not work: [If something goes wrong](../../troubleshooting.md).
+> In the copilot-practice folder, create a folder named docs-practice.
+> In it, write three short, made-up documents for an application named Order Tracker: an overview, a setup guide and a support guide.
+> Leave out who to call when it fails, and how to restart it.
+> Then create what-support-needs.md in the same folder: six things a support team must find in any application's documentation.
+> Make who to call and how to restart the application two of the six.
+> Add or change no other file.
+
+Check: `docs-practice` holds the three documents and `what-support-needs.md`.
+
+## 2. Ask where each thing is answered
+
+A quote is an answer you can find in the document. "Not found" gives Copilot a way to report a gap
+instead of guessing.
+
+1. Enter:
+
+> Read the three documents in the docs-practice folder of the copilot-practice folder.
+> For each item in what-support-needs.md, quote the passage that answers it and name its document, or write "not found".
+> Don't fill gaps from general knowledge.
+> Don't change any file.
+
+Check: who to call and how to restart Order Tracker are among the items "not found". Pick one item
+that has a quote. Open the document it names, and find the quote there.
+
+If who to call or how to restart Order Tracker has a quote, open the document it names and read
+it. A quote such as "Contact: to be confirmed" doesn't answer the item. If that's what you find,
+tell Copilot so, and ask it to mark the item "not found".
+
+## 3. Turn the gaps into questions
+
+1. In the same chat, enter:
+
+> In the docs-practice folder, create gaps.md: each item marked "not found", written as a question I can send to the team that owns Order Tracker.
+> Add or change no other file.
+
+2. In the list on the left, right-click `gaps.md` and select **Open Preview**.
+
+Check: `gaps.md` has a question for each item marked "not found".
+
+To use documents you were handed: save them in one folder with your own list of what you need,
+and open that folder. Send the same requests, except the one that creates practice files. Use your
+files' names and your application's name, and leave out the practice folder names.
+
+If it does not work: [Help](../../troubleshooting.md).

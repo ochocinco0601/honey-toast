@@ -1,46 +1,82 @@
-# How to: analyze an exported spreadsheet
+# Analyze an exported spreadsheet
 
-**You end with:** tables that answer your question, checked by you, in `analysis.md` next to the
-export.
+**You end with:** `analysis.md`, with counts and the oldest open tickets from a CSV export,
+and one figure you checked yourself.
 
-**Before you start:** VS Code open with this training's folder, the chat in Agent mode. New to it?
-Do [Start here](../start-here.md) first. If you have done the
-lessons, try writing the request yourself first, then compare it with the one below. About fifteen
-minutes.
+**You need:** the copilot-practice folder open in VS Code. If another folder is open, on the **File** menu, select **Open Recent**, and then select
+`copilot-practice`.
 
-**When:** a ticket export, an incident list, a change calendar, anything a system will give you
-as a CSV or spreadsheet file. Today you probably do this by hand in a spreadsheet.
+**When:** a system gives you a CSV export, such as a ticket list or an incident list, and you need
+counts or the oldest items.
 
-**Before you export:** until your organization tells you otherwise, use only data with no
-customer names, account numbers, personal details, passwords or system addresses. Delete those
-columns first, or use a copy with made-up values. Not sure? Practise on this training's
-`sample-files` folder first. `[YOUR ORGANIZATION: which classes of data may be used with the assistant]`
+## 1. Have Copilot create a practice export
 
-1. Export the data from the system to a file. Put the file in a folder. Add that folder to VS
-   Code: menu File, then Add Folder to Workspace, then choose it. This training stays open beside
-   it.
-2. Orient. CSV is the format it reads most reliably; a spreadsheet file may work, depending on
-   what is installed, and if it does not, export as CSV instead:
-   > Read `<your export file>` in `<your folder>`. Tell me the columns and how many rows. Then give me the top ten categories by count and the trend by week. For each figure, say which column and filter you used. Do not change the export.
-3. Ask the question you actually have, in your own words. For a ticket export, for example,
-   "Which assignment group has the oldest open items? Show the ten oldest with their age in days."
-   For a change calendar, "Which changes next week have no named owner?"
-   <!-- frame -->
-   > `<your question about the data>`
-4. Ask for something you can keep and send:
-   > Write `analysis.md` next to the export, with the tables above and a one-paragraph summary.
-**Check:** open the export in your spreadsheet program. Filter one category and compare the count
-with the assistant's. Take one figure it computed, such as an item's age, and work it out yourself
-from the data. If either differs, ask:
+A made-up export gives you tickets to count without using real data.
 
-> How did you compute that?
+1. If the control at the bottom of the chat box doesn't show **Agent**, select the control, and
+   then select **Agent**.
+2. In the chat box, enter:
 
-**Next week:** save the new export under a different name, for example `export-week2.csv`, put it
-in the same folder, and ask:
+> In the copilot-practice folder, create a folder named export-practice.
+> In it, create tickets.csv: 40 rows of made-up service desk tickets.
+> Give it the columns Ticket, Opened, Category, Group and Status.
+> Use five categories.
+> Make 15 tickets Open and the rest Closed.
+> Add or change no other file.
 
-> Compare `<this week's file>` with `<last week's file>`. What changed in the top categories, and which of last week's ten oldest items are still open?
+3. In the list on the left, expand `export-practice`, and select `tickets.csv`.
 
-**Direct access instead of an export:** whether the assistant can read the system itself depends
-on connectors your organization has set up. `[YOUR ORGANIZATION: available connectors and their status]`
+Check: the first line holds the five column names, and each line after it is one ticket, with
+commas between the values. The last ticket is on line 41, so there are 40 tickets. If the last ticket is on another line, subtract one from that line number. That's how many tickets
+to expect below.
 
-If it does not work: [If something goes wrong](../../troubleshooting.md).
+## 2. Ask your questions, and ask how Copilot got each figure
+
+Asking how it got each figure tells you what to check.
+
+1. Enter:
+
+> Read tickets.csv in the export-practice folder of the copilot-practice folder.
+> Tell me how many tickets it has, and how many are in each category.
+> List the ten oldest open tickets, with their age in days as of today.
+> For each figure, say which column and which filter you used.
+> Don't change any file.
+
+2. If a permission request appears, allow it if it reads only `tickets.csv`.
+
+Check: the reply counts all the tickets, gives a count for each category, and names the column and
+filter behind each figure.
+
+## 3. Check one figure yourself
+
+Counting one figure yourself shows whether Copilot counted the way it said it did.
+
+1. Take the category with the fewest tickets in Copilot's answer. If two tie, take either. In
+   `tickets.csv`, count that category's tickets yourself.
+
+Check: your count matches Copilot's. If it doesn't, enter:
+
+> How did you count the category with the fewest tickets?
+> List the rows you counted.
+> Don't change any file.
+
+Compare its list with the file. If Copilot's count was wrong, tell it which rows it got wrong, and ask
+it to correct its figures before you save them.
+
+## 4. Save the answers
+
+1. In the same chat, enter:
+
+> In the export-practice folder, create analysis.md with the category counts and the ten oldest open tickets from your answer, and a one-paragraph summary.
+> Add or change no other file.
+
+2. In the list on the left, right-click `analysis.md` and select **Open Preview**.
+
+Check: the preview shows the counts and the ten oldest open tickets, and the category you counted
+has your count.
+
+To use your own export: save it as a CSV file in a folder, and open that folder. Send the same
+requests, except the one that creates practice files. Use your file's name, and leave out the
+practice folder names.
+
+If it does not work: [Help](../../troubleshooting.md).

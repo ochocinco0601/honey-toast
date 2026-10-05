@@ -3,18 +3,26 @@ kit, out = sys.argv[1], sys.argv[2]
 bad = 0
 
 def md_text(t):
-    lines = []
+    lines, fenced = [], False
     for ln in t.replace("\r\n", "\n").split("\n"):
         s = ln.strip()
-        if re.fullmatch(r"<!--\s*(frame|tutor|tool|note|rate|workbook)\s*-->", s):
+        if s.startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            lines.append(s)
+            continue
+        if re.fullmatch(r"<!--\s*(frame|tutor|tool|note|rate|workbook|/more|more:.*?)\s*-->", s):
             continue
         s = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", s)
         s = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", s)
         if re.fullmatch(r"\|?[-:| ]+\|?", s) and "-" in s:
             continue
         s = re.sub(r"^#{1,6} ", "", s)
+        quoted = s.startswith("> ")
         s = re.sub(r"^> ", "", s)
-        s = re.sub(r"^- ", "", s)
+        if not quoted:
+            s = re.sub(r"^- ", "", s)
         if re.match(r"^\s*\d+\. ", ln):
             s = re.sub(r"^\d+\. ", "", s)
         if s.startswith("|"):
@@ -39,7 +47,7 @@ for root, _, fs in os.walk(out):
         # carry its list item's words; the rest of the page is compared word for word as usual.
         for heading, anchor, item_re, tag in (("The path", "the-path", r"^\d+\. (.*(?:\n   .*)*)", "ol"),
                                               ("The trainings", "the-trainings", r"^- (.*(?:\n  .*)*)", "ul")):
-            found = re.search(r"\n## %s\n(.*?)(?=\n## )" % heading, src, flags=re.S)
+            found = re.search(r"\n## %s\n(.*?)(?=\n## |\Z)" % heading, src, flags=re.S)
             if not found or '<h2 id="%s">' % anchor not in body:
                 continue
             section = found.group(1)

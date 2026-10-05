@@ -12,4 +12,4 @@
 
 ## How this training is laid out
 
-`[TO BE WRITTEN: the units in order, one line each on what the learner does in it, and roughly how long the whole path takes.]`
+`[TO BE WRITTEN: the units in order, one line each on what the learner does in it. No times or unit numbers: the outline and each unit's header show them.]`
