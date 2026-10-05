@@ -11,7 +11,7 @@ connection adds tools from another service. VS Code calls a connection an MCP se
 When a request needs one of those tools, Copilot uses it, and the chat shows a line for each tool it ran.
 The connection in this unit is GitHub's read-only one. Its tools only look things up on GitHub and can't change anything there.
 
-The connection signs in to GitHub with the GitHub account you already use for Copilot. You sign in
+The connection signs in to GitHub with your work GitHub account, the one you use for Copilot. You sign in
 once, when VS Code asks. You don't set up anything on GitHub first.
 
 ## 1. Have Copilot create a practice folder
@@ -52,7 +52,7 @@ A connection is a few lines in a file named `.mcp.json`. Copilot writes them.
 2. If a permission request appears, allow it if it creates only that file.
 3. In the list on the left, select `.mcp.json`.
 4. If a line of small text above `github` in the file says **Start**, select it. This starts the connection.
-5. If a message says an MCP server wants to authenticate to GitHub, select **Allow**. If VS Code then asks you to choose an account or sign in, use the GitHub account you use for Copilot.
+5. If a message says an MCP server wants to authenticate to GitHub, select **Allow**. If VS Code then asks you to choose an account or sign in, choose your work GitHub account.
 6. Wait until the line above `github` says **Running**. It can take a few seconds.
 
 Check: the line above `github` says **Running**.
@@ -81,7 +81,7 @@ calls a project a repository, and each saved change to it a commit.
 > List the commits of the public octocat/Hello-World repository on GitHub.
 > For the newest commit, tell me its date, its author and its message.
 
-3. If a message says an MCP server wants to authenticate to GitHub, select **Allow**, and use the GitHub account you use for Copilot.
+3. If a message says an MCP server wants to authenticate to GitHub, select **Allow**, and choose your work GitHub account.
 4. If a permission request appears, allow it if it names github.
 
 Check: the reply shows what Copilot did, one line for each tool it ran. If those lines are folded

@@ -31,23 +31,22 @@ paste into the chat box. The question asks Copilot to explain the step without d
 ### VS Code doesn't open
 
 If pressing the Windows key and typing `code` finds nothing, VS Code isn't installed. Install it
-from code.visualstudio.com, then try again.
+from your company's software portal, then try again.
 
 ### The chat asks you to sign in, or doesn't answer
 
 Copilot is built into VS Code; there's nothing to install. In order:
 
 1. At the bottom of the VS Code window, hover over the Copilot icon. If it offers **Use AI
-   Features** or **Sign in to use Copilot**, select it and sign in with the GitHub account that has
-   your Copilot plan.
-2. Update VS Code: press Ctrl+Shift+P, type `Check for Updates`, and press Enter.
+   Features** or **Sign in to use Copilot**, select it and sign in with your work GitHub account.
+2. Update VS Code: install the newest version your company's software portal offers.
 3. If a reply says you've sent too many requests, wait a few minutes and send it again. If it says
    you've used your monthly allowance, select the Copilot icon at the bottom of the window to see
    your usage; the allowance resets each month.
 
 <!-- more: Signed in with the wrong account -->
 Select the **Accounts** icon at the bottom of the bar on the far left of the window, then
-**Sign out**. Then sign in again from the Copilot icon with the account that has your plan.
+**Sign out**. Then sign in again from the Copilot icon with your work GitHub account.
 <!-- /more -->
 
 ### The chat isn't there

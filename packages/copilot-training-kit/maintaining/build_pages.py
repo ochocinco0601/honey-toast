@@ -19,7 +19,7 @@ import sys
 # ---- What a maintainer changes when the kit grows (see maintaining/README.md) ----
 # A record, not a setting: the version of the training-kit skill that built this kit. It goes into
 # each page's generated-file comment only. The kit's own version is the newest entry in CHANGELOG.md.
-SKILL_VERSION = "1.9"
+SKILL_VERSION = "1.11"
 PROGRAM_NAME = "GitHub Copilot training"
 # Who the learner asks for help, and where they paste a prompt for it.
 ASSISTANT = "Copilot"
@@ -470,8 +470,17 @@ def render(lines, src):
             if ans:
                 if h and h[-1].startswith("<p>") and h[-1].endswith("?</p>"):
                     h[-1] = '<p class="question">' + h[-1][3:]
-                h.append('<details class="answer"><summary>Show the answer</summary><div class="a"><p>'
-                         '<span class="sr">%s: </span>%s</p></div></details>' % (ans.group(1), inline(text[ans.end():], src)))
+                # The answer runs to the next heading, marker or prompt, so an answer to several cases can be a list.
+                end = i
+                while end < len(lines) and not lines[end].startswith(("## ", "### ", "#### ")) \
+                        and not lines[end].strip().startswith(("<!--", "> ")):
+                    end += 1
+                rest = text[ans.end():].strip()
+                lead = ('<p><span class="sr">%s: </span>%s</p>' % (ans.group(1), inline(rest, src)) if rest
+                        else '<span class="sr">%s:</span>' % ans.group(1))
+                h.append('<details class="answer"><summary>Show the answer</summary><div class="a">%s%s</div></details>'
+                         % (lead, render(lines[i:end], src)))
+                i = end
                 continue
             imp = re.match(r"^(\*\*)?Important:(\*\*)?\s*", text)
             if imp:
@@ -770,7 +779,18 @@ def outline(md):
         if t["workbook"]:
             after += link(t["workbook"], nav_title(t["workbook"]))
         if t["recipes"]:
-            after += link(in_training(t, "how-to/README.md"), "Practice recipes", str(len(t["recipes"])))
+            # The recipes open under their index as a unit's steps open under it, so a learner on any page can reach one.
+            index = in_training(t, "how-to/README.md")
+            inside = md == index or md in t["recipes"]
+            subs = "".join('<li><a class="ostep" href="%s"%s><span class="odot" aria-hidden="true"></span>'
+                           '<span class="olab">%s</span></a></li>'
+                           % (html.escape(rel(md, out_name(r))), cur(r), html.escape(nav_title(r))) for r in t["recipes"])
+            after += ('<li class="ou orec%s"><div class="ohd"><a href="%s"%s>Practice recipes<span class="cnt"><span class="sr">, </span>%d</span></a>'
+                      '<button class="otoggle" type="button" aria-expanded="%s" aria-controls="orec"><span class="sr">Recipes in %s</span>%s</button></div>'
+                      '<ol class="osteps" id="orec" aria-label="Recipes in %s">%s</ol></li>'
+                      % (" open" if inside else "", html.escape(rel(md, out_name(index))),
+                         cur(index) or (' aria-current="true"' if md in t["recipes"] else ""), len(t["recipes"]),
+                         "true" if inside else "false", html.escape(t["name"]), CHEVRON_SVG, html.escape(t["name"]), subs))
         block = ('<div class="ocur">%s%s<ol class="ounits" aria-label="Units in %s">%s</ol>%s</div>'
                  % (head, '<ul class="oextras">%s</ul>' % before if before else "", html.escape(t["name"]),
                     "".join(rows), '<ul class="oextras">%s</ul>' % after if after else ""))
@@ -1379,6 +1399,11 @@ color:var(--ink2);font-size:.875rem;text-decoration:none}
 .oextras a:hover{background:var(--cur);color:var(--ink)}
 .oextras a[aria-current]{color:var(--accent);font-weight:600}
 .oextras .cnt{margin-left:auto;font-size:.8rem;color:var(--ink3)}
+.orec .ohd>a{flex:1;min-width:0}
+.orec .otoggle{margin-right:-10px}
+.oextras .osteps{padding:0 0 4px}
+.oextras a.ostep{margin:0;padding:6px 10px 6px 4px;align-items:flex-start}
+.oextras a.ostep[aria-current] .odot{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 2px var(--side)}
 .otitle{display:block;font-size:1rem;font-weight:600;color:var(--ink);text-decoration:none;line-height:1.3}
 .otitle:hover{text-decoration:underline}
 .otitle[aria-current]{color:var(--accent)}
@@ -1603,7 +1628,7 @@ main{padding-top:20px}
 }
 @media (max-width:420px){.brand{display:none}}
 @media (forced-colors:active){.org{border-color:CanvasText}.line span,.obar span{background:Highlight}
-.check{border-color:CanvasText}.ostep.here,.omore a[aria-current]{outline:2px solid CanvasText}.oring .arc{stroke:CanvasText}
+.check{border-color:CanvasText}.ostep.here,.omore a[aria-current],.oextras a[aria-current="page"]{outline:2px solid CanvasText}.oring .arc{stroke:CanvasText}
 .odot{forced-color-adjust:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 /* notes the learner writes, and how sure they are of each objective: kept in this browser, gathered in the workbook */

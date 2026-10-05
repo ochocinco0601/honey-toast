@@ -66,6 +66,14 @@ screen label that contains one, such as **Open Preview** when "Preview" is a glo
   default, which turns it off). Where practice is in an assistant, the request has it fetch them;
   otherwise that unit has the learner download and extract them. The learner never handles git by
   hand.
+- **Setup is the workplace's way.** Where learners work on computers their company manages,
+  software, its updates and the account they sign in with come through the company: its software
+  portal and their work account. No page sends a learner to a vendor's download site, has them
+  update the tool by its own menu, or speaks of "your plan". Name no particular portal: "your
+  company's software portal" is the general default an adopter may replace. The build catches the
+  common wordings: installing or downloading from a web address (PUBLICINSTALL), the tool's own
+  update command (SELFUPDATE) and, for Copilot, a plan or a personal account (YOURPLAN). It does
+  not catch every wording, so a review reads each setup step against this rule.
 - **Each training teaches a learner working alone,** at their own pace. The kit is self-paced: it
   has no presenter material and assumes no live session.
 - **Position and time are generated, never typed.** The breadcrumb, the unit's header and the
@@ -286,7 +294,7 @@ The builder reads these conventions. Anything else is ordinary markdown.
 | `<!-- frame -->` on the line before a prompt | An example of a request the learner writes themselves (see "Prompts", rule 6), shown without a Copy button. The text around it says where they write it |
 | A paragraph starting `**Important:**` | A boxed callout, for a fact that changes what the learner does later and would otherwise leave them believing something wrong (where a thing they made works, for example). Never a warning or caution. At most one per step; the build fails on two (CALLOUT) |
 | A paragraph starting `Check:` | A check: what the learner should see, led by a bold "Check:" |
-| A paragraph starting `Check your answer:` or `Answers:` | An answer hidden until the learner opens it |
+| A paragraph starting `Check your answer:` or `Answers:` | An answer hidden until the learner opens it. Everything after it, up to the next heading, `<!--` marker or prompt, is in the answer too. An answer to several cases is a list after the line, one case to an item, led by the case in bold (ANSWERBLOB) |
 | A paragraph starting `Example:` or `Example, <what it shows>:` | A worked example, set apart, with the words before the colon as its label |
 | `` `[YOUR ORGANIZATION: what goes here]` `` | A marked blank for the organization to fill, allowed only where "Where new content goes" puts it (ORGBLANK) |
 | `` `[TO BE WRITTEN: what goes here]` `` | A marked placeholder for content not written yet |

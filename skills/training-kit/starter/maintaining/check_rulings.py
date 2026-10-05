@@ -13,7 +13,8 @@ EXEMPT = []  # pages not yet rebuilt, such as "getting-started/old-unit.md"
 # The tool the kit teaches. Rules listed in TOOL_RULES run only when TOOL matches; every other rule
 # runs always.
 TOOL = ""
-TOOL_RULES = {"NAME": "copilot", "EXTENSION": "copilot", "KEEPUNDO": "copilot", "ADDTOCHAT": "copilot"}
+TOOL_RULES = {"NAME": "copilot", "EXTENSION": "copilot", "KEEPUNDO": "copilot", "ADDTOCHAT": "copilot",
+              "YOURPLAN": "copilot"}
 NOT_LEARNER = ("maintaining", "facilitator", "read-in-browser", "sample-files")
 
 
@@ -35,7 +36,7 @@ KEEP_SCOPE = re.compile(r"no other file|nothing else|change nothing|don't change
 
 # (code, pattern, where, fix). where: "any" line, "prompt" (a "> " line), "check" (a "Check:" line),
 # "text" (not a prompt).
-# NAME, EXTENSION, KEEPUNDO and ADDTOCHAT hold for Copilot only (see TOOL_RULES); for another tool,
+# NAME, EXTENSION, KEEPUNDO, ADDTOCHAT and YOURPLAN hold for Copilot only (see TOOL_RULES); for another tool,
 # add its own rules to RULES and TOOL_RULES.
 RULES = [
     ("NAME", r"\bthe assistant\b", "text", 'call it "Copilot"'),
@@ -66,6 +67,22 @@ RULES = [
      "the time is shown in the unit header and menu; don't repeat it in the page text"),
 ]
 
+# Judged a sentence at a time after wrapped lines are joined, because a sentence wraps across
+# lines. Reported at the first line of its paragraph or list item. They catch the common wordings,
+# not every one: the review still reads setup steps against the guide's "Setup is the workplace's
+# way". YOURPLAN holds for Copilot only (see TOOL_RULES).
+SITE = (r"(?:\[[^\]]*\]\()?(?:https?://)?(?:[\w-]+\.)+"
+        r"(?!(?:md|txt|json|csv|zip|py|html|pdf|docx|xlsx|png)\b)[a-z]{2,}\b[^\s)]*")
+SENTENCE_RULES = [
+    ("PUBLICINSTALL", r"(?i)\b(?:install|reinstall|download|upgrade)\w*\b[^.:;,]{0,40}?\b(?:from|at)\s+" + SITE
+                      + r"|\bgo to\s+" + SITE + r"[^.]*?\b(?:download|install)",
+     "learners get software from their company's software portal, not a vendor's site"),
+    ("SELFUPDATE", r"\bCheck for Updates\b|\bRestart to Update\b",
+     "updates come from the company's software portal, not the tool's own update command"),
+    ("YOURPLAN", r"(?i)\byour (Copilot )?plan\b|\baccount that has your\b|\byour personal (GitHub )?account\b",
+     "learners sign in with their work account; the kit says nothing about plans or personal accounts"),
+]
+
 
 def where(line):
     s = line.strip()
@@ -74,6 +91,49 @@ def where(line):
     if s.startswith("Check:"):
         return "check"
     return "text"
+
+
+def check_answers(rel, lines):
+    """ANSWERBLOB: an answer paragraph that runs several cases together."""
+    hits = 0
+    for n, line in enumerate(lines, 1):
+        if not re.match(r"(Check your answer|Answers):", line.strip()):
+            continue
+        para = []
+        for later in lines[n - 1:]:
+            if not later.strip() or later.lstrip().startswith(("- ", "#")) or re.match(r"\s*\d+\.\s", later):
+                break
+            para.append(later.strip())
+        if len(" ".join(para).split()) > 40:
+            hits += 1
+            print("ANSWERBLOB %s:%d -> an answer to several cases is a list after the 'Check your answer:' line, "
+                  "one case to an item" % (rel, n))
+    return hits
+
+
+def check_sentences(rel, lines):
+    """SENTENCE_RULES over each paragraph or list item of ordinary text, joined and split into sentences."""
+    rules = [r for r in SENTENCE_RULES if TOOL_RULES.get(r[0], TOOL.lower()) == TOOL.lower()]
+    hits = 0
+    start, block = 0, []
+    for n, line in enumerate(lines + [""], 1):
+        s = line.strip()
+        text = bool(s) and where(line) != "prompt" and not s.startswith("#")
+        if block and (not text or re.match(r"(\d+\.|[-*])\s", s)):
+            for sentence in re.split(r"(?<=[.!?])\s+", " ".join(block)):
+                if re.match(r"Sources?:", sentence):
+                    continue
+                for code, pat, fix in rules:
+                    m = re.search(pat, sentence.replace("*", ""))
+                    if m:
+                        hits += 1
+                        print("%s %s:%d %r -> %s" % (code, rel, start, m.group(0), fix))
+            block = []
+        if text:
+            if not block:
+                start = n
+            block.append(s)
+    return hits
 
 
 def check(kit):
@@ -114,6 +174,8 @@ def check(kit):
                     hits += 1
                     print("SCOPE %s:%d -> a request that writes files says 'Add or change no other file.'"
                           % (rel, n))
+        hits += check_sentences(rel, lines)
+        hits += check_answers(rel, lines)
     return hits
 
 

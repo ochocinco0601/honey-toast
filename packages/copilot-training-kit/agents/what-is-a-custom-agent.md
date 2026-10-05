@@ -67,11 +67,20 @@ c. Each new procedure needs checking for missing steps. It must stay unchanged w
 
 d. One procedure needs checking for missing steps, just this once.
 
-Check your answer: For a, custom instructions: a rule for every request in the folder. For b, a
-skill: a task you ask for again and again. The task is meant to change the files, so there's nothing Copilot must be kept from doing. Custom instructions would apply the style guide to every request, not only to this task. For c, a custom agent: a reviewer whose tools only read. While it's selected,
-Copilot can't use the tool that changes files, so each procedure stays as written. For d, none of them:
-say it in the request. The likeliest mistake is choosing a skill for c. The Skills training gave "the same
-checks on every new document" as an example of a task for a skill. A skill is right when there's nothing Copilot must be kept from doing. Here each procedure must stay unchanged, and a skill's instructions can only ask Copilot not to change it.
+Check your answer:
+
+- **a. Custom instructions.** It's a rule for every request in the folder.
+- **b. A skill.** It's a task you ask for again and again. The task is meant to change the files, so
+  there's nothing Copilot must be kept from doing. Custom instructions would apply the style guide to
+  every request, not only to this task.
+- **c. A custom agent.** It's a reviewer whose tools only read. While it's selected, Copilot can't
+  use the tool that changes files, so each procedure stays as written.
+- **d. None of them.** Say it in the request.
+
+The likeliest mistake is choosing a skill for c. The Skills training gave "the same checks on every
+new document" as an example of a task for a skill. A skill is right when there's nothing Copilot must
+be kept from doing. Here each procedure must stay unchanged, and a skill's instructions can only ask
+Copilot not to change it.
 
 ## What you learned
 

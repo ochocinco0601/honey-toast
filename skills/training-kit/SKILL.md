@@ -5,7 +5,7 @@ description: Build a self-paced training kit on any subject, for any audience - 
 
 # Building a training kit
 
-Skill version: 1.9 (2026-10-04). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
+Skill version: 1.11 (2026-10-05). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
 
 You build a kit that leaves its learners able to do something in their own work. What they can do
 when they finish is the outcome, and every choice below serves it; the maintainer guide's opening
@@ -322,6 +322,26 @@ review 5 after your change.
 
 A choice recorded under the kit's "Decisions" that conflicts with what this version changes is
 handled as the guide's "Decisions" says.
+
+What 1.11 changed from 1.10:
+- Guide, markup: an answer runs from its `Check your answer:` line to the next heading, so an
+  answer to several cases is a list, one case to an item, led by the case in bold. The build fails
+  on an answer paragraph that runs the cases together (ANSWERBLOB).
+- Upgrading from 1.10: replace `build_pages.py` and `check_rulings.py` as "Bringing a kit up to
+  this version" says, update the guide's markup row, and rewrite any answer the build names.
+
+What 1.10 changed from 1.9:
+- Guide, "Setup is the workplace's way": where learners work on computers their company manages,
+  software, its updates and the sign-in account come through the company (its software portal,
+  their work account), never a vendor's download site, the tool's own update menu or "your plan".
+  The build catches the common wordings: installing or downloading from a web address
+  (PUBLICINSTALL), the tool's own update command (SELFUPDATE) and, for Copilot, a plan or a
+  personal account (YOURPLAN). A review still reads each setup step against the rule.
+- Builder: in the side menu, "Practice recipes" opens with its own toggle to list each recipe, as
+  a unit opens to list its steps, on every page of the training; it is open on the recipe index
+  and on each recipe. Before, the recipes were listed only on the index page.
+- Upgrading from 1.9: replace `build_pages.py` and `check_rulings.py` as "Bringing a kit up to
+  this version" says, and add the guide's new rule; then reword any setup step the build names.
 
 What 1.9 changed from 1.8 (where rules live; four rules added):
 - The review ends on four pass-or-fail checks (build, sourced facts, a learner walk with no STOP
