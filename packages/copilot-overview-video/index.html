@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Copilot Trainings Overview</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+
+:root {
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --serif: "IBM Plex Serif", Georgia, serif;
+
+  --bg: #EEEDE8;
+  --surface: #FBFAF7;
+  --paper: #FBFAF7;
+  --ink: #14171C;
+  --muted: #5F646B;
+  --line: #CBCED2;
+  --accent: #1F6F78;
+  --accent-soft: #DCEDEE;
+  --caution: #8A5F08;
+  --caution-ui: #C8900F;
+  --good: #2E7D55;
+  --bad: #B33A2E;
+
+  --console-bg: #1B1E23;
+  --console-fg: #F2F1ED;
+  --console-dim: #9BA1A8;
+  --console-line: #3A3F46;
+  --track-rest: #666C75;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1014;
+    --surface: #171A1F;
+    --paper: #1B1F25;
+    --ink: #ECEEF1;
+    --muted: #99A0A8;
+    --line: #353B43;
+    --accent: #6FC3CB;
+    --accent-soft: #1D3436;
+    --caution: #DFA62E;
+    --caution-ui: #DFA62E;
+    --good: #5FBF8C;
+    --bad: #E0847A;
+    --console-bg: #111418;
+    --console-fg: #ECEEF1;
+    --console-dim: #8F969E;
+    --console-line: #2B3037;
+    --track-rest: #5E646C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1014;
+  --surface: #171A1F;
+  --paper: #1B1F25;
+  --ink: #ECEEF1;
+  --muted: #99A0A8;
+  --line: #353B43;
+  --accent: #6FC3CB;
+    --accent-soft: #1D3436;
+  --caution: #DFA62E;
+  --caution-ui: #DFA62E;
+  --good: #5FBF8C;
+  --bad: #E0847A;
+  --console-bg: #111418;
+  --console-fg: #ECEEF1;
+  --console-dim: #8F969E;
+  --console-line: #2B3037;
+  --track-rest: #5E646C;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  margin: 0;
+  padding-inline: 16px;
+  padding-block: 12px 56px;
+}
+* { box-sizing: border-box; }
+.wrap { max-width: 1480px; margin: 0 auto; }
+
+.wrap > *:not(.theater) { max-width: 68rem; margin-inline: auto; }
+
+.theater {
+  display: grid; justify-content: center; gap: 10px 16px;
+  grid-template-columns: var(--pw, minmax(0, 1fr));
+}
+@media (min-width: 960px) {
+  .theater { grid-template-columns: var(--pw, minmax(0, 1fr)) var(--sw, 360px); }
+}
+.head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; min-width: 0; }
+.eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted); margin: 0;
+}
+h1 {
+  font-family: var(--serif); font-weight: 500;
+  font-size: 21px; line-height: 1.25; margin: 0;
+}
+.head .stopk { margin-left: auto; }
+.standfirst {
+  color: var(--muted); font-size: 15px; line-height: 1.55;
+  margin: 22px auto 0;
+}
+
+.player { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); min-width: 0; }
+.stage {
+  position: relative; aspect-ratio: 16 / 9; max-width: 100%;
+  background: var(--paper); border-bottom: 1px solid var(--line);
+}
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage svg text { font-family: var(--sans); }
+.stage svg text.mono { font-family: var(--mono); }
+.stage svg text.serif { font-family: var(--serif); }
+
+.poster { position: absolute; inset: 0; display: block; border: 0; background: transparent; cursor: pointer; padding: 0; }
+
+.poster[hidden] { display: none; }
+
+.poster span svg { position: static; inset: auto; width: 13px; height: 13px; }
+.poster span {
+  position: absolute; left: 50%; top: 79%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 9px; white-space: nowrap;
+  background: var(--console-bg); color: var(--console-fg);
+  font-size: 14px; font-weight: 600; padding: 11px 20px 11px 17px;
+  border-radius: 999px; box-shadow: 0 2px 14px rgb(0 0 0 / .22);
+}
+
+.console { background: var(--console-bg); color: var(--console-fg); }
+.caption { display: flex; gap: 13px; padding: 15px 18px; min-height: 118px; align-items: flex-start; overflow-y: auto; }
+.caption .rule { flex: 0 0 3px; align-self: stretch; background: var(--caution-ui); border-radius: 2px; }
+.caption p {
+  font-family: var(--serif); font-size: clamp(16px, 2.4vw, 19px);
+  line-height: 1.45; margin: 0; min-width: 0; text-wrap: pretty;
+}
+.caption[hidden] { display: none !important; }
+
+.transport {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 12px 11px; border-top: 1px solid var(--console-line); flex-wrap: wrap;
+}
+.transport button {
+  background: transparent; border: 1px solid transparent; color: var(--console-fg);
+  border-radius: 6px; cursor: pointer; display: grid; place-items: center;
+  width: 30px; height: 30px; padding: 0; flex: none;
+}
+.transport button:hover { background: rgb(255 255 255 / .09); }
+.transport button:focus-visible, .poster:focus-visible span,
+.tab:focus-visible, .jump:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; }
+.transport button[aria-pressed="false"] { color: var(--console-dim); }
+.transport button.play {
+  background: var(--console-fg); color: var(--console-bg);
+  width: 34px; height: 34px; border-radius: 7px;
+}
+.transport button.wide {
+  width: auto; min-width: 34px; height: 30px; padding: 0 8px;
+  font-size: 11px; font-weight: 700; font-family: var(--mono); letter-spacing: .03em;
+}
+.transport svg { width: 15px; height: 15px; fill: currentColor; }
+
+.track { position: relative; flex: 1 1 150px; min-width: 90px; height: 30px; display: flex; align-items: center; }
+.track input { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; margin: 0; height: 30px; position: relative; z-index: 2; }
+
+.track input {
+  --fill: 0%;
+  --played: linear-gradient(to right, var(--console-fg) var(--fill), var(--track-rest) var(--fill));
+}
+.track input::-webkit-slider-runnable-track { height: 4px; background: var(--played); border-radius: 2px; }
+.track input::-moz-range-track { height: 4px; background: var(--played); border-radius: 2px; }
+.track input::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: var(--console-fg); border: 0; margin-top: -3.5px; }
+.track input::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: var(--console-fg); border: 0; }
+.track input:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 1px; border-radius: 4px; }
+.ticks { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.ticks i { position: absolute; top: 50%; width: 1px; height: 9px; margin-top: -4.5px; background: var(--console-dim); }
+.readout { font-family: var(--mono); font-size: 11px; color: var(--console-dim); white-space: nowrap; font-variant-numeric: tabular-nums; flex: none; }
+
+.side {
+  position: relative; min-width: 0; min-height: 0;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+}
+.side-in { position: absolute; inset: 0; display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; }
+@media (max-width: 1099.98px) {
+  .side-in { position: static; }
+  .tpanel { max-height: 24rem; }
+}
+.panelhead {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: none;
+  padding: 9px 10px 9px 14px; border-bottom: 1px solid var(--line);
+}
+.panelhead h2 { font-size: 13px; font-weight: 600; margin: 0; }
+.panelhead .len { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.tabs { margin-left: auto; display: flex; gap: 2px; background: var(--bg); border-radius: 7px; padding: 2px; }
+.tab {
+  border: 0; background: transparent; cursor: pointer; font: inherit;
+  font-size: 12px; font-weight: 600; color: var(--muted); padding: 5px 11px; border-radius: 5px;
+}
+.tab[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.tpanel {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 6px 10px;
+}
+.tpanel:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: -2px; }
+#p-summary { padding: 12px 14px 14px; }
+.summary { font-size: 14.5px; line-height: 1.6; margin: 0; }
+
+ol.transcript, ol.lines { list-style: none; margin: 0; padding: 0; }
+ol.lines { display: grid; gap: 1px; }
+.scn-h {
+  position: sticky; top: 0; z-index: 1; background: var(--surface);
+  margin: 0; padding: 10px 9px 5px;
+  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+}
+.scn-h span { font-family: var(--mono); font-weight: 400; letter-spacing: 0; margin-left: 6px; }
+.jump {
+  display: grid; grid-template-columns: 36px 1fr; gap: 10px; width: 100%;
+  text-align: left; border: 0; background: transparent; font: inherit;
+  cursor: pointer; padding: 6px 9px; border-radius: 6px; color: var(--ink);
+}
+.jump:hover { background: var(--bg); }
+.jump:focus-visible { outline-offset: -2px; }
+.jump[data-on="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--caution-ui); }
+.jump .tc { font-family: var(--mono); font-size: 11px; color: var(--muted); padding-top: 3px; font-variant-numeric: tabular-nums; }
+.jump[data-on="true"] .tc { color: var(--ink); }
+.jump[data-on="true"] .line { font-weight: 500; }
+.jump .line { font-size: 14px; line-height: 1.5; min-width: 0; }
+
+.example { margin: 20px 0 0; display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+.example > div { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: var(--surface); min-width: 0; }
+.example h3 { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px; color: var(--muted); }
+.example .ok { color: var(--good); }
+.example p { margin: 0; font-size: 13.5px; line-height: 1.6; }
+.example ul { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.6; }
+@media (max-width: 560px) { .example { grid-template-columns: 1fr; } }
+
+.note { margin: 20px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+.note code { font-family: var(--mono); font-size: .92em; color: var(--ink); }
+.note b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 700px) { .caption { min-height: 150px; } }
+@media (max-width: 460px) { .caption { min-height: 176px; } .readout { font-size: 10px; } }
+</style>
+
+<div class="wrap">
+ <div class="theater">
+  <div class="head">
+    <p class="eyebrow">Explainer</p>
+    <h1>Learn GitHub Copilot in VS Code</h1>
+  </div>
+
+  <div class="player">
+    <div class="stage">
+      <svg id="stage" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Animated overview of the GitHub Copilot in VS Code trainings. The narration is written out in the transcript."></svg>
+      <button class="poster" id="poster" type="button" aria-label="Play the explainer">
+        <span><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>Play explainer</span>
+      </button>
+    </div>
+
+    <div class="console">
+      <div class="caption" id="caption">
+        <div class="rule"></div>
+        <p id="captiontext"></p>
+      </div>
+      <div class="transport">
+        <button class="play" id="playbtn" type="button" aria-label="Play">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>
+        </button>
+        <button id="replay" type="button" aria-label="Replay from the start">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.6V0L4.4 3 8 6V3.6a4.4 4.4 0 1 1-4.4 4.4h-1A5.4 5.4 0 1 0 8 2.6z"/></svg>
+        </button>
+        <button id="prev" type="button" aria-label="Previous scene">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 2.5v11L4 8z"/></svg>
+        </button>
+        <div class="track">
+          <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Scene">
+          <div class="ticks" id="ticks"></div>
+        </div>
+        <button id="next" type="button" aria-label="Next scene">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 2.5v11L12 8z"/></svg>
+        </button>
+        <button id="sound" type="button" aria-label="Narration sound, on"></button>
+        <button class="wide" id="cc" type="button" aria-label="Captions, on" aria-pressed="true">CC</button>
+        <button class="wide" id="speed" type="button" aria-label="Playback speed, 1x">1x</button>
+        <span class="readout" id="readout"></span>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side" aria-label="Transcript">
+   <div class="side-in">
+    <div class="panelhead">
+      <span class="len" id="len" aria-label="Running time"></span>
+      <div class="tabs" role="tablist">
+        <button class="tab" id="tab-transcript" type="button" role="tab" aria-selected="true" aria-controls="p-transcript">Transcript</button>
+        <button class="tab" id="tab-summary" type="button" role="tab" aria-selected="false" aria-controls="p-summary" tabindex="-1">Summary</button>
+      </div>
+    </div>
+    <div class="tpanel" id="p-transcript" role="tabpanel" aria-labelledby="tab-transcript">
+      <ol class="transcript" id="transcript"></ol>
+    </div>
+    <div class="tpanel" id="p-summary" role="tabpanel" aria-labelledby="tab-summary" tabindex="0" hidden>
+      <p class="summary">Learn GitHub Copilot in VS Code is a series of short trainings on handing work on your files to an AI assistant, in plain language, whether or not you write code. It works across a whole folder from a chat beside your files: ask for a one-page summary of the folder and the file appears. It asks before moving or deleting files, and the edits it makes inside your files can be undone. It works from what you tell it (your request, plus preferences it remembers) and what it is allowed to do (read files, change them, run commands). <b>Getting started</b> covers asking, undoing and custom instructions. <b>Skills</b> is for work you repeat, such as a weekly summary. <b>Custom agents</b> is for a dedicated helper, such as a reviewer that can only read your documents. <b>Connecting your tools</b> lets it look things up in another service your team uses, such as GitHub. Start with Getting started; the others build on it.</p>
+    </div>
+   </div>
+  </aside>
+ </div>
+
+  <p class="standfirst">An overview of the trainings: what they let you do, how they fit together, and where to start.</p>
+
+  <p class="note">The progress bar reports the <b>scene</b>: it holds while a scene plays and steps at the boundary. <b>Sound is optional</b>: turned off, the captions carry the narration, and the piece stops when each scene has finished drawing until you press play.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var INK = "var(--ink)", MUTED = "var(--muted)", ACCENT = "var(--accent)",
+      CAUTION = "var(--caution)", GOOD = "var(--good)", BAD = "var(--bad)",
+      LINE = "var(--line)", PAPER = "var(--paper)";
+
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var RAMP = reduce ? 0.12 : 0.25;
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function attrs(o) {
+    var out = "";
+    for (var k in o) if (o[k] !== undefined && o[k] !== null) out += " " + k + '="' + o[k] + '"';
+    return out;
+  }
+  function txt(x, y, s, o) {
+    o = o || {};
+    return "<text" + attrs({ x: x, y: y, fill: o.fill || INK, "font-size": o.size || 24,
+      "font-weight": o.weight || 400, "text-anchor": o.anchor || "start",
+      "letter-spacing": o.ls, "class": o.cls }) + ">" + (o.raw ? s : esc(s)) + "</text>";
+  }
+  function tspan(s, fill, weight) {
+    return "<tspan" + attrs({ fill: fill, "font-weight": weight }) + ">" + esc(s) + "</tspan>";
+  }
+  function box(x, y, w, h, o) {
+    o = o || {};
+    return "<rect" + attrs({ x: x, y: y, width: w, height: h, rx: o.r === undefined ? 8 : o.r,
+      fill: o.fill || "none", stroke: o.stroke || LINE, "stroke-width": o.sw || 1.6 }) + "/>";
+  }
+  function line(x1, y1, x2, y2, o) {
+    o = o || {};
+    return "<line" + attrs({ x1: x1, y1: y1, x2: x2, y2: y2, stroke: o.stroke || LINE,
+      "stroke-width": o.sw || 2, "stroke-linecap": "round" }) + "/>";
+  }
+  function circle(cx, cy, r, o) {
+    o = o || {};
+    return "<circle" + attrs({ cx: cx, cy: cy, r: r, fill: o.fill || "none",
+      stroke: o.stroke, "stroke-width": o.sw || 1.6 }) + "/>";
+  }
+  function path(d, o) {
+    o = o || {};
+    return "<path" + attrs({ d: d, fill: o.fill || "none", stroke: o.stroke,
+      "stroke-width": o.sw || 2, "stroke-linejoin": "round", "stroke-linecap": "round" }) + "/>";
+  }
+
+  function tick(x, y, color) {
+    return path("M" + x + "," + (y - 5) + " L" + (x + 7) + "," + (y + 2) + " L" + (x + 19) + "," + (y - 14),
+      { stroke: color, sw: 3.4 });
+  }
+  function cross(x, y, color) {
+    return path("M" + x + "," + (y - 13) + " L" + (x + 14) + "," + (y + 1) +
+      " M" + (x + 14) + "," + (y - 13) + " L" + x + "," + (y + 1), { stroke: color, sw: 3.4 });
+  }
+  function person(cx, cy, fill) {
+    return circle(cx, cy - 14, 9, { fill: fill }) +
+      path("M" + (cx - 13) + "," + (cy + 8) + " a13,13 0 0 1 26,0 z", { fill: fill });
+  }
+
+  var MAX_LEAD = 1.2;
+  var TIMING = {
+    "open": { dur: 20.899, starts: [1.3, 12.217], pre: [1.3, 0.4] },
+    "at-work": { dur: 28.936, starts: [1.3, 10.249, 16.489, 21.327, 24.969], pre: [1.3, 2.4, 2.4, 0.4, 0.4] },
+    "frame": { dur: 18.328, starts: [1.3, 6.537, 11.161], pre: [1.3, 2.4, 0.4] },
+    "getting-started": { dur: 9.427, starts: [1.3], pre: [1.3] },
+    "skills": { dur: 10.408, starts: [1.3], pre: [1.3] },
+    "agents": { dur: 16.141, starts: [1.3, 9.209], pre: [1.3, 0.4] },
+    "connecting": { dur: 9.96, starts: [1.3], pre: [1.3] },
+    "start": { dur: 8.077, starts: [1.3, 3.172], pre: [1.3, 0.4] }
+  };
+
+  var ANIM = reduce
+    ? { fade: [0, 0], up: [0, 0], right: [0, 0], left: [0, 0] }
+    : { fade: [0, 0], up: [0, 16], right: [-16, 0], left: [16, 0] };
+
+  var S = [];
+  var AMBER = "var(--caution)", SOFT = "var(--accent-soft)";
+
+  function chip(x, y, w, label, o) {
+    o = o || {};
+    var color = o.color || ACCENT;
+    return box(x, y, w, o.h || 46, { fill: o.outline ? PAPER : SOFT, stroke: color, sw: 2.2, r: 8 }) +
+      txt(x + 18, y + (o.h || 46) / 2 + 7, label, { size: o.size || 19, fill: color, weight: 700 });
+  }
+  function arrowHead(x, y, dir, color) {
+    var d = dir === "left" ? "M" + x + "," + y + " l14,-8 l0,16 z" : "M" + x + "," + y + " l-14,-8 l0,16 z";
+    return path(d, { fill: color, stroke: color, sw: 1 });
+  }
+
+  var PANELS =
+    box(40, 60, 420, 420, { fill: PAPER, stroke: LINE, sw: 1.6, r: 10 }) +
+    box(500, 60, 420, 420, { fill: PAPER, stroke: LINE, sw: 1.6, r: 10 }) +
+    txt(66, 110, "Instructions", { size: 30, weight: 700 }) +
+    txt(66, 136, "what you tell it", { size: 17, fill: MUTED }) +
+    txt(526, 110, "Tools", { size: 30, weight: 700 }) +
+    txt(526, 136, "what it can do", { size: 17, fill: MUTED });
+  var REQUEST = chip(66, 168, 300, "your request", { outline: true, color: MUTED });
+  var TOOLS =
+    txt(556, 198, "read a file", { size: 21 }) +
+    txt(556, 262, "change a file", { size: 21 }) +
+    txt(556, 326, "run a command", { size: 21 });
+  var GS = chip(66, 232, 300, "Getting started");
+  var SKILLS = chip(66, 296, 300, "Skills");
+  var AGENTS = chip(66, 360, 300, "Custom agents");
+  var LIMITS =
+    line(548, 255, 698, 255, { stroke: AMBER, sw: 4 }) +
+    line(548, 319, 718, 319, { stroke: AMBER, sw: 4 }) +
+    line(534, 232, 534, 342, { stroke: AMBER, sw: 4 }) +
+    '<path d="M368,383 L480,383 L480,287 L534,287" fill="none" stroke="' + AMBER +
+    '" stroke-width="2.4" stroke-dasharray="6 5"/>';
+
+  S.push({
+    id: "open",
+    lines: [
+      { say: "Learn GitHub Copilot in V S Code is a series of short trainings on handing work on your files to an AI assistant, in plain language, whether or not you write code.", caption: "Learn GitHub Copilot in VS Code is a series of short trainings on handing work on your files to an AI assistant, in plain language, whether or not you write code." },
+      { say: "Ask it to draft a report, review a set of documents, build a small app or explain code, and it does the work in your folder.", caption: "Ask it to draft a report, review a set of documents, build a small app or explain code, and it does the work in your folder." }
+    ],
+    beats: [
+      { line: 0, anim: "up", svg:
+          txt(480, 250, "Learn GitHub Copilot in VS Code", { size: 44, weight: 700, anchor: "middle" }) +
+          line(330, 286, 630, 286, { stroke: ACCENT, sw: 3 }) +
+          txt(480, 330, "An overview", { size: 26, fill: ACCENT, anchor: "middle" }) }
+    ]
+  });
+
+  var NEQ = line(462, 266, 498, 266, { stroke: INK, sw: 3 }) + line(462, 288, 498, 288, { stroke: INK, sw: 3 }) +
+            line(472, 302, 488, 252, { stroke: INK, sw: 3 });
+  var WINDOW =
+    box(40, 40, 880, 470, { fill: PAPER, stroke: LINE, sw: 1.6, r: 10 }) +
+    '<rect x="41" y="41" width="878" height="28" fill="var(--bg)"/>' +
+    txt(480, 60, "Visual Studio Code", { size: 13, fill: MUTED, anchor: "middle" }) +
+    line(240, 69, 240, 509, { stroke: LINE, sw: 1.6 }) + line(620, 69, 620, 509, { stroke: LINE, sw: 1.6 }) +
+    txt(56, 94, "EXPLORER", { size: 11, fill: MUTED, weight: 700, ls: "0.06em" }) +
+    txt(56, 122, "my-folder", { size: 15, weight: 700 }) +
+    txt(76, 148, "plan.docx", { size: 15, fill: MUTED }) +
+    txt(76, 172, "notes.txt", { size: 15, fill: MUTED }) +
+    txt(636, 94, "CHAT", { size: 11, fill: MUTED, weight: 700, ls: "0.06em" }) +
+    box(636, 472, 80, 26, { fill: PAPER, stroke: MUTED, sw: 1.2, r: 5 }) +
+    txt(676, 490, "Agent", { size: 13, anchor: "middle" });
+  var REQ =
+    box(636, 106, 268, 76, { fill: SOFT, stroke: SOFT, sw: 1, r: 8 }) +
+    txt(650, 132, "Write a one-page summary", { size: 14 }) +
+    txt(650, 152, "of the documents in this", { size: 14 }) +
+    txt(650, 172, "folder.", { size: 14 });
+  var NEWFILE =
+    '<rect x="52" y="182" width="176" height="24" rx="4" fill="' + SOFT + '"/>' +
+    txt(76, 199, "summary.md", { size: 15, fill: ACCENT, weight: 700 }) +
+    txt(262, 94, "summary.md", { size: 14 }) + line(262, 101, 344, 101, { stroke: ACCENT, sw: 2.4 }) +
+    '<rect x="262" y="122" width="160" height="12" fill="' + INK + '" opacity=".75"/>' +
+    '<rect x="262" y="152" width="300" height="8" fill="' + LINE + '"/>' +
+    '<rect x="262" y="174" width="270" height="8" fill="' + LINE + '"/>' +
+    '<rect x="262" y="196" width="320" height="8" fill="' + LINE + '"/>' +
+    '<rect x="262" y="218" width="220" height="8" fill="' + LINE + '"/>' +
+    '<rect x="262" y="240" width="290" height="8" fill="' + LINE + '"/>';
+  var PERMIT =
+    box(636, 196, 268, 84, { fill: PAPER, stroke: AMBER, sw: 2, r: 8 }) +
+    txt(652, 224, "Run a command?", { size: 15, weight: 700 }) +
+    '<rect x="652" y="240" width="78" height="28" rx="5" fill="' + ACCENT + '"/>' +
+    txt(691, 259, "Allow", { size: 13, weight: 700, fill: PAPER, anchor: "middle" }) +
+    box(740, 240, 64, 28, { fill: PAPER, stroke: MUTED, sw: 1.2, r: 5 }) +
+    txt(772, 259, "Skip", { size: 13, anchor: "middle" });
+  var UNDO =
+    path("M666,210 a8,8 0 1 0 8,-8", { stroke: ACCENT, sw: 2.6 }) +
+    path("M670,198 l6,4 l-6,4 z", { fill: ACCENT, stroke: ACCENT, sw: 1 }) +
+    txt(686, 216, "Restore Checkpoint", { size: 14, fill: ACCENT, weight: 700 });
+
+  S.push({
+    id: "at-work",
+    lines: [
+      { say: "It's a different Copilot from the one in office apps: this one works across a whole folder of files on your computer.", caption: "It's a different Copilot from the one in office apps: this one works across a whole folder of files on your computer.", pause: 2.4 },
+      { say: "Your files sit on one side, and you talk to it in a chat beside them.", caption: "Your files sit on one side, and you talk to it in a chat beside them.", pause: 2.4 },
+      { say: "Ask for a one-page summary of the folder in a new file, and the file appears.", caption: "Ask for a one-page summary of the folder in a new file, and the file appears." },
+      { say: "If it needs to move or delete files, it asks you first.", caption: "If it needs to move or delete files, it asks you first." },
+      { say: "Edits it makes inside your files, you can undo.", caption: "Edits it makes inside your files, you can undo." }
+    ],
+    beats: [
+      { line: 0, outLine: 1, anim: "fade", svg:
+          box(110, 200, 330, 150, { fill: PAPER, stroke: LINE, sw: 1.6, r: 10 }) +
+          txt(275, 282, "Copilot in an office suite", { size: 21, fill: MUTED, anchor: "middle" }) + NEQ +
+          box(520, 200, 330, 150, { fill: PAPER, stroke: ACCENT, sw: 2.4, r: 10 }) +
+          txt(685, 282, "GitHub Copilot in VS Code", { size: 21, fill: ACCENT, weight: 700, anchor: "middle" }) },
+      { line: 1, anim: "fade", svg: WINDOW },
+      { line: 2, anim: "up", svg: REQ },
+      { line: 2, plus: 1.6, outLine: 4, outPlus: 0.8, anim: "fade", svg: NEWFILE },
+      { line: 3, outLine: 3, outPlus: 2.5, anim: "up", svg: PERMIT },
+      { line: 3, plus: 1.8, outLine: 3, outPlus: 2.5, anim: "fade", svg: box(647, 235, 88, 38, { stroke: ACCENT, sw: 3, r: 7 }) },
+      { line: 4, anim: "fade", svg: UNDO },
+      { line: 4, plus: 0.4, anim: "fade", svg: box(652, 190, 200, 36, { stroke: ACCENT, sw: 2.4, r: 6 }) }
+    ]
+  });
+
+  S.push({
+    id: "frame",
+    lines: [
+      { say: "It works from what you tell it, and what it's allowed to do.", caption: "It works from what you tell it, and what it's allowed to do.", pause: 2.4 },
+      { say: "What you tell it is your request, plus preferences it remembers every time.", caption: "What you tell it is your request, plus preferences it remembers every time." },
+      { say: "What it's allowed to do is read files, change them, and run commands, like those moves and deletes.", caption: "What it's allowed to do is read files, change them, and run commands, like those moves and deletes." }
+    ],
+    beats: [
+      { line: 0, anim: "fade", svg: PANELS },
+      { line: 1, anim: "right", svg: REQUEST },
+      { line: 2, anim: "left", svg: TOOLS }
+    ]
+  });
+
+  S.push({
+    id: "getting-started",
+    lines: [
+      { say: "The first training, Getting started, covers asking, undoing, and custom instructions: your preferences, set once.", caption: "The first training, Getting started, covers asking, undoing, and custom instructions: your preferences, set once." }
+    ],
+    beats: [
+      { line: 0, held: true, anim: "fade", svg: PANELS + REQUEST + TOOLS },
+      { line: 0, anim: "right", svg: GS }
+    ]
+  });
+
+  S.push({
+    id: "skills",
+    lines: [
+      { say: "The Skills training is for work you repeat, like a weekly summary: describe it once, then ask in one line and get it done the same way.", caption: "The Skills training is for work you repeat, like a weekly summary: describe it once, then ask in one line and get it done the same way." }
+    ],
+    beats: [
+      { line: 0, held: true, anim: "fade", svg: PANELS + REQUEST + TOOLS + GS },
+      { line: 0, anim: "right", svg: SKILLS }
+    ]
+  });
+
+  S.push({
+    id: "agents",
+    lines: [
+      { say: "The Custom agents training is for a dedicated helper, like a reviewer that checks your documents and is only allowed to read them.", caption: "The Custom agents training is for a dedicated helper, like a reviewer that checks your documents and is only allowed to read them." },
+      { say: "You give that reviewer its own instructions, so its reports come back in the same layout every time.", caption: "You give that reviewer its own instructions, so its reports come back in the same layout every time." }
+    ],
+    beats: [
+      { line: 0, held: true, anim: "fade", svg: PANELS + REQUEST + TOOLS + GS + SKILLS },
+      { line: 0, anim: "right", svg: AGENTS },
+      { line: 0, plus: 5.9, anim: "fade", svg: LIMITS }
+    ]
+  });
+
+  S.push({
+    id: "connecting",
+    lines: [
+      { say: "The Connecting your tools training lets it look things up in another service your team uses, such as GitHub, and use what it finds.", caption: "The Connecting your tools training lets it look things up in another service your team uses, such as GitHub, and use what it finds." }
+    ],
+    beats: [
+      { line: 0, held: true, anim: "fade", svg: PANELS + REQUEST + TOOLS + GS + SKILLS + AGENTS + '<g opacity=".2">' + LIMITS + "</g>" },
+      { line: 0, anim: "left", svg:
+          box(526, 352, 362, 74, { fill: SOFT, stroke: ACCENT, sw: 2.2, r: 8 }) +
+          txt(544, 383, "Connecting your tools", { size: 19, fill: ACCENT, weight: 700 }) +
+          txt(544, 410, "+ tools from GitHub", { size: 16, fill: ACCENT }) +
+          line(956, 389, 906, 389, { stroke: ACCENT, sw: 3 }) + arrowHead(892, 389, "left", ACCENT) }
+    ]
+  });
+
+  S.push({
+    id: "start",
+    lines: [
+      { say: "Start with Getting started.", caption: "Start with Getting started." },
+      { say: "The others build on it, so each one starts from what you already know.", caption: "The others build on it, so each one starts from what you already know." }
+    ],
+    beats: [
+      { line: 0, anim: "right", svg:
+          txt(110, 214, "Start here", { size: 19, fill: AMBER, weight: 700 }) +
+          chip(110, 230, 310, "Getting started", { h: 58, size: 24 }) },
+      { line: 1, anim: "left", svg:
+          chip(570, 168, 320, "Skills", { outline: true, color: MUTED }) +
+          chip(570, 246, 320, "Custom agents", { outline: true, color: MUTED }) +
+          chip(570, 324, 320, "Connecting your tools", { outline: true, color: MUTED }) +
+          line(424, 259, 552, 191, { stroke: MUTED, sw: 2.4 }) + arrowHead(566, 191, "right", MUTED) +
+          line(424, 259, 552, 269, { stroke: MUTED, sw: 2.4 }) + arrowHead(566, 269, "right", MUTED) +
+          line(424, 259, 552, 347, { stroke: MUTED, sw: 2.4 }) + arrowHead(566, 347, "right", MUTED) }
+    ]
+  });
+
+  function lead(tm, n) {
+    return Math.max(0, tm.starts[n] - Math.min(MAX_LEAD, Math.max(0, tm.pre[n] - 0.05)));
+  }
+
+  var sound = true, audioOK = true;
+
+  var SILENT_CAP = 0.8;
+
+  function silentTiming(tm) {
+    var pre = tm.pre.map(function (x) { return Math.min(x, SILENT_CAP); });
+    var st = [pre[0]];
+    for (var i = 1; i < tm.starts.length; i++) {
+      var spoken = tm.starts[i] - tm.starts[i - 1] - tm.pre[i];
+      st.push(st[i - 1] + spoken + pre[i]);
+    }
+    var last = tm.starts.length - 1;
+    return { dur: st[last] + (tm.dur - tm.starts[last]), starts: st, pre: pre };
+  }
+
+  var starts = [], total = 0;
+
+  function buildTimeline() {
+    starts = [];
+    total = 0;
+    for (var s = 0; s < S.length; s++) {
+      var sc = S[s];
+      var tm = useSound() ? TIMING[sc.id] : silentTiming(TIMING[sc.id]);
+      sc.dur = tm.dur;
+      sc.tm = tm;
+      sc.lineStarts = tm.starts;
+      sc.caption = sc.lines.map(function (l) { return l.caption; }).join(" ");
+      var settled = 0;
+      for (var bi = 0; bi < sc.beats.length; bi++) {
+        var bt = sc.beats[bi];
+
+        bt.at = bt.plus === undefined ? lead(tm, bt.line) : tm.starts[bt.line] + bt.plus;
+        if (bt.outLine !== undefined) bt.out = bt.outPlus === undefined ? lead(tm, bt.outLine) : tm.starts[bt.outLine] + bt.outPlus;
+        if (!bt.held && bt.at > settled) settled = bt.at;
+        if (bt.out !== undefined && bt.out > settled) settled = bt.out;
+      }
+
+      sc.settled = Math.min(settled + RAMP, sc.dur);
+      starts.push(total);
+      total += sc.dur;
+    }
+  }
+  buildTimeline();
+
+  var stage = document.getElementById("stage");
+  var markup = '<rect x="0" y="0" width="960" height="540" fill="' + PAPER + '"/>';
+  for (var sm = 0; sm < S.length; sm++) {
+    markup += '<g class="scene">';
+    for (var bm = 0; bm < S[sm].beats.length; bm++) {
+      var bt2 = S[sm].beats[bm];
+      markup += '<g class="beat" data-at="' + bt2.at + '" data-anim="' + bt2.anim + '"' +
+        (bt2.out === undefined ? "" : ' data-out="' + bt2.out + '"') +
+        (bt2.linear ? ' data-linear=""' : "") + ">" + bt2.svg + "</g>";
+    }
+    markup += "</g>";
+  }
+  stage.innerHTML = markup;
+
+  var sceneEls = stage.querySelectorAll(".scene"), beatEls = [];
+  for (var k = 0; k < sceneEls.length; k++) beatEls.push(sceneEls[k].querySelectorAll(".beat"));
+
+  var clips = [];
+  for (var c = 0; c < S.length; c++) {
+    var clip = new Audio("audio/" + S[c].id + ".mp3");
+    clip.preload = "metadata";
+    clip.addEventListener("error", onAudioLost);
+    clips.push(clip);
+  }
+
+  var compact = false;
+  var t = 0, playing = false, speed = 1, started = false,
+      last = 0, cur = 0, looping = false, seekUntil = 0;
+  var SPEEDS = [0.75, 1, 1.25, 1.5];
+
+  var captionEl = document.getElementById("caption"),
+      captionText = document.getElementById("captiontext"),
+      readout = document.getElementById("readout"),
+      scrub = document.getElementById("scrub"),
+      playbtn = document.getElementById("playbtn"),
+      poster = document.getElementById("poster"),
+      soundBtn = document.getElementById("sound");
+
+  var SPEAKER = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zm2.6 2.2-.9 1.3a3.6 3.6 0 0 1 0 5.8l.9 1.3a5.2 5.2 0 0 0 0-8.4z"/></svg>';
+  var MUTED_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zM10.3 5.7l1.5 1.5 1.5-1.5 1 1-1.5 1.5 1.5 1.5-1 1-1.5-1.5-1.5 1.5-1-1L10.8 8.2 9.3 6.7z"/></svg>';
+
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function mmss(x) {
+    var m = Math.floor(x / 60), ss = Math.floor(x % 60);
+    return m + ":" + (ss < 10 ? "0" : "") + ss;
+  }
+  function sceneAt(time) {
+    for (var i = S.length - 1; i >= 0; i--) if (time >= starts[i]) return i;
+    return 0;
+  }
+  function useSound() { return sound && audioOK; }
+
+  function reflectSound() {
+    var on = useSound();
+    soundBtn.innerHTML = on ? SPEAKER : MUTED_ICON;
+    soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    soundBtn.setAttribute("aria-label", on ? "Narration sound, on"
+      : audioOK ? "Narration sound, off" : "Narration sound, unavailable");
+  }
+
+  function paint(posterMode) {
+    var now = sceneAt(t);
+    for (var i = 0; i < S.length; i++) {
+      var on = i === now;
+      sceneEls[i].style.display = on ? "" : "none";
+      if (!on) continue;
+      var local = t - starts[i];
+      for (var j = 0; j < beatEls[i].length; j++) {
+        var g = beatEls[i][j];
+        var beat = S[i].beats[j];
+
+        if (beat.held) { g.style.opacity = 1; g.style.transform = ""; continue; }
+
+        var lin = beat.linear;
+        var pin = posterMode ? 1 : clamp((local - beat.at) / RAMP, 0, 1);
+        var e = lin ? pin : 1 - Math.pow(1 - pin, 3);
+        if (beat.out !== undefined && !posterMode) {
+          var pout = clamp((local - beat.out) / RAMP, 0, 1);
+          e = e * (1 - (lin ? pout : 1 - Math.pow(1 - pout, 3)));
+        }
+        var off = ANIM[beat.anim] || ANIM.fade;
+        g.style.opacity = e;
+        g.style.transform = "translate(" + (off[0] * (1 - e)).toFixed(2) + "px," + (off[1] * (1 - e)).toFixed(2) + "px)";
+      }
+    }
+
+    var ln = 0, localT = t - starts[now];
+    for (var li = 0; li < S[now].lines.length; li++) if (localT >= S[now].lineStarts[li] - 0.3) ln = li;
+
+    captionText.textContent = useSound() ? S[now].lines[ln].caption : S[now].caption;
+
+    paintReadout();
+    scrub.value = t >= total ? 1000 : Math.round((starts[now] / total) * 1000);
+
+    scrub.style.setProperty("--fill",
+      "calc(5.5px + " + (scrub.value / 1000) + " * (100% - 11px))");
+    scrub.setAttribute("aria-valuetext", "Scene " + (now + 1) + ", " + mmss(t));
+    markLine(now, ln);
+  }
+
+  function paintReadout() {
+    var now = sceneAt(t);
+    readout.textContent = (compact ? (now + 1) + "/" + S.length : "Scene " + (now + 1) + " of " + S.length) + " " +
+      String.fromCharCode(183) + " " + mmss(t) + " / " + mmss(total);
+  }
+
+  function stopClips() { for (var i = 0; i < clips.length; i++) clips[i].pause(); }
+
+  function syncClip() {
+    if (!useSound()) { stopClips(); return; }
+    for (var i = 0; i < clips.length; i++) if (i !== cur) clips[i].pause();
+    var clip = clips[cur];
+    clip.playbackRate = speed;
+    var want = clamp(t - starts[cur], 0, S[cur].dur);
+    if (Math.abs(clip.currentTime - want) > 0.25) {
+      try { clip.currentTime = want; seekUntil = performance.now() + 220; } catch (e) {}
+    }
+    if (playing && clip.paused) {
+      var pr = clip.play();
+      if (pr && pr.catch) pr.catch(onAudioLost);
+    }
+    if (!playing && !clip.paused) clip.pause();
+  }
+
+  function setPlaying(on) {
+    playing = on;
+    playbtn.setAttribute("aria-label", on ? "Pause" : "Play");
+    playbtn.innerHTML = on
+      ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 1.5h3.5v13H3.5zm5.5 0h3.5v13H9z"/></svg>'
+      : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>';
+    syncClip();
+    if (on && !looping) { looping = true; last = 0; requestAnimationFrame(step); }
+  }
+
+  function step(now) {
+    if (!playing) { looping = false; return; }
+    if (!last) last = now;
+    var dt = (now - last) / 1000;
+    last = now;
+
+    if (useSound() && !clips[cur].paused && now > seekUntil) {
+      t = starts[cur] + Math.min(clips[cur].currentTime, S[cur].dur);
+    } else {
+      t += dt * speed;
+    }
+
+    if (t >= total - 0.02) { t = total; paint(false); setPlaying(false); looping = false; return; }
+
+    if (!useSound() && t >= starts[cur] + S[cur].settled) {
+      t = starts[cur] + S[cur].settled;
+      paint(false);
+      setPlaying(false);
+      looping = false;
+      return;
+    }
+
+    var next = sceneAt(t);
+    if (next !== cur) { cur = next; syncClip(); }
+    paint(false);
+    requestAnimationFrame(step);
+  }
+
+  function goto(time, keepPlaying) {
+    t = clamp(time, 0, total);
+    cur = sceneAt(t);
+    if (!keepPlaying) t = starts[cur] + S[cur].settled;
+    if (!started) { started = true; poster.hidden = true; }
+    paint(false);
+    if (keepPlaying) syncClip(); else setPlaying(false);
+  }
+  function fromTop() {
+    started = true; poster.hidden = true; t = 0; cur = 0; paint(false); setPlaying(true);
+  }
+
+  poster.addEventListener("click", fromTop);
+  document.getElementById("replay").addEventListener("click", fromTop);
+  playbtn.addEventListener("click", function () {
+    if (!started || t >= total) { fromTop(); return; }
+
+    if (!playing && !useSound() && cur < S.length - 1 && t >= starts[cur] + S[cur].settled - 0.01) {
+      cur += 1; t = starts[cur]; paint(false);
+    }
+    setPlaying(!playing);
+  });
+  document.getElementById("prev").addEventListener("click", function () {
+    var i = sceneAt(t);
+
+    var replayThisScene = playing && useSound() && t - starts[i] >= 1.2;
+    if (!replayThisScene && i > 0) i--;
+    goto(starts[i], playing && useSound());
+  });
+  document.getElementById("next").addEventListener("click", function () {
+    var i = sceneAt(t);
+    goto(i + 1 < S.length ? starts[i + 1] : total,
+         playing && useSound() && i + 1 < S.length);
+  });
+  scrub.addEventListener("input", function () {
+    var want = sceneAt((scrub.value / 1000) * total);
+
+    if (want !== sceneAt(t)) goto(starts[want], playing); else paint(false);
+  });
+
+  scrub.addEventListener("keydown", function (e) {
+    var dir = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1
+      : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    var i = Math.min(S.length - 1, Math.max(0, sceneAt(t) + dir));
+    goto(starts[i], playing);
+  });
+
+  soundBtn.addEventListener("click", function () {
+    if (!audioOK) return;
+    var at = cur;
+    sound = !sound;
+    reflectSound();
+    buildTimeline();
+    renderChrome();
+    cur = at;
+    t = starts[at] + (sound ? 0 : S[at].settled);
+    if (!sound) { stopClips(); last = 0; } else syncClip();
+    fitPlayer();
+    paint(false);
+  });
+  var ccBtn = document.getElementById("cc");
+  ccBtn.addEventListener("click", function () {
+    var on = this.getAttribute("aria-pressed") === "true";
+    this.setAttribute("aria-pressed", on ? "false" : "true");
+    this.setAttribute("aria-label", on ? "Captions, off" : "Captions, on");
+    captionEl.hidden = on;
+  });
+  var speedBtn = document.getElementById("speed");
+  speedBtn.addEventListener("click", function () {
+    speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+    speedBtn.textContent = speed + "x";
+    speedBtn.setAttribute("aria-label", "Playback speed, " + speed + "x");
+    if (useSound()) clips[cur].playbackRate = speed;
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target !== document.body) return;
+    if (e.key === " ") { e.preventDefault(); playbtn.click(); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); document.getElementById("next").click(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); document.getElementById("prev").click(); }
+  });
+
+  var ol = document.getElementById("transcript");
+
+  function renderChrome() {
+    var tickHtml = "";
+    for (var ti = 1; ti < S.length; ti++) {
+      tickHtml += '<i style="left:' + ((starts[ti] / total) * 100).toFixed(2) + '%"></i>';
+    }
+    document.getElementById("ticks").innerHTML = tickHtml;
+    document.getElementById("len").textContent = mmss(total);
+
+    var tr = "";
+    lineEls = [];
+    for (var x = 0; x < S.length; x++) {
+      tr += '<li class="scn"><p class="scn-h">Scene ' + (x + 1) + "<span>" + mmss(starts[x]) + "</span></p><ol class=\"lines\">";
+      for (var y = 0; y < S[x].lines.length; y++) {
+        tr += '<li><button class="jump" type="button" data-s="' + x + '" data-l="' + y + '" data-on="false">' +
+          '<span class="tc">' + mmss(starts[x] + S[x].lineStarts[y]) + "</span>" +
+          '<span class="line">' + esc(S[x].lines[y].caption) + "</span></button></li>";
+      }
+      tr += "</ol></li>";
+    }
+    ol.innerHTML = tr;
+    var btns = ol.querySelectorAll(".jump");
+    for (var b = 0; b < btns.length; b++) {
+      var bs = +btns[b].getAttribute("data-s");
+      (lineEls[bs] = lineEls[bs] || []).push(btns[b]);
+    }
+    onLine = null;
+  }
+
+  var lineEls = [], onLine = null, userScrolledAt = -1e9;
+  var tscroll = document.getElementById("p-transcript");
+
+  ["wheel", "touchmove"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function () { userScrolledAt = performance.now(); }, { passive: true });
+  });
+
+  ["keydown", "pointerdown"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function (e) { if (e.target === tscroll) userScrolledAt = performance.now(); });
+  });
+
+  function follow(force) {
+    if (!onLine || tscroll.hidden) return;
+    if (!force && performance.now() - userScrolledAt < 4000) return;
+    var r = onLine.getBoundingClientRect(), sr = tscroll.getBoundingClientRect();
+    if (!sr.height) return;
+    var head = 28;
+    var want = tscroll.scrollTop + (r.top - sr.top) - (sr.height + head - r.height) / 2;
+    want = clamp(want, 0, tscroll.scrollHeight - tscroll.clientHeight);
+    if (Math.abs(want - tscroll.scrollTop) < 2) return;
+    try { tscroll.scrollTo({ top: want, behavior: reduce ? "auto" : "smooth" }); }
+    catch (e) { tscroll.scrollTop = want; }
+  }
+
+  function markLine(s, l) {
+    var el = lineEls[s] && lineEls[s][l];
+    if (!el || el === onLine) return;
+    if (onLine) { onLine.setAttribute("data-on", "false"); onLine.removeAttribute("aria-current"); }
+    onLine = el;
+    el.setAttribute("data-on", "true");
+    el.setAttribute("aria-current", "true");
+    follow(false);
+  }
+
+  function seekLine(s, l) {
+    var sc = S[s];
+    var at = l === 0 ? 0 : Math.max(0, sc.lineStarts[l] - 0.3);
+    t = clamp(starts[s] + at, 0, total);
+    cur = s;
+    if (!started) { started = true; poster.hidden = true; }
+    userScrolledAt = -1e9;
+
+    if (!useSound() && at >= sc.settled) { paint(false); setPlaying(false); return; }
+    paint(false);
+    setPlaying(true);
+  }
+
+  renderChrome();
+  ol.addEventListener("click", function (e) {
+    var btn = e.target.closest(".jump");
+    if (btn) seekLine(+btn.getAttribute("data-s"), +btn.getAttribute("data-l"));
+  });
+
+  var tabS = document.getElementById("tab-summary"), tabT = document.getElementById("tab-transcript");
+  function pick(summary, focus) {
+    tabS.setAttribute("aria-selected", summary ? "true" : "false");
+    tabT.setAttribute("aria-selected", summary ? "false" : "true");
+    tabS.tabIndex = summary ? 0 : -1;
+    tabT.tabIndex = summary ? -1 : 0;
+    document.getElementById("p-summary").hidden = !summary;
+    document.getElementById("p-transcript").hidden = summary;
+    if (focus) (summary ? tabS : tabT).focus();
+    if (!summary) follow(true);
+  }
+  tabS.addEventListener("click", function () { pick(true, false); });
+  tabT.addEventListener("click", function () { pick(false, false); });
+  [tabS, tabT].forEach(function (el) {
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        pick(el === tabT, true);
+      }
+    });
+  });
+
+  var theaterEl = document.querySelector(".theater"), playerEl = document.querySelector(".player"),
+      consoleEl = document.querySelector(".console");
+  var WIDE = window.matchMedia ? window.matchMedia("(min-width: 960px)") : { matches: false };
+
+  function longestCaption() {
+    var best = "";
+    for (var i = 0; i < S.length; i++) {
+      var opts = useSound() ? S[i].lines.map(function (l) { return l.caption; }) : [S[i].caption];
+      for (var j = 0; j < opts.length; j++) if (opts[j].length > best.length) best = opts[j];
+    }
+    return best;
+  }
+
+  function sizeCaption() {
+    var wasHidden = captionEl.hidden, keep = captionText.textContent;
+    captionEl.hidden = false;
+    captionEl.style.height = "";
+    captionText.textContent = longestCaption();
+
+    var h = Math.min(Math.ceil(captionEl.getBoundingClientRect().height),
+                     Math.max(118, Math.round(window.innerHeight * 0.3)));
+    captionText.textContent = keep;
+    captionEl.style.height = h + "px";
+    captionEl.hidden = wasHidden;
+    return h;
+  }
+
+  function fitPlayer() {
+    var avail = theaterEl.clientWidth;
+    var wide = WIDE.matches;
+    var sw = wide ? Math.round(clamp(avail * 0.3, 320, 400)) : 0;
+    var room0 = avail - (wide ? sw + 16 : 0);
+    var w = Math.max(320, Math.min(960, room0));
+
+    theaterEl.style.setProperty("--sw", sw + "px");
+    for (var pass = 0; pass < 4; pass++) {
+      var px = Math.floor(w);
+      theaterEl.style.setProperty("--pw", px + "px");
+      compact = px < 660;
+      paintReadout();
+      var capH = sizeCaption();
+      var chrome = consoleEl.getBoundingClientRect().height + (captionEl.hidden ? capH : 0);
+      var top = playerEl.getBoundingClientRect().top + window.scrollY;
+
+      var room = window.innerHeight - Math.min(top, window.innerHeight * 0.2) - chrome - 13;
+      w = Math.max(320, Math.min(960, room0, room * 16 / 9));
+      if (Math.floor(w) === px) break;
+    }
+    theaterEl.style.setProperty("--pw", Math.floor(w) + "px");
+    sizeCaption();
+    follow(true);
+  }
+  function onAudioLost() { audioOK = false; reflectSound(); fitPlayer(); }
+
+  fitPlayer();
+  window.addEventListener("resize", fitPlayer);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPlayer);
+
+  reflectSound();
+  paint(true);
+})();
+</script>
+
+</html>

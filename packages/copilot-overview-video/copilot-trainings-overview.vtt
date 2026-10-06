@@ -1,0 +1,52 @@
+WEBVTT
+
+00:00:01.300 --> 00:00:11.817
+Learn GitHub Copilot in VS Code is a series of short trainings on handing work on your files to an AI assistant, in plain language, whether or not you write code.
+
+00:00:12.217 --> 00:00:20.899
+Ask it to draft a report, review a set of documents, build a small app or explain code, and it does the work in your folder.
+
+00:00:22.199 --> 00:00:28.748
+It's a different Copilot from the one in office apps: this one works across a whole folder of files on your computer.
+
+00:00:31.148 --> 00:00:34.988
+Your files sit on one side, and you talk to it in a chat beside them.
+
+00:00:37.388 --> 00:00:41.826
+Ask for a one-page summary of the folder in a new file, and the file appears.
+
+00:00:42.226 --> 00:00:45.468
+If it needs to move or delete files, it asks you first.
+
+00:00:45.868 --> 00:00:49.835
+Edits it makes inside your files, you can undo.
+
+00:00:51.135 --> 00:00:53.972
+It works from what you tell it, and what it's allowed to do.
+
+00:00:56.372 --> 00:01:00.596
+What you tell it is your request, plus preferences it remembers every time.
+
+00:01:00.996 --> 00:01:08.163
+What it's allowed to do is read files, change them, and run commands, like those moves and deletes.
+
+00:01:09.463 --> 00:01:17.590
+The first training, Getting started, covers asking, undoing, and custom instructions: your preferences, set once.
+
+00:01:18.890 --> 00:01:27.998
+The Skills training is for work you repeat, like a weekly summary: describe it once, then ask in one line and get it done the same way.
+
+00:01:29.298 --> 00:01:36.807
+The Custom agents training is for a dedicated helper, like a reviewer that checks your documents and is only allowed to read them.
+
+00:01:37.207 --> 00:01:44.139
+You give that reviewer its own instructions, so its reports come back in the same layout every time.
+
+00:01:45.439 --> 00:01:54.099
+The Connecting your tools training lets it look things up in another service your team uses, such as GitHub, and use what it finds.
+
+00:01:55.399 --> 00:01:56.871
+Start with Getting started.
+
+00:01:57.271 --> 00:02:02.176
+The others build on it, so each one starts from what you already know.
