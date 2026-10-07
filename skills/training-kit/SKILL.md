@@ -5,7 +5,7 @@ description: Build a self-paced training kit on any subject, for any audience - 
 
 # Building a training kit
 
-Skill version: 1.13 (2026-10-07). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
+Skill version: 1.14 (2026-10-07). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
 
 You build a kit that leaves its learners able to do something in their own work. What they can do
 when they finish is the outcome, and every choice below serves it; the maintainer guide's opening
@@ -192,13 +192,18 @@ requester how terse or conservative they like it.
 
 **Plan each unit's pictures as you write it,** by the guide's "Pictures": go through the unit
 action by action and mark where its table gives a picture a job (find a control, confirm a
-result, see the window's parts, explain an idea), then make or fetch each one. A page of text
-with no picture is a decision you made against that table, never the default. Which pictures a
-page needs and what each shows are craft calls, yours. **Where the pictures come from is the
-requester's choice,** once per kit, before the first unit is shown: put the sources side by side
-(the vendor's documentation under its licence, screenshots taken for the kit under the product
-owner's screenshot terms, or both), with what each allows, what it shows that the learners will
-not see, and what of the requester's screen it publishes.
+result, see the window's parts, explain an idea). Look for two things: every place a learner
+would search the screen for a control or a part the text names, and every idea a paragraph
+carries as a relationship or a contrast. A page of text with no picture is a decision you made
+against that table, never the default. Which pictures a page needs and what each shows are craft
+calls, yours. **A picture of the tool is a drawing made for the kit from its real layout,** never
+a capture of one step's exact state, which goes stale whenever the step or the product changes;
+the requester is not asked where pictures come from. Build the tool's parts once, in the kit's
+`maintaining/make_drawings.py`, from the starter's shared `drawings.py`, checking each against the
+tool's source or documentation at the learners' version, and compose every drawing from them, so
+the next drawing is cheap and looks like the last. Which pictures a kit has, and how much of the
+screen each shows, are not put to the requester: draw them at the guide's level of detail, run
+them through the review, and the requester sees them in place on the pages.
 
 The starter's pre-written sentences, and the ones the builder writes itself (listed in the guide),
 assume one case: technical readers, practice in an assistant's chat, an assistant as help. Reread
@@ -239,6 +244,8 @@ a finding matters:**
 2. **Facts:** every claim about the tool on a changed page has a sourced line in the kit's facts
    file, and every claim about what is on screen is confirmed against the version the learners
    run (its source at that version's commit, or the screen itself), or is taken off the page.
+   Each element of a drawing (its place, label and icon) is such a claim, cited beside its part
+   in `maintaining/make_drawings.py`; an element no source supports becomes a gray bar.
 3. **Learner walk:** a fresh first-time-learner walk (review 1) records no STOP, and that
    learner answers the unit's own self-check correctly from the page alone.
 4. **Editorial:** one full editorial pass, every finding applied, none declined; then checks 1
@@ -332,6 +339,42 @@ review 5 after your change.
 
 A choice recorded under the kit's "Decisions" that conflicts with what this version changes is
 handled as the guide's "Decisions" says.
+
+What 1.14 changed from 1.13 (pictures are drawings):
+- Guide, "Pictures": a picture of the tool is a drawing made for the kit from the product's real
+  layout (a simplified user interface illustration): what the learner acts on drawn and labelled
+  in the screen's words, varying text as gray bars, one mark colour for what the step names.
+  Never a capture of one step's exact state. Locate and Orient take the drawing; Confirm only
+  where the product fixes how the result looks, and a result that differs from learner to
+  learner gets no picture; Explain is unchanged. A drawing is reused wherever a page names the
+  same parts. "What to expect" is derived from the jobs, since the figures measured before came
+  from screenshot pages; those figures are now the most a page needs. Every drawn element is a
+  claim, checked against the product's source or documentation at the learners' version and
+  cited beside its part.
+- Guide, "Pictures": "The cases that need deciding" (start from the kit's drawings; one control
+  in two states; actions that happen only sometimes; Checks with fixed and varying parts; words
+  inside a file; Orient once; product-drawn dialogs; the Explain style); and "Shows enough of the
+  screen to read as the product".
+- Gone, since no capture of the screen is used any more: cropping, the clean profile, credit lines
+  for captures, the statement of the product owner's screenshot terms, and asking the requester where pictures come from (step 5). A vendor's diagram reused for
+  an Explain job is still credited.
+- New `maintaining/drawings.py`, the shared parts (style and colour tokens, frame, gray bars,
+  buttons, outlines, leaders, labels, badges), and the kit's own `maintaining/make_drawings.py`,
+  which builds the tool's parts from them and composes each drawing. The build fails on a PNG,
+  JPEG, GIF or WebP picture on a learner page (RASTER, in `check_rulings.py`).
+- Step 5 plans pictures by two searches (every place a learner would hunt the screen for a named
+  control or part, every idea carried as a relationship or contrast). Which pictures, and how
+  much each shows, are craft calls: never put to the requester as a proposal or a "more or less
+  detail?" question. Checklist item 15 and review 12 judge drawings; review 4 checks
+  each drawn element; reviews 1 and 3 report a drawing that did not match the screen.
+- Upgrading from 1.13: copy the starter's `drawings.py` into the kit's `maintaining/`, and its
+  `make_drawings.py` only if the kit has none (a kit's own `make_drawings.py` is never
+  overwritten); add RASTER to the kit's `check_rulings.py`; set `SKILL_VERSION`; replace the
+  guide's "Pictures" section, its picture row under "How a page is written" and its
+  `maintaining/` row under "Where things are" with the starter's. Redraw every drawing the kit
+  already has, diagrams included, in `make_drawings.py` from the parts, with their sources. Mark superseded any entry under
+  "Decisions" that chose screenshots, with a new entry for drawings. Then propose the pictures
+  as step 5 says, and run review 12 on every unit.
 
 What 1.13 changed from 1.12:
 - Checklist item 18: a "What is ...?" unit teaches its subject as the owner defines it, with

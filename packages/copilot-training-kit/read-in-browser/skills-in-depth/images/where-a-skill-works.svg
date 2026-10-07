@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 140" role="presentation">
+<title>Where a skill works</title>
+<style>
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<text class="dg-x-cap" x="0" y="16">Saved in a folder</text><rect class="dg-x-hit" x="0" y="28" width="104" height="58" rx="6"/><text class="dg-tb" x="12" y="53" style="font-size:14px">one</text><text class="dg-tb" x="12" y="71" style="font-size:14px">folder</text><g class="dg-x-dim"><rect class="dg-x-card" x="114" y="28" width="104" height="58" rx="6"/><text class="dg-t" x="126" y="53" style="font-size:14px">another</text><text class="dg-t" x="126" y="71" style="font-size:14px">folder</text></g><g class="dg-x-dim"><rect class="dg-x-card" x="228" y="28" width="104" height="58" rx="6"/><text class="dg-t" x="240" y="53" style="font-size:14px">another</text><text class="dg-t" x="240" y="71" style="font-size:14px">folder</text></g><text class="dg-x-cap" x="0" y="112">Works while that folder is open.</text><text class="dg-x-cap" x="0" y="130">Anyone who opens the folder has it.</text><text class="dg-x-cap" x="368" y="16">Saved in your personal skills folder</text><rect class="dg-x-hit" x="368" y="28" width="104" height="58" rx="6"/><text class="dg-tb" x="380" y="53" style="font-size:14px">one</text><text class="dg-tb" x="380" y="71" style="font-size:14px">folder</text><rect class="dg-x-hit" x="482" y="28" width="104" height="58" rx="6"/><text class="dg-tb" x="494" y="53" style="font-size:14px">another</text><text class="dg-tb" x="494" y="71" style="font-size:14px">folder</text><rect class="dg-x-hit" x="596" y="28" width="104" height="58" rx="6"/><text class="dg-tb" x="608" y="53" style="font-size:14px">another</text><text class="dg-tb" x="608" y="71" style="font-size:14px">folder</text><text class="dg-x-cap" x="368" y="112">Works in every folder you open.</text><text class="dg-x-cap" x="368" y="130">For you only.</text>
+</svg>

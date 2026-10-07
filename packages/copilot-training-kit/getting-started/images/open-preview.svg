@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 280" role="presentation">
+<title>Open Preview in the menu of a Markdown file</title>
+<style>
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<rect class="dg-w" x="5" y="5" width="690" height="270" rx="8"/><rect class="dg-c" x="6" y="34" width="34" height="240" rx="0"/><g transform="translate(0 0)"><path class="dg-ic" d="M17 48h8l4 4v12H17z"/><circle class="dg-ic" cx="22" cy="83" r="5"/><path class="dg-ic" d="M26 87l5 5"/><circle class="dg-ic" cx="19" cy="108" r="2.5"/><circle class="dg-ic" cx="27" cy="116" r="2.5"/><path class="dg-ic" d="M19 111v10M19 118c0-4 8-2 8-4"/><path class="dg-ic" d="M18 136l10 6-10 6z"/><path class="dg-ic" d="M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z"/></g><line class="dg-l" x1="241" y1="34" x2="241" y2="274"/><text class="dg-s" x="51" y="54">EXPLORER</text><text class="dg-tb" x="51" y="78" style="font-size:12px">⌄ COPILOT-PRACTICE</text><text class="dg-t" x="63" y="100">› notes</text><rect class="dg-tn" x="42" y="107" width="198" height="21" rx="0"/><rect class="dg-b2" x="63" y="112" width="9" height="11" rx="2"/><text class="dg-t" x="78" y="122">actions.md</text><rect class="dg-w" x="170" y="96" width="230" height="168" rx="6"/><text class="dg-t" x="184" y="118">Open Preview</text><rect class="dg-b" x="184" y="130" width="110" height="7" rx="2"/><rect class="dg-b" x="184" y="144" width="130" height="7" rx="2"/><rect class="dg-b" x="184" y="158" width="96" height="7" rx="2"/><line class="dg-l" x1="176" y1="172" x2="394" y2="172"/><rect class="dg-b" x="184" y="184" width="140" height="7" rx="2"/><rect class="dg-b" x="184" y="200" width="96" height="7" rx="2"/><line class="dg-l" x1="176" y1="214" x2="394" y2="214"/><rect class="dg-b" x="184" y="228" width="120" height="7" rx="2"/><rect class="dg-b" x="184" y="246" width="150" height="7" rx="2"/><rect class="dg-m" x="176" y="102" width="218" height="26" rx="5"/><path class="dg-ml" d="M394 115L466 115"/><text class="dg-lab" x="472" y="110">Right-click actions.md, then</text><text class="dg-lab" x="472" y="128">select Open Preview</text>
+</svg>

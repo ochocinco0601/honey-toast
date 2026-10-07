@@ -17,14 +17,22 @@ Copilot creates procedures to practice on, in a new folder.
 > Add or change no other file.
 
 2. If a permission request appears, allow it if it matches what you asked.
+
+![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](../getting-started/images/permission-request.svg)
+
+In the drawings, gray bars stand for text that differs on your screen.
+
 3. On the **File** menu, select **Open Folder**. In the window that opens, go to Documents, the same Documents that File Explorer shows on the left. Select `agents-practice`, and then **Select Folder**.
-4. If VS Code asks whether you trust the authors of the files, select **Yes, I trust the authors**.
+4. If VS Code asks whether you trust the authors of the files, leave the box about the parent folder unticked, and then select **Yes, I trust the authors**.
+
+![Drawing of the dialog that asks whether you trust the authors, with the button to select: Yes, I trust the authors.](../getting-started/images/trust-question.svg)
+
 5. If a bar at the top says the folder is in Restricted Mode, select **Manage**, and then **Trust**.
 
 Check: the list on the left shows `AGENTS-PRACTICE`, with `procedures` in it, and a control at the bottom of the chat box shows **Agent**.
 
 <!-- more: If no control shows Agent -->
-If no control there says **Agent**, or the controls show only icons, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select **Agent**.
+If no control there says **Agent**, or the controls show only icons, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent highlighted. Select **Agent**.
 <!-- /more -->
 
 ## 2. Have Copilot create the Procedure reviewer
@@ -45,6 +53,8 @@ You describe the role, and Copilot writes the custom agent's file.
 2. If a permission request appears, allow it if it creates only that file.
 3. In the list on the left, expand `.github` until `procedure-reviewer.agent.md` shows, and select it.
 
+![Drawing of the list on the left: .github\agents on one row, and procedure-reviewer.agent.md under it.](images/agent-file.svg)
+
 Check: the header's `name` line says Procedure reviewer, and its `tools` line lists `read` and
 `search` only. `edit`, the tool that changes files, isn't there.
 
@@ -59,6 +69,8 @@ While it's selected, Copilot works in its role, with only its tools.
 1. At the top of the chat, select **New Chat** (+).
 2. At the bottom of the chat box, select the control that shows **Agent**, and then select
    **Procedure reviewer**.
+
+![Drawing of the chat: New Chat (+) at the top, and the list of agents, with Procedure reviewer, open above the Agent control.](images/list-of-agents.svg)
 
 Check: the control shows **Procedure reviewer**.
 

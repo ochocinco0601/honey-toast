@@ -1,7 +1,7 @@
 <!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
      Source: agents/make-its-reports-consistent.md
      Build: python maintaining/build_pages.py, from the kit's folder (see maintaining/README.md)
-     Built by the training-kit skill, version 1.13
+     Built by the training-kit skill, version 1.14
 -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -12,15 +12,15 @@
    mark on a completed unit. Nothing on the page is louder than the step the reader is doing. */
 :root{--bg:#ffffff;--bg2:#f7f7f7;--surface:#ffffff;--ink:#1b1b1b;--ink2:#4f4f4f;--ink3:#6b6b6b;
 --rule:#e6e6e6;--rule2:#cdcdcd;--accent:#0065b3;--accent-ink:#ffffff;--accent-soft:#eef4fa;--ok:#107c10;--ok-ink:#ffffff;
---ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;
+--ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;--mark:#bc4c00;--mark-ink:#ffffff;
 --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.06)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
 --bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;--rule:#303030;--rule2:#4a4a4a;
 --accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
+--ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
 :root[data-theme="dark"]{--bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;
 --rule:#303030;--rule2:#4a4a4a;--accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
+--ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
 :root[data-theme="dark"]{color-scheme:dark}:root[data-theme="light"]{color-scheme:light}
 :root{--side:var(--bg2);--cur:var(--accent-soft);--field:var(--ctl);--okink:var(--ok-ink);--hdr:52px;--crb:42px}
 *{box-sizing:border-box}
@@ -361,7 +361,42 @@ main ul.rates{list-style:none;padding:0;margin:12px 0}
 <p>A report laid out the same way every time is quicker to read and to check. In this unit, you have Copilot add a report layout to the Procedure reviewer's instructions. Then you ask for two reviews in different words and get the same layout. Start with the agents-practice folder open, as <a href="create-your-first-custom-agent.html">Create your first custom agent</a> left it.</p>
 <h2 id="1-have-copilot-add-a-report-layout-to-the-procedure-reviewer" class="step"><span class="sr">1. </span><span class="tt">Have Copilot add a report layout to the Procedure reviewer</span></h2>
 <p>The reviewer can't change its own file, so you use <b>Agent</b>.</p>
-<ol><li>At the top of the chat, select <b>New Chat</b> (+).</li><li>At the bottom of the chat box, select the control that shows <b>Procedure reviewer</b>, and then select <b>Agent</b>.</li><li>Enter:</li></ol>
+<ol><li>At the top of the chat, select <b>New Chat</b> (+).</li><li>At the bottom of the chat box, select the control that shows <b>Procedure reviewer</b>, and then select <b>Agent</b>.</li></ol>
+<p><span class="drawing" data-src="images/back-to-agent.svg" role="img" aria-label="Drawing of the list of agents, open above the control that shows Procedure reviewer, with Agent outlined."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 380" role="presentation">
+
+<style>
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<rect class="dg-w" x="5" y="5" width="420" height="370" rx="8"/><text class="dg-s" x="21" y="34">CHAT</text><path class="dg-ic" d="M347 23v14M340 30h14"/><path class="dg-ic" d="M358 29l3 3 3-3"/><circle class="dg-ic" cx="383" cy="30" r="6" style="stroke-dasharray:2.4 1.6;stroke-width:2.4"/><circle class="dg-ic" cx="383" cy="30" r="2.2"/><path class="dg-ic" d="M403 30h.5M409 30h.5M415 30h.5"/><rect class="dg-b" x="21" y="56" width="180" height="7" rx="2"/><rect class="dg-b" x="21" y="73" width="240" height="7" rx="2"/><rect class="dg-w" x="21" y="100" width="230" height="168" rx="6"/><path class="dg-ic" d="M38 119 l5 5 -5 5 -5 -5z"/><text class="dg-t" x="51" y="129">Agent</text><rect class="dg-b2" x="34" y="148" width="9" height="9" rx="2"/><rect class="dg-b" x="51" y="149" width="70" height="7" rx="2"/><rect class="dg-b2" x="34" y="172" width="9" height="9" rx="2"/><rect class="dg-b" x="51" y="173" width="56" height="7" rx="2"/><line class="dg-l" x1="29" y1="194" x2="243" y2="194"/><rect class="dg-tn" x="22" y="202" width="228" height="28" rx="0"/><path class="dg-ic" d="M34 216l3 3 6-7"/><text class="dg-t" x="51" y="221">Procedure reviewer</text><line class="dg-l" x1="29" y1="232" x2="243" y2="232"/><rect class="dg-b" x="51" y="245" width="90" height="7" rx="2"/><rect class="dg-w" x="17" y="280" width="396" height="66" rx="7"/><rect class="dg-b" x="29" y="293" width="110" height="7" rx="2"/><rect class="dg-ic" x="27" y="322" width="11" height="11" rx="2"/><path class="dg-ic" d="M32 325v5M30.0 327h5"/><rect class="dg-p" x="45" y="316" width="146" height="22" rx="5"/><text class="dg-t" x="55" y="331" style="font-size:12px">Procedure reviewer</text><rect class="dg-p" x="197" y="316" width="48" height="22" rx="5"/><rect class="dg-b" x="205" y="324" width="30" height="5" rx="2"/><circle class="dg-ic" cx="259" cy="327" r="5" style="stroke-dasharray:2.4 1.6;stroke-width:2.4"/><circle class="dg-ic" cx="259" cy="327" r="2.2"/><path d="M391 333l13-6-13-6v4.5l7 1.5-7 1.5z" style="fill:var(--ink3,#6b6b6b)"/><rect class="dg-m" x="27" y="110" width="214" height="26" rx="4"/><rect class="dg-m" x="40" y="311" width="158" height="30" rx="5"/><path class="dg-ml" d="M241 123L441 123"/><text class="dg-lab" x="447" y="128">Agent</text><path class="dg-ml" d="M121 342L121 360L441 360"/><text class="dg-lab" x="447" y="356">The control that shows</text><text class="dg-lab" x="447" y="374">Procedure reviewer</text>
+</svg></span></p>
+<ol start="3"><li>Enter:</li></ol>
 <div class="prompt"><div class="t">In the agents-practice folder, open .github/agents/procedure-reviewer.agent.md.
 At the end of its instructions, add this report layout:
 - A heading "Procedures checked", then the file name of each procedure checked.
@@ -394,7 +429,7 @@ Add or change no other file.</div><button class="copy" type="button" aria-label=
 <p>Source: <a href="https://code.visualstudio.com/docs/agent-customization/custom-agents" target="_blank" rel="noopener">Custom agents in VS Code</a>, Microsoft.</p>
 <nav class="pager" aria-label="What comes next"><div class="nextunit"><p class="lbl">End of the path</p><h2>Custom agents</h2><div class="nextrow"><a class="btn" href="index.html" data-complete="1">Back to the training<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a><a class="prev" href="create-your-first-custom-agent.html">&lsaquo; Previous unit: Create your first custom agent</a></div><p class="lbl">Optional: <a href="how-to/index.html">Practice recipes</a>, new tasks that use what this training taught</p><p class="nudge" id="nudge" aria-live="polite" data-btn="Back to the training"></p></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-05</span><a href="../CHANGELOG.html">Version 1.3</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-07</span><a href="../CHANGELOG.html">Version 1.4</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>

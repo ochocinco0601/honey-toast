@@ -63,11 +63,14 @@ shows its name.
 
 ## Custom instructions, a skill or a custom agent?
 
-| To have Copilot | Use | Copilot uses it |
-|---|---|---|
-| Follow the same rules in every request in a folder | Custom instructions | With every request while the folder is open |
-| Do a task you repeat the same way each time | A skill | When a request matches its description, or you select it after typing `/` |
-| Work in one role, such as reviewer or planner, for a whole chat | A custom agent | While you have it selected in the chat box |
+![Diagram: custom instructions go with every request in a folder, a skill with a request that matches it, a custom agent with each one while selected.](images/which-one.svg)
+
+- **Custom instructions:** for Copilot to follow the same rules in every request in a folder. Copilot uses them
+  with every request while the folder is open.
+- **A skill:** for Copilot to do a task you repeat the same way each time. Copilot uses it when a request
+  matches its description, or when you select it after typing `/`.
+- **A custom agent:** for Copilot to work in one role, such as reviewer or planner, for a whole chat. Copilot
+  uses it while you have it selected in the chat box.
 
 For something you need only once, say it in the request. Often more than one would work: choose
 the smallest change that does the job. The home page's

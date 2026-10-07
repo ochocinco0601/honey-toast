@@ -19,7 +19,7 @@ import sys
 # ---- What a maintainer changes when the kit grows (see maintaining/README.md) ----
 # A record, not a setting: the version of the training-kit skill that built this kit. It goes into
 # each page's generated-file comment only. The kit's own version is the newest entry in CHANGELOG.md.
-SKILL_VERSION = "1.13"
+SKILL_VERSION = "1.14"
 PROGRAM_NAME = "Training programme"
 # Who the learner asks for help, and where they paste a prompt for it.
 ASSISTANT = "the assistant"
@@ -943,7 +943,7 @@ TEMPLATE = """<!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
 INDEX = []
 
 
-NO_LINK = ("a", "code", "h1", "h2", "h3", "h4", "summary", "kbd", "button", "label")
+NO_LINK = ("a", "code", "h1", "h2", "h3", "h4", "summary", "kbd", "button", "label", "svg")
 # Elements never given a glossary link, by class: a prompt's text, a marked blank, and every label the
 # page sets on a block (Check, Example, a prompt's "Ask ..." line, a card's unit number or status).
 NO_LINK_CLASSES = {"t", "org", "lab", "lbl", "tag", "un", "us", "unit"}
@@ -1321,15 +1321,15 @@ CSS = r"""/* One accent (links and where you are), neutrals for everything else,
    mark on a completed unit. Nothing on the page is louder than the step the reader is doing. */
 :root{--bg:#ffffff;--bg2:#f7f7f7;--surface:#ffffff;--ink:#1b1b1b;--ink2:#4f4f4f;--ink3:#6b6b6b;
 --rule:#e6e6e6;--rule2:#cdcdcd;--accent:#0065b3;--accent-ink:#ffffff;--accent-soft:#eef4fa;--ok:#107c10;--ok-ink:#ffffff;
---ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;
+--ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;--mark:#bc4c00;--mark-ink:#ffffff;
 --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.06)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
 --bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;--rule:#303030;--rule2:#4a4a4a;
 --accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
+--ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
 :root[data-theme="dark"]{--bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;
 --rule:#303030;--rule2:#4a4a4a;--accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
+--ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
 :root[data-theme="dark"]{color-scheme:dark}:root[data-theme="light"]{color-scheme:light}
 :root{--side:var(--bg2);--cur:var(--accent-soft);--field:var(--ctl);--okink:var(--ok-ink);--hdr:52px;--crb:42px}
 *{box-sizing:border-box}

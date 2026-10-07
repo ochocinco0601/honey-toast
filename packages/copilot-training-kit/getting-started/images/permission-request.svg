@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 346" role="presentation">
+<title>A permission request in the chat</title>
+<style>
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<rect class="dg-w" x="5" y="5" width="450" height="336" rx="8"/>
+<text class="dg-s" x="21" y="34">CHAT</text><path class="dg-ic" d="M377 23v14M370 30h14"/><path class="dg-ic" d="M388 29l3 3 3-3"/><circle class="dg-ic" cx="413" cy="30" r="6" style="stroke-dasharray:2.4 1.6;stroke-width:2.4"/><circle class="dg-ic" cx="413" cy="30" r="2.2"/><path class="dg-ic" d="M433 30h.5M439 30h.5M445 30h.5"/>
+<rect class="dg-tn" x="200" y="50" width="240" height="42" rx="7"/>
+<rect class="dg-b2" x="212" y="61" width="200" height="7" rx="2"/><rect class="dg-b2" x="212" y="75" width="130" height="7" rx="2"/>
+<rect class="dg-w" x="20" y="106" width="420" height="150" rx="7"/>
+<path class="dg-ic" d="M38 128l5 5-5 5M48 140h9"/>
+<rect class="dg-b2" x="66" y="129" width="180" height="9" rx="2"/>
+<rect class="dg-c" x="38" y="156" width="384" height="28" rx="4"/><rect class="dg-b2" x="50" y="166" width="210" height="7" rx="2"/>
+<rect class="dg-btn" x="38" y="204" width="88" height="28" rx="5"/><text class="dg-btnt" x="52" y="223">Allow</text>
+<line class="dg-btnl" x1="100" y1="208" x2="100" y2="228"/><path class="dg-btnl" d="M107 215l5 5 5-5" style="stroke-width:1.6"/>
+<rect class="dg-p" x="134" y="204" width="58" height="28" rx="5"/><text class="dg-t" x="148" y="223">Skip</text>
+<rect class="dg-w" x="17" y="266" width="426" height="66" rx="7"/><rect class="dg-b" x="29" y="279" width="110" height="7" rx="2"/><rect class="dg-ic" x="27" y="308" width="11" height="11" rx="2"/><path class="dg-ic" d="M32 311v5M30.0 313h5"/><rect class="dg-p" x="45" y="302" width="71" height="22" rx="5"/><path class="dg-ic" d="M57 308.5l4.5 4.5-4.5 4.5-4.5-4.5z"/><text class="dg-t" x="68" y="317" style="font-size:12px">Agent</text><rect class="dg-p" x="122" y="302" width="48" height="22" rx="5"/><rect class="dg-b" x="130" y="310" width="30" height="5" rx="2"/><circle class="dg-ic" cx="184" cy="313" r="5" style="stroke-dasharray:2.4 1.6;stroke-width:2.4"/><circle class="dg-ic" cx="184" cy="313" r="2.2"/><path d="M421 319l13-6-13-6v4.5l7 1.5-7 1.5z" style="fill:var(--ink3,#6b6b6b)"/>
+<rect class="dg-m" x="30" y="118" width="400" height="74" rx="5"/>
+<rect class="dg-m" x="30" y="198" width="168" height="40" rx="5"/>
+<path class="dg-ml" d="M430 155h36"/><text class="dg-lab" x="472" y="151">What Copilot will do:</text><text class="dg-lab" x="472" y="169">the command it runs</text>
+<path class="dg-ml" d="M198 218h268"/><text class="dg-lab" x="472" y="223">Allow runs it; Skip doesn't</text>
+</svg>

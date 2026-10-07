@@ -10,4 +10,5 @@ organization).
 
 | Page | Claim | Source | Class |
 |---|---|---|---|
+| Every drawing | Each drawn part: its place, its label and its icon | Cited beside the part in `maintaining/make_drawings.py`, checked against `[TO BE WRITTEN: the tool's source or documentation, at the learners' version, and the date]` | observed |
 | `[TO BE WRITTEN: page]` | `[TO BE WRITTEN: the sentence]` | `[TO BE WRITTEN: where it came from]` | `[TO BE WRITTEN: class]` |

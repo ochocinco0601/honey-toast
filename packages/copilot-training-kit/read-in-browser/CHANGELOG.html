@@ -1,7 +1,7 @@
 <!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
      Source: CHANGELOG.md
      Build: python maintaining/build_pages.py, from the kit's folder (see maintaining/README.md)
-     Built by the training-kit skill, version 1.13
+     Built by the training-kit skill, version 1.14
 -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -12,15 +12,15 @@
    mark on a completed unit. Nothing on the page is louder than the step the reader is doing. */
 :root{--bg:#ffffff;--bg2:#f7f7f7;--surface:#ffffff;--ink:#1b1b1b;--ink2:#4f4f4f;--ink3:#6b6b6b;
 --rule:#e6e6e6;--rule2:#cdcdcd;--accent:#0065b3;--accent-ink:#ffffff;--accent-soft:#eef4fa;--ok:#107c10;--ok-ink:#ffffff;
---ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;
+--ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;--mark:#bc4c00;--mark-ink:#ffffff;
 --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.06)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
 --bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;--rule:#303030;--rule2:#4a4a4a;
 --accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
+--ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
 :root[data-theme="dark"]{--bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;
 --rule:#303030;--rule2:#4a4a4a;--accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
+--ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
 :root[data-theme="dark"]{color-scheme:dark}:root[data-theme="light"]{color-scheme:light}
 :root{--side:var(--bg2);--cur:var(--accent-soft);--field:var(--ctl);--okink:var(--ok-ink);--hdr:52px;--crb:42px}
 *{box-sizing:border-box}
@@ -357,8 +357,10 @@ main ul.rates{list-style:none;padding:0;margin:12px 0}
 <nav class="crumbs" aria-label="Breadcrumb"><div class="in"><ol><li class="prog"><a href="README.html">GitHub Copilot training</a></li><li aria-current="page"><span>What&#x27;s new</span></li></ol></div></nav>
 <main id="main" data-steps="0" data-page="What&#x27;s new" data-stuck-from="1" data-kit-open="0" data-stuck="1" data-program="GitHub Copilot training" data-assistant="Copilot" data-chat="the chat box">
 <h1>What's new</h1>
-<details class="toc-inline"><summary>On this page</summary><ul><li class="l2"><a href="#1-3-2026-10-07">1.3 - 2026-10-07</a></li><li class="l2"><a href="#1-2-2026-10-05">1.2 - 2026-10-05</a></li><li class="l2"><a href="#1-1-2026-10-05">1.1 - 2026-10-05</a></li><li class="l2"><a href="#1-0-2026-10-03">1.0 - 2026-10-03</a></li></ul></details><h2 id="1-3-2026-10-07">1.3 - 2026-10-07</h2>
-<ul><li>Home page: a new "Which to use when" table. It shows when to use <a class="gl" href="glossary.html#custom-instructions" title="Notes Copilot reads before every request in a folder: what your work is, who it&#x27;s for and how you want it done. Kept in .github/copilot-instructions.md">custom instructions</a>, a <a class="gl" href="glossary.html#skill" title="Saved instructions for one kind of task, which Copilot follows when you ask for that task. A skill in a folder works while that folder is open; one in your personal skills folder works in every folder">skill</a>, a <a class="gl" href="glossary.html#custom-agent" title="An agent set up for one role, with its own instructions, the tools it may use and, if you choose, its AI model. You select it in the chat box">custom agent</a> or a connection, and which training teaches each.</li><li>Custom agents, "What is a custom agent?": a custom agent is set up for a role, such as reviewer, planner or writer. Taking a <a class="gl" href="glossary.html#tool" title="One action Copilot can take, such as reading a file, changing a file or running a command. An agent can do only what its tools allow">tool</a> away is one reason to use one, not the only one. The exercise has a fifth case.</li></ul>
+<details class="toc-inline"><summary>On this page</summary><ul><li class="l2"><a href="#1-4-2026-10-07">1.4 - 2026-10-07</a></li><li class="l2"><a href="#1-3-2026-10-07">1.3 - 2026-10-07</a></li><li class="l2"><a href="#1-2-2026-10-05">1.2 - 2026-10-05</a></li><li class="l2"><a href="#1-1-2026-10-05">1.1 - 2026-10-05</a></li><li class="l2"><a href="#1-0-2026-10-03">1.0 - 2026-10-03</a></li></ul></details><h2 id="1-4-2026-10-07">1.4 - 2026-10-07</h2>
+<ul><li>Every training has more drawings of VS Code: Open Preview in the menu of a file, New Chat, the file Copilot saved in the list on the left, going back to <b>Agent</b>, the handoff button, the line that starts a connection, and the <a class="gl" href="glossary.html#tool" title="One action Copilot can take, such as reading a file, changing a file or running a command. An agent can do only what its tools allow">tools</a> Copilot ran. The list of agents now also shows New Chat.</li><li>Skills, Custom agents and Connecting your tools show the <a class="gl" href="glossary.html#permission-request" title="Allow and Skip buttons in a reply, asking whether Copilot may run a command. How to read one: Reading a permission request">permission request</a> and the trust question again where each training first opens its folder.</li><li>Skills, "What is a <a class="gl" href="glossary.html#skill" title="Saved instructions for one kind of task, which Copilot follows when you ask for that task. A skill in a folder works while that folder is open; one in your personal skills folder works in every folder">skill</a>?", and Connecting your tools, "Connect Copilot to GitHub", have new diagrams: where a skill works, how a skill differs from <a class="gl" href="glossary.html#custom-instructions" title="Notes Copilot reads before every request in a folder: what your work is, who it&#x27;s for and how you want it done. Kept in .github/copilot-instructions.md">custom instructions</a>, and what a connection adds.</li><li>Custom agents, "What is a <a class="gl" href="glossary.html#custom-agent" title="An agent set up for one role, with its own instructions, the tools it may use and, if you choose, its AI model. You select it in the chat box">custom agent</a>?": the diagram of a tool asked for or taken away is redrawn to match, and the table comparing custom instructions, a skill and a custom agent is now a diagram with a list under it.</li><li>Getting started, "Change Copilot's work, then undo it": the step that undoes the table names the <b>Yes</b> button.</li><li>Every step that asks whether you trust a folder's authors says to leave the box about the parent folder unticked; Help says the list of agents opens with the selected agent highlighted.</li></ul>
+<h2 id="1-3-2026-10-07">1.3 - 2026-10-07</h2>
+<ul><li>Home page: a new "Which to use when" table. It shows when to use custom instructions, a skill, a custom agent or a connection, and which training teaches each.</li><li>Custom agents, "What is a custom agent?": a custom agent is set up for a role, such as reviewer, planner or writer. Taking a tool away is one reason to use one, not the only one. The exercise has a fifth case.</li></ul>
 <h2 id="1-2-2026-10-05">1.2 - 2026-10-05</h2>
 <ul><li>Custom agents, "What is a custom agent?": the answer to the four cases lists each case on its own line.</li></ul>
 <h2 id="1-1-2026-10-05">1.1 - 2026-10-05</h2>
@@ -367,7 +369,7 @@ main ul.rates{list-style:none;padding:0;margin:12px 0}
 <ul><li>The first release: Getting started, Skills, Custom agents and Connecting your tools.</li></ul>
 <nav class="pager" aria-label="Previous and next page"><div class="nextrow quiet"><a class="prev" href="README.html">&lsaquo; All trainings</a></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-07</span><a href="CHANGELOG.html">Version 1.3</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-07</span><a href="CHANGELOG.html">Version 1.4</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>

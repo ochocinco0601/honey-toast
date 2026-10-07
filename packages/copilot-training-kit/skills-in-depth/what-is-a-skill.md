@@ -46,12 +46,16 @@ A skill saved in a folder works only while that folder is open in VS Code, and a
 that folder has it. A skill saved in your personal skills folder works in every folder you open,
 for you only. Copilot saves a skill in either place when you ask.
 
+![Diagram: a skill saved in a folder works only while that folder is open; one in your personal skills folder works in every folder.](images/where-a-skill-works.svg)
+
 ## Skills and custom instructions
 
 In the Getting started unit [Give Copilot custom instructions for a folder](../getting-started/custom-instructions.md), you saved rules for summaries as custom
 instructions. Copilot read them with every request while the folder was open. Instructions saved
 as a skill are read only when you ask for that task. That means they never change Copilot's
 answers to anything else, and you can keep one skill for each task you repeat.
+
+![Diagram: custom instructions are read with every request in the folder; a skill only with the request that matches it.](images/instructions-or-skill.svg)
 
 The home page's [Which to use when](../README.md#which-to-use-when) shows where skills fit beside
 custom instructions, custom agents and connections.

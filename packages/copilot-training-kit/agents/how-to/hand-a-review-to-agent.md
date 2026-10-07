@@ -47,6 +47,8 @@ Check: the header has `label: Fix the unclear steps` and
 Check: when the reply finishes, a button that says **Fix the unclear steps** shows below it, under
 **Proceed from Procedure reviewer**.
 
+![Drawing of the chat after the reviewer's reply: Proceed from Procedure reviewer, then the Fix the unclear steps button.](../images/handoff.svg)
+
 <!-- more: If no button appears -->
 Select the control that shows **Procedure reviewer**, select **Agent**, and enter:
 

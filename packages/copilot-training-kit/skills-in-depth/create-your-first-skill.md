@@ -17,15 +17,22 @@ Copilot creates meeting notes to practice on, in a new folder for this training.
 > Add or change no other file.
 
 2. If a permission request appears, allow it if it matches what you asked.
+
+![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](../getting-started/images/permission-request.svg)
+
+In the drawings, gray bars stand for text that differs on your screen.
+
 3. On the **File** menu, select **Open Folder**. In the window that opens, go to Documents, the same Documents that File Explorer shows on the left. Select `skills-practice`, and then **Select Folder**.
-4. If VS Code asks whether you trust the authors of the files, select **Yes, I trust the
-   authors**. If a bar at the top says the folder is in Restricted Mode instead, select **Manage**,
+4. If VS Code asks whether you trust the authors of the files, leave the box about the parent folder unticked,
+   and then select **Yes, I trust the authors**. If a bar at the top says the folder is in Restricted Mode instead, select **Manage**,
    and then **Trust**.
+
+![Drawing of the dialog that asks whether you trust the authors, with the button to select: Yes, I trust the authors.](../getting-started/images/trust-question.svg)
 
 Check: the list on the left shows `SKILLS-PRACTICE`, with `notes` in it, and a control at the bottom of the chat box says **Agent**.
 
 <!-- more: If no control shows Agent -->
-If no control there says **Agent**, or the controls show only icons, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select **Agent**.
+If no control there says **Agent**, or the controls show only icons, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent highlighted. Select **Agent**.
 <!-- /more -->
 
 ## 2. Ask for a meeting summary without a skill
@@ -57,6 +64,8 @@ them again.
 
 2. In the list on the left, expand `.github` until `SKILL.md` shows, and select it.
 
+![Drawing of the list on the left: .github\skills\meeting-summary on one row, and SKILL.md under it.](images/skill-file.svg)
+
 Check: the file holds your instructions, and a description saying to use the skill when you ask to
 summarize meeting notes.
 
@@ -69,6 +78,9 @@ personal skills folder instead.
 This time you ask in one line, and Copilot follows the skill.
 
 1. Select **New Chat** (+).
+
+![Drawing of the top of the chat, with New Chat (+) outlined.](../getting-started/images/new-chat.svg)
+
 2. Enter:
 
 > Summarize the meeting notes in the notes folder.

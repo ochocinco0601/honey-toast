@@ -18,6 +18,8 @@ Start with the practice folder open and the chat set to **Agent**, as at the end
 2. If a permission request appears, allow it if it matches what you asked.
 3. In the list on the left, right-click `actions.md` and select **Open Preview**.
 
+![Drawing of the menu for actions.md in the list on the left, with Open Preview near the top.](images/open-preview.svg)
+
 Check: `notes` holds three files, and `actions.md` lists actions, each with an owner, a due date
 and the note it came from.
 
@@ -44,9 +46,9 @@ Restore Checkpoint undoes the edits Copilot made with a request, so it's safe to
 1. In the chat, hover over your last request, the one about the table, and select **Restore
    Checkpoint**.
 
-![Restore Checkpoint above a request in the chat](images/restore-checkpoint.png)
+![Drawing of the chat. Hovering over your last request shows Restore Checkpoint above it.](images/restore-checkpoint.svg)
 
-2. Confirm that you want to restore it.
+2. In the dialog that asks whether to undo your last edit, select **Yes**.
 
 Check: `actions.md` is a list again, as it was before the table.
 
@@ -62,13 +64,12 @@ You can do this with your own files. On the **File** menu, select **Open Folder*
 folder. Then give Copilot a task in plain words: what to read, what to make, and where to put it.
 
 <!-- more: Word and PDF files, and getting back here -->
-Word and PDF files aren't plain text, so Copilot may ask to run a small command to read them. If it
-reads the file you named, allow it. To get back to the practice folder, on the **File** menu, select
+Word and PDF files aren't plain text, so Copilot may ask to run a small command to read them. If the
+command only reads the file you named, allow it. If it installs or downloads anything, select
+**Skip**. To get back to the practice folder, on the **File** menu, select
 **Open Recent**.
 <!-- /more -->
 
 ## What you did
 
 You gave Copilot a task, changed the result with a follow-up, and undid the change.
-
-Screenshot: Visual Studio Code documentation, Microsoft, CC BY 3.0.

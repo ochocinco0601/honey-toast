@@ -70,12 +70,18 @@ Report each finding as: the item, the line, and what a learner would do wrong be
 14. **Reassurance and verification, not generic warnings.** The guide's "Say what a step will change" and "Prompts" rule 8:
     is any caution, judgement test or blanket warning left that the tool doesn't require?
 15. **Pictures, in both directions.** Against the table in the guide's "Pictures". Missing: an
-    action whose control is small, inside a menu or among several like it; a Check that depends
-    on how the screen looks; an idea a paragraph carries as a relationship or a contrast. Each of
-    these with no picture is a finding. Present: each picture does one of the four jobs, sits
-    under what it belongs to, and meets "Every picture" there; nothing in it contradicts the text
-    (for example, an "Install Extension" heading, or a label the learners' version has renamed).
-    A picture with no job is a finding too.
+    action whose control is small, inside a menu or among several like it, the first time its
+    training uses it; a Check whose look the product fixes (a control that appears, a status
+    that changes, a dialog) where words leave doubt; an idea a paragraph carries as a
+    relationship or a contrast. Each of these with no picture is a finding. A Check on content
+    that differs from learner to learner (a reply, a file the tool writes) needs no picture, and
+    one there is a finding. Present: each picture does one of the four jobs, sits under what it
+    belongs to, and meets "Every picture" there. It is a drawing from the product's layout, never
+    a capture of one step's state; each label is the page's word for the thing; varying text is
+    a gray bar; it shows the panel around the control with its header, icons and neighbouring
+    controls, at the level of the kit's other drawings of that window; nothing in it contradicts the text (for example, an "Install Extension" heading,
+    or a label the learners' version has renamed). Where two pages name the same parts, they
+    share a drawing or its parts, not two near-copies. A picture with no job is a finding too.
 16. **The page as a whole.** The page passes the guide's ten-second test ("What a step shows"), and
     its "Density": no run of paragraphs over about 130 words without a list, table, picture or
     code block, no heading more than 250 words from the last, and parallel items as a list. The

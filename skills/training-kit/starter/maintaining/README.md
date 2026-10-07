@@ -123,7 +123,9 @@ screen label that contains one, such as **Open Preview** when "Preview" is a glo
   safe (for VS Code: vscode-docs `docs/agents/run/approvals.md` and
   `docs/agents/concepts/trust-and-safety.md`, read 2026-09-30). Leave out options a beginner
   doesn't need. The build fails on a permission request taught as "never choose" or "do not
-  choose" instead of the documentation's Allow or Skip (CAUTION).
+  choose" instead of the documentation's Allow or Skip (CAUTION). A caution the tool's
+  documentation or the requester gives is kept as they word it; where it needs these words,
+  remove CAUTION from `RULES` in `check_rulings.py`.
 - **Less is more.** A page carries what the next action needs. The elements these rules require
   come first, each in the least intrusive form that serves its moment; answers, definitions and
   help open on request. Fix by changing or removing before adding, and judge a cut against the
@@ -166,7 +168,7 @@ screen label that contains one, such as **Open Preview** when "Preview" is a glo
 | `sample-files/` | The reference copy of the made-up practice files the requests on the path have the assistant create; for maintainers, not built into pages or downloaded |
 | `facilitator/` | For maintainers; not built into pages. `claims.md` is the claims register (every factual sentence and its source), and `BLANKS.md` is generated |
 | `read-in-browser/` | The web pages for the whole kit. **Generated: never edit them.** Change the markdown and build |
-| `maintaining/` | This guide, the page builder and its checks. `build_pages.py` starts with the settings you change |
+| `maintaining/` | This guide, the page builder and its checks, and the drawings: `drawings.py` holds the parts every drawing is made from, and `make_drawings.py` the tool's own parts and each drawing (see "Pictures"). `build_pages.py` starts with the settings you change |
 
 ## Where new content goes
 
@@ -313,7 +315,7 @@ The builder reads these conventions. Anything else is ordinary markdown.
 | `<!-- rate -->` on the line before a list | Each item with a choice of "I can do this", "With the page open" or "Not yet", kept and gathered like a note. For the objectives at the end of a path, in the same words as the training's home page. The list ends at its first blank line |
 | `<!-- workbook -->` on its own line | Where the build puts every note and rating from the training's pages, under the unit and step each came from, with Download and Print buttons. Only in a training's `workbook.md` |
 | `[text](../sample-files/name.csv)` | A link to a practice file or any other file in the kit |
-| `![what it shows](images/name.png)` on its own line | A picture, directly under the action or sentence it belongs to. Keep pictures in an `images` folder beside the page. Which pictures a page has, their form and the words in the brackets are under "Pictures" |
+| `![what it shows](images/name.svg)` on its own line | A picture, directly under the action or sentence it belongs to: a drawing that `maintaining/make_drawings.py` writes into an `images` folder beside the page. Which pictures a page has, their form and the words in the brackets are under "Pictures" |
 
 **The first unit on a path is an Introduction** that grounds the learner before any doing, as every
 Microsoft Learn module does (Gagné's first events, Ausubel's advance organizer): the real situation
@@ -453,60 +455,127 @@ someone who has never seen it can tell in ten seconds what each step asks them t
 
 A picture is on a page because it does one of four jobs there. A page with too few leaves the
 learner searching the screen or unsure their result is right; a picture with no job is noise.
-The jobs are the functions of a screen capture in software instructions (Gellevij and van der
-Meij: locating screen objects, verifying screen states, building a mental model of the program)
-and of an explanatory graphic (Clark and Lyons, *Graphics for Learning*). The limits are Mayer's
+The jobs are the functions of a picture in software instructions (Gellevij and van der Meij:
+locating screen objects, verifying screen states, building a mental model of the program) and of
+an explanatory graphic (Clark and Lyons, *Graphics for Learning*). The limits are Mayer's
 coherence principle (leave out what does not carry the content) and the vendors' own rules for
 their documentation (GitHub Docs, "Creating screenshots"; Google's developer documentation style
 guide, "Figures and other images"; the Microsoft Writing Style Guide on images and alt text).
 
+**A picture of the tool is a drawing made for the kit:** a simplified user interface (SUI)
+illustration, as technical communication calls it (TechSmith, *The Ultimate Guide to Simplified
+User Interface Graphics*; tcworld, "Simplified graphics and screenshots in software
+documentation"). It is drawn from the product's real layout. What the learner acts on is drawn and
+labelled in the screen's words, and the rest is reduced to plain shapes. Text whose wording
+varies, such as a file's contents, a reply or a name the learner chose, is a gray bar, and the
+first drawing on a path says so under it. A capture of the screen is never used: it shows one
+step's exact state, so it goes stale whenever the step or the product changes, and no learner's
+screen matches it. A drawing keeps what the learner needs (where things are, what they are
+called) and survives those changes. It is chosen because it stays true, not because it makes
+learners faster: an eye-tracking study found that SUIs draw attention but do not improve task
+performance over captures.
+
 | Job | A page has one when | Its form |
 |---|---|---|
-| **Locate** a control | The control an action names is small or easy to miss, is inside a menu or a list, or sits among several like it (GitHub Docs' three cases); the first time the path uses it | A screenshot of the control with enough of the screen around it to show where it sits, the control outlined. Never the control alone: a picture of two buttons does not say where they are |
-| **Confirm** a result | A Check depends on how the screen looks, and words would leave the learner unsure theirs matches | A screenshot of the kit's own worked example at that step, made from the practice files the path creates |
-| **Orient** | The path keeps naming parts of a window (the chat, the file list) that a new learner has never seen | One screenshot of the whole window, once, where the parts are first named |
-| **Explain** an idea | The idea is a relationship between parts or a contrast between two cases, and a paragraph is carrying that structure in words | One drawing for the idea, made for the kit, with the fewest marks that show it |
+| **Locate** a control | The control an action names is small or easy to miss, is inside a menu or a list, or sits among several like it (GitHub Docs' three cases); the first time a training uses it | A drawing of the panel or window the control sits in, with enough of it drawn to show where the control is, the control outlined and labelled. Never the control alone: a picture of two buttons does not say where they are |
+| **Confirm** a result | A Check depends on how the screen looks, the product fixes that look (a control that appears, a status that changes, a dialog), and words would leave the learner unsure theirs matches | A drawing of that part of the screen, as for Locate. A result whose content differs from learner to learner, such as a reply or a file the tool writes, gets no picture: its Check says what to compare |
+| **Orient** | The path keeps naming parts of a window (the chat, the file list) that a new learner has never seen | One drawing of the whole window, where the parts are first named, each part numbered and listed under it in the page's words |
+| **Explain** an idea | The idea is a relationship between parts or a contrast between two cases, and a paragraph is carrying that structure in words | One drawing for the idea, with the fewest marks that show it |
+
+**A drawing is reused, not redrawn.** Wherever a page names the same parts, it shows the same
+drawing, or one built from the same parts with another control outlined (see "Building
+drawings"). A later training's first use of a control shows its drawing again, because its
+learner may come to it days later. Never the same drawing twice on one page.
 
 **No picture** for decoration or to break up a long page; of a prompt, a reply, a file's contents
-or a command, which stay text the learner can read, search and copy; for an action whose text is
-clear alone ("On the **View** menu, select **Chat**"); or twice for the same thing.
+or a command, which stay text the learner can read, search and copy; of a result that differs
+from learner to learner; for an action whose text is clear alone ("On the **View** menu, select
+**Chat**"); or of a screen the kit cannot check against a source, such as the operating system's
+own windows.
 
-**What to expect,** measured 2026-10-05 from the same published trainings (VS Code's agents
-quickstart and tutorial, three GitHub Skills exercises, GitHub Docs; 111 pictures). A hands-on
-unit has a picture for every two or three numbered actions, one for every 100 to 160 words; two
-in three locate a control and one in three confirm a result. A page that explains an idea has
-none, or one drawing. Help pages, glossaries and reference tables have none. This is what to
-expect, not a quota: read a hands-on unit with no picture, or an explaining page with three,
-against the table. `python maintaining/measure.py` prints each page's pictures beside its words.
+**The cases that need deciding:**
+
+- **Start from the drawings the kit has.** Read the list in `maintaining/make_drawings.py` before
+  planning a unit's pictures, and reuse or vary one wherever it covers the parts. Draw a new one
+  at the level of the most detailed drawing of the same window there.
+- **One control in two states, in one step** (a line that says Start, then Running): one drawing,
+  the control outlined, its label naming both states.
+- **An action that happens only sometimes** ("If a message asks..."): a picture when most learners
+  will meet it the first time through, such as a sign-in question; none when only some will,
+  such as a warning bar on some computers. The text names the control either way.
+- **A Check with fixed and varying parts** (a reply that shows a line the tool always writes):
+  the drawing shows the fixed part, outlined, and the varying content as gray bars.
+- **Inside a file or a reply:** a word the step names (a server's name, a heading) is drawn as
+  text; the rest is gray bars.
+- **The window drawn whole (Orient) appears once,** in the first training. A later training
+  draws only the part a step uses.
+- **A dialog the product draws itself** (its source says so) is the product's screen and can be
+  drawn; one the operating system draws, such as a folder picker, cannot be checked and gets
+  none.
+- **An Explain drawing** uses the shared Explain parts: a box for each thing, named in the
+  page's words, an accent arrow for what happens, and a dashed line or faded box for what does
+  not.
+
+**What to expect,** derived from the jobs rather than measured, since no published training draws
+its pictures this way to count from. Early on a path, where every control is new, most steps of a
+hands-on unit have a drawing. A later unit has one wherever it names a control its training has
+not yet shown, or the product fixes how its result looks. A page that explains has one drawing for
+each idea the table gives one, usually one or two. Help pages, glossaries and reference tables
+have none. Read a unit with no picture against the table: each control it names is clear from its
+text or already shown in that training. The screenshot-built trainings measured 2026-10-05 (VS
+Code's agents quickstart and tutorial, three GitHub Skills exercises, GitHub Docs) have a picture
+every 100 to 160 words. Treat that as the most a page needs, since a capture repeats states a
+drawing shows once. `python maintaining/measure.py` prints each page's pictures beside its words.
 
 Every picture:
 
 - **Sits directly under the action or sentence it belongs to,** never gathered at the end.
-- **Agrees with the page.** Nothing in it contradicts the text or shows a label the version the
-  learners run no longer has; no menu open on options the text leaves out; nothing the audience
-  could not read, such as program code in a kit for people who do not write it. A vendor's
-  picture of another scenario is cropped until it agrees, or not used.
+- **Agrees with the page.** Each label in it is the page's own word for the thing, which is the
+  screen's word. Nothing in it contradicts the text or shows a label the version the learners run
+  no longer has. A menu or list shows the items the text names, and gray bars for the rest.
+  Nothing in it is beyond the audience, such as program code in a kit for people who do not write
+  it.
 - **Is not needed to finish the step.** The text says everything the picture shows, so a learner
   who cannot see it loses nothing. The words in the brackets are its text alternative: the kind
-  of picture, then what it shows, in 150 characters or fewer ("Screenshot of the list of agents,
+  of picture, then what it shows, in 150 characters or fewer ("Drawing of the list of agents,
   open above the Agent control in the chat box."). The build fails without them (ALTTEXT).
-- **A drawing uses real text and the page's colours,** light and dark: an SVG file, never a
-  picture of text. The build puts an SVG into the page itself, so write its colours as the
-  page's own (`var(--ink)`, `var(--bg2)`, `var(--rule)`, `var(--accent)`), start its class names
-  with `dg-`, and give it no background of its own. Its text meets the page's contrast standard.
-- **Is a claim about the screen.** A screenshot has a row in `facilitator/claims.md` with its
-  source, the tool's version and the date, and is rechecked with the dated facts.
-- **Is credited as its licence asks,** in a line at the foot of the page. A picture reused from
-  a vendor's documentation names the documentation, its owner, the licence with a link, and
-  whether it was cropped or marked (for Microsoft's and GitHub's documentation, Creative Commons
-  Attribution: reuse, cropping and marking are allowed with that credit). A screenshot you take
-  yourself is cropped and outlined as its job needs. Take it in a clean profile that shows no
-  person's name, account, folder path or organization. A product's owner may publish terms for
-  screenshots of it: tell the requester what they say, with the source.
+- **Is an SVG in the page's colours,** light and dark, with real text, never a picture of text.
+  The build fails on a PNG, JPEG, GIF or WebP picture on a learner page (RASTER). The build puts
+  an SVG into the page itself, so a drawing takes its colours from the page's tokens (`--ink`,
+  `--ink2`, `--ink3`, `--bg2`, `--surface`, `--rule`, `--rule2`, `--ctl`, `--accent`, `--accent-soft`, `--accent-ink`, and `--mark`
+  and `--mark-ink` for marks), starts its class names with `dg-` and has no background of its own.
+  Its text meets the page's contrast standard. The builder never links a glossary word inside a
+  drawing.
+- **Marks what the learner acts on, in one colour.** The thing the step names is outlined in the
+  mark colour (`--mark`), which marks nothing else, with a label in the page's words on a short
+  leader line. An Orient drawing numbers its parts in badges of that colour and lists them under
+  it.
+- **Shows enough of the screen to read as the product.** The control sits in the panel or window
+  around it, drawn with that panel's header, its real icons and the controls beside it as they
+  look on screen. Only text whose wording varies is a gray bar. A box of gray bars around one
+  outlined button is too little: a newcomer cannot tell where on the screen it is. Draw every
+  picture at the level of the kit's most detailed drawing of the same window, so a set reads as
+  one.
+- **Is a claim about the screen.** Each element of a drawing (its place, its label, its icon) is
+  checked against the product's source code or documentation at the version the learners run, and
+  that source is cited beside the part in `maintaining/make_drawings.py`. Anything no source
+  supports is a gray bar or is left out. One row in `facilitator/claims.md` names the version the
+  drawings were checked against, and they are rechecked with the dated facts.
+- **Is the kit's own.** A diagram reused from a vendor's documentation for an Explain job is
+  credited as its licence asks, in a line at the foot of the page; otherwise, draw it.
 
-Where the pictures come from (the vendor's documentation, screenshots the kit's builders take,
-or both) is the requester's choice, recorded under "Decisions": it decides what is published
-under their name and what of their screen leaves their computer.
+#### Building drawings
+
+`maintaining/drawings.py` holds the parts every drawing is made from: the style and its colour
+tokens, the frame of a window or panel, gray bars for text, buttons, outlines, leader lines with
+labels, and numbered badges; and for an Explain drawing, boxes, accent arrows for what happens, and dashed lines and faded boxes for what does not, which keep the mark colour out of an idea. The tool's own parts (its window, a panel's header, a particular
+control) go in the kit's `maintaining/make_drawings.py`, each built from those and each with its
+source beside it; each drawing there is a few lines that compose them. A part changed once changes
+every drawing that uses it, and a new drawing of the same tool is mostly parts already drawn. To
+add or change one, edit `make_drawings.py`, run `python maintaining/make_drawings.py` from the
+kit's folder, which writes the SVG files into each training's `images` folder, and then build.
+Every drawing in the kit, an Explain diagram included, is made here. One drawn by hand or in
+another tool reads as a different set, so it is redrawn from the parts, never kept beside them.
 
 ### Time estimates
 

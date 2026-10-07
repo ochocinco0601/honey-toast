@@ -1,7 +1,7 @@
 <!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
      Source: getting-started/start-here.md
      Build: python maintaining/build_pages.py, from the kit's folder (see maintaining/README.md)
-     Built by the training-kit skill, version 1.13
+     Built by the training-kit skill, version 1.14
 -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -12,15 +12,15 @@
    mark on a completed unit. Nothing on the page is louder than the step the reader is doing. */
 :root{--bg:#ffffff;--bg2:#f7f7f7;--surface:#ffffff;--ink:#1b1b1b;--ink2:#4f4f4f;--ink3:#6b6b6b;
 --rule:#e6e6e6;--rule2:#cdcdcd;--accent:#0065b3;--accent-ink:#ffffff;--accent-soft:#eef4fa;--ok:#107c10;--ok-ink:#ffffff;
---ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;
+--ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;--mark:#bc4c00;--mark-ink:#ffffff;
 --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.06)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
 --bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;--rule:#303030;--rule2:#4a4a4a;
 --accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
+--ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
 :root[data-theme="dark"]{--bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;
 --rule:#303030;--rule2:#4a4a4a;--accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
+--ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
 :root[data-theme="dark"]{color-scheme:dark}:root[data-theme="light"]{color-scheme:light}
 :root{--side:var(--bg2);--cur:var(--accent-soft);--field:var(--ctl);--okink:var(--ok-ink);--hdr:52px;--crb:42px}
 *{box-sizing:border-box}
@@ -362,15 +362,144 @@ main ul.rates{list-style:none;padding:0;margin:12px 0}
 <h2 id="1-open-vs-code-and-the-chat" class="step"><span class="sr">1. </span><span class="tt">Open VS Code and the chat</span></h2>
 <p>You type your requests to Copilot in the chat.</p>
 <ol><li>Press the Windows key, type <code>code</code>, and press Enter.</li><li>On the <b>View</b> menu, select <b>Chat</b>.</li></ol>
+<p><span class="drawing" data-src="images/vs-code-window.svg" role="img" aria-label="Drawing of the VS Code window: the list on the left, a file open in the middle, and the chat on the right."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 440" role="presentation">
+
+<style>
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<rect class="dg-w" x="5" y="5" width="690" height="430" rx="8"/>
+<rect class="dg-c" x="6" y="6" width="688" height="28" rx="7"/>
+<text class="dg-t" x="20" y="25" style="font-size:12px">File   Edit   Selection   View   Go   …</text>
+<rect class="dg-p" x="270" y="11" width="160" height="17" rx="4"/><rect class="dg-b" x="280" y="17" width="60" height="5" rx="2"/>
+<path class="dg-ic" d="M630 20h9M652 15h9v9h-9zM674 15l9 9M683 15l-9 9"/>
+<rect class="dg-c" x="6" y="34" width="34" height="380"/>
+<path class="dg-ic" d="M17 48h8l4 4v12H17z"/>
+<circle class="dg-ic" cx="22" cy="83" r="5"/><path class="dg-ic" d="M26 87l5 5"/>
+<circle class="dg-ic" cx="19" cy="108" r="2.5"/><circle class="dg-ic" cx="27" cy="116" r="2.5"/><path class="dg-ic" d="M19 111v10M19 118c0-4 8-2 8-4"/>
+<path class="dg-ic" d="M18 136l10 6-10 6z"/>
+<path class="dg-ic" d="M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z"/>
+<line class="dg-l" x1="190" y1="34" x2="190" y2="414"/>
+<text class="dg-s" x="50" y="54">EXPLORER</text>
+<text class="dg-tb" x="50" y="78" style="font-size:12px">⌄ COPILOT-PRACTICE</text>
+<text class="dg-t" x="62" y="100">› notes</text>
+<rect class="dg-tn" x="41" y="108" width="149" height="20"/>
+<rect class="dg-b2" x="62" y="112" width="9" height="11" rx="2"/><text class="dg-t" x="77" y="122">actions.md</text>
+<rect class="dg-c" x="191" y="34" width="263" height="26"/>
+<rect class="dg-w" x="191" y="34" width="100" height="26" style="stroke:none"/>
+<line x1="191" y1="59" x2="291" y2="59" style="stroke:var(--accent,#0065b3);stroke-width:2"/>
+<text class="dg-t" x="201" y="52">actions.md</text><path class="dg-ic" d="M274 44l6 6M280 44l-6 6"/>
+<g class="dg-n" style="font-size:11px"><text x="200" y="84">1</text><text x="200" y="102">2</text><text x="200" y="120">3</text><text x="200" y="138">4</text><text x="200" y="156">5</text><text x="200" y="174">6</text></g>
+<rect class="dg-b2" x="220" y="77" width="120" height="8" rx="2"/>
+<rect class="dg-b" x="220" y="113" width="190" height="7" rx="2"/>
+<rect class="dg-b" x="220" y="131" width="160" height="7" rx="2"/>
+<rect class="dg-b" x="220" y="149" width="205" height="7" rx="2"/>
+<rect class="dg-b" x="220" y="167" width="140" height="7" rx="2"/>
+<line class="dg-l" x1="455" y1="34" x2="455" y2="414"/>
+<text class="dg-s" x="471" y="54">CHAT</text><path class="dg-ic" d="M616 43v14M609 50h14"/><path class="dg-ic" d="M627 49l3 3 3-3"/><circle class="dg-ic" cx="652" cy="50" r="6" style="stroke-dasharray:2.4 1.6;stroke-width:2.4"/><circle class="dg-ic" cx="652" cy="50" r="2.2"/><path class="dg-ic" d="M672 50h.5M678 50h.5M684 50h.5"/>
+<rect class="dg-b" x="467" y="66" width="104" height="6" rx="2"/>
+<rect class="dg-tn" x="520" y="82" width="164" height="42" rx="7"/>
+<rect class="dg-b2" x="532" y="93" width="138" height="7" rx="2"/><rect class="dg-b2" x="532" y="107" width="96" height="7" rx="2"/>
+<rect class="dg-b" x="467" y="140" width="150" height="7" rx="2"/>
+<rect class="dg-b" x="467" y="157" width="205" height="7" rx="2"/>
+<rect class="dg-b" x="467" y="174" width="180" height="7" rx="2"/>
+<rect class="dg-b" x="467" y="191" width="110" height="7" rx="2"/>
+<rect class="dg-w" x="463" y="318" width="223" height="66" rx="7"/>
+<rect class="dg-b" x="475" y="331" width="110" height="7" rx="2"/>
+<rect class="dg-ic" x="473" y="360" width="11" height="11" rx="2"/><path class="dg-ic" d="M478 363v5M476.0 365h5"/><rect class="dg-p" x="491" y="354" width="64" height="22" rx="5"/><path class="dg-ic" d="M503 360.5l4.5 4.5-4.5 4.5-4.5-4.5z"/><text class="dg-t" x="514" y="369" style="font-size:12px">Agent</text>
+<rect class="dg-p" x="561" y="354" width="48" height="22" rx="5"/><rect class="dg-b" x="569" y="362" width="30" height="5" rx="2"/>
+<circle class="dg-ic" cx="623" cy="365" r="5" style="stroke-dasharray:2.4 1.6;stroke-width:2.4"/><circle class="dg-ic" cx="623" cy="365" r="2.2"/>
+<path d="M664 371l13-6-13-6v4.5l7 1.5-7 1.5z" style="fill:var(--ink3,#6b6b6b)"/>
+<rect class="dg-b" x="467" y="392" width="36" height="10" rx="3"/><rect class="dg-b" x="509" y="392" width="36" height="10" rx="3"/><rect class="dg-b" x="551" y="392" width="36" height="10" rx="3"/>
+<rect class="dg-c" x="6" y="414" width="688" height="20"/>
+<rect class="dg-b2" x="18" y="421" width="50" height="6" rx="3"/><rect class="dg-b2" x="590" y="421" width="90" height="6" rx="3"/>
+<circle class="dg-mb" cx="165" cy="50" r="10"/><text class="dg-mt" x="165" y="54" text-anchor="middle">1</text><circle class="dg-mb" cx="430" cy="80" r="10"/><text class="dg-mt" x="430" y="84" text-anchor="middle">2</text><circle class="dg-mb" cx="522" cy="50" r="10"/><text class="dg-mt" x="522" y="54" text-anchor="middle">3</text><circle class="dg-mb" cx="597" cy="50" r="10"/><text class="dg-mt" x="597" y="54" text-anchor="middle">4</text><circle class="dg-mb" cx="523" cy="343" r="10"/><text class="dg-mt" x="523" y="347" text-anchor="middle">5</text>
+</svg></span></p>
+<ul><li>1: the list on the left, headed <b><a class="gl" href="../glossary.html#explorer" title="The list on the left of VS Code showing the open folder&#x27;s files. If it&#x27;s missing, on the View menu, select Explorer">EXPLORER</a></b>, which shows a folder's files once you open one.</li><li>2: the file you select, shown in the middle.</li><li>3: the chat, where you type requests and Copilot replies.</li><li>4: <b>New Chat</b> (+), which starts a fresh chat.</li><li>5: the control that shows <b>Agent</b>, at the bottom of the chat box.</li></ul>
+<p>The drawing shows VS Code later in this training, with files in the folder. In the drawings, gray bars stand for text that differs on your screen.</p>
 <div class="check"><p><b class="lbl">Check:</b> the chat is open, and a control at the bottom of the chat box says <b>Agent</b>.</p></div>
 <details class="more"><summary>If the control doesn&#x27;t say Agent, or the chat won&#x27;t open</summary><div class="m">
 <p>With <b>Agent</b> selected, Copilot can run <a class="gl" href="../glossary.html#command" title="An instruction Copilot runs on your computer, such as creating a folder. It asks before running one that could change something">commands</a> and create files, not only answer questions. In a narrow chat, the controls may show only icons.</p>
-<p>If no control says <b>Agent</b>, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select <b>Agent</b>. Leave the other controls as they are.</p>
+<p>If no control says <b>Agent</b>, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent highlighted. Select <b>Agent</b>. Leave the other controls as they are.</p>
 <p>If VS Code doesn't open, no chat appears, or the chat asks you to sign in, see <a href="../troubleshooting.html#getting-set-up">Getting set up</a>.</p>
 </div></details>
 <h3 id="reading-a-permission-request">Reading a permission request</h3>
 <p>Copilot doesn't ask before it creates or edits files in the folder you have open. Before it runs a command that could change something on your computer, it asks in the chat and waits.</p>
-<p><img src="images/permission-request.png" alt="The Allow and Skip buttons at the bottom of a permission request"></p>
+<p><span class="drawing" data-src="images/permission-request.svg" role="img" aria-label="Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 346" role="presentation">
+
+<style>
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<rect class="dg-w" x="5" y="5" width="450" height="336" rx="8"/>
+<text class="dg-s" x="21" y="34">CHAT</text><path class="dg-ic" d="M377 23v14M370 30h14"/><path class="dg-ic" d="M388 29l3 3 3-3"/><circle class="dg-ic" cx="413" cy="30" r="6" style="stroke-dasharray:2.4 1.6;stroke-width:2.4"/><circle class="dg-ic" cx="413" cy="30" r="2.2"/><path class="dg-ic" d="M433 30h.5M439 30h.5M445 30h.5"/>
+<rect class="dg-tn" x="200" y="50" width="240" height="42" rx="7"/>
+<rect class="dg-b2" x="212" y="61" width="200" height="7" rx="2"/><rect class="dg-b2" x="212" y="75" width="130" height="7" rx="2"/>
+<rect class="dg-w" x="20" y="106" width="420" height="150" rx="7"/>
+<path class="dg-ic" d="M38 128l5 5-5 5M48 140h9"/>
+<rect class="dg-b2" x="66" y="129" width="180" height="9" rx="2"/>
+<rect class="dg-c" x="38" y="156" width="384" height="28" rx="4"/><rect class="dg-b2" x="50" y="166" width="210" height="7" rx="2"/>
+<rect class="dg-btn" x="38" y="204" width="88" height="28" rx="5"/><text class="dg-btnt" x="52" y="223">Allow</text>
+<line class="dg-btnl" x1="100" y1="208" x2="100" y2="228"/><path class="dg-btnl" d="M107 215l5 5 5-5" style="stroke-width:1.6"/>
+<rect class="dg-p" x="134" y="204" width="58" height="28" rx="5"/><text class="dg-t" x="148" y="223">Skip</text>
+<rect class="dg-w" x="17" y="266" width="426" height="66" rx="7"/><rect class="dg-b" x="29" y="279" width="110" height="7" rx="2"/><rect class="dg-ic" x="27" y="308" width="11" height="11" rx="2"/><path class="dg-ic" d="M32 311v5M30.0 313h5"/><rect class="dg-p" x="45" y="302" width="71" height="22" rx="5"/><path class="dg-ic" d="M57 308.5l4.5 4.5-4.5 4.5-4.5-4.5z"/><text class="dg-t" x="68" y="317" style="font-size:12px">Agent</text><rect class="dg-p" x="122" y="302" width="48" height="22" rx="5"/><rect class="dg-b" x="130" y="310" width="30" height="5" rx="2"/><circle class="dg-ic" cx="184" cy="313" r="5" style="stroke-dasharray:2.4 1.6;stroke-width:2.4"/><circle class="dg-ic" cx="184" cy="313" r="2.2"/><path d="M421 319l13-6-13-6v4.5l7 1.5-7 1.5z" style="fill:var(--ink3,#6b6b6b)"/>
+<rect class="dg-m" x="30" y="118" width="400" height="74" rx="5"/>
+<rect class="dg-m" x="30" y="198" width="168" height="40" rx="5"/>
+<path class="dg-ml" d="M430 155h36"/><text class="dg-lab" x="472" y="151">What Copilot will do:</text><text class="dg-lab" x="472" y="169">the command it runs</text>
+<path class="dg-ml" d="M198 218h268"/><text class="dg-lab" x="472" y="223">Allow runs it; Skip doesn't</text>
+</svg></span></p>
 <ul><li>Look at what it's about to do. If it matches what you asked, select <b>Allow</b>.</li><li>If it doesn't, select <b>Skip</b>. Skipping is always safe: nothing runs.</li></ul>
 <h2 id="2-have-copilot-create-a-practice-folder" class="step"><span class="sr">2. </span><span class="tt">Have Copilot create a practice folder</span></h2>
 <p>Your first request: Copilot makes the folder you practice in.</p>
@@ -389,18 +518,63 @@ Change nothing else.</div><button class="copy" type="button" aria-label="Copy: I
 </div></details>
 <h2 id="3-open-the-practice-folder-in-vs-code" class="step"><span class="sr">3. </span><span class="tt">Open the practice folder in VS Code</span></h2>
 <p>Copilot works on the files in the folder you open.</p>
-<ol><li>On the <b>File</b> menu, select <b>Open Folder</b>.</li><li>In Documents, select <code>copilot-practice</code>, and then <b>Select Folder</b>.</li><li>If VS Code asks whether you trust the authors of the files, select <b>Yes, I trust the authors</b>. If a bar at the top says the folder is in Restricted Mode instead, select <b>Manage</b>, and then <b>Trust</b>.</li></ol>
+<ol><li>On the <b>File</b> menu, select <b>Open Folder</b>.</li><li>In Documents, select <code>copilot-practice</code>, and then <b>Select Folder</b>.</li><li>If VS Code asks whether you trust the authors of the files, leave the box about the parent folder unticked, and then select <b>Yes, I trust the authors</b>. If a bar at the top says the folder is in Restricted Mode instead, select <b>Manage</b>, and then <b>Trust</b>.</li></ol>
+<p><span class="drawing" data-src="images/trust-question.svg" role="img" aria-label="Drawing of the dialog that asks whether you trust the authors, with the button to select: Yes, I trust the authors."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 260" role="presentation">
+
+<style>
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<rect class="dg-c" x="5" y="5" width="470" height="250" rx="8" style="stroke:var(--rule2,#cdcdcd);stroke-width:1.5"/>
+<rect class="dg-w" x="30" y="30" width="420" height="190" rx="8"/>
+<path class="dg-ic" d="M60 50l12 5v9c0 8-5 13-12 16-7-3-12-8-12-16v-9z"/>
+<rect class="dg-b2" x="88" y="54" width="250" height="10" rx="2"/>
+<rect class="dg-b" x="88" y="80" width="320" height="7" rx="2"/>
+<rect class="dg-b" x="88" y="95" width="290" height="7" rx="2"/>
+<rect class="dg-b" x="88" y="110" width="210" height="7" rx="2"/>
+<rect class="dg-p" x="88" y="124" width="11" height="11" rx="2"/><rect class="dg-b" x="106" y="127" width="230" height="6" rx="2"/>
+<rect class="dg-btn" x="128" y="150" width="172" height="48" rx="5"/><text class="dg-btnt" x="142" y="170">Yes, I trust the authors</text>
+<rect x="142" y="180" width="140" height="6" rx="2" style="fill:var(--accent-ink,#fff);fill-opacity:.55"/>
+<rect class="dg-p" x="308" y="150" width="130" height="48" rx="5"/><rect class="dg-b2" x="320" y="163" width="100" height="8" rx="2"/><rect class="dg-b" x="320" y="180" width="90" height="6" rx="2"/>
+<rect class="dg-m" x="122" y="144" width="184" height="60" rx="6"/>
+<path class="dg-ml" d="M214 204v36h271"/><text class="dg-lab" x="492" y="245">Yes, I trust the authors</text>
+</svg></span></p>
 <div class="check"><p><b class="lbl">Check:</b> the list on the left shows <code>COPILOT-PRACTICE</code>, with nothing in it yet.</p></div>
 <details class="more"><summary>If the chat or file list looks different</summary><div class="m">
-<p>VS Code reopens with the folder, and the chat starts empty. If no control under the chat box says <b>Agent</b> now, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select <b>Agent</b>.</p>
-<p>If the list on the left is missing, open the <b>View</b> menu and select <b><a class="gl" href="../glossary.html#explorer" title="The list on the left of VS Code showing the open folder&#x27;s files. If it&#x27;s missing, on the View menu, select Explorer">Explorer</a></b>.</p>
+<p>VS Code reopens with the folder, and the chat starts empty. If the control at the bottom of the chat box doesn't say <b>Agent</b>, select the chat box. Hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent highlighted. Select <b>Agent</b>.</p>
+<p>If the list on the left is missing, on the <b>View</b> menu, select <b>Explorer</b>.</p>
 </div></details>
 <h2 id="what-you-did">What you did</h2>
 <p>You opened the chat, had Copilot create a practice folder, checked it in File Explorer, and opened it in VS Code.</p>
-<p>Screenshots: Visual Studio Code documentation, Microsoft, CC BY 3.0.</p>
 <nav class="pager" aria-label="What comes next"><div class="nextunit"><p class="lbl">Next unit: 2 of 4 &middot; about 10 minutes</p><h2>Change Copilot&#x27;s work, then undo it</h2><div class="nextrow"><a class="btn" href="lesson-your-files.html" data-complete="1">Continue<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a><a class="prev" href="index.html">&lsaquo; Back to Getting started</a></div><p class="nudge" id="nudge" aria-live="polite" data-btn="Continue"></p></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-05</span><a href="../CHANGELOG.html">Version 1.3</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-07</span><a href="../CHANGELOG.html">Version 1.4</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>

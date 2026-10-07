@@ -34,7 +34,8 @@ Check: the file holds the four points you asked for.
 
 <!-- more: Why the file name matters -->
 Copilot reads this file before every request in this folder. It must have exactly this name, in a
-folder named `.github`. Nothing is sent to GitHub.
+folder named `.github`. The name `.github` doesn't put the file on GitHub: it stays in this folder
+on your computer.
 <!-- /more -->
 
 ## 3. Ask for the summary again, and compare
@@ -42,6 +43,9 @@ folder named `.github`. Nothing is sent to GitHub.
 A new chat starts without the first answer, so any difference comes from the instructions.
 
 1. At the top of the chat, select **New Chat** (+).
+
+![Drawing of the top of the chat, with New Chat (+) outlined.](images/new-chat.svg)
+
 2. Enter the same request as before:
 
 > Summarize the meeting notes in the notes folder of the copilot-practice folder.

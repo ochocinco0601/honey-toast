@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 204" role="presentation">
+<title>Custom instructions and a skill</title>
+<style>
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<text class="dg-x-cap" x="0" y="16">Custom instructions</text><rect class="dg-x-req" x="0" y="28" width="150" height="40" rx="6"/><text class="dg-t" x="12" y="53" style="font-size:14px">A request</text><rect class="dg-x-req" x="0" y="78" width="150" height="40" rx="6"/><text class="dg-t" x="12" y="103" style="font-size:14px">A request</text><rect class="dg-x-req" x="0" y="128" width="150" height="40" rx="6"/><text class="dg-t" x="12" y="153" style="font-size:14px">A request</text><path class="dg-x-arrow" d="M150 48L170 48L170 98L188 98"/><path class="dg-x-head" d="M188 93L196 98L188 103Z"/><path class="dg-x-arrow" d="M150 98L188 98"/><path class="dg-x-head" d="M188 93L196 98L188 103Z"/><path class="dg-x-arrow" d="M150 148L170 148L170 98L188 98"/><path class="dg-x-head" d="M188 93L196 98L188 103Z"/><rect class="dg-x-hit" x="196" y="70" width="140" height="56" rx="6"/><text class="dg-tb" x="208" y="94" style="font-size:14px">Custom</text><text class="dg-tb" x="208" y="112" style="font-size:14px">instructions</text><text class="dg-x-cap" x="0" y="196">Read with every request in the folder</text><text class="dg-x-cap" x="368" y="16">A skill</text><rect class="dg-x-req" x="368" y="28" width="150" height="40" rx="6"/><text class="dg-t" x="380" y="44" style="font-size:14px">Summarize the</text><text class="dg-t" x="380" y="62" style="font-size:14px">meeting notes</text><rect class="dg-x-req" x="368" y="78" width="150" height="40" rx="6"/><text class="dg-t" x="380" y="103" style="font-size:14px">A request</text><rect class="dg-x-req" x="368" y="128" width="150" height="40" rx="6"/><text class="dg-t" x="380" y="153" style="font-size:14px">A request</text><path class="dg-x-arrow" d="M518 48L538 48L538 98L556 98"/><path class="dg-x-head" d="M556 93L564 98L556 103Z"/><path class="dg-x-faint" d="M518 98L532 98"/><path class="dg-x-faint" d="M518 148L532 148"/><rect class="dg-x-hit" x="564" y="70" width="136" height="56" rx="6"/><text class="dg-tb" x="576" y="94" style="font-size:14px">meeting-</text><text class="dg-tb" x="576" y="112" style="font-size:14px">summary skill</text><text class="dg-x-cap" x="368" y="196">Read only when a request matches it</text>
+</svg>

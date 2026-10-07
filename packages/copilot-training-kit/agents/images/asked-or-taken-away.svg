@@ -1,24 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 150" role="presentation">
-<title>Asking Copilot not to change a file leaves the tool; a custom agent takes the tool away</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 184" role="presentation">
+<title>Asked not to change a file, or given only the reading tools</title>
 <style>
-.dg-ink{fill:var(--ink,#1b1b1b)}
-.dg-ink2{fill:var(--ink2,#505050)}
-.dg-chip{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
-.dg-gone{fill:none;stroke:var(--ctl,#767676);stroke-dasharray:5 4}
-.dg-strike{stroke:var(--ink2,#505050);stroke-width:1.5}
-.dg-div{stroke:var(--rule,#e6e6e6)}
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
 </style>
-<text class="dg-ink" x="0" y="22" font-size="17" font-weight="600">Asked not to change a file</text>
-<text class="dg-ink2" x="0" y="44" font-size="14">by a request, custom instructions or a skill</text>
-<rect class="dg-chip" x="0" y="62" width="150" height="38" rx="19"/><text class="dg-ink" x="75" y="86" font-size="15" text-anchor="middle">Read files</text>
-<rect class="dg-chip" x="166" y="62" width="150" height="38" rx="19" stroke-width="2"/><text class="dg-ink" x="241" y="86" font-size="15" font-weight="600" text-anchor="middle">Change files</text>
-<text class="dg-ink" x="0" y="134" font-size="15">Still has the tool. It can change the file.</text>
-
-<line class="dg-div" x1="352" y1="4" x2="352" y2="146"/>
-
-<text class="dg-ink" x="388" y="22" font-size="17" font-weight="600">A custom agent</text>
-<text class="dg-ink2" x="388" y="44" font-size="14">given only the tools for reading files</text>
-<rect class="dg-chip" x="388" y="62" width="150" height="38" rx="19"/><text class="dg-ink" x="463" y="86" font-size="15" text-anchor="middle">Read files</text>
-<rect class="dg-gone" x="554" y="62" width="150" height="38" rx="19"/><text class="dg-ink2" x="629" y="86" font-size="15" text-anchor="middle">Change files</text><line class="dg-strike" x1="582" y1="81" x2="676" y2="81"/>
-<text class="dg-ink" x="388" y="134" font-size="15">Doesn't have the tool. It can't change the file.</text>
+<text class="dg-tb" x="0" y="16" style="font-size:14px">Asked not to change a file</text><text class="dg-x-cap" x="0" y="34">by a request, custom instructions or a skill</text><rect class="dg-x-req" x="0" y="70" width="110" height="48" rx="6"/><text class="dg-tb" x="12" y="99" style="font-size:14px">Copilot</text><path class="dg-x-arrow" d="M110 94L130 94L130 64L156 64"/><path class="dg-x-head" d="M156 59L164 64L156 69Z"/><path class="dg-x-arrow" d="M110 94L130 94L130 124L156 124"/><path class="dg-x-head" d="M156 119L164 124L156 129Z"/><rect class="dg-x-card" x="164" y="46" width="150" height="36" rx="6"/><text class="dg-t" x="176" y="69" style="font-size:14px">Read files</text><rect class="dg-x-hit" x="164" y="106" width="150" height="36" rx="6"/><text class="dg-tb" x="176" y="129" style="font-size:14px">Change files</text><text class="dg-x-cap" x="0" y="172">Still has the tool. It can change the file.</text><text class="dg-tb" x="368" y="16" style="font-size:14px">A custom agent</text><text class="dg-x-cap" x="368" y="34">given only the tools for reading files</text><rect class="dg-x-req" x="368" y="70" width="110" height="48" rx="6"/><text class="dg-tb" x="380" y="99" style="font-size:14px">Copilot</text><path class="dg-x-arrow" d="M478 94L498 94L498 64L524 64"/><path class="dg-x-head" d="M524 59L532 64L524 69Z"/><rect class="dg-x-card" x="532" y="46" width="150" height="36" rx="6"/><text class="dg-t" x="544" y="69" style="font-size:14px">Read files</text><g class="dg-x-dim"><rect class="dg-x-card" x="532" y="106" width="150" height="36" rx="6"/><text class="dg-t" x="544" y="129" style="font-size:14px">Change files</text></g><text class="dg-x-cap" x="368" y="172">Doesn&#x27;t have the tool. It can&#x27;t change the file.</text>
 </svg>

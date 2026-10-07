@@ -56,7 +56,7 @@ On the **View** menu, select **Chat**. Or press Ctrl+Alt+I.
 ### Copilot answers but doesn't create or change files
 
 Copilot may be set to another agent. Select the chat box, hold down Ctrl, and press the period
-key (.). The list of agents opens, with the selected agent marked. Select **Agent**.
+key (.). The list of agents opens, with the selected agent highlighted. Select **Agent**.
 
 If **Agent** is already selected, Copilot may be set only to plan the work. A control below the
 chat box, not inside it, then shows **Plan**. In a narrow chat, it shows only an icon. Select

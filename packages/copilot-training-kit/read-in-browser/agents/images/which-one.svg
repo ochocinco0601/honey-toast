@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 200" role="presentation">
+<title>Which requests custom instructions, a skill and a custom agent go with</title>
+<style>
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<text class="dg-tb" x="0" y="16" style="font-size:14px">Custom instructions</text><text class="dg-x-cap" x="0" y="34">The same rules for a folder</text><rect class="dg-x-hit" x="30" y="48" width="160" height="40" rx="6"/><text class="dg-tb" x="42" y="73" style="font-size:14px">Instructions</text><path class="dg-x-arrow" d="M110 88L110 106L36 106L36 122"/><path class="dg-x-head" d="M31 122L36 130L41 122Z"/><rect class="dg-x-req" x="4" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="16" y="152" style="font-size:14px">request</text><path class="dg-x-arrow" d="M110 88L110 106L110 106L110 122"/><path class="dg-x-head" d="M105 122L110 130L115 122Z"/><rect class="dg-x-req" x="78" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="90" y="152" style="font-size:14px">request</text><path class="dg-x-arrow" d="M110 88L110 106L184 106L184 122"/><path class="dg-x-head" d="M179 122L184 130L189 122Z"/><rect class="dg-x-req" x="152" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="164" y="152" style="font-size:14px">request</text><text class="dg-x-cap" x="0" y="188">Every request in the folder</text><text class="dg-tb" x="242" y="16" style="font-size:14px">A skill</text><text class="dg-x-cap" x="242" y="34">A task you repeat</text><rect class="dg-x-hit" x="272" y="48" width="160" height="40" rx="6"/><text class="dg-tb" x="284" y="73" style="font-size:14px">A skill</text><path class="dg-x-faint" d="M352 88L352 106L278 106L278 128"/><g class="dg-x-dim"><rect class="dg-x-card" x="246" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="258" y="152" style="font-size:14px">request</text></g><path class="dg-x-arrow" d="M352 88L352 106L352 106L352 122"/><path class="dg-x-head" d="M347 122L352 130L357 122Z"/><rect class="dg-x-req" x="320" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="332" y="152" style="font-size:14px">request</text><path class="dg-x-faint" d="M352 88L352 106L426 106L426 128"/><g class="dg-x-dim"><rect class="dg-x-card" x="394" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="406" y="152" style="font-size:14px">request</text></g><text class="dg-x-cap" x="242" y="188">A request that matches it</text><text class="dg-tb" x="484" y="16" style="font-size:14px">A custom agent</text><text class="dg-x-cap" x="484" y="34">One role for a whole chat</text><rect class="dg-x-hit" x="514" y="48" width="160" height="40" rx="6"/><text class="dg-tb" x="526" y="73" style="font-size:14px">A custom agent</text><path class="dg-x-arrow" d="M594 88L594 106L520 106L520 122"/><path class="dg-x-head" d="M515 122L520 130L525 122Z"/><rect class="dg-x-req" x="488" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="500" y="152" style="font-size:14px">request</text><path class="dg-x-arrow" d="M594 88L594 106L594 106L594 122"/><path class="dg-x-head" d="M589 122L594 130L599 122Z"/><rect class="dg-x-req" x="562" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="574" y="152" style="font-size:14px">request</text><path class="dg-x-arrow" d="M594 88L594 106L668 106L668 122"/><path class="dg-x-head" d="M663 122L668 130L673 122Z"/><rect class="dg-x-req" x="636" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="648" y="152" style="font-size:14px">request</text><text class="dg-x-cap" x="484" y="188">Every request while it&#x27;s selected</text>
+</svg>

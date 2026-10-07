@@ -1,40 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 172" role="presentation">
-<title>A request is checked against each skill's description; the one that matches has its instructions followed</title>
+<title>A request is matched to a skill by its description</title>
 <style>
-.dg-ink{fill:var(--ink,#1b1b1b)}
-.dg-ink2{fill:var(--ink2,#505050)}
-.dg-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
-.dg-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
-.dg-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
-.dg-dim{opacity:.45}
-.dg-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
-.dg-head{fill:var(--accent,#0065b3)}
-.dg-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
 </style>
-<text class="dg-ink2" x="0" y="16" font-size="13">Your request</text>
-<rect class="dg-req" x="0" y="26" width="176" height="52" rx="6"/>
-<text class="dg-ink" x="12" y="48" font-size="14">“Summarize the</text>
-<text class="dg-ink" x="12" y="66" font-size="14">meeting notes.”</text>
-
-<text class="dg-ink2" x="236" y="16" font-size="13">The description of each skill you have</text>
-<g class="dg-dim"><rect class="dg-card" x="236" y="26" width="220" height="40" rx="6"/>
-<text class="dg-ink" x="248" y="51" font-size="14">Check a new document</text></g>
-<rect class="dg-hit" x="236" y="76" width="220" height="40" rx="6"/>
-<text class="dg-ink" x="248" y="101" font-size="14" font-weight="600">Summarize meeting notes</text>
-<g class="dg-dim"><rect class="dg-card" x="236" y="126" width="220" height="40" rx="6"/>
-<text class="dg-ink" x="248" y="151" font-size="14">Make the weekly summary</text></g>
-
-<path class="dg-faint" d="M176 52 H206 V46 H236"/>
-<path class="dg-arrow" d="M176 52 H206 V96 H228"/><path class="dg-head" d="M228 91 L236 96 L228 101 Z"/>
-<path class="dg-faint" d="M176 52 H206 V146 H236"/>
-
-<path class="dg-arrow" d="M456 96 H500"/><path class="dg-head" d="M500 91 L508 96 L500 101 Z"/>
-<text class="dg-ink2" x="516" y="16" font-size="13">Copilot follows</text>
-<rect class="dg-hit" x="516" y="26" width="188" height="140" rx="6"/>
-<text class="dg-ink" x="528" y="50" font-size="14" font-weight="600">Its instructions</text>
-<text class="dg-ink2" x="528" y="74" font-size="13">Lead with the decisions.</text>
-<text class="dg-ink2" x="528" y="92" font-size="13">Then list the actions, each</text>
-<text class="dg-ink2" x="528" y="110" font-size="13">with its owner and due date.</text>
-<text class="dg-ink2" x="528" y="128" font-size="13">After each item, name the</text>
-<text class="dg-ink2" x="528" y="146" font-size="13">note it came from.</text>
+<text class="dg-x-cap" x="0" y="16">Your request</text><rect class="dg-x-req" x="0" y="26" width="176" height="52" rx="6"/><text class="dg-t" x="12" y="48" style="font-size:14px">“Summarize the</text><text class="dg-t" x="12" y="66" style="font-size:14px">meeting notes.”</text><text class="dg-x-cap" x="236" y="16">The description of each skill you have</text><g class="dg-x-dim"><rect class="dg-x-card" x="236" y="26" width="220" height="40" rx="6"/><text class="dg-t" x="248" y="51" style="font-size:14px">Check a new document</text></g><rect class="dg-x-hit" x="236" y="76" width="220" height="40" rx="6"/><text class="dg-tb" x="248" y="101" style="font-size:14px">Summarize meeting notes</text><g class="dg-x-dim"><rect class="dg-x-card" x="236" y="126" width="220" height="40" rx="6"/><text class="dg-t" x="248" y="151" style="font-size:14px">Make the weekly summary</text></g><path class="dg-x-faint" d="M176 52L206 52L206 46L236 46"/><path class="dg-x-arrow" d="M176 52L206 52L206 96L228 96"/><path class="dg-x-head" d="M228 91L236 96L228 101Z"/><path class="dg-x-faint" d="M176 52L206 52L206 146L236 146"/><path class="dg-x-arrow" d="M456 96L500 96"/><path class="dg-x-head" d="M500 91L508 96L500 101Z"/><text class="dg-x-cap" x="516" y="16">Copilot follows</text><rect class="dg-x-hit" x="516" y="26" width="188" height="140" rx="6"/><text class="dg-tb" x="528" y="50" style="font-size:14px">Its instructions</text><text class="dg-x-cap" x="528" y="74">Lead with the decisions.</text><text class="dg-x-cap" x="528" y="92">Then list the actions, each</text><text class="dg-x-cap" x="528" y="110">with its owner and due date.</text><text class="dg-x-cap" x="528" y="128">After each item, name the</text><text class="dg-x-cap" x="528" y="146">note it came from.</text>
 </svg>

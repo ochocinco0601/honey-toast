@@ -1,7 +1,7 @@
 <!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
      Source: agents/what-is-a-custom-agent.md
      Build: python maintaining/build_pages.py, from the kit's folder (see maintaining/README.md)
-     Built by the training-kit skill, version 1.13
+     Built by the training-kit skill, version 1.14
 -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -12,15 +12,15 @@
    mark on a completed unit. Nothing on the page is louder than the step the reader is doing. */
 :root{--bg:#ffffff;--bg2:#f7f7f7;--surface:#ffffff;--ink:#1b1b1b;--ink2:#4f4f4f;--ink3:#6b6b6b;
 --rule:#e6e6e6;--rule2:#cdcdcd;--accent:#0065b3;--accent-ink:#ffffff;--accent-soft:#eef4fa;--ok:#107c10;--ok-ink:#ffffff;
---ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;
+--ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;--mark:#bc4c00;--mark-ink:#ffffff;
 --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.06)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
 --bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;--rule:#303030;--rule2:#4a4a4a;
 --accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
+--ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
 :root[data-theme="dark"]{--bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;
 --rule:#303030;--rule2:#4a4a4a;--accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
+--ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
 :root[data-theme="dark"]{color-scheme:dark}:root[data-theme="light"]{color-scheme:light}
 :root{--side:var(--bg2);--cur:var(--accent-soft);--field:var(--ctl);--okink:var(--ok-ink);--hdr:52px;--crb:42px}
 *{box-sizing:border-box}
@@ -365,29 +365,39 @@ main ul.rates{list-style:none;padding:0;margin:12px 0}
 <ul><li>A reviewer holds your review checklist.</li><li>A planner has only the tools for reading files, so it can work out a change but not make it.</li><li>A procedure writer holds your template and house rules, and keeps every tool.</li></ul>
 <p>Copilot does its work with tools: one tool reads a file, another changes a file, another runs a <a class="gl" href="../glossary.html#command" title="An instruction Copilot runs on your computer, such as creating a folder. It asks before running one that could change something">command</a>. A custom agent's tools come with it: while it's selected, Copilot has only those tools.</p>
 <ul><li><a class="gl" href="../glossary.html#custom-instructions" title="Notes Copilot reads before every request in a folder: what your work is, who it&#x27;s for and how you want it done. Kept in .github/copilot-instructions.md">Custom instructions</a> or a skill can only ask Copilot not to change a file. Copilot still has every tool, including the one that changes files.</li><li>A custom agent can be given only some of the tools. Without the one that changes files, it can't change a file, even if a request asks it to.</li></ul>
-<p><span class="drawing" data-src="images/asked-or-taken-away.svg" role="img" aria-label="Diagram: asked not to change a file, Copilot still has the tool that changes files. A custom agent with only the tools for reading files doesn&#x27;t."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 150" role="presentation">
+<p><span class="drawing" data-src="images/asked-or-taken-away.svg" role="img" aria-label="Diagram: asked not to change a file, Copilot still has the tool that changes files. A custom agent with only the tools for reading files doesn&#x27;t."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 184" role="presentation">
 
 <style>
-.dg-ink{fill:var(--ink,#1b1b1b)}
-.dg-ink2{fill:var(--ink2,#505050)}
-.dg-chip{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
-.dg-gone{fill:none;stroke:var(--ctl,#767676);stroke-dasharray:5 4}
-.dg-strike{stroke:var(--ink2,#505050);stroke-width:1.5}
-.dg-div{stroke:var(--rule,#e6e6e6)}
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
 </style>
-<text class="dg-ink" x="0" y="22" font-size="17" font-weight="600">Asked not to change a file</text>
-<text class="dg-ink2" x="0" y="44" font-size="14">by a request, custom instructions or a skill</text>
-<rect class="dg-chip" x="0" y="62" width="150" height="38" rx="19"/><text class="dg-ink" x="75" y="86" font-size="15" text-anchor="middle">Read files</text>
-<rect class="dg-chip" x="166" y="62" width="150" height="38" rx="19" stroke-width="2"/><text class="dg-ink" x="241" y="86" font-size="15" font-weight="600" text-anchor="middle">Change files</text>
-<text class="dg-ink" x="0" y="134" font-size="15">Still has the tool. It can change the file.</text>
-
-<line class="dg-div" x1="352" y1="4" x2="352" y2="146"/>
-
-<text class="dg-ink" x="388" y="22" font-size="17" font-weight="600">A custom agent</text>
-<text class="dg-ink2" x="388" y="44" font-size="14">given only the tools for reading files</text>
-<rect class="dg-chip" x="388" y="62" width="150" height="38" rx="19"/><text class="dg-ink" x="463" y="86" font-size="15" text-anchor="middle">Read files</text>
-<rect class="dg-gone" x="554" y="62" width="150" height="38" rx="19"/><text class="dg-ink2" x="629" y="86" font-size="15" text-anchor="middle">Change files</text><line class="dg-strike" x1="582" y1="81" x2="676" y2="81"/>
-<text class="dg-ink" x="388" y="134" font-size="15">Doesn't have the tool. It can't change the file.</text>
+<text class="dg-tb" x="0" y="16" style="font-size:14px">Asked not to change a file</text><text class="dg-x-cap" x="0" y="34">by a request, custom instructions or a skill</text><rect class="dg-x-req" x="0" y="70" width="110" height="48" rx="6"/><text class="dg-tb" x="12" y="99" style="font-size:14px">Copilot</text><path class="dg-x-arrow" d="M110 94L130 94L130 64L156 64"/><path class="dg-x-head" d="M156 59L164 64L156 69Z"/><path class="dg-x-arrow" d="M110 94L130 94L130 124L156 124"/><path class="dg-x-head" d="M156 119L164 124L156 129Z"/><rect class="dg-x-card" x="164" y="46" width="150" height="36" rx="6"/><text class="dg-t" x="176" y="69" style="font-size:14px">Read files</text><rect class="dg-x-hit" x="164" y="106" width="150" height="36" rx="6"/><text class="dg-tb" x="176" y="129" style="font-size:14px">Change files</text><text class="dg-x-cap" x="0" y="172">Still has the tool. It can change the file.</text><text class="dg-tb" x="368" y="16" style="font-size:14px">A custom agent</text><text class="dg-x-cap" x="368" y="34">given only the tools for reading files</text><rect class="dg-x-req" x="368" y="70" width="110" height="48" rx="6"/><text class="dg-tb" x="380" y="99" style="font-size:14px">Copilot</text><path class="dg-x-arrow" d="M478 94L498 94L498 64L524 64"/><path class="dg-x-head" d="M524 59L532 64L524 69Z"/><rect class="dg-x-card" x="532" y="46" width="150" height="36" rx="6"/><text class="dg-t" x="544" y="69" style="font-size:14px">Read files</text><g class="dg-x-dim"><rect class="dg-x-card" x="532" y="106" width="150" height="36" rx="6"/><text class="dg-t" x="544" y="129" style="font-size:14px">Change files</text></g><text class="dg-x-cap" x="368" y="172">Doesn&#x27;t have the tool. It can&#x27;t change the file.</text>
 </svg></span></p>
 <p>In <a href="create-your-first-custom-agent.html">Create your first custom agent</a>, you build a reviewer that has only the tools for reading files. It lists unclear steps in your procedures and leaves the procedures unchanged.</p>
 <p>A custom agent can also hand its work on. After the reviewer replies, a button can pass its findings to <b>Agent</b> to fix. <b>Agent</b> is the agent you've used so far. The practice recipe <a href="how-to/hand-a-review-to-agent.html">Hand a review to Agent to fix</a> shows how to add that button.</p>
@@ -405,7 +415,41 @@ List each step that is unclear or missing, and say why.</code></pre>
 <h2 id="how-you-select-a-custom-agent">How you select a custom agent</h2>
 <p>A custom agent you create is added to the list that opens from the control showing <b>Agent</b>. The list may show other agents too; you can leave them alone. While a custom agent is selected, the control shows its name.</p>
 <h2 id="custom-instructions-a-skill-or-a-custom-agent">Custom instructions, a skill or a custom agent?</h2>
-<div class="tw"><table><thead><tr><th scope="col">To have Copilot</th><th scope="col">Use</th><th scope="col">Copilot uses it</th></tr></thead><tbody><tr><th scope="row">Follow the same rules in every request in a folder</th><td>Custom instructions</td><td>With every request while the folder is open</td></tr><tr><th scope="row">Do a task you repeat the same way each time</th><td>A skill</td><td>When a request matches its description, or you select it after typing <code>/</code></td></tr><tr><th scope="row">Work in one role, such as reviewer or planner, for a whole chat</th><td>A custom agent</td><td>While you have it selected in the chat box</td></tr></tbody></table></div>
+<p><span class="drawing" data-src="images/which-one.svg" role="img" aria-label="Diagram: custom instructions go with every request in a folder, a skill with a request that matches it, a custom agent with each one while selected."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 200" role="presentation">
+
+<style>
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<text class="dg-tb" x="0" y="16" style="font-size:14px">Custom instructions</text><text class="dg-x-cap" x="0" y="34">The same rules for a folder</text><rect class="dg-x-hit" x="30" y="48" width="160" height="40" rx="6"/><text class="dg-tb" x="42" y="73" style="font-size:14px">Instructions</text><path class="dg-x-arrow" d="M110 88L110 106L36 106L36 122"/><path class="dg-x-head" d="M31 122L36 130L41 122Z"/><rect class="dg-x-req" x="4" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="16" y="152" style="font-size:14px">request</text><path class="dg-x-arrow" d="M110 88L110 106L110 106L110 122"/><path class="dg-x-head" d="M105 122L110 130L115 122Z"/><rect class="dg-x-req" x="78" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="90" y="152" style="font-size:14px">request</text><path class="dg-x-arrow" d="M110 88L110 106L184 106L184 122"/><path class="dg-x-head" d="M179 122L184 130L189 122Z"/><rect class="dg-x-req" x="152" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="164" y="152" style="font-size:14px">request</text><text class="dg-x-cap" x="0" y="188">Every request in the folder</text><text class="dg-tb" x="242" y="16" style="font-size:14px">A skill</text><text class="dg-x-cap" x="242" y="34">A task you repeat</text><rect class="dg-x-hit" x="272" y="48" width="160" height="40" rx="6"/><text class="dg-tb" x="284" y="73" style="font-size:14px">A skill</text><path class="dg-x-faint" d="M352 88L352 106L278 106L278 128"/><g class="dg-x-dim"><rect class="dg-x-card" x="246" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="258" y="152" style="font-size:14px">request</text></g><path class="dg-x-arrow" d="M352 88L352 106L352 106L352 122"/><path class="dg-x-head" d="M347 122L352 130L357 122Z"/><rect class="dg-x-req" x="320" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="332" y="152" style="font-size:14px">request</text><path class="dg-x-faint" d="M352 88L352 106L426 106L426 128"/><g class="dg-x-dim"><rect class="dg-x-card" x="394" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="406" y="152" style="font-size:14px">request</text></g><text class="dg-x-cap" x="242" y="188">A request that matches it</text><text class="dg-tb" x="484" y="16" style="font-size:14px">A custom agent</text><text class="dg-x-cap" x="484" y="34">One role for a whole chat</text><rect class="dg-x-hit" x="514" y="48" width="160" height="40" rx="6"/><text class="dg-tb" x="526" y="73" style="font-size:14px">A custom agent</text><path class="dg-x-arrow" d="M594 88L594 106L520 106L520 122"/><path class="dg-x-head" d="M515 122L520 130L525 122Z"/><rect class="dg-x-req" x="488" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="500" y="152" style="font-size:14px">request</text><path class="dg-x-arrow" d="M594 88L594 106L594 106L594 122"/><path class="dg-x-head" d="M589 122L594 130L599 122Z"/><rect class="dg-x-req" x="562" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="574" y="152" style="font-size:14px">request</text><path class="dg-x-arrow" d="M594 88L594 106L668 106L668 122"/><path class="dg-x-head" d="M663 122L668 130L673 122Z"/><rect class="dg-x-req" x="636" y="130" width="64" height="34" rx="6"/><text class="dg-t" x="648" y="152" style="font-size:14px">request</text><text class="dg-x-cap" x="484" y="188">Every request while it&#x27;s selected</text>
+</svg></span></p>
+<ul><li><b>Custom instructions:</b> for Copilot to follow the same rules in every request in a folder. Copilot uses them with every request while the folder is open.</li><li><b>A skill:</b> for Copilot to do a task you repeat the same way each time. Copilot uses it when a request matches its description, or when you select it after typing <code>/</code>.</li><li><b>A custom agent:</b> for Copilot to work in one role, such as reviewer or planner, for a whole chat. Copilot uses it while you have it selected in the chat box.</li></ul>
 <p>For something you need only once, say it in the request. Often more than one would work: choose the smallest change that does the job. The home page's <a href="../README.html#which-to-use-when">Which to use when</a> compares these with connections too.</p>
 <p>Which would you use for each of these? Decide, and then select <b>Show the answer</b>.</p>
 <p>a. Everything Copilot writes in a folder should spell out abbreviations.</p>
@@ -419,7 +463,7 @@ List each step that is unclear or missing, and say why.</code></pre>
 <p>Source: <a href="https://code.visualstudio.com/docs/agent-customization/custom-agents" target="_blank" rel="noopener">Custom agents in VS Code</a> and <a href="https://code.visualstudio.com/docs/agents/concepts/customization" target="_blank" rel="noopener">Understand agent customization</a>, Microsoft.</p>
 <nav class="pager" aria-label="What comes next"><div class="nextunit"><p class="lbl">Next unit: 2 of 3 &middot; about 10 minutes</p><h2>Create your first custom agent</h2><div class="nextrow"><a class="btn" href="create-your-first-custom-agent.html" data-complete="1">Continue<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a><a class="prev" href="index.html">&lsaquo; Back to Custom agents</a></div><p class="nudge" id="nudge" aria-live="polite" data-btn="Continue"></p></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-07</span><a href="../CHANGELOG.html">Version 1.3</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-07</span><a href="../CHANGELOG.html">Version 1.4</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>

@@ -12,6 +12,8 @@ The reviewer can't change its own file, so you use **Agent**.
 1. At the top of the chat, select **New Chat** (+).
 2. At the bottom of the chat box, select the control that shows **Procedure reviewer**, and then select
    **Agent**.
+
+![Drawing of the list of agents, open above the control that shows Procedure reviewer, with Agent outlined.](images/back-to-agent.svg)
 3. Enter:
 
 > In the agents-practice folder, open .github/agents/procedure-reviewer.agent.md.

@@ -8,6 +8,8 @@ connect Copilot to GitHub in a practice folder. You ask a question about a publi
 Copilot does its work with tools. A tool is one action it can take, such as reading a file. A
 connection adds tools from another service. VS Code calls a connection an MCP server.
 
+![Diagram: Copilot has its own tools, such as reading a file; the connection adds GitHub's tools, which only look things up.](images/connection-tools.svg)
+
 When a request needs one of those tools, Copilot uses it, and the chat shows a line for each tool it ran.
 The connection in this unit is GitHub's read-only one. Its tools only look things up on GitHub and can't change anything there.
 
@@ -26,14 +28,22 @@ Copilot creates an empty folder to hold the connection while you practice.
 > Add or change no other file.
 
 2. If a permission request appears, allow it if it matches what you asked.
+
+![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](../getting-started/images/permission-request.svg)
+
+In the drawings, gray bars stand for text that differs on your screen.
+
 3. On the **File** menu, select **Open Folder**. In the window that opens, go to Documents, the same Documents that File Explorer shows on the left. Select `connections-practice`, and then **Select Folder**.
-4. If VS Code asks whether you trust the authors of the files, select **Yes, I trust the authors**.
+4. If VS Code asks whether you trust the authors of the files, leave the box about the parent folder unticked, and then select **Yes, I trust the authors**.
+
+![Drawing of the dialog that asks whether you trust the authors, with the button to select: Yes, I trust the authors.](../getting-started/images/trust-question.svg)
+
 5. If a bar at the top says the folder is in Restricted Mode, select **Manage**, and then **Trust**.
 
 Check: the list on the left shows `CONNECTIONS-PRACTICE`, and a control at the bottom of the chat box shows **Agent**.
 
 <!-- more: If no control shows Agent -->
-If no control there shows **Agent**, or the controls show only icons, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select **Agent**.
+If no control there shows **Agent**, or the controls show only icons, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent highlighted. Select **Agent**.
 <!-- /more -->
 
 ## 2. Have Copilot add the GitHub connection
@@ -52,7 +62,11 @@ A connection is a few lines in a file named `.mcp.json`. Copilot writes them.
 2. If a permission request appears, allow it if it creates only that file.
 3. In the list on the left, select `.mcp.json`.
 4. If a line of small text above `github` in the file says **Start**, select it. This starts the connection.
+
+![Drawing of .mcp.json open in VS Code, with Start in small text above github.](images/start-line.svg)
+
 5. If a message says an MCP server wants to authenticate to GitHub, select **Allow**. If VS Code then asks you to choose an account or sign in, choose your work GitHub account.
+
 6. Wait until the line above `github` says **Running**. It can take a few seconds.
 
 Check: the line above `github` says **Running**.
@@ -75,6 +89,9 @@ Copilot uses the connection to look up the answer on GitHub, and the chat shows 
 calls a project a repository, and each saved change to it a commit.
 
 1. At the top of the chat, select **New Chat** (+).
+
+![Drawing of the top of the chat, with New Chat (+) outlined.](../getting-started/images/new-chat.svg)
+
 2. Enter:
 
 > Use the GitHub connection to answer this question.
@@ -89,6 +106,8 @@ under one line, select it to show them. One line says **Ran List commits**, the 
 for listing commits. The answer says the newest commit was made in March 2012 by The Octocat, with
 a message that starts "Merge pull request #6".
 
+![Drawing of a reply's tool lines, shown after selecting the folded line, with Ran List commits outlined.](images/tool-lines.svg)
+
 <!-- more: If no line says Ran List commits -->
 Select `.mcp.json` in the list on the left. If the line above `github` doesn't say
 **Running**, select **Start** there, select **Allow** if asked, and wait until it says
@@ -100,7 +119,8 @@ Select `.mcp.json` in the list on the left. If the line above `github` doesn't s
 When a request needs information from another service, ask Copilot whether a connection exists
 for that service. Copilot sends the service whatever it asks the service to look up. In this unit,
 that went to GitHub. Before you add a connection, make sure you're allowed to send that service
-what your requests will look up.
+what your requests will look up. Add only connections from sources you trust: VS Code's documentation
+notes that a connection can run code on your computer.
 
 Add the connection to the folder you work in. It lives in that folder's `.mcp.json`. To remove
 it, have Copilot delete it from that file.

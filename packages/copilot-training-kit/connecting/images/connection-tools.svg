@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 250" role="presentation">
+<title>Copilot's own tools and the ones a connection adds</title>
+<style>
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<rect class="dg-x-req" x="0" y="98" width="110" height="48" rx="6"/><text class="dg-tb" x="12" y="127" style="font-size:14px">Copilot</text><path class="dg-x-arrow" d="M110 122L130 122L130 64L156 64"/><path class="dg-x-head" d="M156 59L164 64L156 69Z"/><path class="dg-x-arrow" d="M110 122L130 122L130 188L156 188"/><path class="dg-x-head" d="M156 183L164 188L156 193Z"/><text class="dg-x-cap" x="164" y="16">Its own tools</text><rect class="dg-x-card" x="164" y="26" width="170" height="32" rx="6"/><text class="dg-t" x="176" y="47" style="font-size:14px">Read a file</text><rect class="dg-x-card" x="164" y="64" width="170" height="32" rx="6"/><text class="dg-t" x="176" y="85" style="font-size:14px">Change a file</text><rect class="dg-x-card" x="164" y="102" width="170" height="32" rx="6"/><text class="dg-t" x="176" y="123" style="font-size:14px">Run a command</text><text class="dg-x-cap" x="164" y="166">Added by the connection</text><rect class="dg-x-hit" x="164" y="176" width="170" height="32" rx="6"/><text class="dg-t" x="176" y="197" style="font-size:14px">List commits</text><rect class="dg-x-card" x="164" y="214" width="170" height="32" rx="6"/><text class="dg-t" x="176" y="235" style="font-size:14px">Other look-ups</text><path class="dg-x-arrow" d="M334 192L412 192"/><path class="dg-x-head" d="M412 187L420 192L412 197Z"/><rect class="dg-x-card" x="420" y="168" width="120" height="48" rx="6"/><text class="dg-tb" x="432" y="197" style="font-size:14px">GitHub</text><text class="dg-x-cap" x="420" y="238">Its tools only look things up.</text>
+</svg>

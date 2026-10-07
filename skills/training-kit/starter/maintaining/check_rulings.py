@@ -63,6 +63,9 @@ RULES = [
      "a permission request: if it matches what you asked, Allow; if not, Skip"),
     ("ORDINALREF", r"\b(first|second|third|fourth|fifth|next|previous|last|earlier|later) (unit|lesson|step|training)\b", "text",
      "name the unit or step by its title, or link it; an ordinal goes stale when the order changes"),
+    ("RASTER", r"!\[[^\]]*\]\([^)]*\.(png|jpe?g|gif|webp)\)", "any",
+     "a picture of the tool is a drawing that maintaining/make_drawings.py writes as an SVG, never a capture "
+     "(the guide's \"Pictures\")"),
     ("TIMEINTEXT", r"\babout (five|ten|fifteen|twenty|twenty-five|thirty|\d+) minutes\b", "text",
      "the time is shown in the unit header and menu; don't repeat it in the page text"),
 ]

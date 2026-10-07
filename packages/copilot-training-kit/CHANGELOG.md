@@ -1,5 +1,25 @@
 # What's new
 
+## 1.4 - 2026-10-07
+
+- Every training has more drawings of VS Code: Open Preview in the menu of a file, New Chat, the
+  file Copilot saved in the list on the left, going back to **Agent**, the handoff button, the
+  line that starts a connection, and the tools Copilot ran. The list of agents now also shows
+  New Chat.
+- Skills, Custom agents and Connecting your tools show the permission request and the trust
+  question again where each training first opens its folder.
+- Skills, "What is a skill?", and Connecting your tools, "Connect Copilot to GitHub", have new
+  diagrams: where a skill works, how a skill differs from custom instructions, and what a
+  connection adds.
+- Custom agents, "What is a custom agent?": the diagram of a tool asked for or taken away is
+  redrawn to match, and the table comparing custom instructions, a skill and a custom agent is
+  now a diagram with a list under it.
+- Getting started, "Change Copilot's work, then undo it": the step that undoes the table names
+  the **Yes** button.
+- Every step that asks whether you trust a folder's authors says to leave the box about the
+  parent folder unticked; Help says the list of agents opens with the selected agent
+  highlighted.
+
 ## 1.3 - 2026-10-07
 
 - Home page: a new "Which to use when" table. It shows when to use custom instructions, a skill, a
