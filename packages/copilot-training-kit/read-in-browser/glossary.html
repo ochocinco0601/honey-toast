@@ -1,7 +1,7 @@
 <!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
      Source: glossary.md
      Build: python maintaining/build_pages.py, from the kit's folder (see maintaining/README.md)
-     Built by the training-kit skill, version 1.11
+     Built by the training-kit skill, version 1.13
 -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -163,7 +163,7 @@ border-top:1px solid var(--ink3);transform:rotate(45deg)}
 .line{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:transparent}
 .line span{display:block;height:100%;width:0;background:var(--ink3);transition:width .3s}
 /* the page */
-main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.5}
+main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.6}
 main h1{font-size:2rem;line-height:1.25;font-weight:600;letter-spacing:-.01em;margin:8px 0 4px}
 main p.unit{margin:0 0 16px;font-size:.875rem;color:var(--ink3)}
 main > h1 + p:not(.unit),main > p.unit + p{font-size:1.0625rem}
@@ -175,13 +175,15 @@ main h3.step{display:flex;gap:10px;align-items:baseline}
 .step .n{flex:none;display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:13px;
 font-size:.8rem;font-weight:600;border:1.5px solid var(--ctl);color:var(--ink2);transform:translateY(-3px)}
 h3.step .n{min-width:22px;height:22px;font-size:.8rem}
-main p{margin:8px 0}
-main ul,main ol{padding-left:22px;margin:8px 0}
-main li{margin:4px 0}
+main p{margin:16px 0}
+main ul,main ol{padding-left:22px;margin:16px 0}
+main li{margin:6px 0}
 .gap{height:8px}
 code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:.875em;font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
 kbd{border:1px solid var(--field);border-radius:3px;padding:0 4px;font-size:.85em;font-family:inherit}
 main img{max-width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
+main .drawing{display:block;border:1px solid var(--rule);border-radius:6px;padding:8px;font-family:inherit}
+main .drawing svg{display:block;max-width:100%;height:auto}
 /* a glossary word: a faint underline, the text's own colour */
 a.gl{color:inherit;text-decoration:underline;text-decoration-color:var(--rule2);text-decoration-thickness:1px;
 text-underline-offset:4px;cursor:help}
@@ -359,10 +361,10 @@ main ul.rates{list-style:none;padding:0;margin:12px 0}
 <h2 id="on-your-screen">On your screen</h2>
 <div class="tw"><table><thead><tr><th scope="col">Word</th><th scope="col">Meaning here</th></tr></thead><tbody><tr><th scope="row" id="agent">Agent</th><td>Copilot with a set of instructions and tools. You select one from the control at the bottom of the chat box. The one named <b>Agent</b> can create and change files and run commands</td></tr><tr><th scope="row" id="chat">Chat</th><td>The panel where you type requests to Copilot. The chat box is the field at its bottom</td></tr><tr><th scope="row" id="explorer">Explorer</th><td>The list on the left of VS Code showing the open folder's files. If it's missing, on the View menu, select Explorer</td></tr><tr><th scope="row" id="permission-request">Permission request</th><td>Allow and Skip buttons in a reply, asking whether Copilot may run a command. How to read one: <a href="getting-started/start-here.html#reading-a-permission-request">Reading a permission request</a></td></tr><tr><th scope="row" id="preview">Preview</th><td>The formatted view of a Markdown file. In the list on the left, right-click the file and select Open Preview</td></tr><tr><th scope="row" id="terminal">Terminal</th><td>The panel at the bottom of VS Code where the commands Copilot runs show their output</td></tr><tr><th scope="row" id="vs-code">VS Code</th><td>Visual Studio Code, the program you work in</td></tr></tbody></table></div>
 <h2 id="working-with-copilot">Working with Copilot</h2>
-<div class="tw"><table><thead><tr><th scope="col">Word</th><th scope="col">Meaning here</th></tr></thead><tbody><tr><th scope="row" id="checkpoint">Checkpoint</th><td>Your files as they were before a request. Restore Checkpoint on a request puts them back</td></tr><tr><th scope="row" id="command">Command</th><td>An instruction Copilot runs on your computer, such as creating a folder. It asks before running one that could change something</td></tr><tr><th scope="row" id="copilot">Copilot</th><td>GitHub Copilot in VS Code, which this training is about. Not Copilot in your office suite</td></tr><tr><th scope="row" id="custom-agent">Custom agent</th><td>An agent you have Copilot create, with your instructions and only the tools you choose. You select it in the chat box</td></tr><tr><th scope="row" id="custom-instructions">Custom instructions</th><td>Notes Copilot reads before every request in a folder: what your work is, who it's for and how you want it done. Kept in <code>.github/copilot-instructions.md</code></td></tr><tr><th scope="row" id="follow-up">Follow-up</th><td>A request that builds on the last one in the same chat, so it can be short</td></tr><tr><th scope="row" id="markdown">Markdown</th><td>Plain text with simple marks for headings and lists, in a file ending <code>.md</code>. Its preview shows it formatted</td></tr><tr><th scope="row" id="mcp-server">MCP server</th><td>A connection that lets Copilot read or act on another system directly, instead of on a file exported from it</td></tr><tr><th scope="row" id="new-chat">New Chat</th><td>A fresh conversation, started with New Chat (+) at the top of the chat. It doesn't remember earlier chats; the files stay</td></tr><tr><th scope="row" id="request">Request</th><td>What you type or paste into the chat to ask Copilot for something</td></tr><tr><th scope="row" id="skill">Skill</th><td>Saved instructions for one kind of task, which Copilot follows when you ask for that task. A skill in a folder works while that folder is open; one in your personal skills folder works in every folder</td></tr><tr><th scope="row" id="subagent">Subagent</th><td>An agent Copilot hands part of a job to; it does that part and reports back</td></tr><tr><th scope="row" id="tool">Tool</th><td>One action Copilot can take, such as reading a file, changing a file or running a command. An agent can do only what its tools allow</td></tr></tbody></table></div>
+<div class="tw"><table><thead><tr><th scope="col">Word</th><th scope="col">Meaning here</th></tr></thead><tbody><tr><th scope="row" id="checkpoint">Checkpoint</th><td>Your files as they were before a request. Restore Checkpoint on a request puts them back</td></tr><tr><th scope="row" id="command">Command</th><td>An instruction Copilot runs on your computer, such as creating a folder. It asks before running one that could change something</td></tr><tr><th scope="row" id="connection">Connection</th><td>What lets Copilot read or act on another service, such as GitHub. VS Code calls it an MCP server</td></tr><tr><th scope="row" id="copilot">Copilot</th><td>GitHub Copilot in VS Code, which this training is about. Not Copilot in your office suite</td></tr><tr><th scope="row" id="custom-agent">Custom agent</th><td>An agent set up for one role, with its own instructions, the tools it may use and, if you choose, its AI model. You select it in the chat box</td></tr><tr><th scope="row" id="custom-instructions">Custom instructions</th><td>Notes Copilot reads before every request in a folder: what your work is, who it's for and how you want it done. Kept in <code>.github/copilot-instructions.md</code></td></tr><tr><th scope="row" id="follow-up">Follow-up</th><td>A request that builds on the last one in the same chat, so it can be short</td></tr><tr><th scope="row" id="markdown">Markdown</th><td>Plain text with simple marks for headings and lists, in a file ending <code>.md</code>. Its preview shows it formatted</td></tr><tr><th scope="row" id="mcp-server">MCP server</th><td>A connection that lets Copilot read or act on another service directly, instead of on a file exported from it</td></tr><tr><th scope="row" id="new-chat">New Chat</th><td>A fresh conversation, started with New Chat (+) at the top of the chat. It doesn't remember earlier chats; the files stay</td></tr><tr><th scope="row" id="request">Request</th><td>What you type or paste into the chat to ask Copilot for something</td></tr><tr><th scope="row" id="skill">Skill</th><td>Saved instructions for one kind of task, which Copilot follows when you ask for that task. A skill in a folder works while that folder is open; one in your personal skills folder works in every folder</td></tr><tr><th scope="row" id="subagent">Subagent</th><td>An agent Copilot hands part of a job to; it does that part and reports back</td></tr><tr><th scope="row" id="tool">Tool</th><td>One action Copilot can take, such as reading a file, changing a file or running a command. An agent can do only what its tools allow</td></tr></tbody></table></div>
 <nav class="pager" aria-label="Previous and next page"><div class="nextrow quiet"><a class="prev" href="README.html">&lsaquo; All trainings</a></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-04</span><a href="CHANGELOG.html">Version 1.2</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-07</span><a href="CHANGELOG.html">Version 1.3</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>
@@ -709,7 +711,7 @@ function search(){
   hits.sort(function(a,b){return b[0]-a[0];});
   res.innerHTML=hits.length?hits.slice(0,10).map(function(h){var e=h[1];
     return '<li><a href="'+esc(ROOT+e.u)+'"><span class="rt">'+esc(e.s||e.t)+'</span><br><span class="rs">'+esc((e.s?e.t+": ":"")+snippet(e.x,words))+'</span></a></li>';}).join("")
-    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">If something goes wrong</a>.</li>';
+    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">Help</a>.</li>';
   res.hidden=false;
   say.textContent=hits.length?hits.length+" results":"No results";
 }

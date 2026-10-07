@@ -43,17 +43,20 @@ def measure(text):
         cur += n
     runs.append(cur)
     steps = len(re.findall(r"^## \d", text, flags=re.M))
-    return prose, steps, prompts, prompt_words, max(runs)
+    pictures = len(re.findall(r"^!\[", text, flags=re.M))
+    return prose, steps, prompts, prompt_words, max(runs), pictures
 
 
 total_words = 0
 total_prompts = 0
-print("| Page | Prose words | Steps | Prompts | Prompt words | Longest prose run |")
-print("|---|---|---|---|---|---|")
+total_pictures = 0
+print("| Page | Prose words | Steps | Prompts | Prompt words | Longest prose run | Pictures |")
+print("|---|---|---|---|---|---|---|")
 for page in PAGES:
     with open(os.path.join(KIT, page), encoding="utf-8") as f:
-        w, s, pr, pw, r = measure(f.read())
+        w, s, pr, pw, r, pic = measure(f.read())
     total_words += w
     total_prompts += pr
-    print(f"| {page} | {w} | {s or ''} | {pr} | {pw} | {r} |")
-print(f"| All learner pages | {total_words} | | {total_prompts} | | |")
+    total_pictures += pic
+    print(f"| {page} | {w} | {s or ''} | {pr} | {pw} | {r} | {pic} |")
+print(f"| All learner pages | {total_words} | | {total_prompts} | | | {total_pictures} |")

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 150" role="presentation">
+<title>Asking Copilot not to change a file leaves the tool; a custom agent takes the tool away</title>
+<style>
+.dg-ink{fill:var(--ink,#1b1b1b)}
+.dg-ink2{fill:var(--ink2,#505050)}
+.dg-chip{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-gone{fill:none;stroke:var(--ctl,#767676);stroke-dasharray:5 4}
+.dg-strike{stroke:var(--ink2,#505050);stroke-width:1.5}
+.dg-div{stroke:var(--rule,#e6e6e6)}
+</style>
+<text class="dg-ink" x="0" y="22" font-size="17" font-weight="600">Asked not to change a file</text>
+<text class="dg-ink2" x="0" y="44" font-size="14">by a request, custom instructions or a skill</text>
+<rect class="dg-chip" x="0" y="62" width="150" height="38" rx="19"/><text class="dg-ink" x="75" y="86" font-size="15" text-anchor="middle">Read files</text>
+<rect class="dg-chip" x="166" y="62" width="150" height="38" rx="19" stroke-width="2"/><text class="dg-ink" x="241" y="86" font-size="15" font-weight="600" text-anchor="middle">Change files</text>
+<text class="dg-ink" x="0" y="134" font-size="15">Still has the tool. It can change the file.</text>
+
+<line class="dg-div" x1="352" y1="4" x2="352" y2="146"/>
+
+<text class="dg-ink" x="388" y="22" font-size="17" font-weight="600">A custom agent</text>
+<text class="dg-ink2" x="388" y="44" font-size="14">given only the tools for reading files</text>
+<rect class="dg-chip" x="388" y="62" width="150" height="38" rx="19"/><text class="dg-ink" x="463" y="86" font-size="15" text-anchor="middle">Read files</text>
+<rect class="dg-gone" x="554" y="62" width="150" height="38" rx="19"/><text class="dg-ink2" x="629" y="86" font-size="15" text-anchor="middle">Change files</text><line class="dg-strike" x1="582" y1="81" x2="676" y2="81"/>
+<text class="dg-ink" x="388" y="134" font-size="15">Doesn't have the tool. It can't change the file.</text>
+</svg>

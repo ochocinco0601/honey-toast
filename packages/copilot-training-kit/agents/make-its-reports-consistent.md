@@ -1,8 +1,8 @@
 # Make a custom agent's reports consistent
 
 A report laid out the same way every time is quicker to read and to check. In this unit, you have
-Copilot add a report layout to the Procedure reviewer's instructions, then ask for two reviews in
-different words and get the same layout. Start with the agents-practice folder open, as
+Copilot add a report layout to the Procedure reviewer's instructions. Then you ask for two reviews
+in different words and get the same layout. Start with the agents-practice folder open, as
 [Create your first custom agent](create-your-first-custom-agent.md) left it.
 
 ## 1. Have Copilot add a report layout to the Procedure reviewer
@@ -65,7 +65,7 @@ Copilot may not have used the custom agent's instructions. Check that the contro
 ## On your own work
 
 When you want a custom agent's reports laid out the same way each time, ask Copilot to add the
-layout to its instructions: the headings, in order, and what goes under each.
+layout to its instructions. Say the headings, in order, and what goes under each.
 
 ## What you did
 

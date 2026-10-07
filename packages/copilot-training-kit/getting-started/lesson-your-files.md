@@ -58,8 +58,8 @@ already ran; that's why Copilot asks first.
 
 ## On your own work
 
-You can do this with your own files. On the **File** menu, select **Open Folder**, choose the folder,
-and give Copilot a task in plain words: what to read, what to make, and where to put it.
+You can do this with your own files. On the **File** menu, select **Open Folder**, and choose the
+folder. Then give Copilot a task in plain words: what to read, what to make, and where to put it.
 
 <!-- more: Word and PDF files, and getting back here -->
 Word and PDF files aren't plain text, so Copilot may ask to run a small command to read them. If it

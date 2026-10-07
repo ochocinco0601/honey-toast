@@ -1,8 +1,8 @@
 # Getting started
 
-In this training, you make your first request to GitHub Copilot in VS Code, change its work and
-undo it, have it explain code, and give it instructions for a folder. You can then do the same with
-your own files.
+In this training, you make your first request to GitHub Copilot in VS Code. You change its work
+and undo it, have it explain code, and give it instructions for a folder. You can then do the same
+with your own files.
 
 ## What you will be able to do
 

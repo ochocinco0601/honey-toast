@@ -5,7 +5,7 @@ description: Build a self-paced training kit on any subject, for any audience - 
 
 # Building a training kit
 
-Skill version: 1.11 (2026-10-05). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
+Skill version: 1.13 (2026-10-07). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
 
 You build a kit that leaves its learners able to do something in their own work. What they can do
 when they finish is the outcome, and every choice below serves it; the maintainer guide's opening
@@ -190,6 +190,16 @@ are the page rules, and they decide what its other sections do not cover. The wo
 calibrated by the audience and the kind of document, not by taste: apply it, and never ask the
 requester how terse or conservative they like it.
 
+**Plan each unit's pictures as you write it,** by the guide's "Pictures": go through the unit
+action by action and mark where its table gives a picture a job (find a control, confirm a
+result, see the window's parts, explain an idea), then make or fetch each one. A page of text
+with no picture is a decision you made against that table, never the default. Which pictures a
+page needs and what each shows are craft calls, yours. **Where the pictures come from is the
+requester's choice,** once per kit, before the first unit is shown: put the sources side by side
+(the vendor's documentation under its licence, screenshots taken for the kit under the product
+owner's screenshot terms, or both), with what each allows, what it shows that the learners will
+not see, and what of the requester's screen it publishes.
+
 The starter's pre-written sentences, and the ones the builder writes itself (listed in the guide),
 assume one case: technical readers, practice in an assistant's chat, an assistant as help. Reread
 every one against your settings and rewrite what does not fit. Where practice is not in a chat, its
@@ -212,9 +222,9 @@ requester walk it when you show the increment.
 ## 7. Review with readers who did not build it
 
 Each pass in `reviews.md` is run as that file's opening says. Scale the set to the kit: every
-increment gets review 1 (first-time learner), review 10 (sequence), review 11 (prompts as sent)
-and, after fixes, review 5 (regression); a complete path gets the rest. A small kit still gets
-reviews 1, 3, 4, 5, 9, 10 and 11. A reviewer that cannot operate a browser or the tool reads the
+increment gets review 1 (first-time learner), review 10 (sequence), review 11 (prompts as sent),
+review 12 (pictures) and, after fixes, review 5 (regression); a complete path gets the rest. A
+small kit still gets reviews 1, 3, 4, 5, 9, 10, 11 and 12. A reviewer that cannot operate a browser or the tool reads the
 pages and says which steps it could not perform. If you cannot start a fresh session yourself,
 give the requester the increment's briefs in one message to paste into new chats, and say the kit
 is unreviewed until they do.
@@ -323,6 +333,38 @@ review 5 after your change.
 A choice recorded under the kit's "Decisions" that conflicts with what this version changes is
 handled as the guide's "Decisions" says.
 
+What 1.13 changed from 1.12:
+- Checklist item 18: a "What is ...?" unit teaches its subject as the owner defines it, with
+  more than one kind of use; the case the training builds is one kind, and a which-fits exercise
+  grades on the owner's distinction. Item 19: overlapping features get one "which to use when"
+  table on the programme's home page, before any training. Review 3 looks for both.
+- Upgrading from 1.12: set `SKILL_VERSION`, then judge every concept unit and the home page
+  against items 18 and 19.
+
+What 1.12 changed from 1.11 (pictures):
+- Guide, "Pictures": a picture has one of four jobs (locate a control, confirm a result, orient
+  in the window, explain an idea), each with its form, the cases that get none, what the
+  published trainings lead you to expect, and the rules every picture meets (placement, agreement
+  with the text, text alternative, credit by licence). It replaces the one line that called for a
+  picture only "where the learner must find something on the screen, cropped to that control".
+- No review looked for a missing picture. Now: step 5 plans pictures as a unit is written;
+  checklist item 15 judges both the pictures present and the places with none; review 12 is a
+  pictures pass on every increment; reviews 1 and 3 report where a learner searched the screen
+  and where an idea is told but not shown.
+- `measure.py` prints each page's pictures; the build fails on a picture with no text
+  alternative, or one over 150 characters (ALTTEXT). The builder puts an SVG drawing into the
+  page itself, so it follows the page's light and dark colours.
+- Where pictures come from: screenshots are taken for the kit, cropped and outlined as the job
+  needs; a product owner's published screenshot terms are stated to the requester as a fact.
+- Guide, "Density": a sentence has at most 25 words and a paragraph at most six sentences (the
+  ASD-STE100 structure rules), and the build fails on either (SENTENCE, PARAGRAPH); parallel
+  items are a list; a run of paragraphs breaks within about 130 words; a heading every 250 at
+  most. Measured from the published trainings. The page's line height goes from 1.5 to 1.6 and
+  the paragraph gap from 8 to 16 pixels, as those trainings set them.
+- Upgrading from 1.11: replace `build_pages.py`, `check_text.py`, `check_rulings.py`,
+  `measure.py` and `check_structure.py` (keep the kit's settings and EXEMPT lists), add the guide's "Pictures"
+  section and its two changed table rows, then run review 12 on every unit.
+
 What 1.11 changed from 1.10:
 - Guide, markup: an answer runs from its `Check your answer:` line to the next heading, so an
   answer to several cases is a list, one case to an item, led by the case in bold. The build fails
@@ -391,7 +433,7 @@ What 1.8 changed from 1.7:
 - Working with the requester (step 4): they agree each piece before the next, with direction set by
   each training's first unit; their edits go straight in while they read; one stable link opened
   at the front page; one message shape (status line, answer first, at most three points, what to
-  do now); exact units, words and places, never "read Skills"; you own the orchestration and the
+  do now); exact units, words and places, never a bare page or unit name; you own the orchestration and the
   editing, and every fault they find becomes a rule, a sweep and a check in the same pass;
   handoffs open with commander's intent.
 - Step 1: the assumptions page carries defaults and inferences only; tool facts are checked

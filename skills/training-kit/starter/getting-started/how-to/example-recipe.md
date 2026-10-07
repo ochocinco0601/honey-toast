@@ -19,4 +19,4 @@
 
 Check: `[TO BE WRITTEN: what the learner sees when it worked.]`
 
-Something else happened? See [If something goes wrong](../../troubleshooting.md).
+Something else happened? See [Help](../../troubleshooting.md).

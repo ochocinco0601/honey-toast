@@ -100,8 +100,10 @@ Select `.mcp.json` in the list on the left. If the line above `github` doesn't s
 When a request needs information from another service, ask Copilot whether a connection exists
 for that service. Copilot sends the service whatever it asks the service to look up. In this unit,
 that went to GitHub. Before you add a connection, make sure you're allowed to send that service
-what your requests will look up. Add the connection to the folder you work in. It lives in that
-folder's `.mcp.json`. To remove it, have Copilot delete it from that file.
+what your requests will look up.
+
+Add the connection to the folder you work in. It lives in that folder's `.mcp.json`. To remove
+it, have Copilot delete it from that file.
 
 ## What you did
 

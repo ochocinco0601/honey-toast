@@ -67,11 +67,18 @@ Report each finding as: the item, the line, and what a learner would do wrong be
     the menu, on the cards and in the text.
 13. **Non-technical reader.** The guide's "Writing" rule for a term a non-technical reader may not
     know: is every such term (Markdown, terminal, checkpoint) explained where it first appears?
-14. **No warnings, no caution.** The guide's "Say what a step will change" and "Prompts" rule 8:
+14. **Reassurance and verification, not generic warnings.** The guide's "Say what a step will change" and "Prompts" rule 8:
     is any caution, judgement test or blanket warning left that the tool doesn't require?
-15. **Pictures.** Each screenshot meets the picture standard in the guide's "What a step shows",
-    and nothing in it contradicts the text (for example, an "Install Extension" heading).
-16. **The page as a whole.** The page passes the guide's ten-second test ("What a step shows"). The
+15. **Pictures, in both directions.** Against the table in the guide's "Pictures". Missing: an
+    action whose control is small, inside a menu or among several like it; a Check that depends
+    on how the screen looks; an idea a paragraph carries as a relationship or a contrast. Each of
+    these with no picture is a finding. Present: each picture does one of the four jobs, sits
+    under what it belongs to, and meets "Every picture" there; nothing in it contradicts the text
+    (for example, an "Install Extension" heading, or a label the learners' version has renamed).
+    A picture with no job is a finding too.
+16. **The page as a whole.** The page passes the guide's ten-second test ("What a step shows"), and
+    its "Density": no run of paragraphs over about 130 words without a list, table, picture or
+    code block, no heading more than 250 words from the last, and parallel items as a list. The
     same thing isn't listed twice on one screen. No time or position is typed in the text ("Position
     and time are generated").
 17. **Across pages.** Read the front page, the training home and the units in order. No page
@@ -79,3 +86,13 @@ Report each finding as: the item, the line, and what a learner would do wrong be
     at the right one; every "next" goes forward. Names don't collide with words the audience
     already uses for something else (a training called "Track changes" reads as the word
     processor's feature; "save a version" collides with File, Save).
+18. **The whole idea, not the worked example.** A "What is ...?" unit states its subject as the
+    subject's owner defines it, with more than one kind of use from the owner's docs. The case
+    the training goes on to build is named as one kind, never taught as the definition. An
+    exercise that asks which feature fits grades on the distinction the owner's docs draw, never
+    on one the kit made up, and says when more than one would work.
+19. **A map before the features.** When the subject has several features that do overlapping
+    jobs, the programme's home page has one "which to use when" table before any training. It
+    is built from the owner's own comparison: what each is for, when it applies, which training
+    teaches it, and that more than one can fit. A later unit that compares them points back to
+    it rather than being where the comparison first appears.

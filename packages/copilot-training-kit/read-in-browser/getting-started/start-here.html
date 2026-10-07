@@ -1,7 +1,7 @@
 <!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
      Source: getting-started/start-here.md
      Build: python maintaining/build_pages.py, from the kit's folder (see maintaining/README.md)
-     Built by the training-kit skill, version 1.11
+     Built by the training-kit skill, version 1.13
 -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -163,7 +163,7 @@ border-top:1px solid var(--ink3);transform:rotate(45deg)}
 .line{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:transparent}
 .line span{display:block;height:100%;width:0;background:var(--ink3);transition:width .3s}
 /* the page */
-main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.5}
+main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.6}
 main h1{font-size:2rem;line-height:1.25;font-weight:600;letter-spacing:-.01em;margin:8px 0 4px}
 main p.unit{margin:0 0 16px;font-size:.875rem;color:var(--ink3)}
 main > h1 + p:not(.unit),main > p.unit + p{font-size:1.0625rem}
@@ -175,13 +175,15 @@ main h3.step{display:flex;gap:10px;align-items:baseline}
 .step .n{flex:none;display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:13px;
 font-size:.8rem;font-weight:600;border:1.5px solid var(--ctl);color:var(--ink2);transform:translateY(-3px)}
 h3.step .n{min-width:22px;height:22px;font-size:.8rem}
-main p{margin:8px 0}
-main ul,main ol{padding-left:22px;margin:8px 0}
-main li{margin:4px 0}
+main p{margin:16px 0}
+main ul,main ol{padding-left:22px;margin:16px 0}
+main li{margin:6px 0}
 .gap{height:8px}
 code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:.875em;font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
 kbd{border:1px solid var(--field);border-radius:3px;padding:0 4px;font-size:.85em;font-family:inherit}
 main img{max-width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
+main .drawing{display:block;border:1px solid var(--rule);border-radius:6px;padding:8px;font-family:inherit}
+main .drawing svg{display:block;max-width:100%;height:auto}
 /* a glossary word: a faint underline, the text's own colour */
 a.gl{color:inherit;text-decoration:underline;text-decoration-color:var(--rule2);text-decoration-thickness:1px;
 text-underline-offset:4px;cursor:help}
@@ -362,7 +364,9 @@ main ul.rates{list-style:none;padding:0;margin:12px 0}
 <ol><li>Press the Windows key, type <code>code</code>, and press Enter.</li><li>On the <b>View</b> menu, select <b>Chat</b>.</li></ol>
 <div class="check"><p><b class="lbl">Check:</b> the chat is open, and a control at the bottom of the chat box says <b>Agent</b>.</p></div>
 <details class="more"><summary>If the control doesn&#x27;t say Agent, or the chat won&#x27;t open</summary><div class="m">
-<p>With <b>Agent</b> selected, Copilot can run <a class="gl" href="../glossary.html#command" title="An instruction Copilot runs on your computer, such as creating a folder. It asks before running one that could change something">commands</a> and create files, not only answer questions. In a narrow chat, the controls may show only icons. If no control says <b>Agent</b>, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select <b>Agent</b>. Leave the other controls as they are. If VS Code doesn't open, no chat appears, or the chat asks you to sign in, see <a href="../troubleshooting.html#getting-set-up">Getting set up</a>.</p>
+<p>With <b>Agent</b> selected, Copilot can run <a class="gl" href="../glossary.html#command" title="An instruction Copilot runs on your computer, such as creating a folder. It asks before running one that could change something">commands</a> and create files, not only answer questions. In a narrow chat, the controls may show only icons.</p>
+<p>If no control says <b>Agent</b>, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select <b>Agent</b>. Leave the other controls as they are.</p>
+<p>If VS Code doesn't open, no chat appears, or the chat asks you to sign in, see <a href="../troubleshooting.html#getting-set-up">Getting set up</a>.</p>
 </div></details>
 <h3 id="reading-a-permission-request">Reading a permission request</h3>
 <p>Copilot doesn't ask before it creates or edits files in the folder you have open. Before it runs a command that could change something on your computer, it asks in the chat and waits.</p>
@@ -388,14 +392,15 @@ Change nothing else.</div><button class="copy" type="button" aria-label="Copy: I
 <ol><li>On the <b>File</b> menu, select <b>Open Folder</b>.</li><li>In Documents, select <code>copilot-practice</code>, and then <b>Select Folder</b>.</li><li>If VS Code asks whether you trust the authors of the files, select <b>Yes, I trust the authors</b>. If a bar at the top says the folder is in Restricted Mode instead, select <b>Manage</b>, and then <b>Trust</b>.</li></ol>
 <div class="check"><p><b class="lbl">Check:</b> the list on the left shows <code>COPILOT-PRACTICE</code>, with nothing in it yet.</p></div>
 <details class="more"><summary>If the chat or file list looks different</summary><div class="m">
-<p>VS Code reopens with the folder, and the chat starts empty. If no control at the bottom of the chat box says <b>Agent</b> now, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select <b>Agent</b>. If the list on the left is missing, open the <b>View</b> menu and select <b><a class="gl" href="../glossary.html#explorer" title="The list on the left of VS Code showing the open folder&#x27;s files. If it&#x27;s missing, on the View menu, select Explorer">Explorer</a></b>.</p>
+<p>VS Code reopens with the folder, and the chat starts empty. If no control under the chat box says <b>Agent</b> now, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select <b>Agent</b>.</p>
+<p>If the list on the left is missing, open the <b>View</b> menu and select <b><a class="gl" href="../glossary.html#explorer" title="The list on the left of VS Code showing the open folder&#x27;s files. If it&#x27;s missing, on the View menu, select Explorer">Explorer</a></b>.</p>
 </div></details>
 <h2 id="what-you-did">What you did</h2>
 <p>You opened the chat, had Copilot create a practice folder, checked it in File Explorer, and opened it in VS Code.</p>
 <p>Screenshots: Visual Studio Code documentation, Microsoft, CC BY 3.0.</p>
 <nav class="pager" aria-label="What comes next"><div class="nextunit"><p class="lbl">Next unit: 2 of 4 &middot; about 10 minutes</p><h2>Change Copilot&#x27;s work, then undo it</h2><div class="nextrow"><a class="btn" href="lesson-your-files.html" data-complete="1">Continue<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a><a class="prev" href="index.html">&lsaquo; Back to Getting started</a></div><p class="nudge" id="nudge" aria-live="polite" data-btn="Continue"></p></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-04</span><a href="../CHANGELOG.html">Version 1.2</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-05</span><a href="../CHANGELOG.html">Version 1.3</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>
@@ -742,7 +747,7 @@ function search(){
   hits.sort(function(a,b){return b[0]-a[0];});
   res.innerHTML=hits.length?hits.slice(0,10).map(function(h){var e=h[1];
     return '<li><a href="'+esc(ROOT+e.u)+'"><span class="rt">'+esc(e.s||e.t)+'</span><br><span class="rs">'+esc((e.s?e.t+": ":"")+snippet(e.x,words))+'</span></a></li>';}).join("")
-    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">If something goes wrong</a>.</li>';
+    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">Help</a>.</li>';
   res.hidden=false;
   say.textContent=hits.length?hits.length+" results":"No results";
 }

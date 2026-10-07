@@ -1,7 +1,7 @@
 # Skills
 
-In this training, you learn what a skill is and create one: instructions for a task you repeat,
-saved so Copilot follows them when you ask for that task.
+In this training, you learn what a skill is and create one. A skill is a saved set of instructions
+for a task you repeat; Copilot follows them when you ask for that task.
 
 ## What you will be able to do
 
@@ -16,4 +16,4 @@ saved so Copilot follows them when you ask for that task.
 ## The path
 
 1. [What is a skill?](what-is-a-skill.md): what a skill is for, what one looks like, and how Copilot uses it.
-2. [Create your first skill](create-your-first-skill.md): ask for a meeting summary with every instruction typed out, have Copilot save the instructions as a skill, then get the same summary by asking in one line.
+2. [Create your first skill](create-your-first-skill.md): ask for a meeting summary with every instruction typed out, have Copilot save them as a skill, and get the same summary by asking in one line.

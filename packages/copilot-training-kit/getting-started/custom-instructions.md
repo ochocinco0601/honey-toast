@@ -71,7 +71,8 @@ Check: the list on the left no longer shows `.github`.
 
 Real custom instructions hold your context and standards: what the work is, who it's for, and how
 you want it written. In a folder of your own, ask Copilot to create
-`.github/copilot-instructions.md` holding yours. If the folder already has one, ask Copilot to add to it rather than replace it.
+`.github/copilot-instructions.md` holding yours. If the folder already has one, ask Copilot to add
+to it rather than replace it.
 
 **Important:** instructions saved in a folder apply only while that folder is open. For
 instructions that apply in every folder, ask Copilot to help you set up personal custom

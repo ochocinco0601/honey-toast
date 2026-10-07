@@ -64,7 +64,12 @@ for p, full in pages.items():
         print("LINKCOUNT", os.path.relpath(p, out), len(md_links), len(re.findall(r'<a href=', content)),
               "(a link to a page or file that does not exist renders as plain text)")
     md_imgs = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", md)
-    srcs = re.findall(r'<img src="([^"]+)"', content)
+    for alt in re.findall(r"!\[([^\]]*)\]\(", md):
+        if not alt.strip() or len(alt) > 150:
+            bad += 1
+            print("ALTTEXT", os.path.relpath(p, out),
+                  "a picture needs words in its brackets, 150 characters or fewer:", alt[:60])
+    srcs = re.findall(r'<(?:img src|span class="drawing" data-src)="([^"]+)"', content)
     if len(md_imgs) != len(srcs):
         bad += 1
         print("PICTURE", os.path.relpath(p, out), "a picture's file does not exist")

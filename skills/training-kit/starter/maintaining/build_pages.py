@@ -19,7 +19,7 @@ import sys
 # ---- What a maintainer changes when the kit grows (see maintaining/README.md) ----
 # A record, not a setting: the version of the training-kit skill that built this kit. It goes into
 # each page's generated-file comment only. The kit's own version is the newest entry in CHANGELOG.md.
-SKILL_VERSION = "1.11"
+SKILL_VERSION = "1.13"
 PROGRAM_NAME = "Training programme"
 # Who the learner asks for help, and where they paste a prompt for it.
 ASSISTANT = "the assistant"
@@ -211,6 +211,14 @@ def inline_parts(text, src):
         img = re.fullmatch(r"!\[([^\]]*)\]\(([^)]+)\)", p)
         if img:
             href = link_href(src, img.group(2))
+            if href and href.lower().endswith(".svg"):
+                # A drawing goes into the page itself, so its text is real text and its colours are
+                # the page's own, in light and dark and under the header's switch.
+                svg = io.open(os.path.join(KIT, os.path.dirname(src), img.group(2)), encoding="utf-8").read()
+                svg = re.sub(r"<\?xml.*?\?>|<title>.*?</title>", "", svg, flags=re.S).strip()
+                out.append('<span class="drawing" data-src="%s" role="img" aria-label="%s">%s</span>'
+                           % (html.escape(href), html.escape(img.group(1)), svg))
+                continue
             out.append('<img src="%s" alt="%s">' % (html.escape(href), html.escape(img.group(1)))
                        if href else html.escape(img.group(1)))
         elif len(p) > 1 and p.startswith("`") and p.endswith("`"):
@@ -1464,7 +1472,7 @@ border-top:1px solid var(--ink3);transform:rotate(45deg)}
 .line{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:transparent}
 .line span{display:block;height:100%;width:0;background:var(--ink3);transition:width .3s}
 /* the page */
-main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.5}
+main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.6}
 main h1{font-size:2rem;line-height:1.25;font-weight:600;letter-spacing:-.01em;margin:8px 0 4px}
 main p.unit{margin:0 0 16px;font-size:.875rem;color:var(--ink3)}
 main > h1 + p:not(.unit),main > p.unit + p{font-size:1.0625rem}
@@ -1476,13 +1484,15 @@ main h3.step{display:flex;gap:10px;align-items:baseline}
 .step .n{flex:none;display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:13px;
 font-size:.8rem;font-weight:600;border:1.5px solid var(--ctl);color:var(--ink2);transform:translateY(-3px)}
 h3.step .n{min-width:22px;height:22px;font-size:.8rem}
-main p{margin:8px 0}
-main ul,main ol{padding-left:22px;margin:8px 0}
-main li{margin:4px 0}
+main p{margin:16px 0}
+main ul,main ol{padding-left:22px;margin:16px 0}
+main li{margin:6px 0}
 .gap{height:8px}
 code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:.875em;font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
 kbd{border:1px solid var(--field);border-radius:3px;padding:0 4px;font-size:.85em;font-family:inherit}
 main img{max-width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
+main .drawing{display:block;border:1px solid var(--rule);border-radius:6px;padding:8px;font-family:inherit}
+main .drawing svg{display:block;max-width:100%;height:auto}
 /* a glossary word: a faint underline, the text's own colour */
 a.gl{color:inherit;text-decoration:underline;text-decoration-color:var(--rule2);text-decoration-thickness:1px;
 text-underline-offset:4px;cursor:help}
@@ -1981,7 +1991,7 @@ function search(){
   hits.sort(function(a,b){return b[0]-a[0];});
   res.innerHTML=hits.length?hits.slice(0,10).map(function(h){var e=h[1];
     return '<li><a href="'+esc(ROOT+e.u)+'"><span class="rt">'+esc(e.s||e.t)+'</span><br><span class="rs">'+esc((e.s?e.t+": ":"")+snippet(e.x,words))+'</span></a></li>';}).join("")
-    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">If something goes wrong</a>.</li>';
+    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">Help</a>.</li>';
   res.hidden=false;
   say.textContent=hits.length?hits.length+" results":"No results";
 }

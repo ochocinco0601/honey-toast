@@ -1,7 +1,7 @@
 <!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
      Source: skills-in-depth/what-is-a-skill.md
      Build: python maintaining/build_pages.py, from the kit's folder (see maintaining/README.md)
-     Built by the training-kit skill, version 1.11
+     Built by the training-kit skill, version 1.13
 -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -163,7 +163,7 @@ border-top:1px solid var(--ink3);transform:rotate(45deg)}
 .line{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:transparent}
 .line span{display:block;height:100%;width:0;background:var(--ink3);transition:width .3s}
 /* the page */
-main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.5}
+main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.6}
 main h1{font-size:2rem;line-height:1.25;font-weight:600;letter-spacing:-.01em;margin:8px 0 4px}
 main p.unit{margin:0 0 16px;font-size:.875rem;color:var(--ink3)}
 main > h1 + p:not(.unit),main > p.unit + p{font-size:1.0625rem}
@@ -175,13 +175,15 @@ main h3.step{display:flex;gap:10px;align-items:baseline}
 .step .n{flex:none;display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:13px;
 font-size:.8rem;font-weight:600;border:1.5px solid var(--ctl);color:var(--ink2);transform:translateY(-3px)}
 h3.step .n{min-width:22px;height:22px;font-size:.8rem}
-main p{margin:8px 0}
-main ul,main ol{padding-left:22px;margin:8px 0}
-main li{margin:4px 0}
+main p{margin:16px 0}
+main ul,main ol{padding-left:22px;margin:16px 0}
+main li{margin:6px 0}
 .gap{height:8px}
 code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:.875em;font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
 kbd{border:1px solid var(--field);border-radius:3px;padding:0 4px;font-size:.85em;font-family:inherit}
 main img{max-width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
+main .drawing{display:block;border:1px solid var(--rule);border-radius:6px;padding:8px;font-family:inherit}
+main .drawing svg{display:block;max-width:100%;height:auto}
 /* a glossary word: a faint underline, the text's own colour */
 a.gl{color:inherit;text-decoration:underline;text-decoration-color:var(--rule2);text-decoration-thickness:1px;
 text-underline-offset:4px;cursor:help}
@@ -358,7 +360,9 @@ main ul.rates{list-style:none;padding:0;margin:12px 0}
 <p class="unit">About five minutes</p>
 <p>A <a class="gl" href="../glossary.html#skill" title="Saved instructions for one kind of task, which Copilot follows when you ask for that task. A skill in a folder works while that folder is open; one in your personal skills folder works in every folder">skill</a> is a saved set of instructions for one kind of task. You write the instructions once, and Copilot follows them when you ask for that task, so you don't type them again.</p>
 <h2 id="why-use-a-skill">Why use a skill</h2>
-<p>Some tasks you ask for again and again, and want done the same way each time: a weekly summary in the same layout, or the same checks on every new document. Without a skill, you type the full instructions every time, and the result changes when your wording does. With a skill, you ask in a few words, and Copilot follows the saved instructions.</p>
+<p>Some tasks you ask for again and again, and want done the same way each time:</p>
+<ul><li>a weekly summary in the same layout</li><li>the same checks on every new document</li></ul>
+<p>Without a skill, you type the full instructions every time, and the result changes when your wording does. With a skill, you ask in a few words, and Copilot follows the saved instructions.</p>
 <h2 id="what-a-skill-looks-like">What a skill looks like</h2>
 <p>A skill is a folder holding a <a class="gl" href="../glossary.html#markdown" title="Plain text with simple marks for headings and lists, in a file ending .md. Its preview shows it formatted">Markdown</a> file named <code>SKILL.md</code>. This one summarizes meeting notes:</p>
 <pre class="file"><code>---
@@ -368,20 +372,61 @@ description: Summarize meeting notes for busy, non-technical readers. Use when a
 
 Lead with the decisions. Then list the actions, each with its owner and due date.
 After each item, name the note it came from.</code></pre>
-<p>The lines between the two <code>---</code> marks are the skill's header: its name and its description. The instructions come after them.</p>
+<ul><li>The lines between the two <code>---</code> marks are the skill's header: its name and its description.</li><li>After the header come the skill's instructions.</li></ul>
 <h2 id="how-copilot-uses-a-skill">How Copilot uses a skill</h2>
 <p>Copilot checks the description of each skill you have. When your request matches a skill's description, such as "summarize the meeting notes", Copilot follows that skill's instructions. That's why a description says both what the skill does and when to use it.</p>
+<p><span class="drawing" data-src="images/request-matches-a-skill.svg" role="img" aria-label="Diagram: a request is checked against each skill&#x27;s description. The one that matches, Summarize meeting notes, has its instructions followed."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 172" role="presentation">
+
+<style>
+.dg-ink{fill:var(--ink,#1b1b1b)}
+.dg-ink2{fill:var(--ink2,#505050)}
+.dg-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-dim{opacity:.45}
+.dg-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-head{fill:var(--accent,#0065b3)}
+.dg-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+</style>
+<text class="dg-ink2" x="0" y="16" font-size="13">Your request</text>
+<rect class="dg-req" x="0" y="26" width="176" height="52" rx="6"/>
+<text class="dg-ink" x="12" y="48" font-size="14">“Summarize the</text>
+<text class="dg-ink" x="12" y="66" font-size="14">meeting notes.”</text>
+
+<text class="dg-ink2" x="236" y="16" font-size="13">The description of each skill you have</text>
+<g class="dg-dim"><rect class="dg-card" x="236" y="26" width="220" height="40" rx="6"/>
+<text class="dg-ink" x="248" y="51" font-size="14">Check a new document</text></g>
+<rect class="dg-hit" x="236" y="76" width="220" height="40" rx="6"/>
+<text class="dg-ink" x="248" y="101" font-size="14" font-weight="600">Summarize meeting notes</text>
+<g class="dg-dim"><rect class="dg-card" x="236" y="126" width="220" height="40" rx="6"/>
+<text class="dg-ink" x="248" y="151" font-size="14">Make the weekly summary</text></g>
+
+<path class="dg-faint" d="M176 52 H206 V46 H236"/>
+<path class="dg-arrow" d="M176 52 H206 V96 H228"/><path class="dg-head" d="M228 91 L236 96 L228 101 Z"/>
+<path class="dg-faint" d="M176 52 H206 V146 H236"/>
+
+<path class="dg-arrow" d="M456 96 H500"/><path class="dg-head" d="M500 91 L508 96 L500 101 Z"/>
+<text class="dg-ink2" x="516" y="16" font-size="13">Copilot follows</text>
+<rect class="dg-hit" x="516" y="26" width="188" height="140" rx="6"/>
+<text class="dg-ink" x="528" y="50" font-size="14" font-weight="600">Its instructions</text>
+<text class="dg-ink2" x="528" y="74" font-size="13">Lead with the decisions.</text>
+<text class="dg-ink2" x="528" y="92" font-size="13">Then list the actions, each</text>
+<text class="dg-ink2" x="528" y="110" font-size="13">with its owner and due date.</text>
+<text class="dg-ink2" x="528" y="128" font-size="13">After each item, name the</text>
+<text class="dg-ink2" x="528" y="146" font-size="13">note it came from.</text>
+</svg></span></p>
 <p>You can also run a skill by name: type <code>/</code> in the chat box, and select the skill from the list.</p>
 <h2 id="where-a-skill-works">Where a skill works</h2>
 <p>A skill saved in a folder works only while that folder is open in VS Code, and anyone who opens that folder has it. A skill saved in your personal skills folder works in every folder you open, for you only. Copilot saves a skill in either place when you ask.</p>
 <h2 id="skills-and-custom-instructions">Skills and custom instructions</h2>
-<p>In the Getting started unit <a href="../getting-started/custom-instructions.html">Give Copilot custom instructions for a folder</a>, you saved rules for summaries as <a class="gl" href="../glossary.html#custom-instructions" title="Notes Copilot reads before every request in a folder: what your work is, who it&#x27;s for and how you want it done. Kept in .github/copilot-instructions.md">custom instructions</a>, which Copilot read with every request while the folder was open. Instructions saved as a skill are read only when you ask for that task, so they never change Copilot's answers to anything else, and you can keep one skill for each task you repeat.</p>
+<p>In the Getting started unit <a href="../getting-started/custom-instructions.html">Give Copilot custom instructions for a folder</a>, you saved rules for summaries as <a class="gl" href="../glossary.html#custom-instructions" title="Notes Copilot reads before every request in a folder: what your work is, who it&#x27;s for and how you want it done. Kept in .github/copilot-instructions.md">custom instructions</a>. Copilot read them with every request while the folder was open. Instructions saved as a skill are read only when you ask for that task. That means they never change Copilot's answers to anything else, and you can keep one skill for each task you repeat.</p>
+<p>The home page's <a href="../README.html#which-to-use-when">Which to use when</a> shows where skills fit beside custom instructions, <a class="gl" href="../glossary.html#custom-agent" title="An agent set up for one role, with its own instructions, the tools it may use and, if you choose, its AI model. You select it in the chat box">custom agents</a> and connections.</p>
 <h2 id="what-you-learned">What you learned</h2>
 <p>A skill is a folder with a <code>SKILL.md</code> file: a header that says what the skill does and when to use it, then the instructions. Copilot uses it when a request matches its description, or when you select it with <code>/</code>.</p>
 <p>Source: <a href="https://code.visualstudio.com/docs/agent-customization/agent-skills" target="_blank" rel="noopener">Use Agent Skills in VS Code</a>, Microsoft.</p>
 <nav class="pager" aria-label="What comes next"><div class="nextunit"><p class="lbl">Next unit: 2 of 2 &middot; about 10 minutes</p><h2>Create your first skill</h2><div class="nextrow"><a class="btn" href="create-your-first-skill.html" data-complete="1">Continue<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a><a class="prev" href="index.html">&lsaquo; Back to Skills</a></div><p class="nudge" id="nudge" aria-live="polite" data-btn="Continue"></p></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-04</span><a href="../CHANGELOG.html">Version 1.2</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-07</span><a href="../CHANGELOG.html">Version 1.3</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>
@@ -728,7 +773,7 @@ function search(){
   hits.sort(function(a,b){return b[0]-a[0];});
   res.innerHTML=hits.length?hits.slice(0,10).map(function(h){var e=h[1];
     return '<li><a href="'+esc(ROOT+e.u)+'"><span class="rt">'+esc(e.s||e.t)+'</span><br><span class="rs">'+esc((e.s?e.t+": ":"")+snippet(e.x,words))+'</span></a></li>';}).join("")
-    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">If something goes wrong</a>.</li>';
+    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">Help</a>.</li>';
   res.hidden=false;
   say.textContent=hits.length?hits.length+" results":"No results";
 }

@@ -1,7 +1,7 @@
 <!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
      Source: troubleshooting.md
      Build: python maintaining/build_pages.py, from the kit's folder (see maintaining/README.md)
-     Built by the training-kit skill, version 1.11
+     Built by the training-kit skill, version 1.13
 -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -163,7 +163,7 @@ border-top:1px solid var(--ink3);transform:rotate(45deg)}
 .line{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:transparent}
 .line span{display:block;height:100%;width:0;background:var(--ink3);transition:width .3s}
 /* the page */
-main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.5}
+main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.6}
 main h1{font-size:2rem;line-height:1.25;font-weight:600;letter-spacing:-.01em;margin:8px 0 4px}
 main p.unit{margin:0 0 16px;font-size:.875rem;color:var(--ink3)}
 main > h1 + p:not(.unit),main > p.unit + p{font-size:1.0625rem}
@@ -175,13 +175,15 @@ main h3.step{display:flex;gap:10px;align-items:baseline}
 .step .n{flex:none;display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:13px;
 font-size:.8rem;font-weight:600;border:1.5px solid var(--ctl);color:var(--ink2);transform:translateY(-3px)}
 h3.step .n{min-width:22px;height:22px;font-size:.8rem}
-main p{margin:8px 0}
-main ul,main ol{padding-left:22px;margin:8px 0}
-main li{margin:4px 0}
+main p{margin:16px 0}
+main ul,main ol{padding-left:22px;margin:16px 0}
+main li{margin:6px 0}
 .gap{height:8px}
 code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:.875em;font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
 kbd{border:1px solid var(--field);border-radius:3px;padding:0 4px;font-size:.85em;font-family:inherit}
 main img{max-width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
+main .drawing{display:block;border:1px solid var(--rule);border-radius:6px;padding:8px;font-family:inherit}
+main .drawing svg{display:block;max-width:100%;height:auto}
 /* a glossary word: a faint underline, the text's own colour */
 a.gl{color:inherit;text-decoration:underline;text-decoration-color:var(--rule2);text-decoration-thickness:1px;
 text-underline-offset:4px;cursor:help}
@@ -380,7 +382,8 @@ Don't change anything.</div><button class="copy" type="button" aria-label="Copy:
 <h3 id="the-chat-isn-t-there">The chat isn't there</h3>
 <p>On the <b>View</b> menu, select <b>Chat</b>. Or press Ctrl+Alt+I.</p>
 <h3 id="copilot-answers-but-doesn-t-create-or-change-files">Copilot answers but doesn't create or change files</h3>
-<p>Copilot may be set to another agent. Select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select <b>Agent</b>. If <b>Agent</b> is already selected, Copilot may be set only to plan the work. A control below the chat box, not inside it, then shows <b>Plan</b>. In a narrow chat, it shows only an icon. Select <b>Plan</b>, and then select <b>Interactive</b> in the list that opens. With <b>Interactive</b>, Copilot does the work instead of only planning it.</p>
+<p>Copilot may be set to another agent. Select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select <b>Agent</b>.</p>
+<p>If <b>Agent</b> is already selected, Copilot may be set only to plan the work. A control below the chat box, not inside it, then shows <b>Plan</b>. In a narrow chat, it shows only an icon. Select <b>Plan</b>, and then select <b>Interactive</b> in the list that opens. With <b>Interactive</b>, Copilot does the work instead of only planning it.</p>
 <h2 id="while-copilot-is-working">While Copilot is working</h2>
 <h3 id="nothing-seems-to-happen-or-it-s-taking-a-long-time">Nothing seems to happen, or it's taking a long time</h3>
 <p>A moving indicator in the chat means Copilot is still working. Some requests take a few minutes. To change course, type what you want instead and press Enter. Copilot finishes its current action, and then takes your new message.</p>
@@ -394,7 +397,7 @@ Don't run it.</div><button class="copy" type="button" aria-label="Copy: What com
 <h3 id="copilot-asks-you-a-question-or-offers-choices">Copilot asks you a question, or offers choices</h3>
 <p>Answer in the chat box, as you would answer a person.</p>
 <h3 id="copilot-says-it-can-t-read-a-file">Copilot says it can't read a file</h3>
-<p>Word, Excel and PDF files aren't plain text, so Copilot may ask to run a small command to read them. If it reads the file you named, allow it. If it still can't, save the file as plain text (for an Excel file, choose CSV in Save As) and ask again.</p>
+<p>Word, Excel and PDF files aren't plain text, so Copilot may ask to run a small command to read them. If the command only reads the file you named, allow it. If it installs or downloads anything, select <b>Skip</b>. If Copilot still can't read the file, save it as plain text (for an Excel file, choose CSV in Save As) and ask again.</p>
 <h3 id="the-reply-is-too-long-or-too-technical">The reply is too long or too technical</h3>
 <p>Say so in a <a class="gl" href="glossary.html#follow-up" title="A request that builds on the last one in the same chat, so it can be short">follow-up</a>:</p>
 <div class="prompt"><div class="t">Explain that in plain words, in five lines or fewer.</div><button class="copy" type="button" aria-label="Copy: Explain that in plain words, in five…">Copy</button></div>
@@ -415,7 +418,7 @@ Change nothing else.</div><button class="copy" type="button" aria-label="Copy: L
 <p>A new chat starts empty, but the files stay. Name the file in your request, for example:</p>
 <div class="prompt"><div class="t">Read actions.md in the copilot-practice folder and continue from there.</div><button class="copy" type="button" aria-label="Copy: Read actions.md in the copilot-practice…">Copy</button></div>
 <h3 id="the-chat-is-going-in-circles">The chat is going in circles</h3>
-<p>Select <b>New Chat</b> (+) at the top of the chat, and ask again in one request: which folder, what to read, what to make, and where to put it.</p>
+<p>Select <b>New Chat</b> (+) at the top of the chat. Then ask again in one request: which folder, what to read, what to make, and where to put it.</p>
 <h2 id="skills-and-custom-agents">Skills and custom agents</h2>
 <h3 id="a-skill-isn-t-used-or-does-the-wrong-thing">A skill isn't used, or does the wrong thing</h3>
 <p>Tell Copilot what you asked and what happened, and ask it to review the <a class="gl" href="glossary.html#skill" title="Saved instructions for one kind of task, which Copilot follows when you ask for that task. A skill in a folder works while that folder is open; one in your personal skills folder works in every folder">skill</a> and fix it. A skill saved in a folder works only while that folder is open; one in your personal skills folder works everywhere.</p>
@@ -433,14 +436,14 @@ Don't change any file.</div><button class="copy" type="button" aria-label="Copy:
 <h3 id="is-this-the-same-as-copilot-in-my-office-suite">Is this the same as Copilot in my office suite?</h3>
 <p>No. That one reaches across the shared content at your work: mail, chats, meetings and shared files. This one works on a folder of files on your computer and can act on them.</p>
 <h3 id="can-copilot-reach-other-systems-such-as-a-ticketing-system-directly">Can Copilot reach other systems, such as a ticketing system, directly?</h3>
-<p>Only through a connection to that system; VS Code calls these <a class="gl" href="glossary.html#mcp-server" title="A connection that lets Copilot read or act on another system directly, instead of on a file exported from it">MCP servers</a>. Without one, export the data to a file and ask Copilot about the file.</p>
+<p>Only through a connection to that system; VS Code calls these <a class="gl" href="glossary.html#mcp-server" title="A connection that lets Copilot read or act on another service directly, instead of on a file exported from it">MCP servers</a>. Without one, export the data to a file and ask Copilot about the file.</p>
 <h3 id="how-do-i-put-the-chat-on-the-other-side-of-the-window">How do I put the chat on the other side of the window?</h3>
 <p>Ask Copilot:</p>
 <div class="prompt"><div class="t">How do I put the chat on the other side of the VS Code window?
 Tell me the steps; don't change anything.</div><button class="copy" type="button" aria-label="Copy: How do I put the chat on the other side…">Copy</button></div>
 <nav class="pager" aria-label="Previous and next page"><div class="nextrow quiet"><a class="prev" href="README.html">&lsaquo; All trainings</a></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-05</span><a href="CHANGELOG.html">Version 1.2</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-07</span><a href="CHANGELOG.html">Version 1.3</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>
@@ -787,7 +790,7 @@ function search(){
   hits.sort(function(a,b){return b[0]-a[0];});
   res.innerHTML=hits.length?hits.slice(0,10).map(function(h){var e=h[1];
     return '<li><a href="'+esc(ROOT+e.u)+'"><span class="rt">'+esc(e.s||e.t)+'</span><br><span class="rs">'+esc((e.s?e.t+": ":"")+snippet(e.x,words))+'</span></a></li>';}).join("")
-    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">If something goes wrong</a>.</li>';
+    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">Help</a>.</li>';
   res.hidden=false;
   say.textContent=hits.length?hits.length+" results":"No results";
 }

@@ -1,7 +1,7 @@
 <!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
      Source: agents/make-its-reports-consistent.md
      Build: python maintaining/build_pages.py, from the kit's folder (see maintaining/README.md)
-     Built by the training-kit skill, version 1.11
+     Built by the training-kit skill, version 1.13
 -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -163,7 +163,7 @@ border-top:1px solid var(--ink3);transform:rotate(45deg)}
 .line{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:transparent}
 .line span{display:block;height:100%;width:0;background:var(--ink3);transition:width .3s}
 /* the page */
-main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.5}
+main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.6}
 main h1{font-size:2rem;line-height:1.25;font-weight:600;letter-spacing:-.01em;margin:8px 0 4px}
 main p.unit{margin:0 0 16px;font-size:.875rem;color:var(--ink3)}
 main > h1 + p:not(.unit),main > p.unit + p{font-size:1.0625rem}
@@ -175,13 +175,15 @@ main h3.step{display:flex;gap:10px;align-items:baseline}
 .step .n{flex:none;display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:13px;
 font-size:.8rem;font-weight:600;border:1.5px solid var(--ctl);color:var(--ink2);transform:translateY(-3px)}
 h3.step .n{min-width:22px;height:22px;font-size:.8rem}
-main p{margin:8px 0}
-main ul,main ol{padding-left:22px;margin:8px 0}
-main li{margin:4px 0}
+main p{margin:16px 0}
+main ul,main ol{padding-left:22px;margin:16px 0}
+main li{margin:6px 0}
 .gap{height:8px}
 code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:.875em;font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
 kbd{border:1px solid var(--field);border-radius:3px;padding:0 4px;font-size:.85em;font-family:inherit}
 main img{max-width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
+main .drawing{display:block;border:1px solid var(--rule);border-radius:6px;padding:8px;font-family:inherit}
+main .drawing svg{display:block;max-width:100%;height:auto}
 /* a glossary word: a faint underline, the text's own colour */
 a.gl{color:inherit;text-decoration:underline;text-decoration-color:var(--rule2);text-decoration-thickness:1px;
 text-underline-offset:4px;cursor:help}
@@ -356,7 +358,7 @@ main ul.rates{list-style:none;padding:0;margin:12px 0}
 <main id="main" data-steps="1" data-page="Make a custom agent&#x27;s reports consistent" data-stuck-from="1" data-kit-open="0" data-stuck="1" data-program="GitHub Copilot training" data-assistant="Copilot" data-chat="the chat box">
 <h1>Make a custom agent's reports consistent</h1>
 <p class="unit">About 10 minutes &middot; 3 steps</p>
-<p>A report laid out the same way every time is quicker to read and to check. In this unit, you have Copilot add a report layout to the Procedure reviewer's instructions, then ask for two reviews in different words and get the same layout. Start with the agents-practice folder open, as <a href="create-your-first-custom-agent.html">Create your first custom agent</a> left it.</p>
+<p>A report laid out the same way every time is quicker to read and to check. In this unit, you have Copilot add a report layout to the Procedure reviewer's instructions. Then you ask for two reviews in different words and get the same layout. Start with the agents-practice folder open, as <a href="create-your-first-custom-agent.html">Create your first custom agent</a> left it.</p>
 <h2 id="1-have-copilot-add-a-report-layout-to-the-procedure-reviewer" class="step"><span class="sr">1. </span><span class="tt">Have Copilot add a report layout to the Procedure reviewer</span></h2>
 <p>The reviewer can't change its own file, so you use <b>Agent</b>.</p>
 <ol><li>At the top of the chat, select <b>New Chat</b> (+).</li><li>At the bottom of the chat box, select the control that shows <b>Procedure reviewer</b>, and then select <b>Agent</b>.</li><li>Enter:</li></ol>
@@ -369,7 +371,7 @@ Add or change no other file.</div><button class="copy" type="button" aria-label=
 <ol start="4"><li>If a <a class="gl" href="../glossary.html#permission-request" title="Allow and Skip buttons in a reply, asking whether Copilot may run a command. How to read one: Reading a permission request">permission request</a> appears, allow it if it changes only that file.</li><li>In the list on the left, select <code>procedure-reviewer.agent.md</code>.</li></ol>
 <div class="check"><p><b class="lbl">Check:</b> the instructions end with the three headings in that order, and the <code>tools</code> line still lists <code>read</code> and <code>search</code> only.</p></div>
 <h2 id="2-have-the-procedure-reviewer-check-the-procedures" class="step"><span class="sr">2. </span><span class="tt">Have the Procedure reviewer check the procedures</span></h2>
-<p>A <a class="gl" href="../glossary.html#custom-agent" title="An agent you have Copilot create, with your instructions and only the tools you choose. You select it in the chat box">custom agent</a>'s instructions apply to every request while it's selected.</p>
+<p>A <a class="gl" href="../glossary.html#custom-agent" title="An agent set up for one role, with its own instructions, the tools it may use and, if you choose, its AI model. You select it in the chat box">custom agent</a>'s instructions apply to every request while it's selected.</p>
 <ol><li>Select <b>New Chat</b> (+).</li><li>At the bottom of the chat box, select the control that shows <b>Agent</b>, and then select <b>Procedure reviewer</b>.</li><li>Enter:</li></ol>
 <div class="prompt"><div class="t">Check the procedures in the procedures folder.</div><button class="copy" type="button" aria-label="Copy: Check the procedures in the procedures…">Copy</button></div>
 <div class="check"><p><b class="lbl">Check:</b> the reply has the headings Procedures checked, Unclear steps and Missing steps, in that order, with a table of Procedure, Step and Why under Unclear steps.</p></div>
@@ -386,13 +388,13 @@ Fix the file so it does.
 Add or change no other file.</div><button class="copy" type="button" aria-label="Copy: Review…">Copy</button></div>
 </div></details>
 <h2 id="on-your-own-work">On your own work</h2>
-<p>When you want a custom agent's reports laid out the same way each time, ask Copilot to add the layout to its instructions: the headings, in order, and what goes under each.</p>
+<p>When you want a custom agent's reports laid out the same way each time, ask Copilot to add the layout to its instructions. Say the headings, in order, and what goes under each.</p>
 <h2 id="what-you-did">What you did</h2>
 <p>You had Copilot add a report layout to a custom agent, and got that layout from two requests worded differently. To go back to <b>Agent</b>, select the control at the bottom of the chat box, and then select <b>Agent</b>.</p>
 <p>Source: <a href="https://code.visualstudio.com/docs/agent-customization/custom-agents" target="_blank" rel="noopener">Custom agents in VS Code</a>, Microsoft.</p>
 <nav class="pager" aria-label="What comes next"><div class="nextunit"><p class="lbl">End of the path</p><h2>Custom agents</h2><div class="nextrow"><a class="btn" href="index.html" data-complete="1">Back to the training<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a><a class="prev" href="create-your-first-custom-agent.html">&lsaquo; Previous unit: Create your first custom agent</a></div><p class="lbl">Optional: <a href="how-to/index.html">Practice recipes</a>, new tasks that use what this training taught</p><p class="nudge" id="nudge" aria-live="polite" data-btn="Back to the training"></p></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-04</span><a href="../CHANGELOG.html">Version 1.2</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-05</span><a href="../CHANGELOG.html">Version 1.3</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>
@@ -739,7 +741,7 @@ function search(){
   hits.sort(function(a,b){return b[0]-a[0];});
   res.innerHTML=hits.length?hits.slice(0,10).map(function(h){var e=h[1];
     return '<li><a href="'+esc(ROOT+e.u)+'"><span class="rt">'+esc(e.s||e.t)+'</span><br><span class="rs">'+esc((e.s?e.t+": ":"")+snippet(e.x,words))+'</span></a></li>';}).join("")
-    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">If something goes wrong</a>.</li>';
+    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">Help</a>.</li>';
   res.hidden=false;
   say.textContent=hits.length?hits.length+" results":"No results";
 }

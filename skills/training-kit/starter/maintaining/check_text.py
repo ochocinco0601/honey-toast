@@ -63,6 +63,8 @@ for root, _, fs in os.walk(out):
         body = re.sub(r'<section class="course".*?</section>', " ", body, flags=re.S)
         want = md_text(src)
         body = re.sub(r'<nav class="pager".*?</nav>', " ", body, flags=re.S)
+        # A drawing's own words are in its text alternative, which the markdown line carries.
+        body = re.sub(r'<span class="drawing".*?</svg></span>', " ", body, flags=re.S)
         body = re.sub(r'<aside class="toc".*?</aside>', " ", body, flags=re.S)
         body = re.sub(r'<details class="toc-inline">.*?</details>', " ", body, flags=re.S)
         body = re.sub(r'<nav class="path"[^>]*>.*?</nav>', " ", body, flags=re.S)

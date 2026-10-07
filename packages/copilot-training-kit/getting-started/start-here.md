@@ -13,8 +13,14 @@ You type your requests to Copilot in the chat.
 Check: the chat is open, and a control at the bottom of the chat box says **Agent**.
 
 <!-- more: If the control doesn't say Agent, or the chat won't open -->
-With **Agent** selected, Copilot can run commands and create files, not only answer questions. In a narrow chat, the controls may show only icons. If no control says **Agent**, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select **Agent**. Leave the other controls as they are. If VS Code doesn't open, no chat
-appears, or the chat asks you to sign in, see
+With **Agent** selected, Copilot can run commands and create files, not only answer questions. In a
+narrow chat, the controls may show only icons.
+
+If no control says **Agent**, select the chat box, hold down Ctrl, and press the period key (.).
+The list of agents opens, with the selected agent marked. Select **Agent**. Leave the other
+controls as they are.
+
+If VS Code doesn't open, no chat appears, or the chat asks you to sign in, see
 [Getting set up](../troubleshooting.md#getting-set-up).
 <!-- /more -->
 
@@ -66,7 +72,11 @@ Copilot works on the files in the folder you open.
 Check: the list on the left shows `COPILOT-PRACTICE`, with nothing in it yet.
 
 <!-- more: If the chat or file list looks different -->
-VS Code reopens with the folder, and the chat starts empty. If no control at the bottom of the chat box says **Agent** now, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select **Agent**. If the list on the left is missing, open the **View** menu and select **Explorer**.
+VS Code reopens with the folder, and the chat starts empty. If no control under the chat box
+says **Agent** now, select the chat box, hold down Ctrl, and press the period key (.).
+The list of agents opens, with the selected agent marked. Select **Agent**.
+
+If the list on the left is missing, open the **View** menu and select **Explorer**.
 <!-- /more -->
 
 ## What you did

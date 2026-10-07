@@ -55,7 +55,13 @@ On the **View** menu, select **Chat**. Or press Ctrl+Alt+I.
 
 ### Copilot answers but doesn't create or change files
 
-Copilot may be set to another agent. Select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select **Agent**. If **Agent** is already selected, Copilot may be set only to plan the work. A control below the chat box, not inside it, then shows **Plan**. In a narrow chat, it shows only an icon. Select **Plan**, and then select **Interactive** in the list that opens. With **Interactive**, Copilot does the work instead of only planning it.
+Copilot may be set to another agent. Select the chat box, hold down Ctrl, and press the period
+key (.). The list of agents opens, with the selected agent marked. Select **Agent**.
+
+If **Agent** is already selected, Copilot may be set only to plan the work. A control below the
+chat box, not inside it, then shows **Plan**. In a narrow chat, it shows only an icon. Select
+**Plan**, and then select **Interactive** in the list that opens. With **Interactive**, Copilot
+does the work instead of only planning it.
 
 ## While Copilot is working
 
@@ -85,8 +91,9 @@ Answer in the chat box, as you would answer a person.
 
 ### Copilot says it can't read a file
 
-Word, Excel and PDF files aren't plain text, so Copilot may ask to run a small command to read them. If it
-reads the file you named, allow it. If it still can't, save the file as plain text (for an Excel file, choose CSV in Save As) and ask again.
+Word, Excel and PDF files aren't plain text, so Copilot may ask to run a small command to read them. If the
+command only reads the file you named, allow it. If it installs or downloads anything, select **Skip**.
+If Copilot still can't read the file, save it as plain text (for an Excel file, choose CSV in Save As) and ask again.
 
 ### The reply is too long or too technical
 
@@ -134,8 +141,8 @@ A new chat starts empty, but the files stay. Name the file in your request, for 
 
 ### The chat is going in circles
 
-Select **New Chat** (+) at the top of the chat, and ask again in one request: which folder, what to
-read, what to make, and where to put it.
+Select **New Chat** (+) at the top of the chat. Then ask again in one request: which folder, what
+to read, what to make, and where to put it.
 
 ## Skills and custom agents
 

@@ -1,24 +1,43 @@
 # What is a custom agent?
 
-A custom agent is Copilot set up for one kind of work, such as reviewing documents or planning a
-change. It has its own instructions, the tools it may use and, if you choose, the AI model it uses.
-In this unit, you learn what a custom agent is and when to use one. There's nothing to do in VS Code yet.
+A custom agent is Copilot set up for one role, such as reviewer or planner. It has its own
+instructions, the tools it may use and, if you choose, its AI model.
+
+In this unit, you learn what a custom agent is and when to use one. There's nothing to do in VS
+Code yet.
 
 ## Why use a custom agent
 
-When you do the same kind of work often, you select a custom agent instead of repeating its
-instructions in every request. For example, a reviewer can hold your review checklist, and a
-planner can say how you want a plan laid out.
+A skill holds one task, such as a weekly summary. A custom agent covers a role, for as long as you
+have it selected. When you want Copilot in the same role often, select a custom agent instead of
+describing the role in every request. Each one gets what its role needs:
 
-Copilot does its work with tools. A tool is one action it can take, such as reading a file,
-changing a file or running a command. A custom agent can also take tools away. A request, custom instructions or a skill can only ask Copilot not to change a file. With any of them, Copilot still has every tool, including the one that changes files.
+- A reviewer holds your review checklist.
+- A planner has only the tools for reading files, so it can work out a change but not make it.
+- A procedure writer holds your template and house rules, and keeps every tool.
 
-For example, say you want Copilot to check your procedures for unclear steps, and to leave each procedure exactly as written. A custom agent that has only the tools for reading files can list the problems. It can't change a procedure, even if a request asks it to. Afterward, you don't have to check that each procedure is unchanged.
+Copilot does its work with tools: one tool reads a file, another changes a file, another runs a
+command. A custom agent's tools come with it: while it's selected, Copilot has only those tools.
+
+- Custom instructions or a skill can only ask Copilot not to change a file. Copilot still has every
+  tool, including the one that changes files.
+- A custom agent can be given only some of the tools. Without the one that changes files, it
+  can't change a file, even if a request asks it to.
+
+![Diagram: asked not to change a file, Copilot still has the tool that changes files. A custom agent with only the tools for reading files doesn't.](images/asked-or-taken-away.svg)
+
+In [Create your first custom agent](create-your-first-custom-agent.md), you build a reviewer that
+has only the tools for reading files. It lists unclear steps in your procedures and leaves the procedures unchanged.
+
+A custom agent can also hand its work on. After the reviewer replies, a button can pass its
+findings to **Agent** to fix. **Agent** is the agent you've used so far. The practice recipe
+[Hand a review to Agent to fix](how-to/hand-a-review-to-agent.md) shows how to add that button.
 
 ## What a custom agent looks like
 
-A custom agent is a Markdown file whose name ends in `.agent.md`. You don't type one yourself: when you ask, Copilot writes the whole file.
-This one, `procedure-reviewer.agent.md`, checks procedures:
+A custom agent is a Markdown file whose name ends in `.agent.md`. You don't type one yourself:
+when you ask, Copilot writes the whole file. This one, `procedure-reviewer.agent.md`, checks
+procedures:
 
 ```
 ---
@@ -31,31 +50,28 @@ Read the procedure I name.
 List each step that is unclear or missing, and say why.
 ```
 
-The lines between the two `---` marks are the header: the agent's name, a description of what it
-does, and the tools it may use. `read` and `search` let it read and search the files in the
-folder you have open. `edit`, the tool that changes files, isn't in the list. After the header come the agent's instructions.
-
-## Where a custom agent works
-
-A custom agent saved in a folder works only while that folder is open in VS Code. Anyone who opens that folder can use it. A custom agent saved in your personal agents folder works in every folder you open, but only for you. When you have Copilot create a custom agent, you tell it which of these two places to save it in.
+- The header, between the two `---` marks, gives the agent's name, what it does and its tools.
+- `read` and `search` let it read and search the files in the folder you have open. `edit`, the
+  tool that changes files, isn't listed.
+- The agent's instructions follow the header.
 
 ## How you select a custom agent
 
-At the bottom of the chat box, the control that shows **Agent** opens a list of agents. In a narrow chat, that
-control may show only an icon. **Agent**, the one you've
-used so far, can change files and run commands. The list may show other agents too. You can leave them alone. A custom agent
-you create is added to the list. When you select a custom agent, the control shows its name. As
-long as it does, Copilot follows that agent's instructions and uses only its tools. To go back to **Agent**, select that control, and then select **Agent**.
+A custom agent you create is added to the list that opens from the control showing **Agent**. The list may
+show other agents too; you can leave them alone. While a custom agent is selected, the control
+shows its name.
 
 ## Custom instructions, a skill or a custom agent?
 
 | To have Copilot | Use | Copilot uses it |
 |---|---|---|
 | Follow the same rules in every request in a folder | Custom instructions | With every request while the folder is open |
-| Do a task you repeat the same way each time | A skill | When a request matches the skill's description |
-| Work in one role, such as reviewer, with its own instructions and only the tools it needs | A custom agent | When you select it in the chat box |
+| Do a task you repeat the same way each time | A skill | When a request matches its description, or you select it after typing `/` |
+| Work in one role, such as reviewer or planner, for a whole chat | A custom agent | While you have it selected in the chat box |
 
-For something you need only once, use none of them: say it in the request.
+For something you need only once, say it in the request. Often more than one would work: choose
+the smallest change that does the job. The home page's
+[Which to use when](../README.md#which-to-use-when) compares these with connections too.
 
 Which would you use for each of these? Decide, and then select **Show the answer**.
 
@@ -65,27 +81,27 @@ b. Each week, you ask Copilot to check the new procedures against a style guide 
 
 c. Each new procedure needs checking for missing steps. It must stay unchanged while it's checked, even if a request asks Copilot to fix it.
 
-d. One procedure needs checking for missing steps, just this once.
+d. You write new procedures several times a week. In each of those chats, you want Copilot to work
+as a procedure writer, from your template and house rules.
+
+e. One procedure needs checking for missing steps, just this once.
 
 Check your answer:
 
 - **a. Custom instructions.** It's a rule for every request in the folder.
-- **b. A skill.** It's a task you ask for again and again. The task is meant to change the files, so
-  there's nothing Copilot must be kept from doing. Custom instructions would apply the style guide to
-  every request, not only to this task.
-- **c. A custom agent.** It's a reviewer whose tools only read. While it's selected, Copilot can't
-  use the tool that changes files, so each procedure stays as written.
-- **d. None of them.** Say it in the request.
-
-The likeliest mistake is choosing a skill for c. The Skills training gave "the same checks on every
-new document" as an example of a task for a skill. A skill is right when there's nothing Copilot must
-be kept from doing. Here each procedure must stay unchanged, and a skill's instructions can only ask
-Copilot not to change it.
+- **b. A skill.** It's one task you repeat the same way. A custom agent working as an editor would
+  also do it, but that's a bigger change than the task needs.
+- **c. A custom agent.** Each procedure must stay unchanged even if a request asks for a fix. A
+  skill can only ask; a reviewer without the tool that changes files can't change the procedure.
+- **d. A custom agent, or a skill.** For a whole chat in one role, a custom agent: you select it
+  once. A skill also works if you ask for one procedure at a time.
+- **e. None of them.** Say it in the request.
 
 ## What you learned
 
-A custom agent is Copilot set up for one role: a `.agent.md` file with a header that gives its
-name, a description and the tools it may use, then its instructions. You select it in the chat
-box. Use one for a role you work in often, such as reviewer, especially when Copilot must be kept from doing something, such as changing a file.
+A custom agent is Copilot set up for one role. It's a `.agent.md` file: a header, then its
+instructions. The header gives its name, a description, its tools and, if you choose, its AI model.
+You select it in the chat box. Use one for a role you need often. Its tools come with it, every
+time you select it.
 
 Source: [Custom agents in VS Code](https://code.visualstudio.com/docs/agent-customization/custom-agents) and [Understand agent customization](https://code.visualstudio.com/docs/agents/concepts/customization), Microsoft.

@@ -38,7 +38,7 @@ for it. `SKILL_VERSION` is not a setting: it records which version of the skill 
 The builder also writes some sentences itself. When the audience, the place practice happens or the
 help beside the learner differs from the defaults, reread these in `build_pages.py` and reword them:
 the prompt labels (`prompt_block`), the "Stuck on this step?" button and its question, the copy messages,
-the outline's and the end-of-unit block's labels ("Start the training", "Continue", "Next unit:",
+the outline's and the end-of-unit block's labels ("Start with", "Continue", "Next unit:",
 "End of the path", "Back to the training", "Not started" and the like), the line under a unit's
 Continue button that says it marks the unit complete, "Mark as not complete", the end-of-path
 message, and the page foot (`page_foot`). The builder's other
@@ -68,12 +68,14 @@ screen label that contains one, such as **Open Preview** when "Preview" is a glo
   hand.
 - **Setup is the workplace's way.** Where learners work on computers their company manages,
   software, its updates and the account they sign in with come through the company: its software
-  portal and their work account. No page sends a learner to a vendor's download site, has them
+  portal and their work account. On such computers, no page sends a learner to a vendor's download site, has them
   update the tool by its own menu, or speaks of "your plan". Name no particular portal: "your
   company's software portal" is the general default an adopter may replace. The build catches the
   common wordings: installing or downloading from a web address (PUBLICINSTALL), the tool's own
   update command (SELFUPDATE) and, for Copilot, a plan or a personal account (YOURPLAN). It does
-  not catch every wording, so a review reads each setup step against this rule.
+  not catch every wording, so a review reads each setup step against this rule. Where learners
+  install software themselves or sign in with their own accounts, remove PUBLICINSTALL, SELFUPDATE
+  and YOURPLAN from `SENTENCE_RULES` in `check_rulings.py`.
 - **Each training teaches a learner working alone,** at their own pace. The kit is self-paced: it
   has no presenter material and assumes no live session.
 - **Position and time are generated, never typed.** The breadcrumb, the unit's header and the
@@ -113,14 +115,15 @@ screen label that contains one, such as **Open Preview** when "Preview" is a glo
   headings and file names too: an auditor's evidence review is not "paperwork". Praising a simple
   act, or explaining what their own job taught them, talks down.
 - **Say what a step will change, as reassurance.** Before the first step that changes something,
-  say plainly what it will and will not change, as the tool's own documentation does. Add no
-  caution, restriction or judgement test (no "only if you are sure", and no look-only units, which
-  leave the learner nothing to do) unless the tool itself requires it or the requester asked for
-  it. Teach a permission request as the tool's documentation teaches it, reassuringly: look at
+  say plainly what it will and will not change, as the tool's own documentation does. Cautions
+  come from the tool's own documentation and from the requester; the kit adds no generic caution,
+  restriction or judgement test of its own (no "only if you are sure", and no look-only units,
+  which leave the learner nothing to do). Teach a permission request as the tool's documentation teaches it, reassuringly: look at
   what it will do, allow it when it matches what you asked, skip it when it doesn't; skipping is
   safe (for VS Code: vscode-docs `docs/agents/run/approvals.md` and
   `docs/agents/concepts/trust-and-safety.md`, read 2026-09-30). Leave out options a beginner
-  doesn't need. The build fails on the commonest cautions (CAUTION).
+  doesn't need. The build fails on a permission request taught as "never choose" or "do not
+  choose" instead of the documentation's Allow or Skip (CAUTION).
 - **Less is more.** A page carries what the next action needs. The elements these rules require
   come first, each in the least intrusive form that serves its moment; answers, definitions and
   help open on request. Fix by changing or removing before adding, and judge a cut against the
@@ -141,8 +144,8 @@ screen label that contains one, such as **Open Preview** when "Preview" is a glo
   or remove it.
 - **The recipes are practice.** Each is a worked example of one kind of task.
 - **The kit's practice data is made up.** No real people, customers, systems or addresses in any
-  example or practice file the kit ships. Learners may use their own work files; the kit sets no
-  rule on which. An example is labelled as an example, never dressed up as a particular person's
+  example or practice file the kit ships. Which of their own work files a learner uses follows
+  their organization's rules; the kit adds none. An example is labelled as an example, never dressed up as a particular person's
   or role's job.
 - **No learner categories.** Content is never branched or labelled by kind of learner: every
   learner reads the same pages.
@@ -261,8 +264,7 @@ next page; a unit with no numbered steps works the same way. A line under the bu
 on a completed unit offers "Mark as not complete". Steps have no checkboxes: a box on every step
 turns reading into bookkeeping and pulls the eye from the instruction, while a unit is the size of
 thing a learner returns to. The outline, the breadcrumb and the training's home count completed
-units only. Kits built before progress was by unit kept a tick per step in the browser; those are
-ignored, so a learner who ticked steps under an older build starts again with no units complete.
+units only.
 
 **The look is quiet,** so that nothing on the page is louder than the step the learner is doing.
 One accent colour marks links and where the learner is; green appears only on a completed unit. A
@@ -273,12 +275,15 @@ WCAG 2.2 AA contrast (4.5:1) and every edge or mark that carries meaning 3:1, in
 seven type sizes and spacing on a 4-pixel grid; every click target at least 24 pixels; and each
 step of a unit fits on one screen, beside another window too.
 
-**The page is compact by choice.** The text column is as wide as the breadcrumb, 720 pixels or
-about 100 characters a line, and steps, paragraphs and lines are set close. This is wider than the usual reading measure of 60
-to 75 characters on purpose: a column that narrow leaves a wide screen mostly empty and makes a
-unit feel sparse. Body text stays
-at the browser's default size, so it follows each reader's zoom. If you change the look in
-`build_pages.py`, measure these again.
+**The text column is 720 pixels,** as wide as the breadcrumb, about 100 characters a line. This
+is wider than the usual reading measure of 60 to 75 characters on purpose: a column that narrow
+leaves a wide screen mostly empty and makes a unit feel sparse, and the published trainings use
+800 (VS Code docs) to about 880 (Microsoft Learn). **Lines and paragraphs are set as those
+trainings set them,** measured 2026-10-05: body text at the browser's default size, so it follows
+each reader's zoom; a line height of 1.6 (VS Code docs 1.6, Learn 1.75); 16 pixels between
+paragraphs and around lists (both).
+If you change the look in `build_pages.py`, measure
+these again.
 
 ## How a page is written
 
@@ -308,7 +313,7 @@ The builder reads these conventions. Anything else is ordinary markdown.
 | `<!-- rate -->` on the line before a list | Each item with a choice of "I can do this", "With the page open" or "Not yet", kept and gathered like a note. For the objectives at the end of a path, in the same words as the training's home page. The list ends at its first blank line |
 | `<!-- workbook -->` on its own line | Where the build puts every note and rating from the training's pages, under the unit and step each came from, with Download and Print buttons. Only in a training's `workbook.md` |
 | `[text](../sample-files/name.csv)` | A link to a practice file or any other file in the kit |
-| `![what it shows](images/name.png)` on its own line | A picture, such as a screen with the control to use. Keep pictures in an `images` folder beside the page; describe what matters in the text as well, for readers who cannot see it |
+| `![what it shows](images/name.png)` on its own line | A picture, directly under the action or sentence it belongs to. Keep pictures in an `images` folder beside the page. Which pictures a page has, their form and the words in the brackets are under "Pictures" |
 
 **The first unit on a path is an Introduction** that grounds the learner before any doing, as every
 Microsoft Learn module does (Gagné's first events, Ausubel's advance organizer): the real situation
@@ -379,6 +384,27 @@ doing work. They reassure; they do not warn. Beyond that:
 - If this copy is published outside your organization, keep organization details out of it; they
   belong in your organization's own copy.
 
+### Density
+
+A page reads as a wall of words when its paragraphs run long and nothing breaks them. The limits
+are ASD-STE100's structure rules (Simplified Technical English: the sentence and paragraph rules,
+with ordinary vocabulary), and the numbers are measured 2026-10-05 from the published trainings
+(VS Code's concept pages, GitHub Skills, a Microsoft Learn unit, GitHub Docs):
+
+- **A sentence has at most 25 words; a paragraph at most six sentences and one topic.** The build
+  fails on either (SENTENCE, PARAGRAPH). The references run well inside this: a paragraph is one
+  or two sentences, 20 to 35 words, and the longest on seven pages is 59.
+- **Parallel items are a list, not a sentence with commas.** On the references, a third to a half
+  of the prose on a page that explains sits in lists and tables (33 to 56 percent); Learn, at 23
+  percent, breaks its text with a heading every 70 words instead.
+- **A run of paragraphs breaks within about 130 words:** a list, a table, a picture or a code
+  block comes before the fourth consecutive paragraph (the longest unbroken run on the references
+  is 128 words).
+- **A heading every 250 words at most** (the references: one per 75 to 250).
+
+The reviewer judges the last three by eye with the ten-second test ("What a step shows"); the
+build checks the first.
+
 ### The form of a unit
 
 Write a unit the way the published hands-on exercises do. The training-kit skill keeps one as
@@ -408,20 +434,79 @@ A page is read at a glance before it is read in full. Each step shows only what 
 on; the rest folds away (`<!-- more: label -->` to `<!-- /more -->`, opened on request). Measured
 2026-10-03 from VS Code's agents quickstart (about 1,200 words in 9 sections, about 130 a section,
 action lines of 15 to 25 words, 5 screenshots) and GitHub Skills' *Getting Started with GitHub
-Copilot*, step 1 (1,197 words, 12 screenshots, the "missing?" help folded in two `<details>`):
+Copilot*, step 1 (1,197 words, 10 screenshots, the "missing?" help folded in two `<details>`):
 
 | Shown | Standard |
 |---|---|
 | What the step does | In its heading and reason line, in plain words ("Create the practice folder", not "scaffold"); never only in a prompt or a fold |
 | The step's reason | One line, 12 words or fewer |
 | Actions | One to three, numbered, 25 words or fewer each |
-| A picture | Wherever the learner must find something on the screen, cropped to that control: no menu open on options the text leaves out, nothing the audience could not read |
+| A picture | Where "Pictures", below, gives it a job: to find a control, to confirm a result, to see the window's parts, or to explain an idea |
 | The Check | Always visible, one line: checking is what the training teaches |
 | Visible words in the step | About 130 at most |
 | Folded | Explanations, what to do when something differs, practice and its answers. Never something every learner needs to finish an action, such as which program opens a file: that goes in the action |
 
 Before a page goes to anyone, look at it in a browser at 1,440 pixels wide with the folds closed:
 someone who has never seen it can tell in ten seconds what each step asks them to do.
+
+### Pictures
+
+A picture is on a page because it does one of four jobs there. A page with too few leaves the
+learner searching the screen or unsure their result is right; a picture with no job is noise.
+The jobs are the functions of a screen capture in software instructions (Gellevij and van der
+Meij: locating screen objects, verifying screen states, building a mental model of the program)
+and of an explanatory graphic (Clark and Lyons, *Graphics for Learning*). The limits are Mayer's
+coherence principle (leave out what does not carry the content) and the vendors' own rules for
+their documentation (GitHub Docs, "Creating screenshots"; Google's developer documentation style
+guide, "Figures and other images"; the Microsoft Writing Style Guide on images and alt text).
+
+| Job | A page has one when | Its form |
+|---|---|---|
+| **Locate** a control | The control an action names is small or easy to miss, is inside a menu or a list, or sits among several like it (GitHub Docs' three cases); the first time the path uses it | A screenshot of the control with enough of the screen around it to show where it sits, the control outlined. Never the control alone: a picture of two buttons does not say where they are |
+| **Confirm** a result | A Check depends on how the screen looks, and words would leave the learner unsure theirs matches | A screenshot of the kit's own worked example at that step, made from the practice files the path creates |
+| **Orient** | The path keeps naming parts of a window (the chat, the file list) that a new learner has never seen | One screenshot of the whole window, once, where the parts are first named |
+| **Explain** an idea | The idea is a relationship between parts or a contrast between two cases, and a paragraph is carrying that structure in words | One drawing for the idea, made for the kit, with the fewest marks that show it |
+
+**No picture** for decoration or to break up a long page; of a prompt, a reply, a file's contents
+or a command, which stay text the learner can read, search and copy; for an action whose text is
+clear alone ("On the **View** menu, select **Chat**"); or twice for the same thing.
+
+**What to expect,** measured 2026-10-05 from the same published trainings (VS Code's agents
+quickstart and tutorial, three GitHub Skills exercises, GitHub Docs; 111 pictures). A hands-on
+unit has a picture for every two or three numbered actions, one for every 100 to 160 words; two
+in three locate a control and one in three confirm a result. A page that explains an idea has
+none, or one drawing. Help pages, glossaries and reference tables have none. This is what to
+expect, not a quota: read a hands-on unit with no picture, or an explaining page with three,
+against the table. `python maintaining/measure.py` prints each page's pictures beside its words.
+
+Every picture:
+
+- **Sits directly under the action or sentence it belongs to,** never gathered at the end.
+- **Agrees with the page.** Nothing in it contradicts the text or shows a label the version the
+  learners run no longer has; no menu open on options the text leaves out; nothing the audience
+  could not read, such as program code in a kit for people who do not write it. A vendor's
+  picture of another scenario is cropped until it agrees, or not used.
+- **Is not needed to finish the step.** The text says everything the picture shows, so a learner
+  who cannot see it loses nothing. The words in the brackets are its text alternative: the kind
+  of picture, then what it shows, in 150 characters or fewer ("Screenshot of the list of agents,
+  open above the Agent control in the chat box."). The build fails without them (ALTTEXT).
+- **A drawing uses real text and the page's colours,** light and dark: an SVG file, never a
+  picture of text. The build puts an SVG into the page itself, so write its colours as the
+  page's own (`var(--ink)`, `var(--bg2)`, `var(--rule)`, `var(--accent)`), start its class names
+  with `dg-`, and give it no background of its own. Its text meets the page's contrast standard.
+- **Is a claim about the screen.** A screenshot has a row in `facilitator/claims.md` with its
+  source, the tool's version and the date, and is rechecked with the dated facts.
+- **Is credited as its licence asks,** in a line at the foot of the page. A picture reused from
+  a vendor's documentation names the documentation, its owner, the licence with a link, and
+  whether it was cropped or marked (for Microsoft's and GitHub's documentation, Creative Commons
+  Attribution: reuse, cropping and marking are allowed with that credit). A screenshot you take
+  yourself is cropped and outlined as its job needs. Take it in a clean profile that shows no
+  person's name, account, folder path or organization. A product's owner may publish terms for
+  screenshots of it: tell the requester what they say, with the source.
+
+Where the pictures come from (the vendor's documentation, screenshots the kit's builders take,
+or both) is the requester's choice, recorded under "Decisions": it decides what is published
+under their name and what of their screen leaves their computer.
 
 ### Time estimates
 
@@ -437,9 +522,10 @@ words below 10 and numerals from 10 ("about five minutes", "about 15 minutes").
 Budgets are a ceiling a reviewer checks after the page is written, never a target to write
 toward. Never shorten a sentence to meet one: a page over budget loses a step, an example or a
 branch, not the words that make its sentences readable. Budgets are words of prose, prompts not
-counted; `python maintaining/measure.py` from the kit folder prints every learner page against
+counted; `python maintaining/measure.py` from the kit folder prints every learner page's prose words, to read against
 them. They are what the published hands-on trainings
-use (GitHub Skills' Copilot course, the Microsoft Learning lab, VS Code's agents quickstart,
+use (GitHub Skills' Copilot course, Microsoft Learning's
+`mslearn-github-copilot-dev` lab 02, VS Code's agents quickstart,
 GitHub's Copilot cookbook, and the help pages of GitHub Docs and VS Code Docs), measured
 2026-10-02. A kit on another subject keeps them unless its settings table sets its own.
 
@@ -494,14 +580,15 @@ said. These rules follow how the published Copilot and Claude Code trainings pre
    or "Ask:", then the prompt in its own block with its Copy button.
 8. **Every step has an observable result the learner sees on screen;** a prompt whose only result
    is a reply arriving, such as "What can you do with the files in the folder I have open?", goes.
-   After a prompt, its Check follows "Every action has a check" above. Never a blanket caution
-   that the assistant can be wrong (the build fails on one: AIWARNING); teach the technique that
+   After a prompt, its Check follows "Every action has a check" above. Teach verification instead of a
+   generic disclaimer (the build fails on one: GENERICDISCLAIMER); teach the technique that
    makes its work quick to verify, such as naming the file behind every item, once, with its
    purpose. Start here says once that the assistant's wording differs from run to run.
 9. **A prompt that has the assistant write a file says "add or change no other file",** not only
    "change no other file". To read a file it can't open directly, an assistant may write a helper
    file beside the learner's own, and the step then has no clean Keep. The build fails on a
-   writing request without it (SCOPE).
+   writing request that limits nothing (SCOPE); it accepts the short form too, so a review
+   reads for it.
 10. **A practice request that writes names its practice folder, never "the folder I have open",**
    and never replaces a file that already exists, so nothing from the training lands in a
    learner's real files (OPENFOLDER). Anything the training creates that shapes the tool's later

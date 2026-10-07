@@ -1,8 +1,8 @@
 # Create your first custom agent
 
 A reviewer that can only read files can check your documents and leave every one as written. In
-this unit, you have Copilot create practice procedures and a Procedure reviewer custom agent, use
-it to check the procedures, and then ask it to change one.
+this unit, you have Copilot create practice procedures and a Procedure reviewer custom agent. You
+use it to check the procedures, and then ask it to change one.
 
 ## 1. Have Copilot create practice procedures
 
@@ -90,12 +90,12 @@ Check: Copilot says it can't change the files, or shows new wording in the chat 
 
 ## On your own work
 
-For a kind of review you do often, ask Copilot to create a custom agent for it, with your
-checklist as its instructions and only the tools that read files.
+For a kind of review you do often, ask Copilot to create a custom agent for it. Tell Copilot to use
+your checklist as its instructions, and to give it only the tools that read files.
 
 ## What you did
 
-You had Copilot create a custom agent that can only read files, selected it, used it to check the
-procedures, and saw that it couldn't change them.
+You had Copilot create a custom agent that can only read files. You selected it, used it to check
+the procedures, and saw that it couldn't change them.
 
 Source: [Custom agents in VS Code](https://code.visualstudio.com/docs/agent-customization/custom-agents), Microsoft.

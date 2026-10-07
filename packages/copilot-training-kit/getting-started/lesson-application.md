@@ -62,9 +62,8 @@ Tell it:
 ## On your own work
 
 The same questions work on a real application's code. On the **File** menu, select **Open
-Folder**, and choose the application's folder. If VS Code asks whether you trust the authors, select **Yes, I trust the
-authors** only when the code comes from a source you trust, as for any folder you open. Then ask what it does, and where something
-you care about happens.
+Folder**, and choose the application's folder. If VS Code asks whether you trust the authors, select
+**Yes, I trust the authors** only when you trust where its code came from. Then ask what it does, and where something you care about happens.
 
 ## What you did
 

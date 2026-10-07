@@ -1,8 +1,9 @@
 # Custom agents
 
-A custom agent is Copilot set up for one kind of work, such as reviewing documents: its own
-instructions, and only the tools it needs. In this training, you learn when to use one, then
-create a reviewer that can read files but not change them, and give its reports a fixed layout.
+A custom agent is Copilot set up for one role, such as reviewer or planner.
+It has its own instructions, the tools it may use and, if you choose, its AI model. In this training, you
+learn when to use one. Then you create a reviewer that can read files but not change
+them, and give its reports a fixed layout.
 
 ## What you will be able to do
 

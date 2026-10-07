@@ -1,7 +1,7 @@
 <!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
      Source: agents/what-is-a-custom-agent.md
      Build: python maintaining/build_pages.py, from the kit's folder (see maintaining/README.md)
-     Built by the training-kit skill, version 1.11
+     Built by the training-kit skill, version 1.13
 -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -163,7 +163,7 @@ border-top:1px solid var(--ink3);transform:rotate(45deg)}
 .line{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:transparent}
 .line span{display:block;height:100%;width:0;background:var(--ink3);transition:width .3s}
 /* the page */
-main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.5}
+main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.6}
 main h1{font-size:2rem;line-height:1.25;font-weight:600;letter-spacing:-.01em;margin:8px 0 4px}
 main p.unit{margin:0 0 16px;font-size:.875rem;color:var(--ink3)}
 main > h1 + p:not(.unit),main > p.unit + p{font-size:1.0625rem}
@@ -175,13 +175,15 @@ main h3.step{display:flex;gap:10px;align-items:baseline}
 .step .n{flex:none;display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:13px;
 font-size:.8rem;font-weight:600;border:1.5px solid var(--ctl);color:var(--ink2);transform:translateY(-3px)}
 h3.step .n{min-width:22px;height:22px;font-size:.8rem}
-main p{margin:8px 0}
-main ul,main ol{padding-left:22px;margin:8px 0}
-main li{margin:4px 0}
+main p{margin:16px 0}
+main ul,main ol{padding-left:22px;margin:16px 0}
+main li{margin:6px 0}
 .gap{height:8px}
 code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:.875em;font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
 kbd{border:1px solid var(--field);border-radius:3px;padding:0 4px;font-size:.85em;font-family:inherit}
 main img{max-width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
+main .drawing{display:block;border:1px solid var(--rule);border-radius:6px;padding:8px;font-family:inherit}
+main .drawing svg{display:block;max-width:100%;height:auto}
 /* a glossary word: a faint underline, the text's own colour */
 a.gl{color:inherit;text-decoration:underline;text-decoration-color:var(--rule2);text-decoration-thickness:1px;
 text-underline-offset:4px;cursor:help}
@@ -356,11 +358,39 @@ main ul.rates{list-style:none;padding:0;margin:12px 0}
 <main id="main" data-steps="1" data-page="What is a custom agent?" data-stuck-from="1" data-kit-open="0" data-stuck="1" data-program="GitHub Copilot training" data-assistant="Copilot" data-chat="the chat box">
 <h1>What is a custom agent?</h1>
 <p class="unit">About five minutes</p>
-<p>A <a class="gl" href="../glossary.html#custom-agent" title="An agent you have Copilot create, with your instructions and only the tools you choose. You select it in the chat box">custom agent</a> is Copilot set up for one kind of work, such as reviewing documents or planning a change. It has its own instructions, the <a class="gl" href="../glossary.html#tool" title="One action Copilot can take, such as reading a file, changing a file or running a command. An agent can do only what its tools allow">tools</a> it may use and, if you choose, the AI model it uses. In this unit, you learn what a custom agent is and when to use one. There's nothing to do in VS Code yet.</p>
+<p>A <a class="gl" href="../glossary.html#custom-agent" title="An agent set up for one role, with its own instructions, the tools it may use and, if you choose, its AI model. You select it in the chat box">custom agent</a> is Copilot set up for one role, such as reviewer or planner. It has its own instructions, the <a class="gl" href="../glossary.html#tool" title="One action Copilot can take, such as reading a file, changing a file or running a command. An agent can do only what its tools allow">tools</a> it may use and, if you choose, its AI model.</p>
+<p>In this unit, you learn what a custom agent is and when to use one. There's nothing to do in VS Code yet.</p>
 <h2 id="why-use-a-custom-agent">Why use a custom agent</h2>
-<p>When you do the same kind of work often, you select a custom agent instead of repeating its instructions in every request. For example, a reviewer can hold your review checklist, and a planner can say how you want a plan laid out.</p>
-<p>Copilot does its work with tools. A tool is one action it can take, such as reading a file, changing a file or running a <a class="gl" href="../glossary.html#command" title="An instruction Copilot runs on your computer, such as creating a folder. It asks before running one that could change something">command</a>. A custom agent can also take tools away. A request, <a class="gl" href="../glossary.html#custom-instructions" title="Notes Copilot reads before every request in a folder: what your work is, who it&#x27;s for and how you want it done. Kept in .github/copilot-instructions.md">custom instructions</a> or a <a class="gl" href="../glossary.html#skill" title="Saved instructions for one kind of task, which Copilot follows when you ask for that task. A skill in a folder works while that folder is open; one in your personal skills folder works in every folder">skill</a> can only ask Copilot not to change a file. With any of them, Copilot still has every tool, including the one that changes files.</p>
-<p>For example, say you want Copilot to check your procedures for unclear steps, and to leave each procedure exactly as written. A custom agent that has only the tools for reading files can list the problems. It can't change a procedure, even if a request asks it to. Afterward, you don't have to check that each procedure is unchanged.</p>
+<p>A <a class="gl" href="../glossary.html#skill" title="Saved instructions for one kind of task, which Copilot follows when you ask for that task. A skill in a folder works while that folder is open; one in your personal skills folder works in every folder">skill</a> holds one task, such as a weekly summary. A custom agent covers a role, for as long as you have it selected. When you want Copilot in the same role often, select a custom agent instead of describing the role in every request. Each one gets what its role needs:</p>
+<ul><li>A reviewer holds your review checklist.</li><li>A planner has only the tools for reading files, so it can work out a change but not make it.</li><li>A procedure writer holds your template and house rules, and keeps every tool.</li></ul>
+<p>Copilot does its work with tools: one tool reads a file, another changes a file, another runs a <a class="gl" href="../glossary.html#command" title="An instruction Copilot runs on your computer, such as creating a folder. It asks before running one that could change something">command</a>. A custom agent's tools come with it: while it's selected, Copilot has only those tools.</p>
+<ul><li><a class="gl" href="../glossary.html#custom-instructions" title="Notes Copilot reads before every request in a folder: what your work is, who it&#x27;s for and how you want it done. Kept in .github/copilot-instructions.md">Custom instructions</a> or a skill can only ask Copilot not to change a file. Copilot still has every tool, including the one that changes files.</li><li>A custom agent can be given only some of the tools. Without the one that changes files, it can't change a file, even if a request asks it to.</li></ul>
+<p><span class="drawing" data-src="images/asked-or-taken-away.svg" role="img" aria-label="Diagram: asked not to change a file, Copilot still has the tool that changes files. A custom agent with only the tools for reading files doesn&#x27;t."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 150" role="presentation">
+
+<style>
+.dg-ink{fill:var(--ink,#1b1b1b)}
+.dg-ink2{fill:var(--ink2,#505050)}
+.dg-chip{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-gone{fill:none;stroke:var(--ctl,#767676);stroke-dasharray:5 4}
+.dg-strike{stroke:var(--ink2,#505050);stroke-width:1.5}
+.dg-div{stroke:var(--rule,#e6e6e6)}
+</style>
+<text class="dg-ink" x="0" y="22" font-size="17" font-weight="600">Asked not to change a file</text>
+<text class="dg-ink2" x="0" y="44" font-size="14">by a request, custom instructions or a skill</text>
+<rect class="dg-chip" x="0" y="62" width="150" height="38" rx="19"/><text class="dg-ink" x="75" y="86" font-size="15" text-anchor="middle">Read files</text>
+<rect class="dg-chip" x="166" y="62" width="150" height="38" rx="19" stroke-width="2"/><text class="dg-ink" x="241" y="86" font-size="15" font-weight="600" text-anchor="middle">Change files</text>
+<text class="dg-ink" x="0" y="134" font-size="15">Still has the tool. It can change the file.</text>
+
+<line class="dg-div" x1="352" y1="4" x2="352" y2="146"/>
+
+<text class="dg-ink" x="388" y="22" font-size="17" font-weight="600">A custom agent</text>
+<text class="dg-ink2" x="388" y="44" font-size="14">given only the tools for reading files</text>
+<rect class="dg-chip" x="388" y="62" width="150" height="38" rx="19"/><text class="dg-ink" x="463" y="86" font-size="15" text-anchor="middle">Read files</text>
+<rect class="dg-gone" x="554" y="62" width="150" height="38" rx="19"/><text class="dg-ink2" x="629" y="86" font-size="15" text-anchor="middle">Change files</text><line class="dg-strike" x1="582" y1="81" x2="676" y2="81"/>
+<text class="dg-ink" x="388" y="134" font-size="15">Doesn't have the tool. It can't change the file.</text>
+</svg></span></p>
+<p>In <a href="create-your-first-custom-agent.html">Create your first custom agent</a>, you build a reviewer that has only the tools for reading files. It lists unclear steps in your procedures and leaves the procedures unchanged.</p>
+<p>A custom agent can also hand its work on. After the reviewer replies, a button can pass its findings to <b>Agent</b> to fix. <b>Agent</b> is the agent you've used so far. The practice recipe <a href="how-to/hand-a-review-to-agent.html">Hand a review to Agent to fix</a> shows how to add that button.</p>
 <h2 id="what-a-custom-agent-looks-like">What a custom agent looks like</h2>
 <p>A custom agent is a <a class="gl" href="../glossary.html#markdown" title="Plain text with simple marks for headings and lists, in a file ending .md. Its preview shows it formatted">Markdown</a> file whose name ends in <code>.agent.md</code>. You don't type one yourself: when you ask, Copilot writes the whole file. This one, <code>procedure-reviewer.agent.md</code>, checks procedures:</p>
 <pre class="file"><code>---
@@ -371,27 +401,25 @@ tools: [&#x27;read&#x27;, &#x27;search&#x27;]
 
 Read the procedure I name.
 List each step that is unclear or missing, and say why.</code></pre>
-<p>The lines between the two <code>---</code> marks are the header: the agent's name, a description of what it does, and the tools it may use. <code>read</code> and <code>search</code> let it read and search the files in the folder you have open. <code>edit</code>, the tool that changes files, isn't in the list. After the header come the agent's instructions.</p>
-<h2 id="where-a-custom-agent-works">Where a custom agent works</h2>
-<p>A custom agent saved in a folder works only while that folder is open in VS Code. Anyone who opens that folder can use it. A custom agent saved in your personal agents folder works in every folder you open, but only for you. When you have Copilot create a custom agent, you tell it which of these two places to save it in.</p>
+<ul><li>The header, between the two <code>---</code> marks, gives the agent's name, what it does and its tools.</li><li><code>read</code> and <code>search</code> let it read and search the files in the folder you have open. <code>edit</code>, the tool that changes files, isn't listed.</li><li>The agent's instructions follow the header.</li></ul>
 <h2 id="how-you-select-a-custom-agent">How you select a custom agent</h2>
-<p>At the bottom of the chat box, the control that shows <b>Agent</b> opens a list of agents. In a narrow chat, that control may show only an icon. <b>Agent</b>, the one you've used so far, can change files and run commands. The list may show other agents too. You can leave them alone. A custom agent you create is added to the list. When you select a custom agent, the control shows its name. As long as it does, Copilot follows that agent's instructions and uses only its tools. To go back to <b>Agent</b>, select that control, and then select <b>Agent</b>.</p>
+<p>A custom agent you create is added to the list that opens from the control showing <b>Agent</b>. The list may show other agents too; you can leave them alone. While a custom agent is selected, the control shows its name.</p>
 <h2 id="custom-instructions-a-skill-or-a-custom-agent">Custom instructions, a skill or a custom agent?</h2>
-<div class="tw"><table><thead><tr><th scope="col">To have Copilot</th><th scope="col">Use</th><th scope="col">Copilot uses it</th></tr></thead><tbody><tr><th scope="row">Follow the same rules in every request in a folder</th><td>Custom instructions</td><td>With every request while the folder is open</td></tr><tr><th scope="row">Do a task you repeat the same way each time</th><td>A skill</td><td>When a request matches the skill's description</td></tr><tr><th scope="row">Work in one role, such as reviewer, with its own instructions and only the tools it needs</th><td>A custom agent</td><td>When you select it in the chat box</td></tr></tbody></table></div>
-<p>For something you need only once, use none of them: say it in the request.</p>
+<div class="tw"><table><thead><tr><th scope="col">To have Copilot</th><th scope="col">Use</th><th scope="col">Copilot uses it</th></tr></thead><tbody><tr><th scope="row">Follow the same rules in every request in a folder</th><td>Custom instructions</td><td>With every request while the folder is open</td></tr><tr><th scope="row">Do a task you repeat the same way each time</th><td>A skill</td><td>When a request matches its description, or you select it after typing <code>/</code></td></tr><tr><th scope="row">Work in one role, such as reviewer or planner, for a whole chat</th><td>A custom agent</td><td>While you have it selected in the chat box</td></tr></tbody></table></div>
+<p>For something you need only once, say it in the request. Often more than one would work: choose the smallest change that does the job. The home page's <a href="../README.html#which-to-use-when">Which to use when</a> compares these with connections too.</p>
 <p>Which would you use for each of these? Decide, and then select <b>Show the answer</b>.</p>
 <p>a. Everything Copilot writes in a folder should spell out abbreviations.</p>
 <p>b. Each week, you ask Copilot to check the new procedures against a style guide and fix their wording to match.</p>
 <p>c. Each new procedure needs checking for missing steps. It must stay unchanged while it's checked, even if a request asks Copilot to fix it.</p>
-<p>d. One procedure needs checking for missing steps, just this once.</p>
-<details class="answer"><summary>Show the answer</summary><div class="a"><span class="sr">Check your answer:</span><ul><li><b>a. Custom instructions.</b> It's a rule for every request in the folder.</li><li><b>b. A skill.</b> It's a task you ask for again and again. The task is meant to change the files, so there's nothing Copilot must be kept from doing. Custom instructions would apply the style guide to every request, not only to this task.</li><li><b>c. A custom agent.</b> It's a reviewer whose tools only read. While it's selected, Copilot can't use the tool that changes files, so each procedure stays as written.</li><li><b>d. None of them.</b> Say it in the request.</li></ul>
-<p>The likeliest mistake is choosing a skill for c. The Skills training gave "the same checks on every new document" as an example of a task for a skill. A skill is right when there's nothing Copilot must be kept from doing. Here each procedure must stay unchanged, and a skill's instructions can only ask Copilot not to change it.</p></div></details>
+<p>d. You write new procedures several times a week. In each of those chats, you want Copilot to work as a procedure writer, from your template and house rules.</p>
+<p>e. One procedure needs checking for missing steps, just this once.</p>
+<details class="answer"><summary>Show the answer</summary><div class="a"><span class="sr">Check your answer:</span><ul><li><b>a. Custom instructions.</b> It's a rule for every request in the folder.</li><li><b>b. A skill.</b> It's one task you repeat the same way. A custom agent working as an editor would also do it, but that's a bigger change than the task needs.</li><li><b>c. A custom agent.</b> Each procedure must stay unchanged even if a request asks for a fix. A skill can only ask; a reviewer without the tool that changes files can't change the procedure.</li><li><b>d. A custom agent, or a skill.</b> For a whole chat in one role, a custom agent: you select it once. A skill also works if you ask for one procedure at a time.</li><li><b>e. None of them.</b> Say it in the request.</li></ul></div></details>
 <h2 id="what-you-learned">What you learned</h2>
-<p>A custom agent is Copilot set up for one role: a <code>.agent.md</code> file with a header that gives its name, a description and the tools it may use, then its instructions. You select it in the chat box. Use one for a role you work in often, such as reviewer, especially when Copilot must be kept from doing something, such as changing a file.</p>
+<p>A custom agent is Copilot set up for one role. It's a <code>.agent.md</code> file: a header, then its instructions. The header gives its name, a description, its tools and, if you choose, its AI model. You select it in the chat box. Use one for a role you need often. Its tools come with it, every time you select it.</p>
 <p>Source: <a href="https://code.visualstudio.com/docs/agent-customization/custom-agents" target="_blank" rel="noopener">Custom agents in VS Code</a> and <a href="https://code.visualstudio.com/docs/agents/concepts/customization" target="_blank" rel="noopener">Understand agent customization</a>, Microsoft.</p>
 <nav class="pager" aria-label="What comes next"><div class="nextunit"><p class="lbl">Next unit: 2 of 3 &middot; about 10 minutes</p><h2>Create your first custom agent</h2><div class="nextrow"><a class="btn" href="create-your-first-custom-agent.html" data-complete="1">Continue<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a><a class="prev" href="index.html">&lsaquo; Back to Custom agents</a></div><p class="nudge" id="nudge" aria-live="polite" data-btn="Continue"></p></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-05</span><a href="../CHANGELOG.html">Version 1.2</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-07</span><a href="../CHANGELOG.html">Version 1.3</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>
@@ -738,7 +766,7 @@ function search(){
   hits.sort(function(a,b){return b[0]-a[0];});
   res.innerHTML=hits.length?hits.slice(0,10).map(function(h){var e=h[1];
     return '<li><a href="'+esc(ROOT+e.u)+'"><span class="rt">'+esc(e.s||e.t)+'</span><br><span class="rs">'+esc((e.s?e.t+": ":"")+snippet(e.x,words))+'</span></a></li>';}).join("")
-    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">If something goes wrong</a>.</li>';
+    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">Help</a>.</li>';
   res.hidden=false;
   say.textContent=hits.length?hits.length+" results":"No results";
 }

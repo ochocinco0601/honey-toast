@@ -5,10 +5,13 @@ Copilot follows them when you ask for that task, so you don't type them again.
 
 ## Why use a skill
 
-Some tasks you ask for again and again, and want done the same way each time: a weekly summary in
-the same layout, or the same checks on every new document. Without a skill, you type the full
-instructions every time, and the result changes when your wording does. With a skill, you ask in a
-few words, and Copilot follows the saved instructions.
+Some tasks you ask for again and again, and want done the same way each time:
+
+- a weekly summary in the same layout
+- the same checks on every new document
+
+Without a skill, you type the full instructions every time, and the result changes when your
+wording does. With a skill, you ask in a few words, and Copilot follows the saved instructions.
 
 ## What a skill looks like
 
@@ -24,14 +27,16 @@ Lead with the decisions. Then list the actions, each with its owner and due date
 After each item, name the note it came from.
 ```
 
-The lines between the two `---` marks are the skill's header: its name and its description. The
-instructions come after them.
+- The lines between the two `---` marks are the skill's header: its name and its description.
+- After the header come the skill's instructions.
 
 ## How Copilot uses a skill
 
 Copilot checks the description of each skill you have. When your request matches a skill's
 description, such as "summarize the meeting notes", Copilot follows that skill's instructions.
 That's why a description says both what the skill does and when to use it.
+
+![Diagram: a request is checked against each skill's description. The one that matches, Summarize meeting notes, has its instructions followed.](images/request-matches-a-skill.svg)
 
 You can also run a skill by name: type `/` in the chat box, and select the skill from the list.
 
@@ -44,9 +49,12 @@ for you only. Copilot saves a skill in either place when you ask.
 ## Skills and custom instructions
 
 In the Getting started unit [Give Copilot custom instructions for a folder](../getting-started/custom-instructions.md), you saved rules for summaries as custom
-instructions, which Copilot read with every request while the folder was open. Instructions saved
-as a skill are read only when you ask for that task, so they never change Copilot's answers to
-anything else, and you can keep one skill for each task you repeat.
+instructions. Copilot read them with every request while the folder was open. Instructions saved
+as a skill are read only when you ask for that task. That means they never change Copilot's
+answers to anything else, and you can keep one skill for each task you repeat.
+
+The home page's [Which to use when](../README.md#which-to-use-when) shows where skills fit beside
+custom instructions, custom agents and connections.
 
 ## What you learned
 

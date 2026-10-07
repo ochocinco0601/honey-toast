@@ -1,8 +1,8 @@
 # Create your first skill
 
 A skill saves your instructions for a task, so you don't type them again. In this unit, you ask
-for a meeting summary with every instruction typed out, have Copilot save those instructions as a
-skill, and then get the same summary by asking in one line.
+for a meeting summary with every instruction typed out, and have Copilot save those instructions
+as a skill. Then you get the same summary by asking in one line.
 
 ## 1. Have Copilot create practice meeting notes
 
@@ -22,7 +22,11 @@ Copilot creates meeting notes to practice on, in a new folder for this training.
    authors**. If a bar at the top says the folder is in Restricted Mode instead, select **Manage**,
    and then **Trust**.
 
-Check: the list on the left shows `SKILLS-PRACTICE`, with `notes` in it, and a control at the bottom of the chat box says **Agent**. If no control there says **Agent**, or the controls show only icons, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select **Agent**.
+Check: the list on the left shows `SKILLS-PRACTICE`, with `notes` in it, and a control at the bottom of the chat box says **Agent**.
+
+<!-- more: If no control shows Agent -->
+If no control there says **Agent**, or the controls show only icons, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent marked. Select **Agent**.
+<!-- /more -->
 
 ## 2. Ask for a meeting summary without a skill
 
@@ -88,7 +92,7 @@ and say when to use it. To share a skill, give someone a copy of its folder.
 
 ## What you did
 
-You asked for a summary with every instruction typed out, had Copilot save those instructions as a
-skill, and got the same summary from a one-line request.
+You asked for a summary with every instruction typed out, and had Copilot save those instructions
+as a skill. Then you got the same summary from a one-line request.
 
 Source: [Use Agent Skills in VS Code](https://code.visualstudio.com/docs/agent-customization/agent-skills), Microsoft.

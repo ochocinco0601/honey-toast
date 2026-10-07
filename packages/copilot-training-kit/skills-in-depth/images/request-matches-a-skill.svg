@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 172" role="presentation">
+<title>A request is checked against each skill's description; the one that matches has its instructions followed</title>
+<style>
+.dg-ink{fill:var(--ink,#1b1b1b)}
+.dg-ink2{fill:var(--ink2,#505050)}
+.dg-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-dim{opacity:.45}
+.dg-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-head{fill:var(--accent,#0065b3)}
+.dg-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+</style>
+<text class="dg-ink2" x="0" y="16" font-size="13">Your request</text>
+<rect class="dg-req" x="0" y="26" width="176" height="52" rx="6"/>
+<text class="dg-ink" x="12" y="48" font-size="14">“Summarize the</text>
+<text class="dg-ink" x="12" y="66" font-size="14">meeting notes.”</text>
+
+<text class="dg-ink2" x="236" y="16" font-size="13">The description of each skill you have</text>
+<g class="dg-dim"><rect class="dg-card" x="236" y="26" width="220" height="40" rx="6"/>
+<text class="dg-ink" x="248" y="51" font-size="14">Check a new document</text></g>
+<rect class="dg-hit" x="236" y="76" width="220" height="40" rx="6"/>
+<text class="dg-ink" x="248" y="101" font-size="14" font-weight="600">Summarize meeting notes</text>
+<g class="dg-dim"><rect class="dg-card" x="236" y="126" width="220" height="40" rx="6"/>
+<text class="dg-ink" x="248" y="151" font-size="14">Make the weekly summary</text></g>
+
+<path class="dg-faint" d="M176 52 H206 V46 H236"/>
+<path class="dg-arrow" d="M176 52 H206 V96 H228"/><path class="dg-head" d="M228 91 L236 96 L228 101 Z"/>
+<path class="dg-faint" d="M176 52 H206 V146 H236"/>
+
+<path class="dg-arrow" d="M456 96 H500"/><path class="dg-head" d="M500 91 L508 96 L500 101 Z"/>
+<text class="dg-ink2" x="516" y="16" font-size="13">Copilot follows</text>
+<rect class="dg-hit" x="516" y="26" width="188" height="140" rx="6"/>
+<text class="dg-ink" x="528" y="50" font-size="14" font-weight="600">Its instructions</text>
+<text class="dg-ink2" x="528" y="74" font-size="13">Lead with the decisions.</text>
+<text class="dg-ink2" x="528" y="92" font-size="13">Then list the actions, each</text>
+<text class="dg-ink2" x="528" y="110" font-size="13">with its owner and due date.</text>
+<text class="dg-ink2" x="528" y="128" font-size="13">After each item, name the</text>
+<text class="dg-ink2" x="528" y="146" font-size="13">note it came from.</text>
+</svg>

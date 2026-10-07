@@ -52,15 +52,15 @@ RULES = [
      "a request that writes names its target folder (for example, copilot-practice), never 'the folder I have open'"),
     ("REPLYCHECK", r"\breply (arrives|appears)|appears in the chat\b|a summary .{0,30} appears", "check",
      "a Check names something the learner can see in the files or the answer, not that a reply came"),
-    ("AIWARNING", r"\b(can|could|may|might) (be wrong|make mistakes|get .{0,10} wrong)\b", "text",
-     "no blanket warnings that AI makes mistakes; teach the checking technique once, with its purpose"),
+    ("GENERICDISCLAIMER", r"\b(can|could|may|might) (be wrong|make mistakes|get .{0,10} wrong)\b", "text",
+     "teach verification instead of a generic disclaimer: the checking technique once, with its purpose"),
     ("DOWNLOADS", r"\bDownloads folder\b|\bmy Downloads\b", "prompt",
      "no step depends on content the learner may not have; use practice files Copilot creates"),
     ("WHOTOASK", r"\bwhoever (gave|sent)\b|\byour manager\b|\bask (someone in )?your organization\b|"
                  r"\byour organization (decides|allows|tells)\b|\bYour organization\]\(", "text",
      "no 'ask whoever gave you the training', no organization page"),
     ("THISWEEK", r"\bthis week\b", "text", "no 'this week, on your own work' units"),
-    ("CAUTION", r"\bnever choose\b|\bdo not choose\b|\bif in doubt, decline\b", "text",
+    ("CAUTION", r"\bnever choose\b|\bdo not choose\b", "text",
      "a permission request: if it matches what you asked, Allow; if not, Skip"),
     ("ORDINALREF", r"\b(first|second|third|fourth|fifth|next|previous|last|earlier|later) (unit|lesson|step|training)\b", "text",
      "name the unit or step by its title, or link it; an ordinal goes stale when the order changes"),
@@ -112,18 +112,43 @@ def check_answers(rel, lines):
     return hits
 
 
+# Paragraph and sentence limits (ASD-STE100, the structure rules): a paragraph of running text has at
+# most six sentences and one topic; a sentence has at most 25 words. Lists, tables, prompts and code
+# are not paragraphs.
+MAX_SENTENCES = 6
+MAX_WORDS = 25
+# Pages not yet brought to the paragraph and sentence limits; take each out when it is.
+EXEMPT_DENSITY = []
+WORD = re.compile(r"[A-Za-z0-9][\w'.-]*")
+
+
 def check_sentences(rel, lines):
-    """SENTENCE_RULES over each paragraph or list item of ordinary text, joined and split into sentences."""
+    """SENTENCE_RULES over each paragraph or list item of ordinary text, joined and split into sentences;
+    PARAGRAPH and SENTENCE on the paragraphs of running text."""
     rules = [r for r in SENTENCE_RULES if TOOL_RULES.get(r[0], TOOL.lower()) == TOOL.lower()]
     hits = 0
-    start, block = 0, []
+    start, block, fenced = 0, [], False
     for n, line in enumerate(lines + [""], 1):
         s = line.strip()
-        text = bool(s) and where(line) != "prompt" and not s.startswith("#")
+        if s.startswith("```"):
+            fenced = not fenced
+            continue
+        text = bool(s) and not fenced and where(line) != "prompt" and not s.startswith(("#", "|", "<!--", "!["))
         if block and (not text or re.match(r"(\d+\.|[-*])\s", s)):
-            for sentence in re.split(r"(?<=[.!?])\s+", " ".join(block)):
-                if re.match(r"Sources?:", sentence):
+            sentences = [x for x in re.split(r"(?<=[.!?])\s+", " ".join(block)) if x]
+            plain = rel not in EXEMPT_DENSITY and not re.match(r"(\d+\.|[-*]|[a-d]\.)\s|Check( your answer)?:|Answers:|Example", block[0])
+            if plain and len(sentences) > MAX_SENTENCES:
+                hits += 1
+                print("PARAGRAPH %s:%d %d sentences -> at most %d to a paragraph, one topic each; split it, "
+                      "or make parallel items a list" % (rel, start, len(sentences), MAX_SENTENCES))
+            for sentence in sentences:
+                if re.match(r"Sources?:|Screenshots?:", sentence):
                     continue
+                words = len(WORD.findall(re.sub(r"`[^`]*`|\([^)]*\)", "x", sentence)))
+                if plain and words > MAX_WORDS:
+                    hits += 1
+                    print("SENTENCE %s:%d %d words %r -> at most %d words; split it at the idea"
+                          % (rel, start, words, sentence[:50], MAX_WORDS))
                 for code, pat, fix in rules:
                     m = re.search(pat, sentence.replace("*", ""))
                     if m:

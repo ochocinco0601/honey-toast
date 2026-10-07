@@ -1,7 +1,7 @@
 <!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
      Source: connecting/connect-to-github.md
      Build: python maintaining/build_pages.py, from the kit's folder (see maintaining/README.md)
-     Built by the training-kit skill, version 1.11
+     Built by the training-kit skill, version 1.13
 -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -163,7 +163,7 @@ border-top:1px solid var(--ink3);transform:rotate(45deg)}
 .line{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:transparent}
 .line span{display:block;height:100%;width:0;background:var(--ink3);transition:width .3s}
 /* the page */
-main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.5}
+main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.6}
 main h1{font-size:2rem;line-height:1.25;font-weight:600;letter-spacing:-.01em;margin:8px 0 4px}
 main p.unit{margin:0 0 16px;font-size:.875rem;color:var(--ink3)}
 main > h1 + p:not(.unit),main > p.unit + p{font-size:1.0625rem}
@@ -175,13 +175,15 @@ main h3.step{display:flex;gap:10px;align-items:baseline}
 .step .n{flex:none;display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:13px;
 font-size:.8rem;font-weight:600;border:1.5px solid var(--ctl);color:var(--ink2);transform:translateY(-3px)}
 h3.step .n{min-width:22px;height:22px;font-size:.8rem}
-main p{margin:8px 0}
-main ul,main ol{padding-left:22px;margin:8px 0}
-main li{margin:4px 0}
+main p{margin:16px 0}
+main ul,main ol{padding-left:22px;margin:16px 0}
+main li{margin:6px 0}
 .gap{height:8px}
 code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:.875em;font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
 kbd{border:1px solid var(--field);border-radius:3px;padding:0 4px;font-size:.85em;font-family:inherit}
 main img{max-width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
+main .drawing{display:block;border:1px solid var(--rule);border-radius:6px;padding:8px;font-family:inherit}
+main .drawing svg{display:block;max-width:100%;height:auto}
 /* a glossary word: a faint underline, the text's own colour */
 a.gl{color:inherit;text-decoration:underline;text-decoration-color:var(--rule2);text-decoration-thickness:1px;
 text-underline-offset:4px;cursor:help}
@@ -358,7 +360,7 @@ main ul.rates{list-style:none;padding:0;margin:12px 0}
 <p class="unit">About 15 minutes &middot; 3 steps</p>
 <p>Copilot can use a connection to get information that isn't in your files. In this unit, you connect Copilot to GitHub in a practice folder. You ask a question about a public project on GitHub and see Copilot look it up there.</p>
 <h2 id="what-a-connection-gives-copilot">What a connection gives Copilot</h2>
-<p>Copilot does its work with <a class="gl" href="../glossary.html#tool" title="One action Copilot can take, such as reading a file, changing a file or running a command. An agent can do only what its tools allow">tools</a>. A tool is one action it can take, such as reading a file. A connection adds tools from another service. VS Code calls a connection an <a class="gl" href="../glossary.html#mcp-server" title="A connection that lets Copilot read or act on another system directly, instead of on a file exported from it">MCP server</a>.</p>
+<p>Copilot does its work with <a class="gl" href="../glossary.html#tool" title="One action Copilot can take, such as reading a file, changing a file or running a command. An agent can do only what its tools allow">tools</a>. A tool is one action it can take, such as reading a file. A connection adds tools from another service. VS Code calls a connection an <a class="gl" href="../glossary.html#mcp-server" title="A connection that lets Copilot read or act on another service directly, instead of on a file exported from it">MCP server</a>.</p>
 <p>When a request needs one of those tools, Copilot uses it, and the chat shows a line for each tool it ran. The connection in this unit is GitHub's read-only one. Its tools only look things up on GitHub and can't change anything there.</p>
 <p>The connection signs in to GitHub with your work GitHub account, the one you use for Copilot. You sign in once, when VS Code asks. You don't set up anything on GitHub first.</p>
 <h2 id="1-have-copilot-create-a-practice-folder" class="step"><span class="sr">1. </span><span class="tt">Have Copilot create a practice folder</span></h2>
@@ -403,13 +405,14 @@ For the newest commit, tell me its date, its author and its message.</div><butto
 <p>Select <code>.mcp.json</code> in the list on the left. If the line above <code>github</code> doesn't say <b>Running</b>, select <b>Start</b> there, select <b>Allow</b> if asked, and wait until it says <b>Running</b>. Then select <b>New Chat</b> (+) and enter the request again. If it still doesn't work, see <a href="../troubleshooting.html#when-you-re-stuck-ask-copilot">When you're stuck, ask Copilot</a>.</p>
 </div></details>
 <h2 id="on-your-own-work">On your own work</h2>
-<p>When a request needs information from another service, ask Copilot whether a connection exists for that service. Copilot sends the service whatever it asks the service to look up. In this unit, that went to GitHub. Before you add a connection, make sure you're allowed to send that service what your requests will look up. Add the connection to the folder you work in. It lives in that folder's <code>.mcp.json</code>. To remove it, have Copilot delete it from that file.</p>
+<p>When a request needs information from another service, ask Copilot whether a connection exists for that service. Copilot sends the service whatever it asks the service to look up. In this unit, that went to GitHub. Before you add a connection, make sure you're allowed to send that service what your requests will look up.</p>
+<p>Add the connection to the folder you work in. It lives in that folder's <code>.mcp.json</code>. To remove it, have Copilot delete it from that file.</p>
 <h2 id="what-you-did">What you did</h2>
 <p>You added GitHub's read-only connection in a practice folder and saw Copilot use it to look up a public repository.</p>
 <p>Source: <a href="https://code.visualstudio.com/docs/agent-customization/mcp-servers" target="_blank" rel="noopener">Add and manage MCP servers in VS Code</a>, Microsoft; <a href="https://github.com/github/github-mcp-server/blob/main/docs/remote-server.md" target="_blank" rel="noopener">Remote GitHub MCP Server</a>, GitHub.</p>
 <nav class="pager" aria-label="What comes next"><div class="nextunit"><p class="lbl">End of the path</p><h2>Connecting your tools</h2><div class="nextrow"><a class="btn" href="index.html" data-complete="1">Back to the training<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a></div><p class="nudge" id="nudge" aria-live="polite" data-btn="Back to the training"></p></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-05</span><a href="../CHANGELOG.html">Version 1.2</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-05</span><a href="../CHANGELOG.html">Version 1.3</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>
@@ -756,7 +759,7 @@ function search(){
   hits.sort(function(a,b){return b[0]-a[0];});
   res.innerHTML=hits.length?hits.slice(0,10).map(function(h){var e=h[1];
     return '<li><a href="'+esc(ROOT+e.u)+'"><span class="rt">'+esc(e.s||e.t)+'</span><br><span class="rs">'+esc((e.s?e.t+": ":"")+snippet(e.x,words))+'</span></a></li>';}).join("")
-    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">If something goes wrong</a>.</li>';
+    :'<li class="none">Nothing found. Try one word from the step you are on, or open <a href="'+esc(ROOT)+'troubleshooting.html">Help</a>.</li>';
   res.hidden=false;
   say.textContent=hits.length?hits.length+" results":"No results";
 }
