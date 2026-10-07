@@ -1,0 +1,31 @@
+step,name,business_subject,stage,source,qualifier
+0,The basket is confirmed and priced,S01,ST1,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+1,The buyer is identified,S01,ST1,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+2,The delivery address is captured,S01,ST1,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+3,The order is priced,S01,ST1,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+4,A payment method is held,S01,ST1,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",stub: a test card
+5,The order is placed,S01,ST1,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+6,The basket is emptied,S01,ST1,in the code only: BasketState.cs:108 (webapp deletes the basket after CreateOrder); OrderStartedIntegrationEventHandler.cs:14 (basket-api deletes it again),
+7,The customer sees the order confirmed,S01,ST2,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+8,The grace period has passed,S01,ST2,in the code only: OrderProcessor appsettings.json:15-16 (one-minute grace period); GracePeriodManagerService.cs:56; Order.cs:99-105,
+9,The stock is checked,S01,ST2,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code","partial: checked, not held"
+10,The order is screened for fraud,S01,ST2,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+11,The payment is authorised,S01,ST2,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",stub: a config switch
+12,Subscribers are told the order is paid,S01,ST2,in the code only: Webhooks.API Extensions.cs:23; OrderStatusChangedToPaidIntegrationEventHandler.cs:10-16; WebhooksSender.cs:32,
+13,The order is released to fulfilment,S01,ST2,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+14,The items are picked,S01,ST3,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+15,The order is packed,S01,ST3,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+16,The parcel is labelled,S01,ST3,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+17,The order is shipped,S01,ST4,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",partial: a status change
+18,The payment is captured,S01,ST5,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+19,The customer is told it has shipped,S01,ST5,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+20,The parcel is delivered,S01,ST5,"reference models (APQC PCF, SCOR; checkout, order-management, payment and warehouse practice), reconciled with the code",
+21,A product is found,S15,ST6,"reference practice for an online shop's basket, reconciled with the code (basket-api, webapp)",
+22,The product and its price are shown,S15,ST6,"reference practice for an online shop's basket, reconciled with the code (basket-api, webapp)",
+23,An item is added to the basket,S15,ST6,"reference practice for an online shop's basket, reconciled with the code (basket-api, webapp)",
+24,An item's quantity is changed,S15,ST6,"reference practice for an online shop's basket, reconciled with the code (basket-api, webapp)",
+25,An item is removed from the basket,S15,ST6,"reference practice for an online shop's basket, reconciled with the code (basket-api, webapp)",
+26,The basket is there when the customer comes back,S15,ST7,"reference practice for an online shop's basket, reconciled with the code (basket-api, webapp)",
+27,The basket is shown with current prices and a total,S15,ST7,"reference practice for an online shop's basket, reconciled with the code (basket-api, webapp)",
+28,The basket is taken to checkout,S15,ST7,"reference practice for an online shop's basket, reconciled with the code (basket-api, webapp)",
+29,Held items are re-checked for price and availability before checkout,S15,ST7,"reference practice for an online shop's basket, reconciled with the code (basket-api, webapp)",

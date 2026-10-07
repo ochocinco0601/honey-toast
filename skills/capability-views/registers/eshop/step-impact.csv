@@ -1,0 +1,7 @@
+step,impact_category,unit,note,recovery,cause
+5,customer,orders lost after the customer was told they were placed,A failed create answers 200 and the basket is deleted anyway (OrdersApi.cs:157-166; BasketState.cs:107-108): the customer loses the basket and gets no order,,S05
+8,customer,orders stuck in Submitted,"If order-processor cannot poll, no order goes on to stock validation, and nothing tells the customer",,S06
+9,customer,orders cancelled for stock without notice,"The stock-rejected cancel raises no event (Order.cs:155-165), so the customer's orders page is never refreshed",,
+11,financial,value of orders not paid,Payment is simulated by a flag here; in a real deployment this is revenue not collected,,
+23,customer,items the customer added that are not in their basket,"A refused save is logged at Information and answered NotFound (RedisBasketRepository.cs:41; Basket.API Grpc/BasketService.cs:51-54); an add from the web and one from the assistant at once can overwrite each other (BasketState.cs:35, 54)",,S03
+26,customer,baskets emptied before checkout,"The basket store has no data volume, unlike the event bus (AppHost Program.cs:8-10), so a restart of it empties every basket, and nothing records that it did",,S10

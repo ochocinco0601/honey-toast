@@ -1,0 +1,4 @@
+source_id,what,kind,as_of,pass,note
+SRC1,dotnet/eShop at commit b4a4087: src/ and the default appsettings.json,code,2026-10-07,1,"static source only; the mobile clients and WebhookClient were swept by keyword, not read; tests/ and e2e/ were not read"
+SRC2,the design-for-operations fact extractor over the AppHost's deployables,tool output,2026-10-07,1,"its routes, calls and service map; zero C# emission sites"
+SRC3,"reference models for ordering: APQC PCF, SCOR, checkout, order-management, payment and warehouse practice",document,2026-10-07,1,"what the stages and steps were drafted from, without a copy to hand"

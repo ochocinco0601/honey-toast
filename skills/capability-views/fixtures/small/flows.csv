@@ -1,0 +1,3 @@
+flow_id,name,case,starts_at,ends_at,delivers,expectation_of,promise,case_identifier,source
+F1,Flow one,one thing,start,end,C2,someone,none stated,the id,made up
+F2,Flow two,one thing,start,end,C2; C3,someone,none stated,the id,made up

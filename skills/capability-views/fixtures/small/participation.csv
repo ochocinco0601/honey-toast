@@ -1,0 +1,10 @@
+subject_id,step,involvement,way,activity
+P1,1,performs,form,does it (made up)
+P2,1,performs,agent,does it too (made up)
+P4,1,supports,form; agent,serves both ways (made up)
+D1,1,supports,agent,answers the agent (made up)
+D3,1,supports,agent,embeds for the agent way only (made up)
+P1,2,performs,,does it (made up)
+P3,2,records,,keeps it (made up)
+P1,4,performs,,does it (made up)
+P2,4,performs,,does it too (made up)

@@ -1,0 +1,4 @@
+pass,step,name,went_in,came_out,done_by,note
+1,0,Before you start,the made-up system,about.csv,by hand,made up for tests
+1,4,Write the steps as business outcomes,a reference model,steps.csv,model drafting; person confirming,drafted then checked
+2,5,List the parts,SRC2 the architecture page,subjects.csv,model drafting,added the store part the code did not name

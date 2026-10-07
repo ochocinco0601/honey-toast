@@ -1,0 +1,5 @@
+agent,id,element,name,what_it_is,subject_id,performed_by,uses,serves_business_step,source_ref
+P2,A0,run,One run,one answer,P2,,,1,made up
+P2,AS1,step,Agent step,decides,,AP1,,1,made up
+P2,AP1,part,Decider,the model and prompt,P2,,AD1,,made up
+P2,AD1,dependency,Provider,runs the model,D1,,,,made up

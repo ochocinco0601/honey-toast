@@ -1,0 +1,73 @@
+subject_id,step,activity,way,involvement
+S02,0,read the basket and price each line from the catalogue (BasketState.cs:117-148),,performs
+S03,0,serve GetBasket from Redis (Basket.API Grpc/BasketService.cs:12),,supports
+S04,0,return the items' names and prices (WebAppComponents CatalogService.cs:27),,supports
+S10,0,"hold the basket under the user's key (RedisBasketRepository.cs:16, 25)",,records
+S02,1,require sign-in on the checkout page (Checkout.razor:6); read the buyer id and name from the claims (BasketState.cs:85-86),,performs
+S08,1,sign the customer in; its sub claim becomes the buyer id (WebApp Extensions.cs:115),,supports
+S05,1,find or create the buyer (ValidateOrAddBuyerAggregateWhenOrderStartedDomainEventHandler.cs:23; BuyerRepository.cs:18),,supports
+S02,2,take the shipping address on the checkout form (Checkout.razor:16-48) and send it (BasketState.cs:95-99),,performs
+S05,2,store the address on the order (CreateOrderCommandHandler.cs:40),,records
+S02,3,price each line at the catalogue's current price (BasketState.cs:141),,performs
+S05,3,"total the order: units times unit price, no tax or delivery charge (Order.cs:185)",,supports
+S02,4,send a hard-coded test card; the customer enters no payment details (BasketState.cs:100-103),,performs
+S05,4,mask the card and verify or add it as the buyer's payment method (OrdersApi.cs:140; ValidateOrAddBuyerAggregateWhenOrderStartedDomainEventHandler.cs:34),,supports
+S02,5,post the order with x-requestid on Place order (Checkout.razor:56; OrderingService.cs:15-17),,performs
+S05,5,"create the order as Submitted, once per request id (CreateOrderCommandHandler.cs:40-51; IdentifiedCommandHandler.cs:41-48); answers 200 even on failure (OrdersApi.cs:157-166)",,performs
+S11,5,"hold the order, the request id and the outbox rows (OrderingContext.cs:59; RequestManager.cs:36; IntegrationEventLogService.cs:41)",,records
+S02,6,delete the basket whatever the create call returned (BasketState.cs:107-108),,performs
+S03,6,delete the basket again on OrderStarted (OrderStartedIntegrationEventHandler.cs:14),,performs
+S10,6,drop the user's key (RedisBasketRepository.cs:20),,records
+S13,6,"carry OrderStarted from the outbox to basket-api (RabbitMQEventBus.cs:20, 33)",,supports
+S02,7,"send the customer to the orders page and refresh it on OrderStatusChangedToSubmitted, by user (Checkout.razor:115; WebApp Extensions.cs:50)",,performs
+S05,7,publish the Submitted event after commit (OrderingIntegrationEventService.cs:15-31),,supports
+S13,7,carry the Submitted event to webapp,,supports
+S06,8,poll ordering.orders over SQL for Submitted orders past the grace period and publish GracePeriodConfirmed (GracePeriodOrdersRepository.cs:24-33; GracePeriodManagerService.cs:56-60),,performs
+S11,8,serve order-processor's direct read of another service's table (GracePeriodOrdersRepository.cs:33),,supports
+S05,8,move the order to AwaitingValidation (GracePeriodConfirmedIntegrationEventHandler.cs:28; Order.cs:99-105),,supports
+S13,8,carry GracePeriodConfirmed,,supports
+S04,9,check each line's stock and publish confirmed or rejected (OrderStatusChangedToAwaitingValidationIntegrationEventHandler.cs:17-32); decrement it only when paid (OrderStatusChangedToPaidIntegrationEventHandler.cs:15-20),,performs
+S05,9,"record StockConfirmed (Order.cs:108-115), or cancel without an event (Order.cs:155-165)",,supports
+S12,9,hold available stock per item (CatalogItem.cs:29),,records
+S13,9,carry AwaitingValidation and the stock result,,supports
+S07,11,"decide succeeded or failed by a config flag, a simulation (OrderStatusChangedToStockConfirmedIntegrationEventHandler.cs:21-27; appsettings.json:15)",,performs
+S05,11,move the order to Paid (Order.cs:119-126) or cancel it (CancelOrderCommandHandler.cs:27),,supports
+S13,11,carry StockConfirmed and the payment result,,supports
+S09,12,read the subscriptions and post the paid order to each (OrderStatusChangedToPaidIntegrationEventHandler.cs:10-16; WebhooksSender.cs:32),,performs
+S14,12,receive the paid order; what each does with it is outside the source,,supports
+S13,12,carry OrderStatusChangedToPaid to webhooks-api,,supports
+S05,17,"set Shipped when an administrator, a person, calls PUT /api/orders/ship; no caller is in the repository (OrdersApi.cs:12; ShipOrderCommandHandler.cs:15-27; Order.cs:130-138)",,performs
+S11,17,hold the Shipped status,,records
+S02,19,"refresh the orders page on OrderStatusChangedToShipped, by user (WebApp Extensions.cs:48)",,performs
+S09,19,post Shipped to subscribers (Webhooks.API Extensions.cs:22; OrderStatusChangedToShippedIntegrationEventHandler.cs:16),,supports
+S13,19,carry the Shipped event,,supports
+S02,21,"list the catalogue by page, brand and type (Catalog.razor:196-203; WebAppComponents CatalogService.cs:17-21); the storefront offers brand and type filters only, no free-text search (CatalogSearch.razor:84-85)",page,performs
+S16,21,"search the catalogue for a description the customer typed, through its SearchCatalog tool (ChatState.cs:117-134)",assistant,performs
+S04,21,"answer the listing (CatalogApi.cs:26) and the semantic search, which falls back to a name match with no log when no embedding comes back (CatalogApi.cs:282-300)",page; assistant,supports
+S12,21,hold the items and their embeddings (CatalogApi.cs:310-330),page; assistant,records
+S18,21,turn the search text into an embedding (CatalogAI.cs:55-62; Catalog.API Extensions.cs:43-46); a wrong one ranks the results wrong with nothing failing,assistant,supports
+S17,21,decide from the conversation what to search for (ChatState.cs:78; WebApp Extensions.cs:108),assistant,supports
+S02,22,"show the product page with its price (ItemPage.razor:41, 107-122)",,performs
+S04,22,return the item by id (CatalogApi.cs:36),,supports
+S12,22,hold the item and its price,,records
+S02,23,"add one unit from the product page, signed in only (ItemPage.razor:145-158); read the whole basket and write it back (BasketState.cs:33-56), so two adds at once can lose one",page,performs
+S16,23,"add an item by id through its AddToCart tool (ChatState.cs:136-153), on the same read-and-rewrite path (BasketState.cs:35, 54); a signed-out refusal comes back as a message (ChatState.cs:145-148)",assistant,performs
+S03,23,save the basket under the caller's user id; refuse an unauthenticated caller (Basket.API Grpc/BasketService.cs:36-57),page; assistant,performs
+S10,23,write the basket under the user's key with no expiry (RedisBasketRepository.cs:34-47),page; assistant,records
+S08,23,sign the customer in; the user id that keys the basket comes from it (Basket.API Grpc/BasketService.cs:38),page; assistant,supports
+S04,23,"return the item the assistant chose, by id (ChatState.cs:141; CatalogApi.cs:36)",assistant,supports
+S17,23,choose which item id the assistant adds (ChatState.cs:137),assistant,supports
+S02,24,"set a line's quantity on the shopping bag (CartPage.razor:50-67, 133-139; BasketState.cs:58-76); the assistant has no tool for this (ChatState.cs:41-47)",,performs
+S03,24,save the changed basket (Basket.API Grpc/BasketService.cs:36-57),,performs
+S10,24,overwrite the user's key (RedisBasketRepository.cs:37),,records
+S02,25,remove a line by setting its quantity to 0 (CartPage.razor:69; BasketState.cs:66-70); the assistant has no tool for this,,performs
+S03,25,save the basket without the line (Basket.API Grpc/BasketService.cs:36-57),,performs
+S10,25,overwrite the user's key (RedisBasketRepository.cs:37),,records
+S03,26,read the basket back by the caller's user id; a signed-out caller gets an empty one (Basket.API Grpc/BasketService.cs:12-34),,performs
+S10,26,"keep the basket with no expiry (RedisBasketRepository.cs:37) but with no data volume, unlike the event bus (AppHost Program.cs:8-10): a restart empties every basket",,records
+S02,26,fetch the basket once per page and reuse it (BasketState.cs:117-120),,supports
+S02,27,"show the shopping bag at the catalogue's current prices, with a total (CartPage.razor:118-124; BasketState.cs:129-142)",page,performs
+S16,27,tell the customer what is in the basket through its GetCartContents tool (ChatState.cs:155-167),assistant,performs
+S04,27,return the basket's items at their current prices (WebAppComponents CatalogService.cs:24-28; CatalogApi.cs:31),page; assistant,supports
+S03,27,return the quantities (Basket.API Grpc/BasketService.cs:12-34),page; assistant,supports
+S02,28,link the shopping bag to checkout (CartPage.razor:97); checkout requires sign-in (Checkout.razor:6),,performs

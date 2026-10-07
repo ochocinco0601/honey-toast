@@ -1,0 +1,12 @@
+form,applies_to,what_it_captures,established_framing
+volume,business,How much work entered or completed,Business process performance (time/cost/quality/volume)
+cycle time,business,How long the work took end to end,Business process performance; lead time
+completion rate,business,Share of started work that finished,Business process performance; yield
+failure rate,business,Share that failed or fell out,Business process performance; defect rate
+backlog,business,Work waiting and its age,Queueing / WIP
+rate,"application,technology",Requests handled per unit time,RED (Wilkie); Four Golden Signals traffic
+errors,"application,technology",Failed requests or resource-level errors,RED; USE (Gregg); Four Golden Signals
+duration,"application,technology",Time per request,RED; Four Golden Signals latency
+saturation,"application,technology",Queued work beyond current capacity,Four Golden Signals; USE
+utilization,technology,Share of a resource in use,USE (Gregg)
+span gap,handoff,Time the work sits owned by nobody between one party releasing it and the next taking it up,"Distributed tracing: producer and consumer spans correlated by a propagated trace context (W3C Trace Context; OpenTelemetry)"

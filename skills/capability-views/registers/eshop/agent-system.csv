@@ -1,0 +1,17 @@
+agent,id,element,name,what_it_is,subject_id,performed_by,serves_business_step,source_ref,uses
+S16,A0,run,One assistant run,"one customer message answered: the conversation so far goes to the chat model with four tools, and the model may call tools several times before it answers",S16,,21; 23; 27,ChatState.cs:69-93; WebApp Extensions.cs:108,
+S16,AS1,step,The customer's message is taken,added to a conversation that lives only in the page's memory,,AP1,,ChatState.cs:72; Chatbot.razor:94,
+S16,AS2,step,"The next move is decided: answer, or call a tool","chosen from the conversation, the system prompt and the tool descriptions",,AP2,,"ChatState.cs:41-60, 78",
+S16,AS3,step,The catalogue is searched for a description,tool SearchCatalog: up to 8 items by semantic relevance,,AP3,21,ChatState.cs:117-134,
+S16,AS4,step,An item is added to the basket,tool AddToCart: one unit of the item id the model chose,,AP3,23,ChatState.cs:136-153,
+S16,AS5,step,The basket's contents are read,tool GetCartContents,,AP3,27,ChatState.cs:155-167,
+S16,AS6,step,The customer's details are read,"tool GetUserInfo: name, address, email and phone from the sign-in claims; serves no step of either flow",,AP3,,ChatState.cs:96-115,
+S16,AS7,step,The answer is written,a failed model call becomes a fixed apology,,AP2,,ChatState.cs:79-91,
+S16,AP1,part,Sequencing code,"ChatState and the function-invocation layer, which run the tool calls the decider asks for and loop",S16,,,ChatState.cs:9-93; WebApp Extensions.cs:108,
+S16,AP2,part,Decider,"the chat model with the system prompt and the tool descriptions; the prompt is in code and the model is named in configuration, so the two are not versioned together",S16; S17,,,ChatState.cs:52-60; AppHost Extensions.cs:54,AD1
+S16,AP3,part,Tools,four in-process functions calling the web app's catalogue and basket clients,S16,,,ChatState.cs:41-47,AD2; AD3
+S16,AP4,part,Policy checks,"none found: the topic rule is only in the prompt, and nothing checks an answer before the customer sees it (looked in ChatState.cs, Chatbot.razor, MessageProcessor.cs)",,,,"ChatState.cs:54, 58-59",
+S16,AD1,dependency,Chat model provider,"Microsoft Foundry deployment gpt-4.1-mini when UseFoundry is true; or Ollama, switched off in code; or any chatModel connection string. With none configured the assistant does not exist",S17,,,"AppHost Extensions.cs:54, 58; AppHost Program.cs:81-91; WebApp Extensions.cs:94-109; Chatbot.razor:103-111",
+S16,AD2,dependency,catalog-api,a component of eShop and outside the agent; called by SearchCatalog and AddToCart,S04,,,"ChatState.cs:122, 141",
+S16,AD3,dependency,basket-api,a component of eShop and outside the agent; reached through the web app's basket state,S03,,,"ChatState.cs:142, 160; BasketState.cs:54",
+S16,AD4,dependency,Embedding model provider,reached only through catalog-api's semantic search,S18,,,CatalogApi.cs:282-300; Catalog.API Extensions.cs:43-46,

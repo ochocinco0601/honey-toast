@@ -1,0 +1,4 @@
+capability_id,name,parent,level,basis
+C0,Online retail,,1,named by the business: 'the online retailer AdventureWorks' (ChatState.cs:53); the parent both flows' capabilities sit under
+C1,Take and fulfil customer orders online,C0,2,"delivered by F1, Placing an order (realized by ST1 to ST5): the narrowest ability the whole path is for. Payment and fulfilment are stretches this path moves through, not capabilities: no other case in this register delivers them"
+C2,Help customers find and choose products,C0,2,"delivered by F2, Filling a basket (realized by ST6 and ST7). The source names it in its own words: 'answer customer questions about products in the AdventureWorks catalog' (ChatState.cs:55)"

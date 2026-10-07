@@ -1,0 +1,3 @@
+source_id,what,kind,as_of,pass,note
+SRC1,the made-up system at commit abc123,code,2026-10-07,1,the first pass
+SRC2,an architecture page found later,document,2026-10-07,2,arrived after the first map

@@ -1,0 +1,15 @@
+subject_id,kind,band,level,part_kind,name,owner,owner_as_of,responder,responder_as_of,from_id,to_id,step_hint,sequence,contract,contract_promises,part_of,map_link,carries_case_id,source
+K,element,business,,case,The thing,,,,,,,,,,,,,yes: the id,made up
+P1,element,application,component,API service,Part one,Team A,2026-10-07,,,,,,,,,,,no,made up
+P2,element,application,component,LLM agent,Agent part,,,,,,,,,,,,,no,made up
+P3,element,technology,component,database,Store part,Team B,2026-10-07,,,,,,,,,,,no,made up
+P4,element,application,component,API service,Shared service,,,,,,,,,,,,,no,made up
+D1,element,technology,external dependency,LLM provider,Provider,Provider Inc,2026-10-07,,,,,,,,,,https://example.invalid/provider-map,no,made up
+D2,element,technology,external dependency,third-party API,Secrets,,,,,,,,,,,,,no,made up
+D3,element,technology,external dependency,LLM provider,Embedder,Search team,2026-10-07,,,,,,,,,,,no,made up
+E1,element,technology,external dependency,search index,Embedder index,Search team,2026-10-07,,,,,,,,,D3,,no,read from its own repo (made up)
+R1,relationship,,,interaction,Agent part -> Provider,,,,,P2,D1,1,1,provider terms section 3,99% of answers within 5 s,,,,made up
+R2,relationship,,,interaction,Part one -> Store part,,,,,P1,P3,2,1,,,,,,made up
+R3,relationship,,,interaction,Part one -> Secrets,,,,,P1,D2,,,,,,,,made up
+R4,relationship,,,interaction,Shared service -> Embedder index,,,,,P4,E1,1,1,,,,,,made up
+R5,relationship,,,interaction,Part one -> Shared service,,,,,P1,P4,2,2,,,,,,made up

@@ -1,0 +1,4 @@
+capability_id,name,parent,basis
+C1,Root ability,,made up
+C2,Child ability,C1,made up
+C3,Other child ability,C1,made up

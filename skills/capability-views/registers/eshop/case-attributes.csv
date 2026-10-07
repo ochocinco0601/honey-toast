@@ -1,0 +1,10 @@
+attribute,what_is_at_stake,source_ref,flow
+order id,which order; minted by the database on save and carried by every event from GracePeriodConfirmed on,src/Ordering.Infrastructure/EntityConfigurations/OrderEntityTypeConfiguration.cs:12,F1
+request id,which checkout; makes the create idempotent and is never stored on the order,src/WebApp/Components/Pages/Checkout/Checkout.razor:94; src/Ordering.Infrastructure/Idempotency/RequestManager.cs:29,F1
+buyer,"whose order: the user id from the sub claim, sent in the request body","src/WebApp/Services/BasketState.cs:85, 93; src/Ordering.API/Apis/OrdersApi.cs:141",F1
+items and units,what was ordered and how many; checked against stock and decremented when paid,src/WebApp/Services/BasketState.cs:106; src/Catalog.API/IntegrationEvents/EventHandling/OrderStatusChangedToAwaitingValidationIntegrationEventHandler.cs:20,F1
+total,"the money at stake: units times unit price, nothing else",src/Ordering.Domain/AggregatesModel/OrderAggregate/Order.cs:185,F1
+shipping address,where the order goes,src/WebApp/Services/BasketState.cs:95-99,F1
+user id,"whose basket: the only key the basket has, from the caller's identity",src/Basket.API/Repositories/RedisBasketRepository.cs:16; src/Basket.API/Grpc/BasketService.cs:38,F2
+items and quantities,what the customer means to buy; the only content the store keeps,src/Basket.API/Grpc/BasketService.cs:93-110,F2
+prices,"not kept in the basket: every read prices the lines at the catalogue's current price, so the price shown can change between visits",src/WebApp/Services/BasketState.cs:129-142,F2

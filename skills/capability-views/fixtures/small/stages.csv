@@ -1,0 +1,4 @@
+stage,flow,order,name,entry,exit,promise,source
+ST1,F1,1,Stage one,in,out,,made up
+ST2,F1,2,Stage two,in,out,,made up
+ST3,F2,1,Stage three,in,out,,made up

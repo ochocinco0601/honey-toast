@@ -1,0 +1,6 @@
+step,impact_category,unit,recovery,cause,note
+1,customer,things not done,moves on,,made up
+1,customer,wrong answers from the agent,stranded,P2,made up
+1,customer,slow answers from the agent,moves on,P2,made up
+1,customer,answers on the wrong topic,stranded,P2,made up
+2,customer,things done wrong by part one,stranded,P1,made up
