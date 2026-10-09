@@ -1,0 +1,7 @@
+flow,attribute,what_is_at_stake,source_ref
+F1,"Order id (""Id"")",The only key that joins the order across services and to the customer,Ordering.Infrastructure/EntityConfigurations/OrderEntityTypeConfiguration.cs:11-12
+F1,Order total (sum of Units x UnitPrice),Money the customer pays; value blocked while the order is stuck,Ordering.Domain/AggregatesModel/OrderAggregate/Order.cs:185
+F1,"Items and units (ordering.""orderItems"")",What must be in stock and shipped,Ordering.Domain/AggregatesModel/OrderAggregate/Order.cs:71-91; Ordering.Infrastructure/Migrations/OrderingContextModelSnapshot.cs:192-231
+F1,"Buyer (ordering.buyers ""IdentityGuid"")",Who is waiting and who is told,Ordering.API/Application/DomainEventHandlers/ValidateOrAddBuyerAggregateWhenOrderStartedDomainEventHandler.cs:20-53; Ordering.Infrastructure/EntityConfigurations/BuyerEntityTypeConfiguration.cs:8; Ordering.Infrastructure/Migrations/OrderingContextModelSnapshot.cs:90
+F1,Delivery address,Where the goods must arrive,Ordering.API/Application/Commands/CreateOrderCommandHandler.cs:39
+F1,Payment method (card number masked to the last four digits),What is charged,Ordering.API/Apis/OrdersApi.cs:140

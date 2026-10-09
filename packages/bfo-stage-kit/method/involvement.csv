@@ -1,0 +1,4 @@
+involvement,mark,archimate_relationship,dependency_type,meaning,outage_effect,stops_step
+performs,P,assignment,hard,The component executes this step,Step cannot happen,yes
+supports,S,serving,hard,The component serves this step,Step blocks or degrades depending on fallback,conditional
+records,R,access,soft,The component only reads or writes state,Step completes but loses traceability,no

@@ -1,0 +1,8 @@
+agent_question,question,measures,status
+correctness,Correctness: was the call right?,"agreement with an answer key: a golden set re-run per release, or a judge sampling live decisions",provisional
+grounding,Grounding: did it decide from the case's inputs?,its answer checked against the inputs it claims to rest on,provisional
+traceability,Traceability: can the decision be rebuilt?,"which decider, which inputs, which steps",provisional
+drift,Drift: is it still the decider that was vetted?,today's inputs and decisions against the validated baseline,provisional
+operations,Operations,"run duration, failed tool calls, cost per run, refusals, fallbacks to a person or a simpler rule",open question
+escalation,Escalation: does it know when not to decide?,,candidate
+policy scope,Policy scope: did it stay within its authority?,,candidate

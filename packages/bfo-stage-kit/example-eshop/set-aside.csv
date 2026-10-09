@@ -1,0 +1,15 @@
+item,kind,attaches_to,why,source
+"Browsing the catalogue and filling a basket, including the chat assistant",other flow,F2,Work before the order exists; walked as its own flow F2 (not walked here),WebApp/Services/BasketState.cs:33-56; WebApp/Components/Chatbot/ChatState.cs:41-47
+Order draft (POST /api/orders/draft): the checkout preview,other flow,F2,"Computes a draft and writes no order record (Order.NewDraft), so it is before the case exists","Ordering.API/Apis/OrdersApi.cs:16, 106-116; Ordering.Domain/AggregatesModel/OrderAggregate/Order.cs:37-44"
+Signing in,other flow,F3,A precondition that serves many orders; no order exists yet,WebApp/Extensions/Extensions.cs:53-92
+Registering a webhook subscription,other flow,F4,"Another case's path (one subscription), not one order's",Webhooks.API/Services/WebhooksRetriever.cs:5-8
+AdventureWorks Concierge chat assistant (LLM agent in WebApp),out of scope part,F2,"Performs or supports no move of F1: its tools search the catalogue, read the signed-in user's profile, and read or add to the basket","WebApp/Components/Chatbot/ChatState.cs:39-64, 96-115, 117-167"
+Microsoft Foundry chat and embedding models,out of scope part,F2,Used by the chat assistant and catalogue semantic search only,eShop.AppHost/Extensions.cs:49-61; Catalog.API/Extensions/Extensions.cs:38-47
+identitydb,out of scope part,S10,Identity API's own store; no move of F1 names it,"eShop.AppHost/Program.cs:17, 24-27"
+WebhookClient (webhook receiver),out of scope part,S18,A receiver the AppHost runs; in F1 a subscriber is whatever URL was registered (S18),eShop.AppHost/Program.cs:66-68
+HybridApp (MAUI hybrid client),out of scope part,F1,No ordering code found in it (searched for 'order' in its .cs and .razor files),src/HybridApp (searched 2026-10-08); README.md
+"eShop.AppHost, the Aspire dashboard and OpenTelemetry exporters",out of scope part,,Orchestration and monitoring; they carry no move,eShop.AppHost/Program.cs:1-104; eShop.ServiceDefaults/Extensions.cs:50-97
+A real payment gateway,other,6,Absent: the setting PaymentOptions:PaymentSucceeded stands in for it,PaymentProcessor/IntegrationEvents/EventHandling/OrderStatusChangedToStockConfirmedIntegrationEventHandler.cs:15-28; PaymentProcessor/appsettings.json:14-16
+Grace period an order waits in Submitted (1 minute),rule or policy,3,"A business rule the timer carries, not a level",OrderProcessor/appsettings.json:15; OrderProcessor/Services/GracePeriodManagerService.cs:51; OrderProcessor/Services/GracePeriodOrdersRepository.cs:27
+Customer (buyer),role,F1,The party whose expectation F1 meets,Ordering.API/Application/Queries/OrderQueries.cs:37-49
+Fulfilment staff who ship orders,role,11,A person carries out the ship move; recorded as subject S17,"Ordering.API/Apis/OrdersApi.cs:12, 51-78"
