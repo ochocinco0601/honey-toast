@@ -135,7 +135,7 @@ the definitions of record** — this table only says which neighbouring sense to
 | **case** | process mining's *case* — the `case id` every event log is keyed on; the *process instance* of the Workflow Management Coalition (WfMC) reference model | a support ticket, the *Case* object in CRM and service-management tools; a test case |
 | **capability** | business architecture's *business capability* — the BIZBOK Guide, and TOGAF's business architecture | capability maturity; a security capability or token; POSIX capabilities |
 | **intended flow** | the process as designed, against the process as it actually runs | BPMN's *sequence flow*, which is an edge between two elements rather than the whole path |
-| **stage** | business architecture's *value stream stage* — the BIZBOK Guide, and TOGAF's business architecture: an ordered stretch of the path with entrance and exit criteria, containing the work done in it. Step 4 says where the entry and exit fall. A Kanban column and a CRM pipeline stage are the same idea in working use | the *place* of a place/transition net, a state the case rests in between acts — that is a **park**, which opens a stage rather than being one; the *stage* of CMMN, the OMG's case management notation, which nests inside other stages; a CI/CD pipeline stage; a deployment environment |
+| **stage** | business architecture's *value stream stage* — the BIZBOK Guide, and TOGAF's business architecture: an ordered stretch of the path with entrance and exit criteria, containing the work done in it and ending in a value item for the party the flow serves. Step 4 says how the entry and exit are drafted. A Kanban column and a CRM pipeline stage are the same idea in working use | the *place* of a place/transition net, a state the case rests in between acts — that is a **park**, which happens inside a stage rather than being one; the *stage* of CMMN, the OMG's case management notation, which nests inside other stages; a CI/CD pipeline stage; a deployment environment |
 | **process step** | the *task* / *activity* of BPMN, the OMG's business process notation; the *step* in flow / stage / step. The numbered sections of this procedure are also called Steps — the level is always written *process step*, the sections always *Step 4*, *Step 6* | a click, a field validation, an internal function call — Step 5 sets the floor |
 | **component** | ArchiMate's *Application Component*, at the granularity of C4's **container** (Level 2) | C4's *component* (Level 3), which is code inside a container |
 | **external dependency** | something the application consumes but is **not part of** — a platform, another application, a vendor; Step 6 defines it | a package or library dependency — one compiled into the application's deployable is part of the component, not a dependency of it |
@@ -437,24 +437,24 @@ are correct, and the frame — which is written down — says which.
 There is nothing to judge here. If a candidate flow does not match the frame, the frame was wrong
 or the candidate is a stage — go back to Step 0 rather than carrying two answers forward.
 
-## Step 4 — Stage boundaries fall where the case parks, or passes a point of no return
+## Step 4 — Stage boundaries are drafted, with their evidence
 
 **Do not cut on waits.** Waits are everywhere and cutting on them shatters the model. Ask:
 
 > **Is anything actively progressing the case right now?**
 
-- **Yes** — a retry, a call out and back, a write, a scoring run. The wait is *inside* an act; the
-  act has not finished. **Not a boundary** — unless the case becomes irreversible here; see below.
-- **No** — the case is sitting, nothing is moving it, it waits to be picked up or waits on
-  something external. **Boundary.**
+- **Yes** — a retry, a call out and back, a write, a scoring run. The wait is *inside* an act. A
+  boundary never falls inside an act, but one may fall where the act completes.
+- **No** — the case is parked. A park is often where a stretch ends, and good evidence for a
+  boundary. It does not force one.
 
-**Three things park a case, and they are not all the same rule.** Two are the test above seen twice:
+**Three things park a case, and they are not all the same thing.** Two are the test above seen twice:
 the case **changes hands**, or it **queues** — in both, nothing is progressing it. The third is a
-different rule and worth knowing as one: the case **becomes irreversible** and cannot go back. That
-can fall where the case never actually stopped, and it is still a boundary, because what is true of
-the case on either side of it is not the same.
+different thing and worth knowing as one: the case **becomes irreversible** and cannot go back. That
+can fall where the case never actually stopped, and it is strong evidence for a boundary, because
+what is true of the case on either side of it is not the same.
 
-**The rule applied — where a boundary falls.**
+**Examples — where a boundary falls.**
 
 | Reading from | Wrong | Right |
 |---|---|---|
@@ -465,6 +465,14 @@ the case on either side of it is not the same.
 The first turns a five-stage flow into forty — a retry is the act still working, and nobody has put
 the case down. The second inherits someone else's routing design: status fields are built to drive
 a queue, not to record where work waits.
+
+**These are evidence, not rules.** A stage ends in a value item for the party the flow serves:
+something they would recognise as done. Where a stage begins and ends is drafted by judgment, as
+business architecture drafts value stream stages. Cite what each cut rests on (a park, a point of
+no return, a status the business uses, the domain's standard process, a document) or mark it
+`proposed:`; the people who own the work correct it. Do not cut by service, sub-agent, deployable,
+a status the system exposes, or message. *Aim:* two drafts of the same work come out close; citing
+each cut's basis is what lets them be compared where they do not.
 
 **Name each stage for what it achieves for the case,** verb first, in two or three words —
 *Take the application*, *Underwrite the loan*, *Fund the loan* — as business architecture names
@@ -502,13 +510,8 @@ different. Name stages after either and the
 model dies when they do — which is the argument Step 0 already made about tying an expectation to
 the means rather than the capability.
 
-**Two results that look wrong and are not:**
-
-- **Work that never parks yields one stage for the whole flow.** A card authorization of two hundred
-  milliseconds, one service, nothing queued — one stage is correct, not degenerate.
-- **Work that parks constantly yields many stages.** A mortgage file parks at dozens of points
-  because it has dozens of waypoints. If a smaller number is wanted for reporting, make that
-  aggregation explicit and say which stages were merged. Do not suppress boundaries to hit a count.
+**Do not merge or split to reach a count.** A short synchronous flow may be one stage or several; a
+long one with many waits need not be dozens.
 
 ## Step 5 — Steps are the acts inside a stage
 
@@ -537,12 +540,12 @@ outcome still not arrived.
 A step **may** contain a wait if something is actively working through it — Step 4's test, applied
 downward.
 
-**A point of no return inside a step does not split it.** Step 4's third cut fires where the case
-passes a point of no return, which is often mid-act — the commit, the disbursement, the filing.
-Splitting the step there would manufacture two halves that the business does not recognise as
-having separately happened, which this floor forbids. The stage boundary falls where that step
-completes instead: the step is the last one in the stage it closes, and every step still belongs to
-exactly one stage.
+**A point of no return inside a step does not split it.** A case often passes a point of no return
+mid-act — the commit, the disbursement, the filing. Splitting the step there would manufacture two
+halves that the business does not recognise as having separately happened, which this floor forbids.
+Where a boundary is drawn at a point of no return inside a step, it falls where that step completes
+instead: the step is the last one in the stage it closes, and every step still belongs to exactly
+one stage.
 
 ## What each level makes obtainable
 
@@ -849,8 +852,8 @@ the same systems.
 Note the Evidence column against *pull the credit file*. The method name is not an error the draft
 had to avoid — it is what makes the sentence next to it checkable.
 
-Note where *release the funds* sits. It passes the point of no return, so the stage it belongs to
-ends where it completes — at *funded*, the frame's ending outcome — and the step is not split.
+Note where *release the funds* sits. It passes the point of no return, and the stage it belongs to
+ends where it completes — at *funded*, the frame's ending outcome — so the step is not split.
 
 **Note what the example declines to do.** Two rows disagree with each other and stay that way.
 Five rows are `set aside` or `undetermined` rather than assigned. One capability is recorded as
@@ -872,7 +875,7 @@ Named so the relevant knowledge can be loaded directly rather than reconstructed
 
 **What is borrowed and what is arranged.** Nearly everything below is established practice a working
 practitioner will recognise by name, usually from more than one discipline. What is assembled here
-is the arrangement: two rules from unrelated fields fused into one cut (Step 4), and a labelling
+is the arrangement: evidence from unrelated fields read together for one cut (Step 4), and a labelling
 convention applied at far finer granularity than the disciplines it comes from apply it. One thing
 has no name anywhere — screening a candidate by whether the reached-question *breaks* rather than by
 how it answers. The distinction that test draws is old and well named; using malformedness as the
@@ -917,8 +920,8 @@ screen is this procedure's own, and is flagged rather than dressed up.
   how it is delivered. The split Test 2 turns on
 - **ArchiMate** — the business / application / technology carving the step-to-component line follows;
   *Application Component* as the term meant here; the *realisation* relationship as the form Binding
-  takes; *assignment* and *serving* as *performs* and *supports*, the reading the flow model's
-  generators already use
+  takes; *assignment* and *serving* as *performs* and *supports*, the reading this kit's
+  generators (`flow_outputs.py`, `capability_views.py`) use
 - **C4 model** — container (Level 2) as the granularity meant by component here; Level 3 explicitly
   not; and its container-versus-external-system split
 - **Twelve-Factor, Factor IV: backing services** — Wiggins (2011): the application "makes no
@@ -958,7 +961,7 @@ screen is this procedure's own, and is flagged rather than dressed up.
   every queue and has no irreversibility rule
 - **Pivot transaction** — the saga pattern (Garcia-Molina & Salem, 1987); *pivot transaction* is the
   name Microsoft's Azure Architecture Center saga guidance gives the point of no return, after which
-  compensation no longer applies. The precise name for the third park
+  compensation no longer applies. The precise name for the third kind of evidence for a boundary
 - **Commit point** — Gray & Reuter (1993): the same boundary in transaction terms
 - **Status recorded as a state** — Kanban columns (Anderson, 2010) and shipment status vocabularies
   (ANSI X12 214, GS1 EPCIS disposition) record where a case is as a state. Here that is what a

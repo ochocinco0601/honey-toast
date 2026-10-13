@@ -20,5 +20,5 @@ runbook's tests read the application and system layers to find the cause.
 at the system layer, never as an application. An external dependency is measured from the calling side.
 
 **What a measure is about.** A business measure counts cases, never requests. A stage measure is counted from the
-case's state changes: at the park where cases wait, or, for a stage that never parks, at its exits. A part's
+case's state changes at the stage's entry and exit: where cases wait inside it, or, for a stage that never parks, at its exits. A part's
 measure is that part's own (`method/part-kinds.csv` gives the set for each kind of part).

@@ -9,7 +9,7 @@ term, the field's term is used.
 |---|---|---|
 | **Capability** | What the business is able to do, named apart from how it is built | Taking customers' orders |
 | **Intended flow** | One path a single case takes through the business, start to ending, as designed | Placing an order |
-| **Stage** | A stretch of the flow between two places where the case waits, or after a step that cannot be undone | Accept the order |
+| **Stage** | A stretch of the flow with entry and exit criteria, ending in a value item for the party it serves: something they would recognise as done | Accept the order |
 | **Process step** | One outcome inside a stage that the business would recognise, named without its performer | Stock is confirmed for the order |
 | **Component** | A part of the application that delivers the capability: a service, a worker, a front end, a database, a broker | The ordering service; the ordering database |
 | **External dependency** | Something the application calls, waits on or fails over to, and does not include | A payment provider |

@@ -14,9 +14,9 @@ a running system. Nothing you write is a live value.
 `reference/assigning-business-work-to-levels.md` (cited below as *Assigning*, with its Step number)
 and `reference/what-each-level-can-report.md` (cited as *Rules*). Where a step below says what to do,
 the method says why. The terms are defined in `reference/vocabulary.md`, and the measure layers in `reference/four-layers.md`. One thing is built first, and everything else is read off it: **the case's lifecycle**,
-the states one case passes through and the moves between them. Stages, steps, parts, measures, the alert and
-the runbook are each derived from that lifecycle by a stated rule, so a later check has something to compare
-them with.
+the states one case passes through and the moves between them. Stages are drafted from it with the basis of each
+cut cited; steps, parts, measures, the alert and the runbook are each derived from it by a stated rule. Either
+way a later check has something to compare them with.
 
 Three sources feed a register: the **code**, the **documents** (runbooks, architecture pages, service catalogue
 entries, the business's own process descriptions), and anything people have said that was written down (notes,
@@ -115,14 +115,16 @@ leave from, each cited to the guard that allows it.
 
 ## Step 3. Cut the stages from the lifecycle (*Assigning* Step 4)
 
-**A stage boundary falls at each `park` state, and after each `irreversible` move.** Nowhere else: not at a
-service boundary, not at each status the system exposes, not at each message.
+**Draft the stages by judgment and say what each cut rests on.** A stage ends in a value item for the party in
+`expectation_of`: something they would recognise as done (*Assigning*, Step 4). Consider the parks, the
+`irreversible` moves, a status the business uses, the domain's standard process and the documents. None of them
+forces or forbids a boundary. Do not cut by service, sub-agent, deployable, a status the system exposes, or
+message.
 
-- Stage 1 runs from the starting event to the first park. Each later stage opens where the case enters a park
-  and runs to where it enters the next park or an ending. A stage holds its park and the moves out of it.
-- `entry`: the state the case is in when it enters (the park, by its recorded value). `exit`: the state it is in
-  when it leaves (the next park, or an ending). Both are read off the lifecycle, so they are not `proposed:`;
-  cite the rows.
+- Stage 1 runs from the starting event. A stage holds its entry state and the moves out of it.
+- `entry`: the state the case is in when it enters. `exit`: the state it is in when it leaves (the next stage's
+  entry, or an ending). Both are states read off the lifecycle. In `source`, cite the rows and what the cut rests
+  on, or write `proposed:` with the reason.
 - Name each stage for what it achieves for the case, verb first, two or three words. The state at the boundary
   is the exit criterion, not the name.
 - `promise`: a stated bound if a source gives one. Otherwise `proposed:` and a bound read from the
@@ -130,7 +132,7 @@ service boundary, not at each status the system exposes, not at each message.
   assumes nothing, write `proposed: none assumed by the code` and say what would set one. A stage with no bound
   is a finding about the flow, not a reason to stop.
 - `arrivals_per_period`: `not stated: measured by the operators`, unless they give it.
-- Work that never parks is one stage. Work that parks often is many. Do not merge or split to reach a count.
+- Do not merge or split to reach a count.
 
 **Then check the cut against the domain's reference model** (APQC's process classification, SCOR, the domain's
 standard process), from the starting event to the ending only. A stretch the reference model expects inside
@@ -245,8 +247,8 @@ Work down the levels, asking the question first and then naming the measure:
 1. **The flow** (its case subject, `flow` set, `step` and `stage` blank): cases started, finished, still open;
    finished on time and right; still open past the promise.
 2. **Each stage** (its case subject, `stage` set): cases in the stage now, the age of the oldest, the time to get
-   through, and cases past the stage's promise. These sit at the park, counted from state changes. A stage
-   measure counts cases, never requests.
+   through, and cases past the stage's promise. Counted from the case's state changes at the stage's entry and
+   exit. A stage measure counts cases, never requests.
 3. **Each step that matters** (one event per case): did it happen for this case, and was its outcome right. The
    steps that matter are every stage's last step, the flow's first step, every step with a step-impact row, and
    every step an AI agent serves.
@@ -338,8 +340,8 @@ Before drawing, run these against the register. Each one is a rule from above th
 
 - `flows.csv` → `starts_at` cites the line that creates the case's record, and the first lifecycle row's
   `from_state` is `(none)`.
-- Every stage's `entry` is a park, the state after an irreversible move, or the starting event (stage 1), and its
-  `exit` is the next stage's `entry` or an ending.
+- Every stage's `entry` is the previous stage's `exit` or the starting event (stage 1), its `exit` is the next
+  stage's `entry` or an ending, and its `source` cites what each cut rests on or is `proposed:`.
 - Every stage has a last step whose lifecycle `to_state` is its exit.
 - Every `subjects.csv` row of `part_kind` database, cache, message broker, search index, file store, host or
   runtime, or platform service has `band` `technology`.
@@ -374,8 +376,7 @@ A map is updated, not rebuilt. When a source the register has not read turns up,
 ## What good enough looks like
 
 - The frame is declared, and the flow starts where the case is created.
-- Every stage boundary is a park or a point of no return in the lifecycle, and every stage ends with the step
-  that moves the case out.
+- Every stage boundary cites what it rests on, and every stage ends with the step that moves the case out.
 - Every part is tied to a step, and sits at its layer. Every part not tied to one is set aside, in the open.
 - Owners, responders, volumes and stated promises are blank or proposed unless someone stated them. That is a
   finding the views make visible, not a gap in your work.
