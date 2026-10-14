@@ -4,7 +4,7 @@ one_canvas.py puts each step's drawing and card in a panel beside the map, shown
 the register only:
 - lifecycle.csv: the move that carries the step (named in the step's own source), its hops in order (`travels_by`),
   `timing`, `if_not` and `recovery`;
-- participation.csv: the parts that take part (the lifelines), the `operation` each performs the step with, its `way`;
+- participation.csv: the parts that take part (the lifelines), the `operation` each performs the step with;
 - subjects.csv: each part's name, kind and owner, and the interactions recorded for the step (`step_hint`, `sequence`);
 - agent-system.csv: a part of an AI agent shared with one component (the agent runs inside that component), and the
   agent's own operations that call the same dependency (a call made more than once).
@@ -18,6 +18,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import capability_views as cv  # noqa: E402
 import flow_outputs as fo  # noqa: E402
+import view_questions as vq  # noqa: E402
 
 GAP = "not in the map yet"
 
@@ -265,42 +266,6 @@ def hops(move):
     return out
 
 
-def way_of(M, rows, ways, pids, text):
-    t = _no_paths(text).lower()
-    hit = [w for w in ways if re.search(r"\b" + re.escape(w.lower()) + r"\b", t)]
-    if not hit:
-        for x in mentions(M, pids, text):
-            ws = {w for p in rows if p["subject_id"] == x for w in cv.ids(p.get("way"))}
-            if len(ws) == 1:
-                hit += [w for w in ws if w not in hit]
-    return hit
-
-
-def per_way(M, rows, pids, hop_list, ways):
-    """{way: [(hop number, kind, clause)]}: a hop with alternatives gives each way its own clause."""
-    if len(ways) < 2:
-        return {None: [(n, k, whole) for n, k, alts, whole in hop_list]}
-    out = {w: [] for w in ways}
-    for n, k, alts, whole in hop_list:
-        if len(alts) < 2:
-            for w in ways:
-                out[w].append((n, k, whole))
-            continue
-        given = {}
-        for a in alts:
-            for w in way_of(M, rows, ways, pids, a):
-                given.setdefault(w, a)
-        rest = [w for w in ways if w not in given]
-        for a in alts:
-            if not way_of(M, rows, ways, pids, a):
-                for w in rest:
-                    given.setdefault(w, a)
-        for w in ways:
-            if w in given:
-                out[w].append((n, k, given[w]))
-    return out
-
-
 def message(**kw):
     m = dict(kind="msg", frm=None, to=None, label="", op=False, desc="", hop=None, sub=[], loop=[], words="", num="")
     m.update(kw)
@@ -308,7 +273,7 @@ def message(**kw):
 
 
 def clause_messages(M, sid, rows, pids, seq):
-    """The messages of one way's hops, in order. Ends are named only where the register names them."""
+    """The messages of the step's hops, in order. Ends are named only where the register names them."""
     persons = [x for x in pids if M["family"](M["subj"][x]) == "person"]
 
     def fam(x):
@@ -445,14 +410,11 @@ def call_label(M, sid, r):
     return plain(p.get("activity", ""))
 
 
-def tail(M, sid, pids, calls, ways_of_part=None, way=None):
+def tail(M, sid, pids, calls):
     """The calls no hop draws: those with a recorded place in the step's order, in that order, then the rest in a
     coregion; a call to or from a part that does not take part in the step is said in words."""
-    def fits(r):
-        return way is None or all(way in ways_of_part.get(x, {way}) for x in (r.get("from_id"), r.get("to_id")))
-    mine = [r for r in calls if fits(r)]
-    for r in mine:
-        calls.remove(r)
+    mine = list(calls)
+    calls.clear()
     inside_ = [r for r in mine if r.get("from_id") in pids and r.get("to_id") in pids]
     ordered = sorted([r for r in inside_ if cv.seq_for(r, sid).isdigit()], key=lambda r: int(cv.seq_for(r, sid)))
     out = [message(frm=r["from_id"], to=r["to_id"], label=call_label(M, sid, r), num=cv.seq_for(r, sid)) for r in ordered]
@@ -472,16 +434,14 @@ def scenario(M, sid):
     """Everything one step's drawing and card show, from the register's rows."""
     rows = rows_of(M, sid)
     pids = list(dict.fromkeys(p["subject_id"] for p in rows))
-    ways = list(dict.fromkeys(w for p in rows for w in cv.ids(p.get("way"))))
-    ways_of_part = {}
-    for p in rows:
-        ways_of_part[p["subject_id"]] = ways_of_part.get(p["subject_id"], set()) | (set(cv.ids(p.get("way"))) or set(ways))
     moves = moves_of(M, sid)
     distinct = list({re.sub(r"\{[^{}]*\}|\"[^\"]*\"", "", mv.get("travels_by", "")): mv for mv in moves}.values())
     calls = calls_of(M, sid)
     if not distinct:
-        items = [message(kind="note", label=f"how this step travels between its parts is {GAP}")]
-        return dict(sid=sid, rows=rows, pids=pids, ways=ways, moves=moves, inside=inside(M),
+        said = vq.gap_said(M, "step: moves", sid)
+        items = [message(kind="note", label=f"how this step travels between its parts: {said}" if said
+                         else f"how this step travels between its parts is {GAP}")]
+        return dict(sid=sid, rows=rows, pids=pids, moves=moves, inside=inside(M),
                     items=items + tail(M, sid, pids, calls))
     chained = all(fo.state(b.get("from_state")) == fo.state(a.get("to_state")) for a, b in zip(distinct, distinct[1:]))
     groups = [distinct] if chained else [[mv] for mv in distinct]
@@ -490,28 +450,14 @@ def scenario(M, sid):
         hl, n0 = [], 0
         for mv in g:
             hs = hops(mv)
-            hl += [(n + n0, k, alts, whole) for n, k, alts, whole in hs]
+            hl += [(n + n0, k, whole) for n, k, alts, whole in hs]
             n0 += len(hs)
-        seqs = {}
-        for w, s in per_way(M, rows, pids, hl, ways).items():
-            ms = hand_offs(M, sid, clause_messages(M, sid, rows, pids, s), calls)
-            place_calls(M, sid, pids, ms, calls)
-            seqs[w] = ms
-        if None in seqs:
-            body = seqs[None]
-        else:
-            lists, k = list(seqs.values()), 0
-
-            def sig(m):
-                return (m["hop"], m["kind"], m["frm"], m["to"], m["label"])
-            while all(len(x) > k for x in lists) and len({sig(x[k]) for x in lists}) == 1:
-                k += 1
-            body = lists[0][:k] + [{"kind": "alt", "operands": [
-                (f"way: “{w}”", ms[k:] + tail(M, sid, pids, calls, ways_of_part, w)) for w, ms in seqs.items()]}]
+        body = hand_offs(M, sid, clause_messages(M, sid, rows, pids, hl), calls)
+        place_calls(M, sid, pids, body, calls)
         operands.append((g[0], body))
     items = operands[0][1] if len(operands) == 1 else [
         {"kind": "alt", "operands": [(f"the case is in {fo.state(mv.get('from_state'))}", b) for mv, b in operands]}]
-    return dict(sid=sid, rows=rows, pids=pids, ways=ways, moves=moves, inside=inside(M), chained=chained,
+    return dict(sid=sid, rows=rows, pids=pids, moves=moves, inside=inside(M), chained=chained,
                 items=items + tail(M, sid, pids, calls))
 
 
@@ -780,24 +726,21 @@ def card(M, sc):
         if not vals:
             return GAP
         return E(vals[0]) if len(vals) == 1 else "<ul>" + "".join(f"<li>{E(v)}</li>" for v in vals) + "</ul>"
-    moves = sc["moves"]
-    trig = []
-    for mv in (moves[:1] if sc.get("chained") else moves):  # moves one after another start with the first
-        hs = hops(mv)
-        if hs:
-            st = fo.state(mv.get("from_state"))
-            trig.append((hs[0][3] or f"what starts it is {GAP}") + ("" if st in ("", "(none)") else f". The case is in {st}"))
-    outcome, prop = unproposed(M["step"][sc["sid"]].get("right_outcome", ""))
-    outcome = plain(outcome)
-    ifnot = [plain(mv.get("if_not", "")) + (f'. Recovery: {mv["recovery"]}' if mv.get("recovery") else "") for mv in moves]
+    sid = sc["sid"]
+
+    def answer(q, vals):  # the answer, or the gap measure-gaps.csv records for it, or the placeholder
+        return field(vals) if vq.answered(M, q, sid) else vq.said(M, q, sid, field(vals))
+    # moves one after another start with the first
+    trig = [(body or f"what starts it is {GAP}") + (f". The case is in {st}" if st else "") for body, st in vq.trigger(M, sc)]
+    outcome, prop = vq.right_outcome(M, sid)
     order, ins = order_lifelines(M, sc)
     where = "".join(f"<li>{nm(x)}: {E(where_it_sits(M, x, ins))}</li>" for x in order)
     return ('<div class="card"><dl>'
-            f"<dt>Trigger</dt><dd>{field(trig)}</dd>"
+            f"<dt>Trigger</dt><dd>{answer('step: trigger', trig)}</dd>"
             f'<dt>Interactions, in order</dt><dd><ol>{items(sc["items"])}</ol></dd>'
             f'<dt>Right outcome</dt><dd>{(E(outcome) + (" (proposed)" if prop else "")) if outcome else GAP}</dd>'
-            f"<dt>If it does not happen</dt><dd>{field(ifnot)}</dd>"
-            f'<dt>Timeouts</dt><dd>{field([plain(mv.get("timing", "")) for mv in moves])}</dd>'
+            f"<dt>If it does not happen</dt><dd>{answer('step: if it does not happen', vq.if_not(M, sc))}</dd>"
+            f"<dt>Timeouts</dt><dd>{answer('step: timeouts', vq.timeouts(M, sc))}</dd>"
             f"<dt>Where each part sits</dt><dd>{f'<ul>{where}</ul>' if where else GAP}</dd></dl></div>")
 
 

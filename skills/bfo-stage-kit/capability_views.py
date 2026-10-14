@@ -55,10 +55,84 @@ def ids(v):
     return [x.strip() for x in re.split(r"[;,]", v or "") if x.strip()]
 
 
+def register_columns(doc=None):
+    """{table: {column: optional}} from the column tables of register-template/REGISTER.md: the one definition of a
+    register, which the template's headers are tested against and --check compares every table with. A column is
+    optional where its description begins `Optional`."""
+    doc = doc or HERE / "register-template" / "REGISTER.md"
+    out, table = {}, None
+    for line in doc.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"###\s+([\w-]+)\.csv\b", line)
+        if m:
+            table = out.setdefault(m.group(1), {})
+            continue
+        if line.startswith("## "):
+            table = None
+        if table is None or not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 2 or cells[0] == "Column" or not cells[0].strip("-"):
+            continue
+        for name in cells[0].split(","):
+            table[name.strip().strip("`")] = cells[1].startswith("Optional")
+    return out
+
+
+# A column the definition no longer holds, with what to do about it, said instead of the plain undefined warning.
+RETIRED = {
+    ("about", "delivering_application"): "about.csv: the delivering_application column is retired; remove it, since a "
+    "component is now any deployable the flow runs through whose code the run can get (FILL-STEPS Step 5)",
+    ("participation", "way"): "participation.csv: the way column is retired and no longer read; remove it, since no "
+    "view draws the route a row belonged to",
+    ("step-impact", "cause"): "step-impact.csv: the cause column is retired and no longer read; remove it, since "
+    "failure effects are out of the views (what can stop each move goes in failure-modes.csv)",
+}
+
+
+def headers(reg, tables):
+    """{table: its header} for each table file the register has; a file with no header row reads as no columns."""
+    out = {}
+    for t in tables:
+        p = reg / f"{t}.csv"
+        if p.exists():
+            with p.open(encoding="utf-8-sig", newline="") as f:
+                out[t] = [c.strip() for c in next(csv.reader(f), [])]
+    return out
+
+
+def column_failures(R, said=()):
+    """(errors, warnings) comparing each table's header with the definition: one error per table naming the defined
+    columns it lacks (optional ones aside), one warning per table naming the columns defined nowhere. A column an
+    earlier message in `said` already names is left to that message."""
+    err, warn = [], []
+    for t, have in R.get("_columns", {}).items():
+        defined = R["_defined"].get(t, {})
+        miss = [c for c, optional in defined.items() if not optional and c not in have
+                and not any(s.startswith(f"{t}.csv has no {c} column") for s in said)]
+        if miss:
+            err.append(f"{t}.csv has no {', '.join(miss)} column{'s' if len(miss) > 1 else ''}, which "
+                       f"register-template/REGISTER.md defines (a register made with an earlier version of this kit): add "
+                       f"each from register-template/{t}.csv, in its place, and fill it as FILL-STEPS says; a blank cell "
+                       "reads as not assessed")
+        extra = []
+        for c in have:
+            if (t, c) in RETIRED:
+                warn.append(RETIRED[(t, c)])
+            elif c and c not in defined:
+                extra.append(c)
+        if extra:
+            warn.append(f"{t}.csv: {', '.join(extra)} {'are' if len(extra) > 1 else 'is'} not a column "
+                        "register-template/REGISTER.md defines, and nothing reads it; remove it, or move what it holds "
+                        "into the defined column it belongs in")
+    return err, warn
+
+
 def load(reg):
     reg = pathlib.Path(reg)
     malformed = []
     R = {t: read_csv(reg / f"{t}.csv", malformed) for t in TABLES}
+    R["_defined"] = register_columns()
+    R["_columns"] = headers(reg, R["_defined"])
     R["_malformed"] = malformed
     R["_name"] = reg.name
     R["_path"] = reg
@@ -103,7 +177,7 @@ def check(R):
 
     if len(R["about"]) != 1 or not R["about"][0].get("system"):
         err.append("about.csv: needs exactly one row, with system")
-    caps = unique("capabilities", "capability_id")
+    caps =unique("capabilities", "capability_id")
     flows = unique("flows", "flow_id")
     stages = unique("stages", "stage")
     steps = unique("steps", "step")
@@ -149,7 +223,46 @@ def check(R):
                     err.append(f"subjects.csv {sid}: step_hint {h} is not a step")
         elif r.get("level") and kinds.get(pk) in ("case", "interaction", "person"):
             err.append(f"subjects.csv {sid}: a {pk} has no level")
-    ext = {r["subject_id"] for r in R["subjects"] if r.get("level") == "external dependency"}
+    parts = [r for r in R["subjects"] if r.get("kind") == "element" and r.get("level") in ("component", "external dependency")]
+    if parts and "purpose" not in R["subjects"][0]:
+        err.append("subjects.csv has no purpose column (a register made before it was added): add it after name, and "
+                   "write for each part what it does in this flow, in one sentence, cited (FILL-STEPS Step 5)")
+    elif parts:
+        for r in parts:
+            if not r.get("purpose"):
+                err.append(f"subjects.csv {r['subject_id']}: no purpose; write what this part does in this flow, in one "
+                           "sentence, cited")
+    comps = [r for r in parts if r.get("level") == "component"]
+    if comps and "repository" not in R["subjects"][0]:
+        err.append("subjects.csv has no repository column (a register made before it was added, or one that kept each "
+                   "repository inside name): add it after application_id, as in the template, move each repository out "
+                   "of name into it, and fill it for every component from its build or deployment definition "
+                   "(FILL-STEPS Step 5)")
+    elif comps:
+        for r in comps:
+            if r.get("repository"):
+                continue
+            sid, src = r["subject_id"], r.get("source", "")
+            said = " ".join(r.get(c) or "" for c in ("name", "purpose", "source")).lower()
+            if r.get("band") == "technology" and re.search(r"\bno repository\b", src, re.I):
+                continue  # a system component no repository defines, as its source says
+            if re.search(r"not separately built|no (?:build|deployable) of its own|in[- ]process", said):
+                err.append(f"subjects.csv {sid}: a component with no repository that is not separately built; it is "
+                           "not a component, since a component is a deployable. Remove its subjects.csv row and "
+                           "describe it in agent-system.csv as an agent part inside its parent component's run "
+                           "(FILL-STEPS Steps 5 and 7)")
+            elif r.get("band") == "technology":
+                err.append(f"subjects.csv {sid}: a system component with no repository; shared infrastructure a parent "
+                           "component's deployment provisions (a database, a cache, a broker) takes the repository "
+                           "that defines it, with the path to the definition (`repo: path`); `not built here:` and "
+                           "the image for one run from someone else's image; or, where no repository defines it, "
+                           "leave it blank and say so in source, with where it was looked for")
+            else:
+                err.append(f"subjects.csv {sid}: a component with no repository; write the repository it is built "
+                           "from, from its build or deployment definition, or `not built here:` and the image for one "
+                           "run from someone else's image. A part whose code can't be had is an external dependency, "
+                           "with repository blank")
+    ext ={r["subject_id"] for r in R["subjects"] if r.get("level") == "external dependency"}
     by_id = {r.get("subject_id"): r for r in R["subjects"]}
     for r in R["subjects"]:
         po = r.get("part_of")
@@ -278,7 +391,8 @@ def check(R):
                 continue
             if not any(r.get(c) for c in SOURCE_COLS) and not any(CITE.search(v) for v in r.values() if v):
                 warn.append(f"{t}.csv line {n}: no citation")
-    return err, warn
+    col_err, col_warn = column_failures(R, err)
+    return col_err + err, col_warn + warn
 
 
 # ---------------------------------------------------------------- the model
@@ -543,6 +657,23 @@ def esc(s):
     return html.escape(str(s or ""), quote=True)
 
 
+def tog_svg(x, y, key, opened):
+    """The ▸ or ▾ that starts a line: its own control (WAI-ARIA disclosure), so opening or closing never changes the pick."""
+    return (f'<g class="tog" tabindex="0" role="button" aria-expanded="{"true" if opened else "false"}" '
+            f'aria-label="{"Collapse" if opened else "Expand"}" data-open="{esc(key)}">'
+            f'<rect x="{x + 2:g}" y="{y + 2:g}" width="22" height="22" style="fill:transparent;stroke:none"/></g>')
+
+
+def toggle(b, key, opened):
+    b.marks.append(lambda x, y, _b: tog_svg(x, y, key, opened))
+
+
+def steps_said(st, k, n_out, glyph="▸"):
+    n_step = len(st["_steps"]) - n_out
+    return f'{glyph} Stage {st.get("order") or k + 1}: {n_step} step{"" if n_step == 1 else "s"}' + (
+        f', {n_out} outcome{"" if n_out == 1 else "s"}' if n_out else "")
+
+
 def text_w(s, fs=12):
     return len(s) * fs * 0.54
 
@@ -622,8 +753,8 @@ class Box:
         for m in self.marks:
             out += m(self.x, self.y, self)
         out += self.extra
-        if self.sel:
-            return f'<g class="sel" tabindex="0" role="button" {self.sel}>{out}</g>'
+        if self.sel:  # a folded line stays clickable; a part or step picked lights it when its chain runs into what it holds, else fades it
+            return f'<g class="sel{" folded" if getattr(self, "folded", False) else ""}" tabindex="0" role="button" {self.sel}>{out}</g>'
         return out
 
 
@@ -690,8 +821,10 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
     only their stages and flows are drawn. The key's rows, (mark svg, label), are kept in M["_key_rows"][mid];
     key=False leaves the key out of the drawing, for a page that shows it beside the map instead.
     fold: a folded map (a degree-of-interest tree): "" folds every capability group and every stage's steps to one
-    line that says how much it holds; "c:<group>" opens that group; "f:<flow>" opens the flow's chain and folds the
-    other flows, groups and parts to one line each; "g:<stage>" opens the stage's steps and folds its neighbours."""
+    line that says how much it holds; "c:<group>" opens that group; "o:<stage>" opens that stage's steps; "f:<flow>"
+    opens the flow's chain and folds the other flows, groups and parts to one line each; "g:<stage>" opens the stage's
+    steps and folds its neighbours; "g:<stage>^" is that map with the stage's own steps folded to their line. On a flow or stage: "+flows", "+groups", "+parts" or "+deps" opens that one line of
+    others under a ▾ header; "~<group>,<group>" folds those of its groups. Every ▸ and ▾ names the map it opens."""
     styled = view == "reports"
     M.setdefault("_seq_placed", {})[mid] = []
     if view == "join":
@@ -699,16 +832,36 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
     opened = opened or set()
     flows = M["flows"]
     folding = fold is not None
-    focus = fold or ""
+    focus, more, shut = fold or "", "", set()
+    if "+" in focus:
+        focus, more = focus.split("+", 1)
+    elif "~" in focus:
+        focus, s_ = focus.split("~", 1)
+        shut = set(s_.split(","))
+    tucked = focus.startswith("g:") and focus.endswith("^")  # the stage in focus, its own steps folded: nothing else moves
+    focus = focus[:-1] if tucked else focus
+    fkey = focus + ("^" if tucked else "")
+    tail = "+" + more if more else ("~" + ",".join(sorted(shut)) if shut else "")  # the other lines' state, kept by a steps toggle
     lit = ({focus} | set(chain(M).get(focus, []))) if focus[:2] in ("f:", "g:") else None
-    fold_stages, fold_steps, fold_lines = set(), {}, []
+    fold_stages, fold_steps, fold_lines, step_heads = set(), {}, [], []
+
+    def other_line(x):  # an "N other ..." line: ▸ opens it under a ▾ header; ▾ folds it back to the focus
+        return (fkey, True) if more == x else (fkey + "+" + x if not more else "all", False)
+
+    def unshut(cid):
+        rest = sorted(shut - {cid})
+        return fkey + ("~" + ",".join(rest) if rest else "")
+
+    def shutting(cid):
+        s_ = shut | {cid} if len(shut) < 3 else {cid}
+        return fkey + "~" + ",".join(sorted(s_))
     if folding:
-        opened = {focus[2:]} if focus.startswith("g:") else set()
+        opened = {focus[2:]} if focus[:2] in ("g:", "o:") and not tucked else set()
         if lit is not None:
             fid = focus[2:] if focus.startswith("f:") else M["flow_of_stage"].get(focus[2:])
             flows = [f for f in M["flows"] if f["flow_id"] == fid]
             if focus.startswith("g:"):
-                fold_stages = {st["stage"] for st in flows[0]["_stages"]} - opened
+                fold_stages = {st["stage"] for st in flows[0]["_stages"]} - {focus[2:]}
     if view == "join":
         flows = [f for f in flows if any(st["stage"] in opened for st in f["_stages"])]
     e, keyrows = [], []
@@ -718,8 +871,14 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
     y = 44
     flow_boxes, stage_boxes, step_boxes, collapse_rows = [], {}, {}, []
     all_open = set(M["stage"]) <= set(opened)  # orange marks the opened stage only when some are left closed
-    for f in flows:
+    others = [f for f in M["flows"] if f not in flows] if folding and view != "join" else []
+    for f in flows + (others if more == "flows" else []):
         top = y
+        if more == "flows" and f is others[0]:
+            ob = Box(FX, FW, [(f'▾ {len(others)} other flow{"" if len(others) == 1 else "s"}', "sx")], FOLDED)
+            ob.y = top
+            fold_lines.append((ob,) + other_line("flows") + ("",))
+            y = top = y + ob.h + 12
         stages = f["_stages"] if view != "join" else [st for st in f["_stages"] if st["stage"] in opened]
         for k, st in enumerate(stages):
             label = f'Stage {st.get("order") or k + 1}: {st.get("name", "")}'
@@ -734,20 +893,20 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
                 sb = Box(SX, SW, lines)
             else:
                 sb = Box(SX, SW, lines)
-            if st["stage"] in fold_stages:  # a neighbour of the stage in focus: one line
+            folded = st["stage"] in fold_stages
+            if folded:  # a neighbour of the stage in focus: one folded line, unfaded by the stage's own click; a click opens it
                 sb = Box(SX, SW, name_lines("▸ " + label, SW - 20, max_lines=1), FOLDED)
-            sb.y, sb.on, sb.node = y, on, "g:" + st["stage"]
+                toggle(sb, "g:" + st["stage"], False)
+            sb.y, sb.on, sb.node, sb.folded = y, on, "g:" + st["stage"], folded
             if view != "join":
                 sb.sel = f'data-node="{esc(sb.node)}"' + (f' data-open="{esc(sb.node)}"' if folding else "")
             stage_boxes[st["stage"]] = sb
             block = sb.h
             if folding and st["stage"] not in opened and st["stage"] not in fold_stages:  # its steps, folded to one line
                 n_out = sum(1 for s in st["_steps"] if is_outcome(M, s["step"]))
-                n_step = len(st["_steps"]) - n_out
-                said = f'▸ Stage {st.get("order") or k + 1}: {n_step} step{"" if n_step == 1 else "s"}' + (
-                    f', {n_out} outcome{"" if n_out == 1 else "s"}' if n_out else "")
-                fb_ = Box(PX, PW, [(said, "sx")], FOLDED)
-                fb_.y, fb_.sel = y, f'data-node="{esc(sb.node)}" data-open="{esc(sb.node)}"'
+                fb_ = Box(PX, PW, [(steps_said(st, k, n_out), "sx")], FOLDED)
+                fb_.y, fb_.folded, fb_.sel = y, True, f'data-node="{esc(sb.node)}" data-open="{esc(sb.node)}"'
+                toggle(fb_, focus + tail if tucked and sb.node == focus else ("o:" if lit is None else "g:") + st["stage"], False)
                 fold_steps[st["stage"]] = fb_
                 block = max(block, fb_.h)
             if st["stage"] in opened:
@@ -755,6 +914,12 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
                 if view == "join":
                     shown = [s for s in st["_steps"] if s["step"] in select_steps]
                 yy = y
+                if folding:  # the opened steps keep their one line above them, now a ▾ that folds them again
+                    hb = Box(PX, PW, [(steps_said(st, k, sum(1 for s in st["_steps"] if is_outcome(M, s["step"])), "▾"), "sx")])
+                    hb.y, hb.sel = y, f'data-node="{esc(sb.node)}"'
+                    toggle(hb, "load" if focus.startswith("o:") else focus + "^" + tail, True)
+                    step_heads.append(hb)
+                    yy += hb.h + 8
                 for i, s in enumerate(shown):
                     b = step_box(M, view, mid, s, st["_steps"].index(s) + 1, marks_used)
                     b.y, b.step_id = yy, s["step"]
@@ -787,11 +952,12 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
         fb.tags = tags
         flow_boxes.append((f, fb, [stage_boxes[st["stage"]] for st in stages]))
         y = max(y, fb.y + fb.h + LH * len(tags) + 6) + 30
-    if folding and len(flows) < len(M["flows"]):
-        n = len(M["flows"]) - len(flows)
+    if others and more != "flows":
+        n = len(others)
         ob = Box(FX, FW, [(f'▸ {n} other flow{"" if n == 1 else "s"}', "sx")], FOLDED)
         ob.y = y
-        fold_lines.append(ob)
+        fold_lines.append((ob,) + other_line("flows") + (" ".join(["f:" + o["flow_id"] for o in others]
+                                                                   + ["g:" + st["stage"] for o in others for st in o["_stages"]]),))
         y += ob.h + 30
     body_bottom = y - 30
 
@@ -806,7 +972,7 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
         tx = SX - 18
         e.append(tree(fb.node, faint(fb.on, f'<line x1="{FX + FW}" y1="{fb.mid:g}" x2="{tx}" y2="{fb.mid:g}" class="ln"{ln}/>')))
         for b in sbs:  # each stage's own stretch of the trunk, so a click lights only the stretch to its stages
-            e.append(tree(f"{fb.node} {b.node}", faint(b.on, f'<line x1="{tx}" y1="{fb.mid:g}" x2="{tx}" y2="{b.mid:g}" class="ln"{ln}/>'
+            e.append(tree(fb.node if b.folded else f"{fb.node} {b.node}", faint(b.on, f'<line x1="{tx}" y1="{fb.mid:g}" x2="{tx}" y2="{b.mid:g}" class="ln"{ln}/>'
                                                               f'<line x1="{tx}" y1="{b.mid:g}" x2="{SX}" y2="{b.mid:g}" class="ln"{ln}/>'
                                                               f'<circle cx="{tx}" cy="{b.mid:g}" r="2.4" class="hit"/>')))
             e.append(faint(b.on and view != "join", b.svg()))
@@ -814,6 +980,7 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
         sb = stage_boxes[sid]
         e.append(tree(sb.node, f'<line x1="{SX + SW}" y1="{b.mid:g}" x2="{PX}" y2="{b.mid:g}" class="ln"/>'))
         e.append(b.svg())
+    e += [hb.svg() for hb in step_heads]
     for sid, sb in stage_boxes.items():
         kids = [step_boxes[s["step"]] for s in M["stage"][sid]["_steps"] if s["step"] in step_boxes]
         if not kids:
@@ -861,10 +1028,12 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
                      f'{len(mem)} capabilit{"y" if len(mem) == 1 else "ies"}' + (" · delivered by no flow" if none == len(mem)
                                                                                else f" · {none} delivered by no flow" if none else ""))
             b = Box(x, w, name_lines("▸ " + c.get("name", ""), w - 24, max_lines=1) + sub_lines(count, w - 24, 1), FOLDED, rx=8)
-            b.y, b.sel = yy, f'data-node="c:{esc(cid)}" data-open="c:{esc(cid)}"'
+            b.y, b.folded, b.sel = yy, True, f'data-node="c:{esc(cid)}" data-open="c:{esc(cid)}"'
+            toggle(b, unshut(cid) if cid in shut else "c:" + cid, False)
             return b.h, b.svg()
         cls = "t" if delivered.get(cid) or (folding and cid in by_any) else "sx"
-        lines = name_lines(c.get("name", ""), w - 24, cls)
+        head = depth == 0 and folding and view != "join"  # an opened group keeps its line, now a ▾ that folds it again
+        lines = name_lines(("▾ " if head else "") + c.get("name", ""), w - 24, cls)
         sub = ""
         if view == "reports":
             sub = f"coverage over {len(mine)} of its flows here" if mine else "none: a gap"
@@ -877,40 +1046,64 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
         b.y = yy
         if view != "join":
             b.sel = f'data-node="c:{esc(cid)}"'
-        inner = yy + b.h + (2 if M["kids"].get(cid) else 0)
+        if head:
+            toggle(b, "load" if focus.startswith("c:") else shutting(cid), True)
+        kids = M["kids"].get(cid, [])
+        if lit is not None:  # what the flow in focus does not deliver folds to one line in its group
+            if depth == 0:
+                skipped.clear()
+            skipped.extend(m for k in kids if "c:" + k["capability_id"] not in lit for m in members(k["capability_id"]))
+            kids = [k for k in kids if "c:" + k["capability_id"] in lit]
+        inner = yy + b.h + (2 if kids or (depth == 0 and skipped) else 0)
         parts = []
-        for k in M["kids"].get(cid, []):
+        for k in kids:
             h, p = draw_cap(k, x + 14, inner, w - 28, depth + 1)
             parts.append(p)
             inner += h + 8
-        h = inner - yy + (6 if M["kids"].get(cid) else 0) if M["kids"].get(cid) else b.h
+        if depth == 0 and lit is not None and skipped:
+            n, none = len(skipped), sum(1 for m in skipped if m not in by_any)
+            ob = Box(x + 14, w - 28, [(f"▸ {n} delivered by no flow" if none == n else f"▸ {n} not delivered by this flow", "sx")]
+                     + (sub_lines(f"{none} delivered by no flow", w - 52, 1) if 0 < none < n else []), FOLDED)
+            ob.y = inner
+            parts.append(f'<g class="fold" tabindex="0" role="button" aria-expanded="false" data-open="c:{esc(cid)}" '
+                         f'data-holds="{esc(" ".join("c:" + m for m in skipped))}">{ob.svg()}</g>')
+            inner += ob.h + 8
+            kids = kids or [None]
+        h = inner - yy + (6 if kids else 0) if kids else b.h
         b.h = h
         if delivered.get(cid):
             origins[cid] = (x + w, yy + 18)
         return h, faint(on, b.svg()) + "".join(parts)
 
     roots = M["kids"].get("", [])
+    skipped = []
     groups_open = set()
     if focus.startswith("c:"):
         groups_open = {focus[2:]}
     elif lit is not None:
-        groups_open = {r["capability_id"] for r in roots if "c:" + r["capability_id"] in lit}
+        groups_open = {r["capability_id"] for r in roots if "c:" + r["capability_id"] in lit} - shut
     elif not folding:
         groups_open = {r["capability_id"] for r in roots}
     yy = 44
     for root in roots:
-        if lit is not None and root["capability_id"] not in groups_open:
+        if lit is not None and root["capability_id"] not in groups_open | shut:
             continue
         h, p = draw_cap(root, CAPX, yy, CAPW, 0)
         cap_svg.append(p)
         yy += h + 10
-    n = sum(1 for r in roots if r["capability_id"] not in groups_open)
+    rest_g = [r for r in roots if r["capability_id"] not in groups_open | shut]
+    n = len(rest_g)
     if lit is not None and n:
-        ob = Box(CAPX, CAPW, [(f'▸ {n} other group{"" if n == 1 else "s"}', "sx")]
+        ob = Box(CAPX, CAPW, [(f'{"▾" if more == "groups" else "▸"} {n} other group{"" if n == 1 else "s"}', "sx")]
                  + sub_lines(f'this flow delivers none of {"its" if n == 1 else "their"} capabilities', CAPW - 24, 1), FOLDED, rx=8)
         ob.y = yy
-        fold_lines.append(ob)
+        fold_lines.append((ob,) + other_line("groups") + (" ".join("c:" + m for r in rest_g for m in members(r["capability_id"])),))
         yy += ob.h + 10
+        if more == "groups":
+            for root in rest_g:
+                h, p = draw_cap(root, CAPX, yy, CAPW, 0)
+                cap_svg.append(p)
+                yy += h + 10
     cap_bottom = yy
     e[:0] = cap_svg
     for cid, (x, yy_) in origins.items():
@@ -944,9 +1137,11 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
             if a["subject_id"] not in shown:
                 shown.append(a["subject_id"])
         hidden_c = len([c for c in M["comps"]]) - len([c for c in shown if c in {x["subject_id"] for x in M["comps"]}])
-        other_c = 0
+        other_c, extra_c = 0, []
         if lit is not None:
             other_c = len(shown)
+            off_c = [c for c in shown if "p:" + c not in lit]
+            extra_c = off_c if more == "parts" else []
             shown = [c for c in shown if "p:" + c in lit]
             other_c -= len(shown)
         boxes = []
@@ -961,6 +1156,17 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
         for n, (sid, b) in enumerate(boxes, 1):
             b.y = max(b.target - b.h / 2, cursor)
             cursor = b.y + b.h + 12
+        part_line = None
+        if other_c:  # the parts off the focus: one line, or opened under it as a ▾ header
+            part_line = Box(CX, CW, [(f'{"▾" if more == "parts" else "▸"} {other_c} other part{"" if other_c == 1 else "s"}', "sx")], FOLDED)
+            part_line.y = max([44] + [b.y + b.h + 12 for _, b in boxes])
+            fold_lines.append((part_line,) + other_line("parts") + (" ".join("p:" + c for c in off_c),))
+            cursor = part_line.y + part_line.h + 12
+            for sid in extra_c:
+                b = part_box(M, view, mid, M["subj"][sid], marks_used)
+                b.y = cursor
+                cursor = b.y + b.h + 12
+                boxes.append((sid, b))
         cbox = dict(boxes)
         for sid, b in boxes:
             ins = sorted(links.get(sid, []), key=lambda t: t[0].mid)
@@ -971,15 +1177,10 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
         for sid, b in boxes:
             b.sel = f'data-part="{esc(sid)}" data-steps="{esc(" ".join(direct_steps(M, sid, step_boxes)))}"'
             e.append(b.svg())
-        part_bottom = max([body_bottom] + [b.y + b.h for _, b in boxes])
-        if other_c:
-            ob = Box(CX, CW, [(f'▸ {other_c} other part{"" if other_c == 1 else "s"}', "sx")], FOLDED)
-            ob.y = max([44] + [b.y + b.h + 12 for _, b in boxes])
-            fold_lines.append(ob)
-            part_bottom = max(part_bottom, ob.y + ob.h)
+        part_bottom = max([body_bottom] + [b.y + b.h for _, b in boxes] + ([part_line.y + part_line.h] if part_line else []))
         # external dependencies: beside the components that call them, or the steps they take part in directly
         dep_ids = [d["subject_id"] for d in M["deps"]]
-        dshown = []
+        dshown, extra_d, off_d = [], [], []
         reached = 0
         for d in dep_ids:
             fam_ids = {d} | {k["subject_id"] for k in M["dep_parts"].get(d, [])}
@@ -990,6 +1191,9 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
             if folding and (fam_ids & everywhere or any(fam_ids & M["uses"].get(c, set()) for c in comp_ids)):
                 reached += 1
                 if lit is not None and "p:" + d not in lit:
+                    off_d.append(d)
+                    if more == "deps":
+                        extra_d.append((d, callers, direct))
                     continue
             if callers or direct:
                 dshown.append((d, callers, direct))
@@ -1007,6 +1211,18 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
         for d, b, callers in dboxes:
             b.y = max(b.target - b.h / 2, cursor)
             cursor = b.y + b.h + 12
+        dep_line = None
+        if other_d > 0:  # the dependencies off the focus: one line, or opened under it as a ▾ header
+            dep_line = Box(DX, DW, [(f'{"▾" if more == "deps" else "▸"} {other_d} other', "sx")], FOLDED)
+            dep_line.y = max([44] + [b.y + b.h + 12 for _, b, _ in dboxes])
+            fold_lines.append((dep_line,) + other_line("deps") + (" ".join("p:" + x for x in off_d),))
+            cursor = dep_line.y + dep_line.h + 12
+            for d, callers, direct in extra_d:
+                b = dep_box(M, view, M["subj"][d], callers, direct, numbers)
+                b.y = cursor
+                cursor = b.y + b.h + 12
+                dboxes.append((d, b, callers))
+        for d, b, callers in dboxes:
             ky = b.y + b.head_h
             for _, kb in b.kids:
                 kb.y = ky
@@ -1050,12 +1266,7 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
                           f'data-steps="{esc(" ".join(x for x in M["step"] if x in step_boxes and x in kr))}"')
                 e.append(kb.svg())
             marks_used.add("dep")
-        part_bottom = max([part_bottom] + [b.y + b.h for _, b, _ in dboxes])
-        if other_d > 0:
-            ob = Box(DX, DW, [(f"▸ {other_d} other", "sx")], FOLDED)
-            ob.y = max([44] + [b.y + b.h + 12 for _, b, _ in dboxes])
-            fold_lines.append(ob)
-            part_bottom = max(part_bottom, ob.y + ob.h)
+        part_bottom = max([part_bottom] + [b.y + b.h for _, b, _ in dboxes] + ([dep_line.y + dep_line.h] if dep_line else []))
         e.append(call_arcs(M, mid, cbox, calls, marks_used))
         if hidden_c:
             e.append(f'<text x="{CX}" y="{part_bottom + 20:g}" class="s" style="font-size:12px;font-style:italic">'
@@ -1085,7 +1296,9 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
     # ---- key
     rows = []
     e = [("".join(b.svg() for b in step_boxes.values()) if x is STEPS_SLOT else x) for x in e]
-    e += [f'<g class="fold" tabindex="0" role="button" data-open="all">{b.svg()}</g>' for b in fold_lines]
+    e += [f'<g class="fold" tabindex="0" role="button" aria-expanded="{"true" if o else "false"}" data-open="{esc(k)}"'
+          + (f' data-holds="{esc(h)}"' if h and not o else "") + f'>{b.svg()}</g>'
+          for b, k, o, h in fold_lines]
     if view == "join":
         return head + e, max(body_bottom, cap_bottom), [f.get("name") for f, _, _ in flow_boxes]
     rows += KEY_ROWS  # two entries: everything else is written on the box, or said where it shows on click
@@ -1244,8 +1457,8 @@ def is_outcome(M, sid):
 
 
 def outcome_short(name):
-    """An outcome's name on its box: the register's sentence without its subject ("The loan is approved with
-    conditions" -> "approved with conditions"), since the label before it already says how the case ends."""
+    """An outcome's name on its box: the register's sentence without its subject ("The parcel is
+    delivered" -> "delivered"), since the label before it already says how the case ends."""
     m = re.match(r"(?:The|A|An) (?:\S+ ){0,3}?(?:is|are) (.+)$", name or "")
     return m.group(1) if m else (name or "")
 
@@ -1272,14 +1485,16 @@ def step_box(M, view, mid, s, n, used):
     style, marks = "", []
     if not carried(s):
         suffix = " · not assessed"
-    lines = [(t, "sx") for t in wrap(f"{step_title(M, s['step'], short=True)}{suffix}", PW - 20, 12, 3)]
-    if q and carried(s):
+    full = ""
+    if q and carried(s):  # the box carries the qualifier's kind word; its full words are in the tooltip and the panel
         q = re.sub(r"\bas step (\d+)\b(?!\.\d)", lambda m: "as " + (f"\u201c{outcome_short(M['step'][m.group(1)].get('name', ''))}\u201d"
                    if m.group(1) in M["step"] and is_outcome(M, m.group(1)) else m.group(0)), q)
-        lines += [(t, "sx") for t in wrap(plain_qualifier(q), PW - 20, 12, 8)]
+        full = plain_qualifier(q)
+        suffix = " \u00b7 " + full.split(":", 1)[0].strip()  # "partial" or "simulated"
+    lines = [(t, "sx") for t in wrap(f"{step_title(M, s['step'], short=True)}{suffix}", PW - 20, 12, 3)]
     if view == "reports":
         lines += sub_lines(measure_summary(M["m_at_step"].get(s["step"], [])), PW - 20, 1)
-    b = Box(PX, PW, lines, style, title=step_title(M, s["step"]) + suffix, marks=marks)
+    b = Box(PX, PW, lines, style, title=step_title(M, s["step"]) + (f"\n{full}" if full else suffix), marks=marks)
     return b
 
 
@@ -1676,7 +1891,7 @@ def words(M, opened, folded=False):
     first = lambda el: next((r.get("name", "") for r in rows if r.get("element") == el), "")
     trs += "".join(f"<tr><th>{w}</th><td>{d}</td><td class=\"ex\">{esc(first(el))}</td></tr>" for w, d, el in AGENT_WORDS)
     status = [("Case", "One instance going through a flow, from its start to its end: what the business measures count.",
-               f.get("case", "")),
+               re.split(r"[:;,(]", f.get("case", ""), maxsplit=1)[0].strip()),  # its name; where it is stored stays off the page
               ("On record", "A measure the register holds: proposed, or emitted by the code today. Never a reading.", ""),
               ("Not assessed", "Looked for in the sources examined and not found, or not looked at. Never a finding "
                                "that it is absent.", "")]
@@ -1730,6 +1945,10 @@ svg g.sel{cursor:pointer}
 svg g.sel:focus{outline:none}
 svg g.sel:focus-visible rect.bx{stroke:var(--clay)}
 svg .off{opacity:.1}
+svg g.sel.folded.off{opacity:.35}
+svg g.fold.off{opacity:.35}svg g.fold.held rect.bx{stroke-opacity:1!important;stroke-dasharray:none!important}
+svg g.tog{cursor:pointer}svg g.tog:focus{outline:none}svg g.tog:focus-visible rect{stroke:var(--clay)!important;stroke-width:1.5px!important}
+svg.reach g.sel.folded:not(.off) rect.bx{stroke-opacity:1!important;stroke-dasharray:none!important}
 svg.fade-links .ln.link[data-step]{opacity:.35}
 svg.fade-links.picked .ln.link[data-step]:not(.off){opacity:1}
 svg.picked .link.off,svg.fade-links.picked .ln.link.off,svg.picked .tree.off{opacity:0}
@@ -1746,16 +1965,20 @@ SCRIPT = """<script>
   document.querySelectorAll('svg').forEach(function (svg) {
     var cur = null;
     function clear() {
-      cur = null;
-      svg.classList.remove('picked');
+      cur = null; delete svg.dataset.cur;
+      svg.classList.remove('picked'); svg.classList.remove('reach');
       svg.querySelectorAll('.off').forEach(function (x) { x.classList.remove('off'); });
+      svg.querySelectorAll('g.fold.held').forEach(function (x) { var t = x.querySelector('text'); t.textContent = t.dataset.said; x.classList.remove('held'); });
       svg.querySelectorAll('.shown').forEach(function (x) { x.classList.remove('shown'); });
     }
     clears.push(clear);
     function pick(g) {  // the chain through the clicked box, up to the capabilities and down to the dependencies
       var key = nodeKey(g);
       if (key === cur) { clear(); return; }
-      clear(); cur = key;
+      light(key);
+    }
+    function light(key) {
+      clear(); cur = key; svg.dataset.cur = key;
       svg.classList.add('picked');
       var lit = new Set([key].concat(CHAIN[key] || []));
       var has = function (k) { return lit.has(k); };
@@ -1763,7 +1986,14 @@ SCRIPT = """<script>
         var s = (x.dataset.steps || '').split(' ').filter(Boolean);
         return !s.length || s.some(function (t) { return has('s:' + t); });
       };
-      svg.querySelectorAll('g.sel').forEach(function (x) { if (!has(nodeKey(x))) x.classList.add('off'); });
+      var reach = /^[ps]:/.test(key);  // a part or step picked: a folded line lights when the chain runs into what it holds, else fades
+      svg.classList.toggle('reach', reach);  // a stage or flow picked folds its neighbours and leaves them unfaded
+      svg.querySelectorAll(reach ? 'g.sel' : 'g.sel:not(.folded)').forEach(function (x) { if (!has(nodeKey(x))) x.classList.add('off'); });
+      svg.querySelectorAll('g.fold[data-holds]').forEach(function (x) {  // a folded line holding lit boxes stays lit and says how many
+        var n = x.dataset.holds.split(' ').filter(has).length, t = x.querySelector('text');
+        if (n) { x.classList.add('held'); t.dataset.said = t.textContent; t.textContent += ' \u00b7 ' + n + ' lit'; }
+        else if (reach) x.classList.add('off');
+      });
       svg.querySelectorAll('.link').forEach(function (l) {
         var on = l.dataset.dep
           ? has('p:' + l.dataset.part) && has('p:' + l.dataset.dep) && (inLit(l) || key === 'p:' + l.dataset.part || key === 'p:' + l.dataset.dep)
@@ -1780,46 +2010,81 @@ SCRIPT = """<script>
       var g = ev.target.closest('g.sel');
       if (g) pick(g); else clear();
     });
+    svg.addEventListener('mapswap', function () { if (cur) light(cur); });  // a folded map swapped in keeps the chain lit
     svg.addEventListener('keydown', function (ev) {
       var g = ev.target.closest && ev.target.closest('g.sel');
       if (g && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); g.dispatchEvent(new MouseEvent('click', {bubbles: true})); }  // every listener on a click hears the key too
     });
   });
   document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') clears.forEach(function (c) { c(); }); });
-  // zoom and pan inside each figure, so a large map reads on a laptop; the page itself never scrolls sideways
+  // zoom and pan inside each figure, so a large map reads on a laptop; the page itself never scrolls sideways.
+  // base is the drawing's bounds; vb is the view, whose aspect is always the box's, so a frame taller than the drawing
+  // is room to pan into. The drawing opens fitted to the frame's width, anchored top-left; nothing zooms by itself.
   document.querySelectorAll('.fig').forEach(function (fig) {
     var svg = fig.querySelector('svg'); if (!svg) return;
-    var base = svg.getAttribute('viewBox').split(' ').map(Number), vb = base.slice();
+    svg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
+    function bounds() { return svg.getAttribute('viewBox').split(' ').map(Number); }
+    var base = bounds(), vb = base.slice(), fitted = true;
+    function aspect() { var r = svg.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? r.height / r.width : 0; }  // 0 while hidden
     function set() { svg.setAttribute('viewBox', vb.join(' ')); }
-    svg.addEventListener('mapswap', function () { base = svg.getAttribute('viewBox').split(' ').map(Number); vb = base.slice(); });  // a folded map swapped in
-    function zoom(f, cx, cy) {
-      var w = Math.min(base[2], Math.max(base[2] / 12, vb[2] * f)), h = w * base[3] / base[2];
-      cx = cx === undefined ? vb[0] + vb[2] / 2 : cx; cy = cy === undefined ? vb[1] + vb[3] / 2 : cy;
-      vb = [cx - (cx - vb[0]) * w / vb[2], cy - (cy - vb[1]) * h / vb[3], w, h]; clamp(); set();
-    }
-    function clamp() {
+    function clamp() {  // within the drawing; a view wider or taller than it sits at its top-left
       vb[0] = Math.max(base[0], Math.min(vb[0], base[0] + base[2] - vb[2]));
       vb[1] = Math.max(base[1], Math.min(vb[1], base[1] + base[3] - vb[3]));
     }
+    function fit() { var a = aspect(); if (!a) return; vb = [base[0], base[1], base[2], base[2] * a]; fitted = true; set(); }
+    function reshape() {  // the box changed size: keep the scale and the top-left, take the new aspect
+      var a = aspect(); if (!a) return;
+      if (fitted) { fit(); return; }
+      vb[3] = vb[2] * a; clamp(); set();
+    }
+    svg.addEventListener('mapswap', function () {  // a folded map swapped in: the zoom and pan carry over, held to the new drawing
+      base = bounds();
+      if (fitted) { fit(); return; }
+      vb[2] = Math.min(vb[2], base[2]); reshape();
+    });
+    fit();
+    if (window.ResizeObserver) new ResizeObserver(reshape).observe(svg);
+    function zoom(f, cx, cy) {
+      var a = aspect(); if (!a) return;
+      var w = Math.min(base[2], Math.max(base[2] / 12, vb[2] * f)), h = w * a;
+      vb = [cx - (cx - vb[0]) * w / vb[2], cy - (cy - vb[1]) * h / vb[3], w, h]; fitted = false; clamp(); set();
+    }
     function user(ev) { var r = svg.getBoundingClientRect(); return [vb[0] + (ev.clientX - r.left) * vb[2] / r.width, vb[1] + (ev.clientY - r.top) * vb[3] / r.height]; }
+    function box(pick) {  // the selection's bounds in drawing units: the picked box, or every lit box; null if none
+      var r = svg.getBoundingClientRect(), lo = [Infinity, Infinity], hi = [-Infinity, -Infinity], gs;
+      if (pick) gs = svg.dataset.cur ? Array.prototype.filter.call(svg.querySelectorAll('g.sel'), function (g) { return nodeKey(g) === svg.dataset.cur; }) : [];
+      else gs = svg.querySelector('.off') ? svg.querySelectorAll('g.sel:not(.off)') : [];
+      Array.prototype.forEach.call(gs, function (g) {
+        var q = g.getBoundingClientRect(); if (!q.width && !q.height) return;
+        [[q.left, q.top], [q.right, q.bottom]].forEach(function (pt) {
+          var u = [vb[0] + (pt[0] - r.left) * vb[2] / r.width, vb[1] + (pt[1] - r.top) * vb[3] / r.height];
+          lo = [Math.min(lo[0], u[0]), Math.min(lo[1], u[1])]; hi = [Math.max(hi[0], u[0]), Math.max(hi[1], u[1])];
+        });
+      });
+      return lo[0] === Infinity ? null : [lo, hi];
+    }
+    var picked = null;
+    function anchor() {  // + and - zoom about the selection's centre, or about the frame's top-left, so nothing zooms out of view
+      var b = picked = box(true) || box(false);
+      return b ? [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2] : [vb[0], vb[1]];
+    }
+    function into(b) {  // a selection that fits the view is moved wholly into it
+      if (!b) return;
+      for (var i = 0; i < 2; i++) if (b[1][i] - b[0][i] <= vb[2 + i]) vb[i] = Math.min(Math.max(vb[i], b[1][i] - vb[2 + i]), b[0][i]);
+      clamp(); set();
+    }
     var sel = fig.querySelector('[data-zoom="selection"]');
     fig.querySelectorAll('[data-zoom]').forEach(function (b) {
       b.addEventListener('click', function () {
-        var k = b.dataset.zoom;
-        if (k === 'in') zoom(1 / 1.5); else if (k === 'out') zoom(1.5); else if (k === 'fit') { vb = base.slice(); set(); }
+        var k = b.dataset.zoom, a;
+        if (k === 'in') { a = anchor(); zoom(1 / 1.5, a[0], a[1]); into(picked); }
+        else if (k === 'out') { a = anchor(); zoom(1.5, a[0], a[1]); into(picked); }
+        else if (k === 'fit') fit();
         else {
-          var r = svg.getBoundingClientRect(), lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
-          svg.querySelectorAll('g.sel:not(.off)').forEach(function (g) {
-            var q = g.getBoundingClientRect();
-            [[q.left, q.top], [q.right, q.bottom]].forEach(function (pt) {
-              var u = [vb[0] + (pt[0] - r.left) * vb[2] / r.width, vb[1] + (pt[1] - r.top) * vb[3] / r.height];
-              lo = [Math.min(lo[0], u[0]), Math.min(lo[1], u[1])]; hi = [Math.max(hi[0], u[0]), Math.max(hi[1], u[1])];
-            });
-          });
-          if (lo[0] === Infinity) return;
-          var pad = 40, w = Math.max(hi[0] - lo[0] + 2 * pad, (hi[1] - lo[1] + 2 * pad) * base[2] / base[3]);
-          w = Math.min(base[2], w); var h = w * base[3] / base[2];
-          vb = [(lo[0] + hi[0]) / 2 - w / 2, (lo[1] + hi[1]) / 2 - h / 2, w, h]; clamp(); set();
+          var s = box(false), A = aspect(); if (!s || !A) return;
+          var lo = s[0], hi = s[1], pad = 40, w = Math.max(hi[0] - lo[0] + 2 * pad, (hi[1] - lo[1] + 2 * pad) / A);
+          w = Math.min(base[2], w); var h = w * A;
+          vb = [(lo[0] + hi[0]) / 2 - w / 2, (lo[1] + hi[1]) / 2 - h / 2, w, h]; fitted = false; clamp(); set();
         }
       });
     });
@@ -1833,7 +2098,7 @@ SCRIPT = """<script>
     svg.addEventListener('pointermove', function (ev) {
       if (!drag) return; var r = svg.getBoundingClientRect(), dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
       if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 5) return;
-      drag.moved = true; vb[0] = drag.vb[0] - dx * vb[2] / r.width; vb[1] = drag.vb[1] - dy * vb[3] / r.height; clamp(); set();
+      drag.moved = true; fitted = false; vb[0] = drag.vb[0] - dx * vb[2] / r.width; vb[1] = drag.vb[1] - dy * vb[3] / r.height; clamp(); set();
     });
     window.addEventListener('pointerup', function () { if (drag && drag.moved) svg.dataset.dragged = '1'; drag = null; });
   });

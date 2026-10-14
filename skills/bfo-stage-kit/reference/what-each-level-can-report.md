@@ -256,13 +256,13 @@ counts runs, so it is not a business measure; "loans not funded because last nig
 counts loans, so it is one.
 
 **Rule 0: declare the frame first.** Whose expectation the flow serves, what the case is, where
-the flow starts and ends, and which application delivers it. The case is one individual business
+the flow starts and ends. The case is one individual business
 item: one payment, one application. It is never a system, a team, a batch or a request, and a flow
 has one kind of case. The flow starts where the case first exists; a stage or step before that
 point belongs to some other flow and is set aside for this one. Moving a case out of a stage is an
-act, so it is that stage's last step, and the part that does it performs a step. A part of the delivering
-application is a component whether it performs a step or only supports one; a part outside it is
-an external dependency. A job that handles many cases per run or per poll, a nightly batch or a
+act, so it is that stage's last step, and the part that does it performs a step. A part the flow runs
+through whose code can be had is a component whether it performs a step or only supports one; one
+whose code cannot be had is an external dependency. A job that handles many cases per run or per poll, a nightly batch or a
 polling reader, is a component; its runs are its own measure, shown as the cause under the cases
 it failed to process.
 
@@ -319,7 +319,7 @@ lacks is a finding about that flow: nobody has stated it.
 
 | Input | Needed by |
 |---|---|
-| Whose expectation, the case, the start and the end, the delivering application | Rule 0 |
+| Whose expectation, the case, the start and the end | Rule 0 |
 | Each stage's entry and exit criteria | Rule 1, stage counts |
 | For each measure, what it is counted on and which thing it counts | Rule 1 |
 | For each system the case passes through, whether it carries the case identifier | Rule 2 |

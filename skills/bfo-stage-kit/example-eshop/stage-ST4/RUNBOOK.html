@@ -1,0 +1,172 @@
+<!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
+     Source: example-eshop
+     Builder: flow_outputs.py
+     Build: python -I flow_outputs.py example-eshop F1 ST4 --out example-eshop/stage-ST4
+-->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Runbook: Deliver the order</title><style>
+:root{--bg:#f6f7f5;--surf:#fff;--fg:#1d2420;--muted:#5d6862;--line:#c5cdc8;--bar:#e3e8e4;--lit:#1f6e8c;
+--ok:#2f7d4f;--bad:#b4561f;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1e1c;--surf:#232725;--fg:#e4e9e5;
+--muted:#9aa59f;--line:#4b544f;--bar:#2e3330;--lit:#6cc0de;--ok:#6fc28f;--bad:#e08a52;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1b1e1c;--surf:#232725;--fg:#e4e9e5;--muted:#9aa59f;--line:#4b544f;--bar:#2e3330;
+--lit:#6cc0de;--ok:#6fc28f;--bad:#e08a52;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:76rem;margin:0 auto;padding:24px 16px 64px;display:grid;gap:24px}
+a{color:var(--lit)}
+h1{font:600 1.6rem/1.25 Georgia,serif;margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+h2{font:600 1.3rem/1.3 Georgia,serif;margin:0}
+h3{font-size:1rem;margin:0}
+p{margin:0 0 6px;max-width:68rem}
+.doc{background:var(--surf);border:1px solid var(--line);border-radius:6px;padding:18px 20px;display:grid;gap:12px;
+min-width:0}
+.trail{color:var(--lit);font-size:13px}
+.lbl{font:500 .72rem/1.4 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.landing{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media (max-width:760px){.landing{grid-template-columns:1fr}}
+.col{display:grid;gap:8px;align-content:start;min-width:0}
+.card{border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:grid;gap:2px;text-decoration:none;
+color:var(--fg)}
+a.card b{color:var(--lit)}
+.card.gap{border-color:var(--bad)}.card.gap b{color:var(--bad)}
+.sub{color:var(--muted);font-size:13px}
+.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:10px;border:1px solid var(--line);
+text-decoration:none;color:var(--fg)}
+.chip.ok{border-color:var(--ok);color:var(--ok)}.chip.bad{border-color:var(--bad);color:var(--bad)}
+.chip.warn{color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px;color:var(--muted)}
+.meta b{color:var(--fg)}
+.now{border:2px solid var(--fg);border-radius:6px;padding:10px 14px}
+.now ol{margin:6px 0 0;padding-left:1.3em;display:grid;gap:6px}
+.sec{font-weight:600;margin-top:6px}
+.hint{font-weight:400;color:var(--muted);font-size:13px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+td,th{border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+th{font:500 .72rem/1.4 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+table.chk td:first-child{width:2em;color:var(--muted);font-variant-numeric:tabular-nums}
+table.chk td:nth-child(3){width:30%}
+@media (max-width:600px){table.chk tr{display:grid;grid-template-columns:2em 1fr}
+table.chk td{border:0}table.chk tr{border-bottom:1px solid var(--line)}
+table.chk td:nth-child(3){grid-column:2;width:auto;padding-top:0}}
+tr.grp td{font:500 .72rem/1.4 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;
+color:var(--muted);padding-top:12px}
+details{border-bottom:1px solid var(--line);padding:6px 0}
+details>summary{cursor:pointer}
+details.how{border:0;padding:2px 0}
+details.how>summary{color:var(--lit);font-size:13px}
+.box{margin-top:6px;display:grid;gap:6px;padding:8px 10px;border-left:3px solid var(--line)}
+pre{margin:0;padding:8px 10px;background:var(--bar);border-radius:4px;white-space:pre-wrap;word-break:break-word;
+font:12.5px/1.45 ui-monospace,Consolas,monospace}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.92em}
+.row2{display:flex;flex-wrap:wrap;gap:4px 22px;font-size:14px}
+.small{font-size:13px;color:var(--muted)}
+.done{font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
+.ref{display:grid;gap:12px}
+:target{scroll-margin-top:12px}
+</style></head><body><main>
+<section class="doc" id="top"><div class="trail">Fulfilling a customer&#x27;s order › Stage 4: Deliver the order</div>
+<h1>Runbook: Deliver the order <span class="chip warn">draft, generated from the register</span></h1>
+<div class="landing"><div class="col"><div class="lbl">An alert sent you here? Go to its entry.</div>
+<a class="card" href="#alert-M301"><b>Shipped orders not confirmed delivered within the stage&#x27;s promise</b><span class="sub">How many shipped orders have not reached the customer within the delivery promise?</span></a>
+</div><div class="col"><div class="lbl">New to this stage?</div>
+<details id="stage"><summary>The stage on one page <span class="sub">how a case moves through it, its outcomes, what is at stake</span></summary>
+<p class="small">An online store selling outdoor clothing and equipment to signed-in customers through a web front end (and a mobile app), with orders accepted, stock-checked, paid and shipped by back-end services joined by a message broker. Configuration described: the Aspire AppHost as deployed to Azure Container Apps, with UseFoundry=true so the chat and embedding models are present; Postgres, RabbitMQ and Redis run as the application's own containers. proposed: no source says which configuration runs in production; this is the fullest the repository defines. In this configuration the services run outside Development, so /health is not mapped and logs default to Information.</p>
+<div class="tw"><table><tr><th>Step</th><th>Right outcome</th><th>From → to</th><th>Done by</th><th>Needs</th></tr>
+<tr><td>Step 4.1: Webhook subscribers are told the order is shipped</td><td>(proposed) one post to each OrderShipped subscription</td><td>Shipped → Shipped</td><td>Ordering API, Webhooks API</td><td>Webhooks database, Event bus, Webhook subscriber endpoint</td></tr>
+<tr><td>Step 4.2: The order is delivered to the customer</td><td>(proposed) the customer has the goods</td><td></td><td></td><td>—</td></tr>
+</table></div>
+<p><b>Expected of the stage.</b> A case that enters it leaves within the promise (proposed: none assumed by the code; the carrier's delivery commitment would set one), in one of these ways:</p><ul>
+</ul>
+<p><b>What is at stake.</b></p>
+<ul><li><b>Order id (&quot;Id&quot;)</b>: The only key that joins the order across services and to the customer</li><li><b>Order total (sum of Units x UnitPrice)</b>: Money the customer pays; value blocked while the order is stuck</li><li><b>Items and units (ordering.&quot;orderItems&quot;)</b>: What must be in stock and shipped</li><li><b>Buyer (ordering.buyers &quot;IdentityGuid&quot;)</b>: Who is waiting and who is told</li><li><b>Delivery address</b>: Where the goods must arrive</li><li><b>Payment method (card number masked to the last four digits)</b>: What is charged</li></ul>
+</details>
+<div class="lbl" style="margin-top:14px">Reference, used by every entry</div>
+<details id="checks"><summary>Every check, written once</summary><div class="ref">
+<details class="how"><summary>Causes the design rules out, so no check is needed</summary><ul>
+<li>Ordering API, row left unpublished: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the order's status is already written with the event row. Here, the paid or shipped event row stays at State 0 or 1 and nothing sends it later. Stock left unreduced is counted per order by “Paid orders whose stock was not reduced”; Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Ordering API, publish marked failed: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the order's status is already written with the event row. Here, the row is set to 3 and never retried. Stock left unreduced is counted per order by “Paid orders whose stock was not reduced”; Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Ordering API, relay not running: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the order's status is already written with the event row. Here, there is no relay to stop: the request that committed the status change publishes right after its commit. Stock left unreduced is counted per order by “Paid orders whose stock was not reduced”; Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Ordering API, publish fails: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the stock reduction and the notifications do not touch the order. Here, Ordering API cannot hand the paid or shipped event to the broker; logged and the row marked failed. Stock left unreduced is counted per order by “Paid orders whose stock was not reduced”; Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Event bus, message not routed: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the stock reduction and the notifications do not touch the order. Here, no queue Catalog or Webhooks is bound for the event, so the broker drops it. Stock left unreduced is counted per order by “Paid orders whose stock was not reduced”; Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Catalog API and Webhooks API, consumer not running: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the stock reduction and the notifications do not touch the order. Here, the event waits in queue Catalog or Webhooks until its consumer returns. Stock left unreduced is counted per order by “Paid orders whose stock was not reduced”; Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Catalog API and Webhooks API, consumer fails on the message: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the stock reduction and the notifications do not touch the order. Here, the event is acknowledged and gone. Stock left unreduced is counted per order by “Paid orders whose stock was not reduced”; Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Catalog API and Webhooks API, consumer slow: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the stock reduction and the notifications do not touch the order. Here, the event is handled late. Stock left unreduced is counted per order by “Paid orders whose stock was not reduced”; Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhook subscriber endpoint, callee down: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, the subscriber's endpoint cannot be reached; the post is retried up to 3 times on a transient failure by the standard resilience handler, then throws out of the handler and the event is acknowledged and gone. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhook subscriber endpoint, callee returns an error: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, the subscriber's error answer is not read, so nothing records it. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhook subscriber endpoint, callee slow or hangs: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, the post waits on the subscriber, up to the resilience handler's timeout. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhooks API, caller gives up mid-call: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, a post that outlasts the resilience handler throws out of the handler, and the event is acknowledged and gone. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhook subscriber endpoint, callee answers wrongly: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, the subscriber's answer is not read. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Event bus, unavailable: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the broker does not answer and the publish of the paid or shipped event is marked failed, never re-sent. Stock left unreduced is counted per order by “Paid orders whose stock was not reduced”; Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Event bus, slow: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the event arrives late. Stock left unreduced is counted per order by “Paid orders whose stock was not reduced”; Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Event bus, full or out of capacity: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: a memory or disk alarm blocks the publish until it clears. Stock left unreduced is counted per order by “Paid orders whose stock was not reduced”; Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Event bus, answers stale or wrong: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the broker holds messages, not data the moves read. Stock left unreduced is counted per order by “Paid orders whose stock was not reduced”; Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhooks database, unavailable: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, the webhooks database does not answer, the subscription read throws and the event is acknowledged and gone. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhooks database, slow: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, the subscriptions are read late and subscribers told late. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhooks database, full or out of capacity: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, the shared postgres server refuses Webhooks API's connections, and the read fails as when it does not answer. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhooks database, answers stale or wrong: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, the subscriptions are read from one server with no replica. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhook subscriber endpoint, unavailable: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, the subscriber's endpoint does not answer; the post is retried and then throws, and the event is acknowledged and gone for every subscriber. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhook subscriber endpoint, slow: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, the subscriber answers late, holding the post up to the resilience handler's timeout. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhook subscriber endpoint, full or out of capacity: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, the subscriber refuses the post, which is not read. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+<li>Webhook subscriber endpoint, answers stale or wrong: as a cause of paid orders waiting to ship (“Paid orders waiting to ship, and the oldest's age”), of shipped orders not confirmed delivered within the promise (“Shipped orders not confirmed delivered within the stage's promise”), or of any change to the order: the notifications do not touch the order. Here, the subscriber's answer is not read. Subscribers not told are counted per order by “Paid orders whose webhook subscribers were not posted” (paid) and “Shipped orders whose webhook subscribers were not posted” (shipped)</li>
+</ul></details>
+</div></details>
+<details id="restore"><summary>Restore <span class="sub">one card per action; each returns you to your entry</span></summary><div class="ref">
+<p>After any action that restores: go back to the entry of the alert that fired and run its checks again for every case still affected, since a restore can leave cases in other states.</p>
+<p>The register holds no restore action for this stage's checks.</p>
+</div></details>
+<details id="escalate"><summary>Escalate or declare an incident</summary><div class="ref">
+<p><b>Escalate</b> to the owner of the failing part when a check’s ending says to, when a restore action does not give its expected result, or when an action needs approval.</p>
+<div class="tw"><table><tr><th>Part</th><th>Owner</th><th>As of</th><th>Responder</th><th>Checks that end in escalation to it</th></tr>
+<tr><td>Ordering API</td><td>proposed: the team that deploys the eShop AppHost, which ships every service and store together; no source names a team</td><td>2026-08-28</td><td>proposed: that team's on-call; no source names one</td><td>—</td></tr>
+<tr><td>Webhooks API</td><td>proposed: the team that deploys the eShop AppHost, which ships every service and store together; no source names a team</td><td>2026-08-28</td><td>proposed: that team's on-call; no source names one</td><td>—</td></tr>
+<tr><td>Webhooks database</td><td>proposed: the team that deploys the eShop AppHost, which ships every service and store together; no source names a team</td><td>2026-08-28</td><td>proposed: that team's on-call; no source names one</td><td>—</td></tr>
+<tr><td>Event bus</td><td>proposed: the team that deploys the eShop AppHost, which ships every service and store together; no source names a team</td><td>2026-08-28</td><td>proposed: that team's on-call; no source names one</td><td>—</td></tr>
+<tr><td>Webhook subscriber endpoint</td><td>proposed: each subscriber; no source names one</td><td>2026-08-28</td><td>proposed: each subscriber</td><td>—</td></tr>
+</table></div>
+<p><b>Declare an incident</b> when the operators’ severity definition says to: the register holds no trigger for it. What is at stake here, for that call, is under <a href="#stage">The stage on one page</a>. Keep working the entry while it is declared.</p>
+<p id="handover"><b>What to hand over:</b> the alert and what it guards (its entry); the affected case ids by state; whether new cases are still affected now; which checks ran and what they showed; what was contained and what was done; the look-back time.</p></div></details>
+<details id="close"><summary>Close</summary><div class="tw"><table><tr><th>Ending</th><th>Close</th></tr>
+<tr><td>Already known</td><td>Link the incident, then close.</td></tr>
+<tr><td>Planned change</td><td>Link the window or change, then close. Note that the alert should have been suppressed, if it should.</td></tr>
+<tr><td>Self-healed</td><td>Only for an alert that counts cases waiting: confirm it is back under its threshold, then close. Note that its threshold or window may be wrong.</td></tr>
+<tr><td>Restore</td><td>After the action, confirm the alert is under its threshold, no case it counted is still affected, and new cases get through. Any that remain: back to its entry.</td></tr>
+<tr><td>Can’t restore here</td><td>Escalate, and hand over.</td></tr>
+<tr><td>None of the checks explains it</td><td>Escalate with what you have, and note the gap in this runbook.</td></tr></table></div></details>
+<details id="none"><summary>None of the checks explains it</summary><p>For the cases no check explained: <a href="#escalate">escalate</a> them with what you have, and note the gap in this runbook (a cause it does not cover, or a check that could not be run). Then go on with the next group of cases that still has some: an unexplained group does not end the walk for the others.</p></details>
+<details id="access"><summary>Before you start: the access you need</summary>
+<p>You need to be able to read each of these. A check you cannot run is a gap in this runbook: note it.</p><ul>
+<li><b>Deployment, configuration and restart history</b> for Ordering API, Webhooks API.</li>
+</ul></details>
+<details id="about"><summary>About this runbook <span class="sub">who keeps it, when it was last tested, its register ids</span></summary>
+<p>Generated from the register as of 2026-08-28 (commit b4a4087). The register names no keeper for it and records no test of it. To change it, change the register and generate it again; never edit this file.</p>
+<div class="tw"><table><tr><th>Check</th><th>Failure mode</th><th>Lifecycle rows</th><th>Part</th><th>Source</th></tr>
+</table></div>
+<ul>
+</ul></details></div></div></section>
+<section class="doc" id="alert-M301">
+<div class="trail"><a href="#top">Runbook: Deliver the order</a> › Alert</div>
+<h2>Shipped orders not confirmed delivered within the stage&#x27;s promise</h2>
+<p>A shipped order not delivered within the stage's promise leaves the customer without the goods they expect (flows.csv the flow “Fulfilling a customer's order”, delivers). The record this alert needs does not exist yet: the code records nothing after Shipped, so a per-order delivery confirmation must be added before it can fire. The bound is the stage's promise, which no source states (stages.csv the stage “Deliver the order”, proposed:). Its runbook entry has no tests, and that is the finding, not an omission: tests come from the failures of the move a stage's cases wait on, and these wait on delivery, which no part of the application carries out. The stage's one recorded move, “Webhook subscribers are told the order is shipped”, tells webhook subscribers and does not move an order. Its cases go to the carrier, outside this runbook, until a delivery move and its record are added</p>
+<p>This measure is not emitted yet; deployed as written, the alert fires on No data until it is.</p>
+<p class="small">It has been above the operators’ threshold for longer than their window (<a href="ALERT.html#alert-M301">the alert</a>).</p>
+<div class="meta"><span><b>Its cases</b> those held in the stage past the bound. A case not past the bound is not one of this alert's.</span></div>
+<div class="meta"><span><b>Look back from</b> when the oldest of its cases entered the stage, to now. The alert fires only once a case has waited past the bound, so its cause can be as old as that: never read a test over only the time since the count began rising.</span></div>
+<div class="now"><div class="lbl">Do now</div><ol>
+<li><b>List its cases and set the look-back.</b> Every check below runs on these cases, over that time. List them with the alert’s own count:<details class="how" open><summary>How</summary><pre><code>per order, the time since its OrderStatusChangedToShipped outbox row &quot;CreationTime&quot; with no delivery confirmation for it; needs a per-order delivery record (a carrier&#x27;s confirmation) the code does not keep: the last state is Shipped</code></pre></details></li>
+<li><b>Contain.</b> No hold is needed: the cases the alert counts are still in the stage, and nothing more is done to them while they wait.</li>
+<li><b>Do not:</b> the register names no action to avoid here.</li>
+<li><b>Escalate or declare</b> as soon as a trigger is met, at any point below. <a href="#escalate">Triggers ›</a></li></ol></div>
+<div class="sec">Check first</div><table class="chk">
+<tr><td>1</td><td>Is this already known?<details class="how"><summary>How</summary><div class="box">Look for an open incident, or a known error with a fix in flight, for any of these parts: Ordering API, Webhooks API, Webhooks database, Event bus, Webhook subscriber endpoint. Not the cause if there is none; the cause if one is open: link it and close.</div></details></td><td><span class="chip">Yes → Already known</span></td></tr>
+<tr><td>2</td><td>Was it planned?<details class="how"><summary>How</summary><div class="box">Look for a maintenance window on any of those parts, or a planned change to a timing the stage depends on (Each post is bounded only by the standard resilience handler every HTTP client carries: each attempt 10 seconds, up to 3 retries, 30 seconds in all; the posts to all subscriptions go out together and are awaited together. No clock watches the message waiting in queue Webhooks). Not the cause if there is none; the cause if a window is open or a setting was changed on purpose: link it and close.</div></details></td><td><span class="chip">Yes → Planned change</span></td></tr>
+<tr><td>3</td><td>Did something change when it started?<details class="how"><summary>How</summary><div class="box">Look for any deploy, configuration change or unplanned restart of those parts since the look-back time above. Not the cause if there is none; the cause if a change lines up with the start.</div></details></td><td><span class="chip">Yes → Roll the change back, or escalate to the owner of the part that changed</span></td></tr>
+<tr><td>4</td><td>Is it already recovering?<details class="how"><summary>How</summary><div class="box">Read the alert's own count over one window (for a count of cases waiting, with the oldest only just past the bound). Not the cause if it is not falling; it is recovering if the count falls within one window: confirm it is back under its threshold, then close.</div></details></td><td><span class="chip">Yes → Self-healed</span></td></tr>
+</table>
+<div class="sec">Find the cause</div><p>No record to count: Tests come from the failures of the move a stage&#x27;s cases wait on, and these wait on delivery, which no part of the application carries out: the code&#x27;s last state is Shipped.</p>
+<div class="done">When it is restored or handed over: <a href="#close">Close ›</a> <a href="#handover">What to hand over ›</a></div>
+<details class="small"><summary>For maintainers: this entry’s register ids</summary><ul><li>Alert: M301</li>
+</ul></details></section>
+</main><script>(function(){function go(){try{var h=decodeURIComponent(location.hash.slice(1));var e=h&&document.getElementById(h);for(var p=e;p;p=p.parentElement){if(p.tagName==='DETAILS')p.open=true;}var d=e&&e.tagName==='TR'&&e.querySelector('details');if(d)d.open=true;if(e)e.scrollIntoView();}catch(x){}}window.addEventListener('hashchange',go);window.addEventListener('load',go);})();</script></body></html>

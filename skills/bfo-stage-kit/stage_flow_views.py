@@ -23,6 +23,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import capability_views as cv  # noqa: E402
 import flow_outputs as fo  # noqa: E402
 import step_sequence as ss  # noqa: E402
+import view_questions as vq  # noqa: E402
 
 GAP = ss.GAP
 W = 760
@@ -175,7 +176,7 @@ def promise_text(M, text):
 
 
 def duration(M, text):
-    """The promise's length alone ("5 days"), for a box with no room for the rest."""
+    """The promise's length alone ("2 minutes"), for a box with no room for the rest."""
     body, prop = promise(M, text)
     m = re.search(r"\d+(?:\s*[-–]\s*\d+)?\s+(?:business\s+)?(?:minutes?|hours?|days?|weeks?|months?)", body)
     if not m:
@@ -345,7 +346,7 @@ def no_moves_drawing(M, stage_id, name):
             f'<text x="12" y="24" class="tagt">{E(name)}: how a case moves through it</text>{"".join(rows)}</svg>')
 
 
-STAGE_KEY = ('<details class="seqkey" open><summary>Key to the drawing</summary><ul>'
+STAGE_KEY = ('<details class="seqkey"><summary>Key to the drawing</summary><ul>'
              "<li>Rounded box: a state a case can be in. Inside it, the numbered process steps that act on the case "
              "while it is there.</li>"
              "<li>Loop on a box's left edge: the step beside it acts on the case and leaves it in that state.</li>"
@@ -360,21 +361,11 @@ STAGE_KEY = ('<details class="seqkey" open><summary>Key to the drawing</summary>
 def stage_card(M, stage_id, docs=None):
     E = cv.esc
     st = M["stage"][stage_id]
-    ins = []
-    for m, sid in entering(M, stage_id):
-        if sid and M["step"].get(sid, {}).get("stage") != stage_id:
-            other = M["stage"].get(M["step"][sid].get("stage"), {})
-            ins.append(f'from Stage {other.get("order", "")}: {cv.step_title(M, sid)}')
-        elif sid:
-            ins.append(cv.step_title(M, sid))
-    out_edges = exits(M, stage_id)
-    main_ = list(dict.fromkeys(sid for sid, m in out_edges if M["_step_label"].get(sid) == "Expected outcome"))
-    other = list(dict.fromkeys(sid for sid, m in out_edges if M["_step_label"].get(sid) == "Other outcome"))
-    undo = [move_said(M, sid, m) for sid, m in stage_moves(M, stage_id)
-            if (m.get("irreversible") or "").strip().lower().startswith("yes")]
-    flow = st.get("flow", "")
-    stake = [a.get("what_is_at_stake", "") for a in M["R"].get("case-attributes", [])
-             if a.get("flow") in (flow, "") and a.get("what_is_at_stake")]
+    ins = vq.stage_enters(M, stage_id)
+    main_ = vq.stage_outcomes(M, stage_id, "Expected outcome")
+    other = vq.stage_outcomes(M, stage_id, "Other outcome")
+    undo = vq.stage_undo(M, stage_id)
+    stake = vq.stage_stake(M, stage_id)
     page_ = (docs or {}).get(stage_id, {}).get("Runbook")
     al = [(f'<a href="{E(page_)}#alert-{E(m.get("handle", ""))}">{E(m.get("measure", ""))}</a>' if page_
            else E(m.get("measure", ""))) for m in alerts(M, stage_id)]
@@ -385,11 +376,11 @@ def stage_card(M, stage_id, docs=None):
     def ending(sid):  # an outcome by its step's name, and where it leads
         to = step_leads(M, stage_id, sid)
         return M["step"][sid].get("name", "") + (f" ({to})" if to else "")
-    rows = [("Promise", E(promise_text(M, st.get("promise", "")))),
+    rows = [("Promise", E(vq.promise_said(M, st.get("promise", ""))) or GAP),
             ("A case enters", ul(ins) or GAP),
-            ("Expected outcomes", ul([ending(x) for x in main_]) or GAP),
-            ("Other outcomes", ul([ending(x) for x in other]) or "none on record"),
-            ("Cannot be undone", ul(undo) or "nothing on record"),
+            ("Expected outcomes", ul([ending(x) for x in main_]) or vq.said(M, "stage: expected outcomes", stage_id, GAP)),
+            ("Other outcomes", ul([ending(x) for x in other]) or vq.said(M, "stage: other outcomes", stage_id, "none on record")),
+            ("Cannot be undone", ul(undo) or vq.said(M, "stage: cannot be undone", stage_id, "nothing on record")),
             ("At stake", ul(stake) or GAP),
             ("Its alerts", ul(al, raw=True) or "none proposed")]
     return '<div class="card"><dl>' + "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in rows) + "</dl></div>"
@@ -539,7 +530,7 @@ def flow_drawing(M, flow_id):
             f'{"".join(parts)}</svg>')
 
 
-FLOW_KEY = ('<details class="seqkey" open><summary>Key to the drawing</summary><ul>'
+FLOW_KEY = ('<details class="seqkey"><summary>Key to the drawing</summary><ul>'
             "<li>Box: a stage, in order, with its promise. Filled dot: where a case starts.</li>"
             "<li>Arrow between stages: a case moves from one to the other. Solid: an expected outcome makes the move. "
             "Dashed: only an other outcome does.</li>"
@@ -552,18 +543,17 @@ FLOW_KEY = ('<details class="seqkey" open><summary>Key to the drawing</summary><
 def flow_card(M, flow_id, docs=None):
     E = cv.esc
     f = next(x for x in M["flows"] if x["flow_id"] == flow_id)
-    caps = {c.get("capability_id"): c.get("name", "") for c in M["R"].get("capabilities", [])}
-    dl = [caps.get(c.strip(), "") for c in (f.get("delivers") or "").split(";") if c.strip()]
+    dl = vq.flow_delivers(M, f)
     books = []
     for st in flow_stages(M, flow_id):
         said = E(f'Stage {st.get("order", "")}: {st.get("name", "")}')
         page_ = (docs or {}).get(st["stage"], {}).get("Runbook")
         books.append(f'<a href="{E(page_)}">{said}</a>' if page_ else f"{said}: no runbook yet")
-    rows = [("One case", E(headline(M, f.get("case", ""))) or GAP),
-            ("Starts", E(headline(M, f.get("starts_at", ""))) or GAP),
-            ("Ends", E(headline(M, f.get("ends_at", ""))) or GAP),
-            ("Expected by", E(headline(M, f.get("expectation_of", ""))) or GAP),
-            ("Promise", E(promise_text(M, f.get("promise", "")))),
+    rows = [("One case", E(vq.flow_row(M, f, "case")) or GAP),
+            ("Starts", E(vq.flow_row(M, f, "starts_at")) or GAP),
+            ("Ends", E(vq.flow_row(M, f, "ends_at")) or GAP),
+            ("Expected by", E(vq.flow_row(M, f, "expectation_of")) or GAP),
+            ("Promise", E(vq.promise_said(M, f.get("promise", ""))) or GAP),
             ("Delivers", "<ul>" + "".join(f"<li>{E(x)}</li>" for x in dl if x) + "</ul>" if any(dl) else GAP)]
     if books:
         rows.append(("Stage runbooks", "<ul>" + "".join(f"<li>{b}</li>" for b in books) + "</ul>"))

@@ -10,7 +10,8 @@ Usage: flow_outputs.py <register dir> <flow id> <stage id> --out <dir>      chec
 
 The check fails the run when a move of the stage has a hop, a carrier or a need with no failure mode, when a failure
 mode names a part its move does not use, when an element the measure step accounts for is neither covered by a
-candidate in measures.csv nor gapped in measure-gaps.csv (`receipt`, for the whole flow), and on the other rules listed
+candidate in measures.csv nor gapped in measure-gaps.csv (`receipt`: an error for the run's stage and the flow, a
+warning for an element only other stages hold), and on the other rules listed
 in `check`. STRUCTURE.md and MEASURES.md are written even when it fails; ALERT.md and RUNBOOK.md are not."""
 import argparse
 import html
@@ -21,9 +22,10 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from capability_views import read_csv, ids  # noqa: E402
+import view_questions as vq  # noqa: E402
 
 TABLES = ["about", "flows", "capabilities", "stages", "steps", "subjects", "participation", "measures", "lifecycle",
-          "failure-modes", "remedies", "step-impact", "case-attributes", "agent-system", "measure-gaps"]
+          "failure-modes", "remedies", "step-impact", "case-attributes", "agent-system", "measure-gaps", "sources"]
 ENDINGS = {
     "nothing wrong": "Nothing is wrong",
     "expected condition": "Expected condition",
@@ -34,6 +36,12 @@ ENDINGS = {
     "cannot restore": "Broken — cannot restore",
     "outside": "Outside this runbook",
     "not possible": "Not possible here",
+}
+GAP_KINDS = {  # measure-gaps.csv `kind`, a closed list: the kind is data, never read from the reason's wording
+    "does not apply": "Does not apply",  # ruled out by design, with the reason
+    "counted by": "Counted by",  # folded into another measure, whose id the reason names
+    "no record": "No record to count",  # the code keeps nothing that could count it today
+    "not read": "Not assessed",  # not looked at in this run
 }
 REMEDY_KINDS = ("restore", "re-drive", "roll back", "none exists", "do not")
 RESTORING = ("restore", "re-drive", "roll back")
@@ -159,13 +167,13 @@ def step_labels(stages, steps, lifecycle):
 
 
 def step_title(labels, s):
-    """"Step 3.1: The application's risk is assessed", or the register's id where the step has no stage."""
+    """"Step 3.1: The parcel is delivered", or the register's id where the step has no stage."""
     return f'{labels.get(s["step"]) or "Step " + s["step"]}: {s.get("name", "")}'
 
 
 def at_stake(M, i):
     """One step-impact row as a sentence about what is at stake: the impact category in the method's words and the
-    step by its name ("Customer experience and trust, if “The loan is approved” fails"); the caller adds the unit."""
+    step by its name ("Customer experience and trust, if “The parcel is delivered” fails"); the caller adds the unit."""
     words = next((c["what_is_at_stake"] for c in M["R"].get("impact", []) if c["impact_category"] == i["impact_category"]),
                  i["impact_category"].replace("-", " "))
     s = next((x for x in M["steps"] if x["step"] == i["step"]), {})
@@ -173,8 +181,8 @@ def at_stake(M, i):
 
 
 def relabel_prose(labels, steps, text):
-    """Register prose cites a step by its register id ("as step 20"); a reader sees it by its label instead:
-    "as step 3.6", or 'as the expected outcome "The loan is approved"'. The register itself is not rewritten."""
+    """Register prose cites a step by its register id ("as step 9"); a reader sees it by its label instead:
+    "as step 2.4", or 'as the expected outcome "The parcel is delivered"'. The register itself is not rewritten."""
     names = {s["step"]: s.get("name", "") for s in steps}
 
     def one(m):
@@ -244,12 +252,31 @@ def grouped(items, key):
 
 
 def failed_back(move):
-    return move.get("path") == "main" and move.get("recovery") == "not created"
+    """Whether an alert naming this main move counts the cases its failure sent back to the party: `not created` says
+    what happens when the move does not happen. Not for the move that creates the case (from `(none)`): a case that
+    left by it was created, so an alert naming it counts cases created wrongly, which are in the application."""
+    return (move.get("path") == "main" and move.get("recovery") == "not created"
+            and state(move.get("from_state")) != "(none)")
+
+
+def counted_moves(m):
+    """The moves an alert says it counts, by id, in its `counted_moves` column (FILL-STEPS Step 11). The basis is
+    free text: a move id in it is explanation, never read as a move the alert counts."""
+    return list(dict.fromkeys(ids(m.get("counted_moves"))))
 
 
 def exits_of(M, m):
-    """The stage's moves a measure of cases leaving says, in its basis, that it counts."""
-    return [mv for mv in dict.fromkeys(re.findall(r"\bL\d+\b", basis(m))) if mv in M["stage_moves"]]
+    """The stage's moves a measure of cases leaving counts: those its `counted_moves` names."""
+    return [mv for mv in counted_moves(m) if mv in M["stage_moves"]]
+
+
+def counted_recoveries(M, m):
+    """The recoveries of the cases a measure of cases leaving counts, from its `counted_moves`. The creating
+    move's `not created` is left out: the cases that left by it were created."""
+    moves = M["moves"]
+    return {moves[mv].get("recovery", "") for mv in exits_of(M, m)
+            if not (moves[mv].get("recovery") == "not created" and state(moves[mv].get("from_state")) == "(none)"
+                    and moves[mv].get("path") == "main")} - {""}
 
 
 def kind_of(R, m):
@@ -303,6 +330,21 @@ def shared(M, r):
 
 def name(M, sid):
     return M["subj"][sid]["name"] if sid in M["subj"] else sid
+
+
+def parts_of(r):
+    """A failure mode's parts: one, or several for a sweep test (same hop, mode, part kind and ending)."""
+    return ids(r.get("part"))
+
+
+def part_names(M, r):
+    names = [name(M, x) for x in parts_of(r)]
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def escalated_part(M, r):
+    """Whose owner a matching test escalates to: its part, or for a sweep each part that matched."""
+    return part_names(M, r) if len(parts_of(r)) == 1 else "each part that matched"
 
 
 def kind(sc):
@@ -450,8 +492,11 @@ def receipt(R, flow_id):
     case = {sid for sid, s in subj.items() if s.get("part_kind") == "case"}
     out = []
 
-    def add(element, question, what, covered):
-        out.append(dict(element=element, question=question, what=what, covered=bool(covered)))
+    def add(element, question, what, covered, at=()):
+        out.append(dict(element=element, question=question, what=what, covered=bool(covered),
+                        stages=sorted(set(at))))
+
+    stage_of = {s["step"]: s["stage"] for s in R["steps"]}
 
     def on_cases(m):
         return m.get("subject_id") in case and m.get("counted_on") == "cases"
@@ -461,7 +506,7 @@ def receipt(R, flow_id):
     add(flow_id, "the promise", f"flow: {flow['name']}",
         any(on_cases(m) and not m.get("step") and not m.get("stage")
             and (m.get("flow") == flow_id or (not m.get("flow") and m.get("subject_id") in own_cases))
-            and m.get("layer") == "business health" and m.get("form") in PROMISE_FORMS for m in ms))
+            and m.get("layer") == "business health" and m.get("form") in PROMISE_FORMS for m in ms), [])
     step_ids = [s["step"] for s in steps]
     rows = [p for p in R["participation"] if p["step"] in step_ids]  # every component, whatever its involvement
     agents = agent_rows(R, flow_id)
@@ -479,7 +524,7 @@ def receipt(R, flow_id):
         mine = [m for m in ms if m.get("stage") == sid and not m.get("step") and on_cases(m)]
         for q, (layers, forms) in STAGE_ASKS.items():
             add(sid, q, f"stage: {st['name']}", any(m.get("layer") in layers and m.get("form") in forms
-                                                     and q in listed(m.get("receipt_question")) for m in mine))
+                                                     and q in listed(m.get("receipt_question")) for m in mine), [sid])
         M = build(R, flow_id, sid)
         for s in M["steps"]:
             n = s["step"]
@@ -489,28 +534,32 @@ def receipt(R, flow_id):
                 continue
             for q in STEP_QUESTIONS:
                 add(n, q, f"step: {s['name']}", any(m.get("step") == n and on_cases(m) and m.get("layer") in BUSINESS
-                                                     and q in listed(m.get("receipt_question")) for m in ms))
+                                                     and q in listed(m.get("receipt_question")) for m in ms), [sid])
     for c in dict.fromkeys(p["subject_id"] for p in rows):
         s = subj.get(c, {})
         if s.get("band") == "technology":
             add(c, "technology", f"system component: {s['name']}",
-                any(m["subject_id"] == c and m.get("layer") == "technology" for m in ms))
+                any(m["subject_id"] == c and m.get("layer") == "technology" for m in ms),
+                [stage_of[p["step"]] for p in rows if p["subject_id"] == c])
         elif (s.get("band") == "application" and s.get("level") == "component"
               and s.get("part_kind") not in ("LLM agent", "person", "case")):
             mine = [p for p in rows if p["subject_id"] == c]
             app = [m for m in ms if m["subject_id"] == c and m.get("layer") == "application"]
             for op in dict.fromkeys(o for p in mine for o in listed(p.get("operation"))):
                 add(f"{c} {op}", "application", f"operation of {s['name']}",
-                    any(listed(m.get("operation")) == [op] for m in app))  # one candidate per operation
+                    any(listed(m.get("operation")) == [op] for m in app),  # one candidate per operation
+                    [stage_of[p["step"]] for p in mine if op in listed(p.get("operation"))])
             if any(not listed(p.get("operation")) for p in mine):
-                add(c, "application", f"component: {s['name']}, no operation named", app)
+                add(c, "application", f"component: {s['name']}, no operation named", app,
+                    [stage_of[p["step"]] for p in mine if not listed(p.get("operation"))])
         elif s.get("band") == "application" and s.get("level") == "component" and s.get("part_kind") == "LLM agent":
             # an agent hosted by a component that also serves a route: the route keeps its application set
             app = [m for m in ms if m["subject_id"] == c and m.get("layer") == "application"]
             for op in dict.fromkeys(o for p in rows if p["subject_id"] == c for o in listed(p.get("operation"))):
                 if route(op):
                     add(f"{c} {op}", "application", f"route of {s['name']}, the agent's own component",
-                        any(listed(m.get("operation")) == [op] for m in app))
+                        any(listed(m.get("operation")) == [op] for m in app),
+                        [stage_of[p["step"]] for p in rows if p["subject_id"] == c and op in listed(p.get("operation"))])
     provisional = [q for q in R["agent-questions"] if q.get("status") == "provisional"]
     at_point = [q["agent_question"] for q in provisional if q.get("grain") == "decision point"]
     at_run = [q["agent_question"] for q in provisional if q.get("grain") == "run"]
@@ -544,41 +593,89 @@ def receipt(R, flow_id):
                 else f"{'reply' if pt.get('reply') else 'decision point'} of {subj[pt['agent']]['name']}, "
                 f"at step{'s' if len(pt['steps']) > 1 else ''} " + ", ".join(pt["steps"]))
         for q in at_point:
-            add(key, q, what, any(m.get("agent_question") == q and answers(m, pt) for m in mine))
+            add(key, q, what, any(m.get("agent_question") == q and answers(m, pt) for m in mine),
+                [stage_of[n] for n in pt["steps"] if n in stage_of] or
+                [stage_of[p["step"]] for p in agents if p["subject_id"] == pt["agent"]])
     if at_run:
         for agent in runs:
             mine = [m for m in ms if m["subject_id"] == agent and m.get("layer") == "agentic"
                     and m.get("agent_question") in at_run]
             for q in RUN_QUESTIONS:
-                add(agent, q, f"runs of {subj[agent]['name']}", any(q in listed(m.get("receipt_question")) for m in mine))
+                add(agent, q, f"runs of {subj[agent]['name']}", any(q in listed(m.get("receipt_question")) for m in mine),
+                    [stage_of[p["step"]] for p in agents if p["subject_id"] == agent])
     return out
 
 
 def gap_rows(R, rec):
-    """(errors, warnings, the elements the gaps account for). A gap counts only when it says why and where from."""
-    err, warn, gapped = [], [], set()
+    """(errors, warnings, the elements the gaps account for, each with its `kind`). A gap counts only when it says
+    why, where from, and which of GAP_KINDS it is; a `counted by` gap names, by id, the measure that counts it."""
+    err, warn, gapped = [], [], {}
     asked = {(r["element"], r["question"]): r for r in rec}
     known = set(("the promise",) + STAGE_QUESTIONS + STEP_QUESTIONS + RUN_QUESTIONS + ("application", "technology")) | {
         q["agent_question"] for q in R["agent-questions"]}
+    handles = {m.get("handle") for m in R["measures"]} - {"", None}
+    kinds = ", ".join(f"`{k}`" for k in GAP_KINDS)
     for g in R["measure-gaps"]:
         key = (norm(g.get("element")), norm(g.get("question")))
         label = f"measure-gaps.csv {key[0]}, {key[1]}"
-        if key[1] not in known:
-            err.append(f"{label}: question {key[1]!r} is not one the receipt asks ({', '.join(sorted(known))})")
+        if key[1] in vq.QUESTIONS and key[1] not in vq.GAPPABLE:
+            err.append(f"{label}: {key[1]!r} is a view question that is {vq.CONTRACT[key[1]]}, so it takes no gap; "
+                       f"the view questions that do: {', '.join(vq.GAPPABLE)}")
+            continue
+        if key[1] not in known and key[1] not in vq.GAPPABLE:
+            err.append(f"{label}: question {key[1]!r} is not one the receipt asks ({', '.join(sorted(known))}; or a view question, {', '.join(vq.GAPPABLE)})")
             continue
         missing = [c for c in ("why", "source") if not norm(g.get(c))]
         if missing:
             err.append(f"{label}: no {' and no '.join(missing)}, so it does not count")
             continue
+        kind = norm(g.get("kind")).lower()
+        if kind not in GAP_KINDS:
+            said = ("measure-gaps.csv has no `kind` column" if "kind" not in g else
+                    f"`kind` is {g.get('kind') or 'empty'}, not one of the four")
+            err.append(f"{label}: {said}, so it does not count; reading this row's reason, write one of {kinds}"
+                       + (" in a `kind` column after `question`" if "kind" not in g else ""))
+            continue
+        elif kind == "counted by" and not handles.intersection(re.findall(r"[\w-]+", g.get("why") or "")):
+            err.append(f"{label}: `kind` is `counted by`, and its reason names no measure of measures.csv by id, so it "
+                       "does not count: name the measure that counts it")
+            continue
+        if key[1] in vq.GAPPABLE:  # a view question: its card and run_status.py read it, never the receipt
+            why_not = vq.refusal(key[1], kind, g.get("why"), key[0], R["participation"])
+            if why_not:
+                err.append(f"{label}: {why_not}, so it does not count")
+            continue
         if key not in asked:
             warn.append(f"{label}: names nothing the receipt of this flow asks")
         elif asked[key]["covered"]:
             warn.append(f"{label}: a candidate in measures.csv covers it, so the gap no longer holds")
-        gapped.add(key)
+        gapped[key] = kind
     return err, warn, gapped
 
 
-def receipt_failures(R, flow_id):
+CITATION = re.compile(r"(?<![\w./-])([\w.-]+)/[\w./-]*\.\w+:\d+")
+
+
+def citation_failures(R):
+    """Warnings for a register read from several repositories: a citation starts at the workspace root, with the
+    folder of a repository `sources.csv` lists. A register that lists no repository is not checked."""
+    repos = {norm(s.get("repository")) for s in R["sources"]} - {""}
+    if not repos:
+        return []
+    stray = {}
+    for t in TABLES:
+        for r in R[t]:
+            for v in r.values():
+                for first in CITATION.findall(v or ""):
+                    if first not in repos:
+                        stray.setdefault(first, f"{t}.csv")
+    return [f"{where}: a citation starts with {first}/, which is not a repository in sources.csv "
+            f"({', '.join(sorted(repos))}); cite from the workspace root" for first, where in sorted(stray.items())]
+
+
+def receipt_failures(R, flow_id, stage=None):
+    """A run that names a stage errors on an element of that stage or of the flow, and warns on one that belongs only
+    to other stages: their own runs read their code, and error on it."""
     rec = receipt(R, flow_id)
     err, warn, gapped = gap_rows(R, rec)
     elsewhere = {(r["element"], r["question"]) for f in R["flows"] if f["flow_id"] != flow_id for r in receipt(R, f["flow_id"])}
@@ -586,8 +683,12 @@ def receipt_failures(R, flow_id):
     err = class_failures(R, flow_id) + chain_failures(R) + err
     for r in rec:
         if not r["covered"] and (r["element"], r["question"]) not in gapped:
-            err.append(f"receipt: {r['element']} ({r['what']}), {r['question']}: no candidate in measures.csv and no "
-                       "reason in measure-gaps.csv")
+            msg = (f"receipt: {r['element']} ({r['what']}), {r['question']}: no candidate in measures.csv and no "
+                   "reason in measure-gaps.csv")
+            if stage and r["stages"] and stage not in r["stages"]:
+                warn.append(msg + f"; it belongs only to {', '.join(r['stages'])}, whose own run errors on it")
+            else:
+                err.append(msg)
     return rec, gapped, err, warn
 
 
@@ -643,6 +744,22 @@ def check(M):
         if R["participation"] and perf != set(M["performers"][s["step"]]):
             warn.append(f"participation.csv step {s['step']}: performs {sorted(perf)}; the lifecycle's carried_by gives "
                         f"{sorted(M['performers'][s['step']])}. The outputs follow the lifecycle")
+    for r in R["subjects"]:
+        to = r.get("to_id", "")
+        if r.get("kind") != "relationship" or not to:
+            continue
+        for h in ids(r.get("step_hint")):
+            mvs = M["step_moves"].get(h)
+            # a call into a part that carries the step out is the step's own work; any other callee is one it needs
+            if mvs and not any(x in M["needs"][mv] + M["carried"][mv]
+                               for mv in mvs for x in (to, M["subj"].get(to, {}).get("part_of"))):
+                warn.append(f"subjects.csv {r['subject_id']}: step_hint {h} names a step none of whose lifecycle moves "
+                            f"needs {to} ({name(M, to)}): add it to that move's needs, or correct the step_hint")
+    reached = donts_of(M, R["failure-modes"])
+    for rid, rem in M["remedies"].items():
+        if rem.get("kind") == "do not" and rid not in reached:
+            warn.append(f"remedies.csv {rid}: a do not remedy that no failure mode uses, and no remedy they use names, "
+                        "so no runbook shows it: name it in the remedy of the modes it cautions against")
     cat = {(h["hop_kind"], h["mode"]) for h in R["hop-failures"]}
     for r in M["fm"]:
         i = r.get("mode_id", "?")
@@ -655,11 +772,24 @@ def check(M):
                 err.append(f"failure-modes.csv {i}: move {mv} is not in lifecycle.csv")
                 continue
             allowed = M["needs"][mv] if r["hop"] == "needs" else M["carried"][mv] + M["needs"][mv]
-            if r["part"] not in allowed:
+            if len(parts_of(r)) == 1 and r["part"] not in allowed:
                 err.append(f"failure-modes.csv {i}: part {r['part']} is not in lifecycle {mv}'s "
                            f"{'needs' if r['hop'] == 'needs' else 'carried_by or needs'}")
             if r["hop"] != "needs" and r["hop"] not in M["hops"][mv]:
                 err.append(f"failure-modes.csv {i}: lifecycle {mv} does not travel by {r['hop']}")
+        if len(parts_of(r)) > 1:  # a sweep: each of its parts serves at least one of its moves
+            col = "needs" if r["hop"] == "needs" else "carried"
+            for x in parts_of(r):
+                if not any(x in M[col].get(mv, []) + (M["needs"].get(mv, []) if col == "carried" else [])
+                           for mv in ids(r["moves"])):
+                    err.append(f"failure-modes.csv {i}: part {x} of the sweep is in no listed move's "
+                               f"{'needs' if r['hop'] == 'needs' else 'carried_by or needs'}")
+        kinds = {M["subj"].get(x, {}).get("part_kind", "") for x in parts_of(r)}
+        if len(kinds) > 1:
+            err.append(f"failure-modes.csv {i}: a sweep test covers parts of one kind; its parts are "
+                       f"{', '.join(sorted(k or 'blank' for k in kinds))}")
+        if norm(r.get("order")) and not re.fullmatch(r"\d+", norm(r.get("order"))):
+            err.append(f"failure-modes.csv {i}: order {r['order']!r} is not a whole number")
         ending = r.get("ending", "")
         if ending not in ENDINGS:
             err.append(f"failure-modes.csv {i}: ending {ending!r} is not one of {', '.join(ENDINGS)}")
@@ -727,11 +857,11 @@ def check(M):
                                f"ending 'not possible' with the citation)")
         for need in M["needs"][mv]:
             for c in R["hop-failures"]:
-                if c["hop_kind"] == "needs" and not any(r["hop"] == "needs" and r["part"] == need and r["mode"] == c["mode"]
+                if c["hop_kind"] == "needs" and not any(r["hop"] == "needs" and need in parts_of(r) and r["mode"] == c["mode"]
                                                         for r in rows):
                     err.append(f"lifecycle {mv}: need {need} ({name(M, need)}), mode {c['mode']!r} has no failure mode row")
         for part in M["carried"][mv]:
-            if not any(r["part"] == part for r in rows):
+            if not any(part in parts_of(r) for r in rows):
                 err.append(f"lifecycle {mv}: carrier {part} ({name(M, part)}) has no failure mode row")
     for b in M["branch_states"]:
         seen = {}
@@ -759,9 +889,30 @@ def check(M):
                         "expectation the alert guards and why it is proposed")
     stands = ("A warning whose reason the basis gives stands, and does not stop the outputs being written")
     for m in mine:
-        if m.get("form") not in WAITING and not exits_of(M, m):
-            warn.append(f"measures.csv {m['handle']}: counts cases leaving the stage, and its basis names no lifecycle "
-                        "move (L..) they leave by, so the runbook cannot send its responder to a branch")
+        named = counted_moves(m)
+        if m.get("form") not in WAITING and not named:
+            err.append(f"measures.csv {m['handle']}: counts cases leaving the stage, and its `counted_moves` is empty: "
+                       "list, by id and separated by `;`, the lifecycle moves (L..) whose cases it counts, so the "
+                       "runbook can send its responder to a branch")
+        unknown = [mv for mv in named if mv not in moves]
+        if unknown:
+            err.append(f"measures.csv {m['handle']}: `counted_moves` names {', '.join(unknown)}, not a move in "
+                       "lifecycle.csv")
+        other = [mv for mv in named if mv in moves and mv not in sm]
+        if other:
+            err.append(f"measures.csv {m['handle']}: `counted_moves` names {', '.join(other)}, not a move of stage "
+                       f"{sid}: an alert of the stage counts cases leaving by the stage's own moves")
+    for m in mine:
+        counts = counted_recoveries(M, m)
+        if m.get("form") in WAITING or not counts:
+            continue
+        blind = [r["mode_id"] for r in entry_modes(M, m) if r.get("recovery") and r["recovery"] not in counts]
+        if blind:
+            warn.append(f"measures.csv {m['handle']}: its runbook entry works {', '.join(blind)}, whose recovery is "
+                        f"{' or '.join(sorted({r['recovery'] for r in M['fm'] if r['mode_id'] in blind}))}, and the "
+                        f"moves its `counted_moves` names count only cases whose recovery is {' or '.join(sorted(counts))}: it "
+                        "cannot see what those tests explain. Name the measure that does in their `measures`, or say "
+                        "why in the basis")
     parked = [mv for mv in sm if moves[mv].get("from_kind") == "park"]
     waits_only = mine and all(m.get("form") in WAITING for m in mine)
     if parked and mine and not any(m.get("form") in WAITING for m in mine):
@@ -781,8 +932,8 @@ def check(M):
                     f"({', '.join(leaving)}), and every measure proposed for alerting counts cases "
                     "waiting. If cases leaving that way breaks the expectation, propose a measure of them. An "
                     "ending the party wants (their own cancellation, a rule's refusal) needs no alert. " + stands)
-    _, _, r_err, r_warn = receipt_failures(R, M["flow"]["flow_id"])
-    return err + r_err, warn + r_warn
+    _, _, r_err, r_warn = receipt_failures(R, M["flow"]["flow_id"], M["stage"]["stage"])
+    return err + r_err, warn + r_warn + citation_failures(R)
 
 
 # ---------------------------------------------------------------- STRUCTURE.md
@@ -931,12 +1082,24 @@ def alert_grouping(M, m, lead=True):
         return lead + ((f"By the move {how}: " + "; ".join(
             f"{', '.join(g)} from `{shown(b)}`" for b, g in grouped(ex, lambda mv: state(moves[mv]["from_state"]))) +
             ". Its runbook entry works that state's tests.") if ex else
-            "None: its basis names no move the cases leave by, so its runbook entry works every state's tests.")
+            "None: its `counted_moves` names no move the cases leave by, so its runbook entry works every state's tests.")
     return lead + (("By the state the case is in: " + ", ".join(f"`{shown(b)}`" for b in M["branch_states"]) +
                     ". Its runbook entry groups the cases by state and works each state's tests.") if recorded(M) else
                    ("None. The states of this stage (" + ", ".join(f"`{shown(b)}`" for b in M["branch_states"]) +
                     ") are not recorded, so cases cannot be grouped by state; its runbook entry works every "
                     "state's tests in order."))
+
+
+def not_emitted(m):
+    """Said beside an alert's basis when its measure does not exist today: its query finds nothing to count."""
+    return "" if m.get("exists") == "yes" else (
+        "This measure is not emitted yet; deployed as written, the alert fires on No data until it is.")
+
+
+def and_not_emitted(text, m):
+    """An alert's basis, then the not-emitted line as its own sentence where it applies."""
+    line = not_emitted(m)
+    return text + (("" if text.rstrip().endswith((".", "!", "?")) else ".") + " " + line if line else "")
 
 
 def alert(M):
@@ -949,8 +1112,9 @@ def alert(M):
     rows = [("The question it answers", "<br>".join(f"**{m['handle']}** {m.get('question_it_answers', '')}" for m in paging)),
             ("What it counts", "<br>".join(f"**{m['handle']}** {m['measure']}: {m.get('counted_how', '')} "
                                            f"(counted on {m.get('counted_on')})" for m in paging)),
-            ("Why it is proposed", "<br>".join(f"**{m['handle']}** " + (basis(m) or "not stated in the register "
-                                                                            "(`measures.csv` → `alert`)") for m in paging))]
+            ("Why it is proposed", "<br>".join(
+                f"**{m['handle']}** " + and_not_emitted(basis(m) or "not stated in the register (`measures.csv` → `alert`)", m)
+                for m in paging))]
     if stranded:
         rows.append(("Cases stranded", "A case is stranded, with nothing in the application to move it on, when one of "
                                        "these moves does not happen: " + "; ".join(
@@ -1036,7 +1200,7 @@ def live(M):
 
 def entry_states(M, m):
     """The states an alert's cases are in, or left from: every state the stage holds cases in, for a count of cases
-    waiting or one whose basis names no move; else the states the moves it counts leave from."""
+    waiting or one whose `counted_moves` names no move; else the states the moves it counts leave from."""
     ex = exits_of(M, m)
     if m.get("form") in WAITING or not ex:
         return list(M["branch_states"])
@@ -1050,9 +1214,52 @@ def owned_elsewhere(M, m, r):
     return m["handle"] not in reads and bool(reads & ({a["handle"] for a in stage_alerts(M)} - {m["handle"]}))
 
 
+def needers(M):
+    """{part: the parts whose interactions in subjects.csv reach it}."""
+    out = {}
+    for s in M["subj"].values():
+        if s.get("kind") != "element" and s.get("from_id") and s.get("to_id"):
+            out.setdefault(s["to_id"], set()).add(s["from_id"])
+    return out
+
+
+def fan_in(M):
+    """{part: how many of the stage's performing parts need it}."""
+    perf = {x for v in M["performers"].values() for x in v}
+    return {x: len(n & perf) for x, n in needers(M).items()}
+
+
+def shared_need(M, r, fan=None):
+    """A dependency two or more of the stage's performing parts need: grouped first, whatever the states record."""
+    fan = fan_in(M) if fan is None else fan
+    return r["hop"] == "needs" and max((fan.get(x, 0) for x in parts_of(r)), default=0) > 1
+
+
+# a dependency's failure reaches its caller as the service answering with an error or slowly, never as it being down
+SURFACES = {("call", "callee returns an error"), ("call", "callee slow or hangs")}
+
+
+def behind_callee(M):
+    """{part: the one service that needs it}, where the stage reaches that service by a call and has a test of it
+    answering with an error or slowly: the part is worked as a linked test from those, not as a test of its own."""
+    callees = {x for r in live(M) if (r["hop"], r["mode"]) in SURFACES for x in parts_of(r)}
+    return {x: next(iter(n)) for x, n in needers(M).items() if len(n) == 1 and n <= callees}
+
+
 def entry_modes(M, m):
-    states = set(entry_states(M, m))
-    return [r for r in live(M) if set(branch_of(M, r)) & states and not owned_elsewhere(M, m, r)]
+    """An alert's own tests. A called service's dependency leaves them only where this entry works that service's
+    error or slow test, which links it: nothing the entry would have worked goes unreached."""
+    states, behind = set(entry_states(M, m)), behind_callee(M)
+    rows = [r for r in live(M) if set(branch_of(M, r)) & states and not owned_elsewhere(M, m, r)]
+    surfaced = {x for r in rows if (r["hop"], r["mode"]) in SURFACES for x in parts_of(r)}
+    return [r for r in rows if not (r["hop"] == "needs" and parts_of(r)
+                                    and all(behind.get(x) in surfaced for x in parts_of(r)))]
+
+
+def test_order(r):
+    """`order`, a whole number the drafter sets; blank, or not a number (the check reports it), is 0."""
+    v = norm(r.get("order"))
+    return int(v) if v.isdigit() else 0
 
 
 def mode_key(M, handle=None):
@@ -1065,7 +1272,9 @@ def mode_key(M, handle=None):
         # a test that closes with no impact runs after every test that finds a fault: the same signal may be either.
         # Whether each part is up comes first: the cheapest check, and it needs no case ids. Then a test reading the
         # alert's own count: it lists the cases the other tests are read on.
-        return (r.get("ending") in BENIGN, not is_up(r), handle not in ids(r["measures"]),
+        # then the drafter's `order`: a test whose evidence lists cases runs after the tests that explain them. An
+        # up-check lists no cases, so it stays ahead of any order.
+        return (r.get("ending") in BENIGN, not is_up(r), test_order(r), handle not in ids(r["measures"]),
                 min((order.index(x) for x in mvs), default=99),
                 hops.index(r["hop"]) if r["hop"] in hops else len(hops), r["mode_id"])
     return key
@@ -1075,11 +1284,18 @@ def entry_groups(M, m):
     """(group heading or None, modes, the state or None) in the order an entry works them: the dependencies that hold
     cases in several of its states first, then each state's tests."""
     states, rows, key = entry_states(M, m), entry_modes(M, m), mode_key(M, m["handle"])
+    fan = fan_in(M)
+    sh = [r for r in rows if shared_need(M, r, fan)
+          or (r["hop"] == "needs" and len(set(branch_of(M, r)) & set(states)) > 1)]
+    first = [("Shared dependencies: several parts of the stage need them, or they hold cases in several states at "
+              "once, so test them first",
+              # the cheapest check first still leads; then the part more of the stage needs
+              sorted(sh, key=lambda r: key(r)[:4] + (-max((fan.get(x, 0) for x in parts_of(r)), default=0),)
+                     + key(r)[4:]), None)]
     if len(states) < 2:
-        return [(None, sorted(rows, key=key), None)]
-    sh = [r for r in rows if r["hop"] == "needs" and len(set(branch_of(M, r)) & set(states)) > 1]
-    groups = [("Shared dependencies: they hold cases in several states at once, so test them first",
-               sorted(sh, key=key), None)] if sh else []
+        rest = sorted([r for r in rows if r not in sh], key=key)
+        return (first + [("The other tests", rest, None)]) if sh else [(None, rest, None)]
+    groups = first if sh else []
     gone = m.get("form") not in WAITING
     for b in states:
         mvs = [mv for mv in M["stage_moves"] if state(M["moves"][mv]["from_state"]) == b]
@@ -1138,10 +1354,18 @@ def entry_links(M, m):
     calls latent behind another is not sent back to it. The entry's lines and the shared section's list are both
     written from this, so the two cannot disagree."""
     own = {r["mode_id"] for r in entry_modes(M, m)}
+    behind = behind_callee(M)
     out = {}
     for r in live(M):
         if r["mode_id"] not in own:
             continue
+        if (r["hop"], r["mode"]) in SURFACES:
+            for d in live(M):
+                if d["mode_id"] not in own and d["hop"] == "needs" and parts_of(d) and all(
+                        behind.get(x) in parts_of(r) for x in parts_of(d)):
+                    why = f"{part_names(M, r)} needs {part_names(M, d)}"
+                    if why not in out.setdefault(r["mode_id"], {}).setdefault(d["mode_id"], []):
+                        out[r["mode_id"]][d["mode_id"]].append(why)
         for x, hits in named_in(M, r):
             for y in hits:
                 if y not in own:
@@ -1178,6 +1402,24 @@ def written_remedies(M):
     return out
 
 
+def donts_of(M, modes):
+    """The `do not` remedies the given failure modes use: one a mode names as its remedy, or one named by a remedy
+    they use (followed on through every remedy so named). A caution reaches only the stages and alerts whose tests
+    lead to it."""
+    out = [x for x in dict.fromkeys(r.get("remedy") for r in modes) if x in M["remedies"]]
+    for rid in out:  # grows while it is walked
+        for x in re.findall(r"\bR\d+\b", " ".join(M["remedies"][rid].get(c) or "" for c in REMEDY_TEXT)):
+            if x in M["remedies"] and x not in out:
+                out.append(x)
+    return [x for x in out if M["remedies"][x].get("kind") == "do not"]
+
+
+def entry_donts(M, m):
+    """The `do not` remedies one alert's entry reaches: those its own tests, and the tests it links, use."""
+    mids = {r["mode_id"] for r in entry_modes(M, m)} | {y for ys in entry_links(M, m).values() for y in ys}
+    return donts_of(M, [r for r in M["fm"] if r["mode_id"] in mids])
+
+
 def point_escalation(text):
     """Register text that says to escalate, pointed at the section the runbook writes escalation in."""
     return re.sub(r"\b([Ee]scalate)\b(?!\s*\(S\d+\))", lambda x: f"{x.group(1)} ({sec('escalate')})", text)
@@ -1211,7 +1453,7 @@ def ending_text(M, r):
     if r["ending"] == "restore":
         return f"**{e}**: {sec('restore')} {r['remedy']}"
     if r["ending"] in ("cannot restore", "outside"):
-        return f"**{e}**: {escalate_to(M, r['part'])}" + (f"; {sec('restore')} {r['remedy']} says what to record" if r.get("remedy") else "")
+        return f"**{e}**: {escalate_to(M, parts_of(r)[0]) if len(parts_of(r)) == 1 else 'escalate to the owner of each part that matched (' + sec('escalate') + ')'}" + (f"; {sec('restore')} {r['remedy']} says what to record" if r.get("remedy") else "")
     return f"**{e}**"
 
 
@@ -1251,7 +1493,7 @@ def window(M, m):
                 "since the count began rising.")
     ex = exits_of(M, m)
     if not ex:
-        return ("those it counts leaving the stage. Its basis names no move they leave by, so its tests are every "
+        return ("those it counts leaving the stage. Its `counted_moves` names no move they leave by, so its tests are every "
                 "state's.", "from when the earliest of its cases entered the stage, to now.")
     return ("those that left by " + "; ".join(f"{', '.join(g)} from `{shown(b)}`" for b, g in
                                               grouped(ex, lambda mv: state(moves[mv]["from_state"])))
@@ -1264,7 +1506,7 @@ def contain(M, m, donts=True):
     """Contain first: the step that stops further harm to the cases the alert counts, or why none is needed, from
     where those cases are now and the moves that brought them there."""
     moves, h = M["moves"], m["handle"]
-    dont = [rid for rid, rem in M["remedies"].items() if rem.get("kind") == "do not"] if donts else []
+    dont = entry_donts(M, m) if donts else []
     tail = (f" Take none of the actions under **What not to do** ({ref('restore')}: {', '.join(dont)})."
             if dont else "")
     if m.get("form") in WAITING:
@@ -1272,7 +1514,7 @@ def contain(M, m, donts=True):
                 "while they wait." + tail)
     ex = exits_of(M, m)
     if not ex:
-        return ("Its basis names no move its cases leave by, so nothing here says where they are now. Find them with "
+        return ("Its `counted_moves` names no move its cases leave by, so nothing here says where they are now. Find them with "
                 "its tests, and move none of them on until the failing part's owner has ruled." + tail)
     out = []
     main = [mv for mv in ex if moves[mv].get("path") == "main" and not failed_back(moves[mv])]
@@ -1307,6 +1549,20 @@ def contain(M, m, donts=True):
     return " ".join(out) + tail
 
 
+def no_tests(M, m, groups):
+    """The one line an entry writes in place of an empty list of tests, or None when it has tests: a case waiting in
+    a state that no lifecycle move leaves has nothing in the register to test."""
+    if any(rows for _, rows, _ in groups):
+        return None
+    gapped = vq.gap_said(M, "alert: its own tests", m.get("handle", ""))
+    if gapped:
+        return gapped + "."
+    left = {state(v["from_state"]) for v in M["moves"].values() if state(v["from_state"]) != state(v["to_state"])}
+    if any(s not in left for s in entry_states(M, m)):
+        return "No tests yet: no recorded move takes these cases out of the stage."
+    return "No tests yet."
+
+
 def entry(M, m, num):
     h, stage = m["handle"], M["stage"]
     tid = {r["mode_id"]: t for t, r in num.items() if r}
@@ -1316,7 +1572,7 @@ def entry(M, m, num):
            f"**{h} {m['measure']}** is above the operators' threshold for longer than their window "
            "([ALERT.md](ALERT.md)).", "",
            "**The expectation it guards:** " + (basis(m) or "not stated in the register (`measures.csv` → `alert`)"),
-           ""]
+           ""] + ([not_emitted(m), ""] if not_emitted(m) else [])
     lines = leaving_lines(M, m) if m.get("form") not in WAITING else []
     out += (lines + [""] if lines else [])
     out += [f"**Its cases:** {cases}", "", f"**Window:** {win}", "",
@@ -1326,8 +1582,12 @@ def entry(M, m, num):
             f"Run T1, T2 and T3 ({ref('tests')}) over the window above: an open incident or known error, a "
             "planned window or change, and what changed since the window opened. Then T4: is the count falling?", "",
             "### Contain first", "", contain(M, m), "",
-            "### Its tests", "",
-            f"Work them over the window, on its cases only, in order; each is written in {ref('tests')}. "
+            "### Its tests", ""]
+    groups = entry_groups(M, m)
+    none = no_tests(M, m, groups)
+    if none:
+        return out + [none, "", *restore_close(M)]
+    out += [f"Work them over the window, on its cases only, in order; each is written in {ref('tests')}. "
             "Where a test's command asks for a time span in angle brackets (a `--since` or a time range), give it this "
             "entry's window, whatever the placeholder says. Where it asks for case ids in angle brackets (`<case "
             "ids>`, `<id>`), give it the ids of the cases you are working: this entry's own, or those the test that "
@@ -1341,7 +1601,6 @@ def entry(M, m, num):
             "every check noted for it, each named in the hand-over; where those endings differ, escalate rather than "
             "restore;",
             "- anything else (an unclear answer, a step you cannot run): note it for the hand-over and go on.", ""]
-    groups = entry_groups(M, m)
     states = entry_states(M, m)
     if len(states) > 1:
         names = ", ".join(f"`{shown(b)}`" for b in states)
@@ -1361,11 +1620,11 @@ def entry(M, m, num):
                 continue
             done.append(r["mode_id"])
             more = sorted((tid[y] for y in lk.get(r["mode_id"], {})), key=lambda x: int(x[1:]))
-            out.append(f"{k}. **{t}** {r['mode_id']} {name(M, r['part'])}, {r['hop']}: {r['mode']} "
+            out.append(f"{k}. **{t}** {r['mode_id']} {part_names(M, r)}, {r['hop']}: {r['mode']} "
                        f"({', '.join(ids(r['moves']))}). A match means: {plain(r['failure']).rstrip('.')}. "
                        f"Ending: {ending_text(M, r)}." +
                        (f" If it matches, also run {', '.join(more)}, on the same cases." if more else ""))
-        if gh and b is None:
+        if gh and b is None and g < len(groups) - 1:
             out.append("")
             continue
         k += 1
@@ -1374,11 +1633,14 @@ def entry(M, m, num):
                    f": **Outside this runbook** ({ref('outside')})" +
                    ("." if last else "; go on with the next group that still has cases."))
         out.append("")
-    out += ["### Restore, close, escalate", "",
+    return out + restore_close(M)
+
+
+def restore_close(M):
+    return ["### Restore, close, escalate", "",
             f"{ref('restore', 'Restore (' + sec('restore') + ')')} · {ref('close', 'Close (' + sec('close') + ')')} · "
             f"{ref('escalate', 'Escalate or declare (' + sec('escalate') + ')')}. "
             "Each test above says where its ending goes; escalation goes to the owner of the failing part.", ""]
-    return out
 
 
 def runbook(M):
@@ -1483,14 +1745,14 @@ def runbook(M):
     for t, r in num.items():
         if not r:
             continue
-        out.append((f"| {t} | {r['test']} *({r['mode_id']}: {name(M, r['part'])}, {r['hop']}: {r['mode']}; "
+        out.append((f"| {t} | {r['test']} *({r['mode_id']}: {part_names(M, r)}, {r['hop']}: {r['mode']}; "
                     f"{', '.join(ids(r['moves']))})* | {'; '.join(mtext(M, h) for h in ids(r['measures']))} | "
                     f"{r['expected']} | {r['seen']} | {ending_text(M, r)} | "
                     f"{', '.join(use[r['mode_id']]) or 'no proposed alert'} |").replace("\n", " "))
     ruled = [r for r in M["fm"] if r.get("ending") == "not possible"]
     if ruled:
         out += ["", "**Ruled out by the design** (no test needed):", ""]
-        out += [f"- {r['mode_id']} {name(M, r['part'])}, {r['hop']}: {r['mode']} ({', '.join(ids(r['moves']))}): "
+        out += [f"- {r['mode_id']} {part_names(M, r)}, {r['hop']}: {r['mode']} ({', '.join(ids(r['moves']))}): "
                 f"{r['failure'].removeprefix('not possible here:').strip()}" for r in ruled]
     out.append("")
 
@@ -1503,14 +1765,14 @@ def runbook(M):
         multi = [(t, r) for t, r in num.items() if r and len(own[r["mode_id"]]) > 1]
         out += ["**Tested for more than one alert.** One fault here can fire several of the alerts at once: when "
                 "two fire together, start with these.", ""]
-        out += [f"- {t} {r['mode_id']} {name(M, r['part'])}, {r['hop']}: {r['mode']}: {', '.join(own[r['mode_id']])}"
+        out += [f"- {t} {r['mode_id']} {part_names(M, r)}, {r['hop']}: {r['mode']}: {', '.join(own[r['mode_id']])}"
                 for t, r in multi] or ["- None: no test serves more than one alert."]
         crossing = []
         for m in alerts:
             for mid, ys in sorted(entry_links(M, m).items(), key=lambda kv: int(tid[kv[0]][1:])):
                 r = next(x for x in live(M) if x["mode_id"] == mid)
                 order = sorted(ys, key=lambda y: int(tid[y][1:]))
-                crossing.append(f"- {m['handle']}, {tid[mid]} {mid} ({name(M, r['part'])}, {r['hop']}: {r['mode']}): "
+                crossing.append(f"- {m['handle']}, {tid[mid]} {mid} ({part_names(M, r)}, {r['hop']}: {r['mode']}): "
                                 "run " + "; ".join(f"{tid[y]} {y} ({', '.join(own[y]) or 'no proposed alert'})"
                                                    for y in order) +
                                 " as well: " + "; ".join(dict.fromkeys(w for y in order for w in ys[y])))
@@ -1523,7 +1785,7 @@ def runbook(M):
 
     # S6 restore
     used_rem = written_remedies(M)
-    also = also_escalated(M, used_rem + [x for x, rem in M["remedies"].items() if rem.get("kind") == "do not"])
+    also = also_escalated(M, used_rem + donts_of(M, M["fm"]))
     out += [head('restore'), "", "| # | Kind | Action | Expected result | If different | Approval |", "|---|---|---|---|---|---|"]
     for rid in used_rem:
         rem = M["remedies"][rid]
@@ -1540,7 +1802,7 @@ def runbook(M):
         out.append(f"| {rid} | {rem['kind']} | {point_escalation(rem['action'])} | {exp} | "
                    f"{point_escalation(rem.get('if_different', '') or 'Escalate')} | "
                    f"{'needs approval: change-approval path' if rem.get('needs_approval') == 'yes' else '—'} |".replace("\n", " "))
-    donts = [rem for rem in M["remedies"].values() if rem.get("kind") == "do not"]
+    donts = [M["remedies"][x] for x in donts_of(M, M["fm"])]
     if donts:
         out += ["", "**What not to do.**", ""] + [f"- {rem['remedy']}: {point_escalation(rem['action'])}" for rem in donts]
     out.append("")
@@ -1557,7 +1819,7 @@ def runbook(M):
 
     # S8 escalate or declare
     esc = [r for r in live(M) if r["ending"] in ("cannot restore", "outside")]
-    failing = list(dict.fromkeys([c for c in M["parts"]] + [r["part"] for r in live(M)] +
+    failing = list(dict.fromkeys([c for c in M["parts"]] + [x for r in live(M) for x in parts_of(r)] +
                                  [p for p in also if p in M["subj"]]))
     out += [head('escalate'), "",
             f"**Escalate** (hand over to the owning tier) when you cannot restore with {sec('restore')}; when a test ends in *Broken — "
@@ -1571,7 +1833,7 @@ def runbook(M):
             "|---|---|---|---|---|"]
     for c in failing:
         sc = M["subj"].get(c, {})
-        ends = ", ".join(tid[r["mode_id"]] for r in esc if r["part"] == c) or "—"
+        ends = ", ".join(tid[r["mode_id"]] for r in esc if c in parts_of(r)) or "—"
         out.append(f"| {name(M, c)} | {owner_of(M, c) or 'not in the map yet'} | {sc.get('owner_as_of') or '—'} | "
                    f"{(sc.get('responder') or '').strip() or 'not in the map yet'} | {ends} |")
     for p, rs in also.items():  # a party a remedy names that is no part of the map: the register records no owner
@@ -1599,7 +1861,7 @@ def runbook(M):
     for t, r in num.items():
         if r:
             out.append(f"| {t} | {r['mode_id']} {r['hop']}: {r['mode']} | {', '.join(ids(r['moves']))} | "
-                       f"{name(M, r['part'])} | {r.get('source', '')} |")
+                       f"{part_names(M, r)} | {r.get('source', '')} |")
     return "\n".join(out) + "\n"
 
 
@@ -1653,7 +1915,7 @@ def is_up(r):
 
 
 def question(M, r):
-    p = name(M, r["part"])
+    p = part_names(M, r)
     q = QUESTIONS.get((r["hop"], r["mode"]), "{p}: " + r["mode"] + "?").format(p=p)
     return re.sub(r"\ba ([AEIOUaeiou])", r"an \1", q)
 
@@ -1668,7 +1930,7 @@ def id_name(M, x):
     if x in fm:
         r = fm[x]
         return (f"the check “{question(M, r)}”" if r.get("ending") != "not possible" else
-                f"“{name(M, r['part'])}, {r['mode']}”")
+                f"“{part_names(M, r)}, {r['mode']}”")
     if x in M["moves"]:
         return f"“{move_name(M, x)}”"
     if x in M["remedies"]:
@@ -1837,7 +2099,7 @@ def trailing_notes(code):
                     break
             i -= 1
         note = code[i + 1:-1].strip()
-        # a note is words (the API ..., port 8000 ...), never a list of values or a statement in capitals (IN (...))
+        # a note is words (the front end's own delete ..., the API ...), never a list of values or a statement in capitals (IN (...))
         if i <= 0 or not code[i - 1].isspace() or not re.match(r"(?:[a-z]|[A-Z][a-z])[\w'-]*[\s:,]", note):
             break
         notes.insert(0, note)
@@ -2056,10 +2318,10 @@ def chip(M, r, ret=""):
                 f'{rn[r["remedy"]]}</a>')
     if e in ("cannot restore", "outside") and r.get("remedy") in rn:
         return (f'<a class="chip bad" href="#restore-{esc(r["remedy"])}">Yes → Can’t restore here: action '
-                f'{rn[r["remedy"]]}, then escalate to the owner of {esc(name(M, r["part"]))}</a>')
+                f'{rn[r["remedy"]]}, then escalate to the owner of {esc(escalated_part(M, r))}</a>')
     if e in ("restore", "cannot restore", "outside"):
         return (f'<a class="chip bad" href="#escalate">Yes → Can’t restore here: escalate to the owner '
-                f'of {esc(name(M, r["part"]))}</a>')
+                f'of {esc(escalated_part(M, r))}</a>')
     return f'<span class="chip">Yes → {esc(ENDINGS[e])}</span>'
 
 
@@ -2167,11 +2429,12 @@ def entry_html(M, m):
     parts = ", ".join(name(M, c) for c in M["parts"] if M["subj"][c].get("part_kind") != "person")
     timing = say(M, "; ".join(dict.fromkeys(M["moves"][mv]["timing"] for mv in M["stage_moves"]
                                             if M["moves"][mv].get("timing"))) or "the register states none")
-    donts = [rem for rem in M["remedies"].values() if rem.get("kind") == "do not"]
+    donts = [M["remedies"][x] for x in entry_donts(M, m)]
     out = [f'<section class="doc" id="alert-{esc(h)}">',
            f'<div class="trail"><a href="#top">Runbook: {esc(M["stage"]["name"])}</a> › Alert</div>',
            f"<h2>{esc(m['measure'])}</h2>",
            f"<p>{cap(say(M, basis(m))) or 'The register states no basis for this alert.'}</p>",
+           *([f"<p>{esc(not_emitted(m))}</p>"] if not_emitted(m) else []),
            '<p class="small">It has been above the operators’ threshold for longer than their window '
            f'(<a href="ALERT.html#alert-{esc(h)}">the alert</a>).</p>',
            f'<div class="meta"><span><b>Its cases</b> {say(M, cases)}</span></div>',
@@ -2200,58 +2463,64 @@ def entry_html(M, m):
             end = "No new cases: go on and work the ones it counted"
         out.append(f'<tr><td>{n}</td><td>{q}<details class="how"><summary>How</summary><div class="box">{how}'
                    f'</div></details></td><td><span class="chip">Yes → {esc(end)}</span></td></tr>')
-    out += ["</table>", '<div class="sec">Find the cause <span class="hint">in order, on its cases only. No → '
-            "next check. Yes → take its ending for the cases it lists, and go on for the rest. A check whose "
-            "evidence lists no cases (a match in a log or a metric) explains no case by itself: note it, if the match falls "
-            "inside the look-back, and go on; a "
-            "case no later check explains takes the ending of every check noted for it, each named in the "
-            "hand-over; where those endings differ, escalate rather than restore. A result you "
-            "cannot read, or a check you cannot run: note it for the hand-over and go on. Where a command asks for "
-            f"a time span in angle brackets, give it the look-back above{span_form(M, m)}; where it asks for case "
-            "ids in angle brackets, give it the ids of the cases you are working.</span></div>",
-            '<table class="chk">']
-    if len(entry_states(M, m)) > 1:
-        names = ", ".join(f"<code>{esc(shown(b))}</code>" for b in entry_states(M, m))
-        out.append(f'<tr><td></td><td colspan="2">' + (
-            f"Group its cases by the state they are in ({names}) and work each group below that has cases, the "
-            "largest first." if recorded(M) else
-            f"The states of this stage ({names}) are not recorded, so its cases cannot be grouped by state: work "
-            "every group below, in order.") + "</td></tr>")
-    k, done = 0, {}
-    gone = m.get("form") not in WAITING
-    for g, (gh, rows, b) in enumerate(groups):
-        if gh and b is None:
-            out.append('<tr class="grp"><td></td><td colspan="2">Shared dependencies: they hold cases in several '
-                       "states at once</td></tr>")
-        elif gh:
-            out.append(f'<tr class="grp"><td></td><td colspan="2">Cases in {esc(shown(b))}'
-                       f'{", or that left the stage from it" if gone else ""}</td></tr>')
-        sub = None
-        for r in rows:
-            k += 1
-            if not gh:
-                now = "Is it up?" if is_up(r) else "This alert's own causes"
-                if now != sub and (any(is_up(x) for x in rows) or now != "This alert's own causes"):
-                    out.append(f'<tr class="grp"><td></td><td colspan="2">{now}</td></tr>')
-                sub = now
-            if r["mode_id"] in done:
-                out.append(f'<tr><td>{k}</td><td>Same as check {done[r["mode_id"]]}: use the result you have for '
-                           f"these cases.</td><td></td></tr>")
+    none = no_tests(M, m, groups)
+    if none:
+        out += ["</table>", f'<div class="sec">Find the cause</div><p>{esc(none)}</p>']
+        done = {}
+    else:
+        out += ["</table>", '<div class="sec">Find the cause <span class="hint">in order, on its cases only. No → '
+                "next check. Yes → take its ending for the cases it lists, and go on for the rest. A check whose "
+                "evidence lists no cases (a match in a log or a metric) explains no case by itself: note it, if the match falls "
+                "inside the look-back, and go on; a "
+                "case no later check explains takes the ending of every check noted for it, each named in the "
+                "hand-over; where those endings differ, escalate rather than restore. A result you "
+                "cannot read, or a check you cannot run: note it for the hand-over and go on. Where a command asks for "
+                f"a time span in angle brackets, give it the look-back above{span_form(M, m)}; where it asks for case "
+                "ids in angle brackets, give it the ids of the cases you are working.</span></div>",
+                '<table class="chk">']
+        if len(entry_states(M, m)) > 1:
+            names = ", ".join(f"<code>{esc(shown(b))}</code>" for b in entry_states(M, m))
+            out.append(f'<tr><td></td><td colspan="2">' + (
+                f"Group its cases by the state they are in ({names}) and work each group below that has cases, the "
+                "largest first." if recorded(M) else
+                f"The states of this stage ({names}) are not recorded, so its cases cannot be grouped by state: work "
+                "every group below, in order.") + "</td></tr>")
+        k, done = 0, {}
+        gone = m.get("form") not in WAITING
+        for g, (gh, rows, b) in enumerate(groups):
+            if gh and b is None:
+                out.append('<tr class="grp"><td></td><td colspan="2">' + (
+                    "Shared dependencies: several parts of the stage need them, or they hold cases in several states at "
+                    "once" if gh.startswith("Shared dependencies") else esc(gh)) + "</td></tr>")
+            elif gh:
+                out.append(f'<tr class="grp"><td></td><td colspan="2">Cases in {esc(shown(b))}'
+                           f'{", or that left the stage from it" if gone else ""}</td></tr>')
+            sub = None
+            for r in rows:
+                k += 1
+                if not gh:
+                    now = "Is it up?" if is_up(r) else "This alert's own causes"
+                    if now != sub and (any(is_up(x) for x in rows) or now != "This alert's own causes"):
+                        out.append(f'<tr class="grp"><td></td><td colspan="2">{now}</td></tr>')
+                    sub = now
+                if r["mode_id"] in done:
+                    out.append(f'<tr><td>{k}</td><td>Same as check {done[r["mode_id"]]}: use the result you have for '
+                               f"these cases.</td><td></td></tr>")
+                    continue
+                done[r["mode_id"]] = k
+                back = f'<a href="#check-{esc(r["mode_id"])}">The same check in the reference ›</a>'
+                out.append(f'<tr id="{esc(h)}-{esc(r["mode_id"])}"><td>{k}</td><td>{esc(question(M, r))}'
+                           f'<details class="how"><summary>How</summary>'
+                           f'{check_box(M, r, sorted(lk.get(r["mode_id"], {})), back)}</details></td>'
+                           f"<td>{chip(M, r)}</td></tr>")
+            if gh and b is None and g < len(groups) - 1:
                 continue
-            done[r["mode_id"]] = k
-            back = f'<a href="#check-{esc(r["mode_id"])}">The same check in the reference ›</a>'
-            out.append(f'<tr id="{esc(h)}-{esc(r["mode_id"])}"><td>{k}</td><td>{esc(question(M, r))}'
-                       f'<details class="how"><summary>How</summary>'
-                       f'{check_box(M, r, sorted(lk.get(r["mode_id"], {})), back)}</details></td>'
-                       f"<td>{chip(M, r)}</td></tr>")
-        if gh and b is None:
-            continue
-        last = g == len(groups) - 1
-        out.append(f'<tr><td></td><td><b>None of these explains the cases left'
-                   f'{" in " + esc(shown(b)) if b else ""}.</b></td><td><a class="chip" href="#none">Escalate with '
-                   f"what you have</a>{'' if last else ' and go on with the next group'}</td></tr>")
-    out += ["</table>",
-            '<div class="done">When it is restored or handed over: <a href="#close">Close ›</a> '
+            last = g == len(groups) - 1
+            out.append(f'<tr><td></td><td><b>None of these explains the cases left'
+                       f'{" in " + esc(shown(b)) if b else ""}.</b></td><td><a class="chip" href="#none">Escalate with '
+                       f"what you have</a>{'' if last else ' and go on with the next group'}</td></tr>")
+        out.append("</table>")
+    out += ['<div class="done">When it is restored or handed over: <a href="#close">Close ›</a> '
             '<a href="#handover">What to hand over ›</a></div>',
             '<details class="small"><summary>For maintainers: this entry’s register ids</summary><ul>'
             f"<li>Alert: {esc(h)}</li>"]
@@ -2267,8 +2536,8 @@ def runbook_html(M):
     rnum = remedy_number(M)
     about = R["about"][0] if R["about"] else {}
     esc_rows = [r for r in live(M) if r["ending"] in ("cannot restore", "outside")]
-    also = also_escalated(M, list(rnum) + [x for x, rem in M["remedies"].items() if rem.get("kind") == "do not"])
-    failing = list(dict.fromkeys(list(M["parts"]) + [r["part"] for r in live(M)] + [p for p in also if p in M["subj"]]))
+    also = also_escalated(M, list(rnum) + donts_of(M, M["fm"]))
+    failing = list(dict.fromkeys(list(M["parts"]) + [x for r in live(M) for x in parts_of(r)] + [p for p in also if p in M["subj"]]))
     gaps = [c for c in failing if not owner_of(M, c)]
     out = [f'<section class="doc" id="top"><div class="trail">{esc(M["flow"]["name"])} › Stage '
            f'{esc(stage["order"])}: {esc(stage["name"])}</div>',
@@ -2320,7 +2589,7 @@ def runbook_html(M):
         used_by = ", ".join(dict.fromkeys(ent[u]["measure"] for u in users_ if u in ent)) or "no proposed alert"
         out.append(f'<div class="card" id="check-{esc(r["mode_id"])}"><h3>{esc(question(M, r))}</h3>'
                    f'<div class="meta"><span><b>Used by</b> {esc(used_by)}</span><span><b>Part</b> '
-                   f'{esc(name(M, r["part"]))}</span><span><b>Reads</b> '
+                   f'{esc(part_names(M, r))}</span><span><b>Reads</b> '
                    + esc("; ".join(M["measures"][x]["measure"] for x in ids(r["measures"]) if x in M["measures"])
                          or "no measure") + "</span></div>" +
                    check_box(M, r, [], back or "") +
@@ -2330,7 +2599,7 @@ def runbook_html(M):
     ruled = [r for r in M["fm"] if r.get("ending") == "not possible"]
     if ruled:
         out.append('<details class="how"><summary>Causes the design rules out, so no check is needed</summary><ul>')
-        out += [f"<li>{esc(name(M, r['part']))}, {esc(r['mode'])}: "
+        out += [f"<li>{esc(part_names(M, r))}, {esc(r['mode'])}: "
                 f"{say(M, r['failure'].removeprefix('not possible here:').strip())}</li>" for r in ruled]
         out.append("</ul></details>")
     out.append("</div></details>")
@@ -2366,7 +2635,7 @@ def runbook_html(M):
                                       if int(mo.group(1)) in byn else mo.group(0)), card))
     if not rnum:
         out.append("<p>The register holds no restore action for this stage's checks.</p>")
-    donts = [rem for rem in M["remedies"].values() if rem.get("kind") == "do not"]
+    donts = [M["remedies"][x] for x in donts_of(M, M["fm"])]
     if donts:
         out += ["<p><b>What not to do.</b></p><ul>"] + [f"<li>{say(M, rem['action'])}</li>" for rem in donts] + ["</ul>"]
     out.append("</div></details>")
@@ -2378,7 +2647,7 @@ def runbook_html(M):
             "<th>Checks that end in escalation to it</th></tr>"]
     for c in failing:
         sc = M["subj"].get(c, {})
-        ends = "; ".join(question(M, r) for r in esc_rows if r["part"] == c) or "—"
+        ends = "; ".join(question(M, r) for r in esc_rows if c in parts_of(r)) or "—"
         out.append(f"<tr><td>{esc(name(M, c))}</td><td>{say(M, owner_of(M, c)) or 'none named yet'}</td>"
                    f"<td>{esc(sc.get('owner_as_of') or '—')}</td>"
                    f"<td>{say(M, (sc.get('responder') or '').strip()) or 'none named yet'}</td><td>{esc(ends)}</td></tr>")
@@ -2463,7 +2732,7 @@ def alert_html(M):
         rows = [("The question it answers", say(M, m.get("question_it_answers"))),
                 ("What it counts", count_block(M, m.get("counted_how")) +
                  f'<p class="small">Counted on {esc(m.get("counted_on"))}.</p>'),
-                ("Why it is proposed", say(M, basis(m)) or "the register states no basis for it"),
+                ("Why it is proposed", and_not_emitted(say(M, basis(m)) or "the register states no basis for it", m)),
                 ("Which cases its entry works", say(M, alert_grouping(M, m, False))),
                 ("Threshold", say(M, THRESHOLD)),
                 ("Window", "<i>Operator value, not set here.</i> How long the condition must hold before it fires."
@@ -2520,10 +2789,11 @@ def main(argv=None):
         print("warning:", w)
     for e in err:
         print("ERROR:", e)
-    rec, gapped, r_err, _ = receipt_failures(M["R"], a.flow)
+    rec, gapped, r_err, r_warn = receipt_failures(M["R"], a.flow, a.stage)
     print(f"receipt for {a.flow}: {len(rec)} elements, {sum(r['covered'] for r in rec)} covered by a candidate, "
           f"{sum((r['element'], r['question']) in gapped and not r['covered'] for r in rec)} gapped, "
-          f"{sum(e.startswith('receipt:') for e in r_err)} neither")
+          f"{sum(e.startswith('receipt:') for e in r_err + r_warn)} neither; "
+          f"{sum(1 for r in rec if r['stages'] and a.stage not in r['stages'])} belong only to other stages")
     if not [m for m in R["lifecycle"] if m.get("flow", a.flow) in (a.flow, "")]:
         print(f"receipt for {a.flow}: its step set is partial: with no lifecycle rows, no stage's exit and not the "
               f"flow's first step are in it")

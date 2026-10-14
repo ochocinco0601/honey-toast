@@ -25,14 +25,61 @@ source states are inferred and labelled `proposed:`; volumes stay named for the 
 
 ## Before you start
 
-1. Copy the CSV files in `register-template/` (not `REGISTER.md`) to a folder named for the capability. As you
+1. Start the register with `python "<skill>/start_register.py" "<your-folder>"`, in a new folder named for the
+   capability. It copies the CSV files in `register-template/` (not `REGISTER.md`), and refuses a folder that
+   already holds a CSV file, so earlier work is never copied over. As you
    do each step below, add a row to `how-made.csv`: what went in, which files came out, and who did it (a tool,
-   a model drafting, a person confirming, or by hand).
-2. Decide what you will read. List each source in `sources.csv` with pass `1`, and keep the
-   summary in `about.csv` → `sources_examined`, so a reader knows what "not assessed" covers. If the code has no
-   version history, list it as the folder as found, with the date you read it.
-3. If a code reader is available (the design-for-operations fact extractor, or your platform's equivalent), run
-   it over the repository with a service map you write: one entry per deployable. It gives calls between those
+   a model drafting, a person confirming, or by hand). `RUN.md` from the same folder is the run's record of its
+   phases: when the kit is run as a skill, the skill's `SKILL.md` says how it is written and kept.
+2. **Gather what you will read**, and list it. Take every source the person pointed at, and what is in the
+   workspace, and get each with your own tools. List each in `sources.csv` with pass `1`; `kind` is `code`,
+   `document` (a page, a diagram, a process description, a runbook, a catalogue entry), `person` (notes, tickets,
+   recorded answers) or `tool output`. In `note`, write which step below will use it. Keep the summary in
+   `about.csv` → `sources_examined`, so a reader knows what "not assessed" covers. If the code has no
+   version history, list it as the folder as found, with the date you read it. For code, write the repository's
+   folder and the commit read in `repository` and `commit`, one row per repository. With more than one, open each
+   as a folder of one workspace and **write every citation from the workspace root**, starting with the
+   repository's folder (`orders-api/src/Orders.cs:12`), so the same file name in two repositories is not
+   ambiguous; the check warns on a citation whose first folder is no listed repository. Cite a shared library at
+   the version the service's own lockfile or build manifest names, and cite that line. Every repository the run
+   uses, fetched ones included, is a folder of the open workspace (a multi-root workspace when there are several),
+   never a temporary folder, because the environment's code tools reach only the open workspace. If you cannot add
+   folders to the workspace yourself, stop: record in `RUN.md` the repositories and that the person must open them
+   as one multi-root workspace and start again.
+
+   What the method takes from each kind of source:
+
+   | Source | What the method takes from it | Used in |
+   |---|---|---|
+   | Code, with its build and deployment definitions | The line that creates the case; states, moves, how each travels, what carries it, what it needs, timing and what happens if it does not happen; each part's repository; the configuration that runs | Before you start 4; Steps 1, 2, 5, 6 |
+   | A business process description (a process page, a process diagram, a procedure) | Whose expectation, where the case starts and ends; what the party would recognise as done, which places stage cuts; a stated bound; what a right outcome is | Steps 1, 3, 4 |
+   | An architecture page or diagram | The deployables the flow runs through, and where each one's code is; a cross-check of the parts the walk found, and of component against external dependency (whether its code can be had); an outside service's own parts, one level | Steps 5, 6 |
+   | A service catalogue or configuration database entry | A part's registered id, owner and responder, with the date true | Step 5 |
+   | A runbook, a support or incident page | Owner, responder, escalation; how a failure shows and what is done about it | Steps 5, 11 |
+   | A document saying what the organisation is able to do | The capability, named from the documents alone | Step 8, second route |
+   | People's notes, tickets, recorded answers | Owners, responders, promises and volumes no other source states | Steps 3, 5; "When something new arrives" |
+
+   A source is read only far enough here to place it in this table; the steps read it in full.
+
+   Read backwards, the same table says which kind of source would settle what the run had to propose. The report's
+   *What would make this map fuller* counts the `proposed:` or blank cells this way:
+
+   | `proposed:` or blank in | Settled by | From the table's row |
+   |---|---|---|
+   | `stages.csv` → `source` (a cut), `promise` | A business process description; a person | Step 3 |
+   | `steps.csv` → `right_outcome` | A business process description; a person | Step 4 |
+   | `subjects.csv` → `owner`, `responder`, `application_id` | A catalogue or configuration database entry; a runbook; a person | Step 5 |
+   | `stages.csv` → `arrivals_per_period` and other volumes | The operators (never derived) | Step 3 |
+   | `about.csv` → `what_it_is` (configuration) | Deployment definitions | Before you start 4 |
+   | `capabilities.csv` route 2 missing | A document saying what the organisation does | Step 8 |
+   | A part with `repository` blank, an external dependency with no source | Its repository or its owner's documents | Step 6; item 5 |
+
+3. Use every code-intelligence tool the environment offers over the workspace's repositories: a call graph and its
+   business logic for Step 2's walk; a cross-repository trace for Step 6's dependencies; failure-handling analysis
+   (timeouts, retries, circuit breakers) for Step 11's failure modes; unreferenced code, written up as a finding.
+   Each tool's output is a source in `sources.csv` like any other; what the stages are, what the case is and what to
+   alert on stay the method's judgement. If a code reader is available (the design-for-operations fact extractor, or
+   your platform's equivalent), run it over the repository with a service map you write: one entry per deployable. It gives calls between those
    deployables and, where its rules cover the language, emission sites (logs, metrics, spans), each with a file and
    line. Its reach differs by language and by kind of fact, so read in its own documentation what it covers: a
    language it cannot parse, or a kind it has no rule for, yields nothing, and nothing is not absence. What it did
@@ -41,18 +88,39 @@ source states are inferred and labelled `proposed:`; volumes stay named for the 
    in production, or, where several do, the one that carries the capability's AI agent. Write it in
    `about.csv` → `what_it_is`. If no source says which runs in production, describe the fullest one the
    repository defines, and write `proposed:` and why.
+5. **A call that leaves the workspace.** When the walk (Step 2) meets a call to a deployable whose code is not in
+   the workspace, name it from what the call shows: an address, a client package, a queue or topic name, an image.
+   If its repository or documents can be reached, get them: a source found during the first run is pass `1`, not a
+   new pass, and it goes into a folder of the workspace (item 2). Fetch it only with access the person already has, and read-only: never request access, enter credentials, or change anything at the source. Record every fetched source in `RUN.md` *Sources* with what referenced it and why. If the person's request says to use only the sources they name, do not fetch: list it under *still missing* instead. With its code, it is a component (Step 5), whatever its application id or owning team, and you read the
+   operations this flow calls and what those call. If its code cannot be had, it is still a part (Step 5), cited by
+   the line that identified it, with `repository` blank: an external dependency, and its measures are gapped with
+   the reason. List it under *still missing* in `RUN.md`.
+   **Check the repository set is complete**, without being asked, unless the person's request says to use only
+   the sources they name: then do not search, and list each unresolved reference under *still missing* instead.
+   Otherwise: (a) for every reference the code makes that no
+   folder in the workspace answers (a host or service name, a client package, a queue or topic, an image, a
+   configuration key, a URL), search the code host with the person's own access (repository search, code search
+   across the organisation) for the repository behind it; (b) search the other way too, for repositories that call,
+   consume from or deploy this flow's services; (c) repeat on what the new repositories reference, until a pass finds
+   nothing new. Record each repository found in `sources.csv` with the search that found it, and add it to the
+   workspace as a further folder, read-only; what is found and cannot be had goes under *still missing*. `RUN.md`'s
+   Phase 0 line answers "Is this the complete set of repositories?" with that evidence, and Phase 0 is not done while
+   a reference is unresolved and unsearched.
 
 ## Step 1. Declare the frame (*Assigning* Step 0; *Rules*, Rule 0)
 
-Five declarations, written before anything else and never inferred silently:
+Four declarations, written before anything else and never inferred silently:
 
 | Declaration | Where it goes | The rule |
 |---|---|---|
-| The case | `flows.csv` → `case` | One individual business item: one order, one application, one appointment. Never a system, a team, a batch, a request or a basket. A flow has one kind of case |
-| The delivering application | `about.csv` → `delivering_application` | The deployables that make up the application, named. Step 5 separates component from external dependency on membership of this set, so write it now |
+| The case | `flows.csv` → `case` | One individual business item: one order, one application, one appointment. Never a system, a team, a batch, a request or a basket. A flow has one kind of case. Write its name only; where it is stored and what identifies it go in `case_identifier` |
 | Whose expectation | `flows.csv` → `expectation_of` | The party counting on the outcome |
 | The starting event | `flows.csv` → `starts_at` | **The act that first creates the case's record.** Cite the line that creates it. This is also where the party begins counting on an outcome: before it there is nothing for them to wait on |
 | The ending outcome | `flows.csv` → `ends_at` | Where the party has what they were waiting for, or definitively does not. Name both endings. **The flow runs to that outcome even where the code stops sooner:** an order is delivered, not "Shipped"; the stretch after the last state the system records is added by the reference-model check in Step 3, drawn as not assessed |
+
+`flows.csv` → `promise`: the bound the party is promised for one case, end to end, stated or `proposed:` as for a
+stage's promise (Step 3). The four declarations, `promise` and `delivers` (Step 8) are **required** for the view
+*How a case moves end to end*.
 
 **Everything before the case exists belongs to another flow.** Browsing, filling a basket, signing in, filling
 in a form: real work, and set aside for this one. Write each in `set-aside.csv` with kind `other flow` and the
@@ -87,19 +155,26 @@ For each move, record:
 - `path`: `main`, `alternative` (another ending the design allows: rejected, cancelled) or `exception`.
 - `travels_by`: how the move reaches the case: `in-process`, `call` (HTTP, gRPC), `message` (name the event and
   the broker), `outbox` (written with the state, relayed later), `poll` (a worker on a schedule), `timer`,
-  `person`. A move that takes several hops lists them in order, `;` separated.
+  `person`. A move that takes several hops lists them in order, `;` separated. **Every hop has its body in
+  brackets**, saying who does what (`person (the underwriter opens the file and approves it)`), never a bare
+  `person;`: the first hop's body is what *How this step is carried out* prints as the step's trigger, so it is
+  required.
 - `carried_by`: the parts that carry the act out. `needs`: the stores, brokers and outside services the move
   cannot complete without. **Write each part as its subject id and name (`S04 Ordering API`)**, giving it the id now
   that becomes its `subjects.csv` row in Step 5. Every output is generated from these two columns, so a part named
   here and nowhere in `subjects.csv` fails the check.
 - `timing`: what the code assumes about time for this move (a grace period, a poll interval, a timeout, a retry
-  schedule), cited. Leave blank if nothing is assumed. **A retry or timeout counts only where the code applies it:**
+  schedule), cited. Required for *How this step is carried out*: where the code sets none, write that with its
+  citation ("no timeout is set on the call") or gap it `no record`; a person's act with no clock is gapped
+  `does not apply`. **A retry or timeout counts only where the code applies it:**
   read the call site, not only the setting (a policy configured but wrapped around the wrong call never fires).
 - `if_not`: what happens to the case if the move does not happen: retried by what, until when; left in
   `from_state` with nothing to move it; lost; failed back to the party. Cite it. This is the summary; Step 11 reads
   every hop's failure modes one by one, and where that reading finds the summary wrong, correct it here.
-- `recovery`: `moves on`, `stranded`, `not created` or blank, as in step-impact.csv (Step 10).
-- `irreversible`: `yes` where the move cannot be undone (money taken, goods shipped, a filing made).
+- `recovery`: `moves on`, `stranded`, `not created` or blank, as in step-impact.csv (Step 10). `if_not` is
+  required for *How this step is carried out*, and `recovery` beside it wherever the move can fail.
+- `irreversible`: `yes` where the move cannot be undone (money taken, goods shipped, a filing made), and `no`
+  otherwise, never blank: *How a case moves through this stage* reads a blank as not looked at.
 
 Parallel moves get `parallel with <move>` in `order_note`; a move back to an earlier state gets `loops to
 <state>`. Exceptions the code does not handle are written as `if_not`, not invented as moves. **A failure the code
@@ -132,7 +207,9 @@ message.
 - `promise`: a stated bound if a source gives one. Otherwise `proposed:` and a bound read from the
   lifecycle's `timing` for the stage's moves, cited: what the application's own design assumes. If the design
   assumes nothing, write `proposed: none assumed by the code` and say what would set one. A stage with no bound
-  is a finding about the flow, not a reason to stop.
+  is a finding about the flow, not a reason to stop. The promise is required for *How a case moves through this
+  stage*, with the entry, the main exit and what is at stake (Step 10). A stage with no alternative or exception
+  exit is gapped `does not apply` for its other outcomes.
 - `arrivals_per_period`: `not stated: measured by the operators`, unless they give it.
 - Do not merge or split to reach a count.
 
@@ -154,19 +231,24 @@ outcome are one step: they are mechanism, recorded in Step 6.
   ending. One step per way out: the main move, and each alternative or exception ending. A stage with no step
   whose `to_state` is its exit is cut wrong: go back to Step 2.
 - `right_outcome`: what a right outcome is for one case, stated or `proposed:` (the state the case should be in
-  after it, with the values it should carry).
+  after it, with the values it should carry). Required for *How this step is carried out*.
 - A step carried only in part gets `qualifier` `partial: <what is missing>`; one carried by a stand-in (a
   hard-coded value, a simulated call) gets `stub: <what stands in>`. A step nothing carries stays, with no
   participation rows.
-- Write the lifecycle row ids each step comes from in `source`, with the code citation.
+- Write the lifecycle row ids each step comes from in `source`, with the code citation. They are required: a
+  step that cites no `L..` move has nothing in *How this step is carried out*.
 
 ## Step 5. List the parts from the lifecycle (*Assigning* Step 6; *Rules*, Rules 0 and 2)
 
 Every part named in `carried_by` or `needs` gets one `element` row in `subjects.csv`. Nothing else does.
 
-- **Component or external dependency** is membership of the delivering application (Step 1): `level`
-  `component` if it is part of it, `external dependency` if the application only calls, waits on or fails over to
-  it. Not the company boundary, and not whether it is open source.
+- **Component or external dependency** is whether its code can be had: `level` `component` for any deployable the
+  flow's steps run through whose code the run can get, whatever its application id, repository or owning team;
+  `external dependency` for one whose code it cannot get (a vendor, a third-party or software-as-a-service
+  provider, a repository the run has no access to), drawn and measured from the calling side, and it can still
+  perform a step. Not the company boundary, not who owns it, and not whether it is open source. **Depth is bounded
+  by the flow:** inside a component, read the operations this flow calls and what those operations call, not the
+  whole service. A shared service many flows use adds only the operations this flow uses.
 - **Application component or system component** is its layer, in `band`. Services, workers, front ends and AI
   agents are application components: `band` `application`. **Databases, caches, message brokers, search
   indexes, file stores, hosts and runtimes, and platform services are system components: `band` `technology`**, even when the application owns
@@ -184,11 +266,20 @@ Every part named in `carried_by` or `needs` gets one `element` row in `subjects.
   `source`.
 - A person who carries out a move: a `person` row, no level. It is the method's set-aside role, bound to its step.
 - `application_id`: the name the component is registered under in the organisation's configuration database, from that
-  record; blank where no source states one. `repository`: the code repository it is built from, from its build or
-  deployment definition, with the path inside it where one repository builds several components; `not built here:`
-  and the image for a component run from someone else's image.
+  record; blank where no source states one. `repository`, filled for every component, never left blank: the code
+  repository it is built from, from its build or deployment definition, with the path inside it where one repository builds several components; `not built here:`
+  and the image for a component run from someone else's image. Shared infrastructure a parent component's deployment
+  provisions (a database, a cache, a broker) is a `technology` component whose `repository` is the repository that
+  defines it, with the path to the definition (`repo: path`). Something not separately built, such as an in-process
+  sub-agent, is not a component, since a component is a deployable: it is an agent part inside its parent
+  component's run, in `agent-system.csv` (Step 7), not a `subjects.csv` row. The one blank the check accepts is a
+  `technology` component no repository defines (a platform service provisioned elsewhere), whose `source` says no
+  repository defines it and where it was looked for.
 - `owner` and `responder`: from a source that states them, with the date it was true; otherwise inferred from what
-  the sources show (who builds and deploys the part) and written `proposed:` with that basis.
+  the sources show (who builds and deploys the part) and written `proposed:` with that basis. They are counted,
+  never required: fill them when known, and the run is not refused without them.
+- `purpose`, on every component and external dependency: what this part does in this flow, in one sentence, cited.
+  Required for *Inside this part*.
 
 ## Step 6. Record who carries out each step
 
@@ -202,7 +293,8 @@ a few words with the file and line in brackets. Name the `operation` that does t
 the part offers, read from its declaration (the tool's name, the route's method and path). Where the cited line
 is not itself a declaration (a status value, a shared service function), follow the move's `travels_by` to what the
 caller invokes. The operation is what a caller calls, not the code structure behind it, so it survives a refactor. A part that shows the step's result to the party performs the
-step whose outcome is that the party sees it.
+step whose outcome is that the party sees it. Each component's operations are required for *Inside this part*; a
+data store or external dependency, which offers none, is gapped `does not apply`.
 
 Then add an `interaction` row (`kind` relationship) in `subjects.csv` for each hop in `travels_by`: `from_id`,
 `to_id`, and the steps it happens within in `step_hint`. Where the code shows which of the calling part's operations
@@ -211,11 +303,14 @@ them, and cite the line; leave it blank where the call is made once for a sessio
 for a part's call to the store or broker it runs on. A message published through a broker is two hops: the
 publisher to the broker, the broker to the consumer. Number the hops of one step in `sequence` in the order they
 happen, only for calls made once, one after another, on one way. Leave `sequence` blank, and say why in the
-citation, for a call repeated per item, made in parallel, not waited for, or made only on one branch.
+citation, for a call repeated per item, made in parallel, not waited for, or made only on one branch. These rows
+are each part's dependencies, required for *Inside this part*; a part that calls nothing is gapped `does not
+apply`, so the view can tell it from one not looked at.
 
 **How far to go into an outside service** depends on what you can get for it: nothing beyond its address, it
-stays one external dependency seen from the calling side; its code or documents, add the parts your calls reach
-as `external dependency` rows with `part_of` set to the service (one level only); its owner has a map, put the
+stays one external dependency seen from the calling side; its code, it is a component (Step 5), read for the
+operations this flow calls and what those call; only its documents, add the parts your calls reach as
+`external dependency` rows with `part_of` set to the service (one level only); its owner has a map, put the
 address in `map_link`.
 
 ## Step 7. Describe each AI agent as its own system
@@ -398,6 +493,15 @@ measure, so it is never a `measures.csv` row with the measure left blank. `flow_
 receipt from the register for the whole flow, whichever stage it is run for, and fails on every element that is
 neither covered nor gapped. A gap row with no `why` or no `source` does not count.
 
+Each gap row also says its `kind`, one of four, chosen by what stops a candidate for this question:
+`does not apply` (ruled out by design: the question cannot arise here, as when the stage lasts one request and no
+case waits in it), `counted by` (folded into another measure, named by its id in `why`: `folded into M38:`),
+`no record` (the code keeps nothing that could count it today; say what record it would need), or `not read` (not
+assessed in this run, as for a flow set aside). A gap that points at a decision point asked elsewhere is not
+`counted by`: that kind needs a measure. The map labels each gap from `kind`, never from the reason's wording, and
+`run_status.py` counts the gaps by it, so `not read` is kept for what the run did not look at. `--check` fails on
+a row with no `kind` or one not in the list, and on a `counted by` row whose `why` names no measure.
+
 | Start-set | Element (`element` in measure-gaps.csv) | Question (`question`) | Covered by a candidate that is |
 |---|---|---|---|
 | The flow | its id (`F1`) | `the promise` | of the flow (stage and step blank), counted on cases, `business health`, form `cycle time` or `completion rate` |
@@ -443,7 +547,7 @@ or asks a useless question, change it.
 
 **Propose the stage's measures for alerting, and say what each rests on.** An alert goes where the party in
 `expectation_of` would see the stage's expectation broken. Mark each measure you propose for alerting in `alert`,
-as `yes:` and its basis: the expectation it guards. Only a measure of the stage, counted on cases, is proposed. The
+as `yes:` and its basis: the expectation it guards, required for the alert's runbook entry. Only a measure of the stage, counted on cases, is proposed. The
 measures, the alerts and the runbook are generated from that column, so they cannot disagree. Whether an alert
 pages a person, opens a ticket or shows on a dashboard is the operators' decision, not the register's.
 
@@ -454,8 +558,8 @@ A stage loses cases in three ways. Consider each, and propose a measure for each
 - **Cases leave wrongly**: cases leaving by an alternative or exception ending the expectation does not want (failed
   back, cancelled because a part failed), or left stranded, counted against the cases that entered. A stage whose
   work never waits loses cases mostly this way. Say which record counts one event per case at those exits; if none
-  does, the measure is `proposed` and names the record it needs. **The basis names the moves (`L..`) the cases
-  leave by**: the alert's runbook entry works the tests of the state those moves leave from. An ending the party wants
+  does, the measure is `proposed` and names the record it needs. **`counted_moves` lists the moves (`L..`) the
+  cases leave by**, by id: the alert's runbook entry works the tests of the state those moves leave from. An ending the party wants
   (their own cancellation, a rule's refusal) is not a loss.
 - **Cases leave with a wrong outcome**: the main ending, reached with the wrong values (a stale read, a wrong
   decision from a rules engine or a model). The step measures of item 3, "was its outcome right", count it. Propose
@@ -470,7 +574,8 @@ basis gives stands, and does not stop the outputs being written. Only errors do.
 For each lifecycle move whose `if_not` hurts the case, a `step-impact.csv` row on the step it belongs to: the
 category from `method/impact.csv`, the unit counted in cases, and `recovery` copied from the lifecycle. A case
 acknowledged to the party and then lost fits no recovery value: leave `recovery` blank and begin `note` with
-`lost after acknowledgement:` and the evidence. In `case-attributes.csv`, what is at stake in one case.
+`lost after acknowledgement:` and the evidence. In `case-attributes.csv`, what is at stake in one case:
+`what_is_at_stake` is required for *How a case moves through this stage*.
 
 ## Step 11. The failure modes, the alerts and the runbook for a stage (`reference/runbook-model.md`, "How to write one")
 
@@ -485,7 +590,13 @@ is the worksheet they are generated from.
    - **What fired**: the measure and its basis.
    - **Its cases and window**: for a measure of cases waiting, the cases past the bound, read from when the oldest of
      them entered the stage (the count lags its cause by up to the bound); for a measure of cases leaving, the cases
-     that left by the moves its basis names, read from when the earliest of them entered the stage.
+     that left by the moves its `counted_moves` names, read from when the earliest of them entered the stage.
+     **`counted_moves` lists, by id and separated by `;`, the moves whose cases the alert counts**, and only
+     those. The basis is free text: a move it names, to say the alert does not count it or why, is explanation and
+     is never read as counted. `--check` fails on an alert of cases leaving whose `counted_moves` is empty, and on
+     one that names an id not in `lifecycle.csv` or not a move of the stage; an alert of cases waiting leaves it blank. Cases that left by the
+     move that creates the case, from `(none)`, were created: its `not created` recovery says what happens when the
+     move fails, so an alert naming it counts cases created wrongly, held where they are.
    - **Opening checks**: open incident, maintenance window, what changed in that window; then whether the count is
      falling.
    - **Contain first**: from where the counted cases are now. Waiting cases need no hold. A case that left by the
@@ -496,7 +607,15 @@ is the worksheet they are generated from.
      `irreversible` is said to be so. Every `do not` remedy is named here.
    - **Its tests**: the failure modes of the states its cases are in or left from, except one whose `measures` reads
      another proposed alert's count and not this one's: that test lists the other alert's cases, so it is the other
-     alert's own. Its own count's tests come first. Each line says what a match means (the mode's `failure`, its
+     alert's own. Its own count's tests come first. **Shared dependencies come first of all**: a `needs` part that
+     two or more of the stage's performing parts reach (their interactions in `subjects.csv`), or one that holds
+     cases in several states, is tested before the rest, whether or not the states are recorded; among them, the
+     cheapest check still leads, then the part more of the stage needs. Nothing is ordered by how likely it is: that
+     is the operators' judgment, not the register's. **A called service's own dependency is reached through it**: a
+     part only one service needs, where the stage reaches that service by a call and has a test of it answering
+     with an error or slowly, is not a test of its own in the entry. It is linked from those tests, because a
+     dependency that fails leaves its service up and answering badly. It stays in the shared section, and where the
+     service has no such test it stays a test of its own. Each line says what a match means (the mode's `failure`, its
      citations dropped) and its ending; a match explains only the cases it lists, and the walk goes on for the rest.
      A test whose evidence lists no cases (a match in a log or a metric) explains no case by itself: the walk notes
      it, if the match falls inside the look-back, and goes on; a case no later test explains takes the ending of every
@@ -522,7 +641,13 @@ is the worksheet they are generated from.
    `needs`, with the catalogue's `needs` modes; then make sure each part in its `carried_by` has a row. For each
    one, read the code: what happens to the case here, and how it recovers. Where the design rules a mode out, write
    the row with ending `not possible` and the citation. A mode the catalogue lacks is `other`. One row may serve
-   several moves where the part, the test and the ending are the same. **A mode is a live test only where what it
+   several moves where the part, the test and the ending are the same. **One row may serve several parts, as a
+   sweep**, where they are of one `part_kind` and share the hop, the mode and the ending: list them in `part`, and
+   write one command over all of them whose result names which matched, so the test still tells them apart (every
+   service with no ready instance, every database refusing connections). Take the command from what the
+   deployment uses, as for any test; where no one command reaches them all, keep a row per part. Each part that
+   matches is escalated to its own owner. A sweep keeps a stage that many services carry to a runbook a responder
+   can work. **A mode is a live test only where what it
    does to the case is something a measure the stage proposes for alerting counts.** Otherwise its ending is `not possible`,
    its `failure` begins `not possible here: as a cause of` what the stage's alerts count, and names the measure that
    does count it (a wrong outcome is counted by its step's measure, Step 9).
@@ -541,7 +666,13 @@ is the worksheet they are generated from.
    read on the alert's own cases: a query that lists every case in a state is read only for the cases the alert
    counts. Where a test must see cases wherever they are now (a linked test meets cases that have left the stage),
    filter on `<case ids>`: the runbook tells the responder to put there the ids of the cases being worked.
-   **A test is written once**: it serves every alert whose entry runs it.
+   **A test is written once**: it serves every alert whose entry runs it. An alert's runbook entry needs its
+   tests; where the code keeps nothing a test could read, gap them `no record`.
+   **A test that lists cases takes them from every test after it**, because a match ends the walk for the cases
+   it lists. So where a broad test lists cases that a more specific test explains (a condition still open, where a
+   check that never ran is the cause), give the broad test a higher `order` than the specific one. After the
+   checks that each part is up, which always come first, the entry runs tests by `order`, a blank counting as 0. A
+   test whose evidence lists no cases needs none.
    **A command cites the deployed value, never a code default**: the port the deployed process listens on, the log
    line as the deployed logging configuration emits it (a traceback's last line, not a window of lines after the
    message), the name the deployment gives a resource. Where a configuration switch changes the value, write the
@@ -561,20 +692,24 @@ is the worksheet they are generated from.
    like fixes and are not as `do not`. **A remedy is written once for every alert whose tests end at it**, so its
    text names no alert and no alert's query: say what to record in words that hold for any of them. It names no
    runbook section either (write `Escalate`; the runbook points it at its escalation section); it may name another
-   remedy (`R..`), and the runbook then writes that one too. Escalation goes to the failing part's owner; a party
+   remedy (`R..`), and the runbook then writes that one too. A `do not` reaches only the alerts whose tests end at a remedy that uses or names it, so a remedy whose action makes a move that cannot be undone names the `do not` that cautions against that move. Escalation goes to the failing part's owner; a party
    the responder must also tell (the owner of a regulation, say) goes in `also_escalate_to`, never in the action's
    prose.
 5. **Describe one configuration.** A test and a remedy are written for the configuration `about.csv` names. Where the
    repository ships another that changes the answer (a different store), say so in the test. Values are written as
    the store holds them: a status kept as a number is tested as that number, with its name beside it.
-6. **Verify every claim against the code before anything is generated.** Re-open each `file:line` the register
-   cites, for the stage's rows and the frame (flows, stages, steps, participation, lifecycle, failure modes,
-   remedies, measures, step impact), and read the line itself, not a listing of several files. For each: does the
+6. **Verify the claims against the code before anything is generated.** Re-open every distinct `file:line` a live
+   failure mode cites (its `failure`, `test` and `source`: what a responder acts on), and a random sample of the
+   rest of what the register cites for the stage's rows and the frame (flows, stages, steps, participation,
+   lifecycle, remedies, measures, step impact). Rows added or carried forward from an earlier register (the
+   `how-made.csv` pass `reconcile`) are read first, every one of them. State the sample's size in the `how-made.csv` row before you draw
+   it. A failure in the sample re-opens every row of the batch it came from: the rows written the same way, in
+   the same pass. Read the line itself, not a listing of several files. For each: does the
    line say what the row claims, and does the behaviour hold when you follow the call (a retry wrapped around the
    call that fails, a state the code really writes, a log text exactly as written, a remedy the code really
    lacks, a restore that really reaches the fault: adding an instance helps only if callers spread their calls
-   over instances)? Correct each row that fails, and write a `how-made.csv` row for the pass: how many claims were read and
-   how many were corrected. This pass is the drafter's own; someone who did not draft the register still checks a sample of the citations afterwards (USE.md, "Before you take it to anyone").
+   over instances)? Correct each row that fails, and write a `how-made.csv` row for the pass: how many claims were read
+   (those cited by live failure modes, and the sample, each counted), and how many were corrected. This pass is the drafter's own; someone who did not draft the register still checks a sample of the citations afterwards (USE.md, "Before you take it to anyone").
 7. **Generate** the slice, the measures, the alerts and the runbook:
 
 ```
@@ -587,6 +722,10 @@ modes in one state a responder cannot tell apart; a remedy for every restore and
 measures marked in `alert` proposed for alerting. A failure is fixed in the step that produced it. **Never edit a generated file.**
 `ALERT.md` gives each alert its runbook link, to its own entry in `RUNBOOK.md`.
 
+**Where other stages already have a `stage-<id>` folder**, this run can change what they rest on: a shared row, a
+flow-wide row, a remedy. So regenerate every one of them the same way, each with its own `--check`. The run is not
+done until every stage's check passes, because this stage's check only warns on what other stages hold.
+
 ## Step 12. Check and draw
 
 Before drawing, run these against the register. Each one is a rule from above that a register can break:
@@ -598,7 +737,11 @@ Before drawing, run these against the register. Each one is a rule from above th
 - Every exit of every stage, main and alternative, has a step whose lifecycle `to_state` is that exit.
 - Every element of the measure step's receipt (Step 9) is covered by a candidate in `measures.csv` or gapped in
   `measure-gaps.csv` with its reason and source. `flow_outputs.py --check` prints the receipt's count and an error
-  for each element that is neither.
+  for each element of the run's stage, or of the flow, that is neither. One that belongs only to other stages is a
+  warning in this run, and an error in its own stage's run.
+- Every test in an alert's entry explains something that alert counts. The check warns where a test's mode leaves
+  the case in a way the moves in the alert's `counted_moves` do not count (it `moves on`, and the alert counts cases
+  `stranded`): name the measure that does see it in the mode's `measures`, or say in the basis why it stays.
 - Every `subjects.csv` row of `part_kind` database, cache, message broker, search index, file store, host or
   runtime, or platform service has `band` `technology`.
 - Every component and external dependency has at least one `performs` or `supports` row; every other part named
@@ -616,7 +759,22 @@ nowhere, every value outside the closed lists, and every row with no citation. A
 the step that produced it, and if the step's rule allowed it, in this procedure. A warning is not a failure: read
 it, and either act on it or leave the reason in the row it names.
 
+**The run ends with `run_status.py`**, and it is done only when that says DONE. DONE needs every output the run
+owes, and every field a view requires (each one marked required in the steps above) answered or gapped, for each
+element of the stages the run owes and for the flow. A gap is a row in `measure-gaps.csv`: the element's id (a
+step id, a part's subject id, a stage id, or an alert measure's handle), the question exactly as `run_status.py`
+names it, which is one of `step: trigger`, `step: timeouts`, `part: operations`, `part: depends on`,
+`stage: other outcomes`, `stage: cannot be undone` or `alert: its own tests`, the `kind` (`does not apply`,
+`counted by`, `no record` or `not read`), `why` and `source`. `step: moves` takes a gap too, only of kind
+`no record`, only for a step no part carries, and with a `why` that cites the code read; that gap also stands for the
+step's trigger, what happens if it does not happen and its timeouts, and for the expected outcomes of a stage the step
+ends. Every other view question is answered, or only counted. A gap of kind `not read` does not pass on a first run. `run_status.py` lists each empty field by
+element: fill it or gap it in the step that writes it, and run it again.
+
 ## When something new arrives
+
+This is for a source that arrives after the run has finished. A source the first run fetches while walking is
+pass `1` (Before you start, item 5).
 
 A map is updated, not rebuilt. When a source the register has not read turns up, make a new pass:
 
@@ -629,6 +787,22 @@ A map is updated, not rebuilt. When a source the register has not read turns up,
    and write the disagreement in this pass's `how-made.csv` `note`: it is a finding for a person to settle.
 4. Cite the new source in every row you add or change, add `how-made.csv` rows for the pass, and check and draw
    again.
+
+**An earlier register is not a new source.** A register made by an earlier run or an earlier version of this kit is
+a tool's output: it is never read as a source, never written to, and its rows reach a new register only through the
+reconciliation (`reconcile.py`, `SKILL.md` Phase 7), after a fresh walk. **In this release the reconciliation only
+reports, and nothing from it is added to the new register.** The report lists each earlier row by its citation: a row
+cited to code whose line still exists is *unchecked: not added*, since a line existing does not say it supports the
+row; where the new register disagrees, the new row stands and the disagreement is listed. Under *Claims beside their
+cited lines* the report prints each matched or unchecked row's claim with the lines it cites, and under *Re-open in
+the document* each document-cited claim with the section it names, each with blank *Verdict* and *Reason* lines.
+Fill them yourself, one row at a time (supported, not supported or not assessed, and why), since the script only
+checks that a citation resolves, never what the line says. A row cited to a document is listed to re-open in the
+document. A row cited to a person (`asked:`), or in a table the earlier `how-made.csv`
+says a person confirmed, is listed as carried from a person, and a disagreement with the new walk is listed for a
+person to settle. A `proposed:` row is dropped. A row citing a repository the new walk never read is *not assessed*,
+never unsupported. Rule 3 above, keep the existing row on a disagreement, holds between sources, never for an earlier
+register.
 
 ## What good enough looks like
 

@@ -138,7 +138,7 @@ the definitions of record** — this table only says which neighbouring sense to
 | **stage** | business architecture's *value stream stage* — the BIZBOK Guide, and TOGAF's business architecture: an ordered stretch of the path with entrance and exit criteria, containing the work done in it and ending in a value item for the party the flow serves. Step 4 says how the entry and exit are drafted. A Kanban column and a CRM pipeline stage are the same idea in working use | the *place* of a place/transition net, a state the case rests in between acts — that is a **park**, which happens inside a stage rather than being one; the *stage* of CMMN, the OMG's case management notation, which nests inside other stages; a CI/CD pipeline stage; a deployment environment |
 | **process step** | the *task* / *activity* of BPMN, the OMG's business process notation; the *step* in flow / stage / step. The numbered sections of this procedure are also called Steps — the level is always written *process step*, the sections always *Step 4*, *Step 6* | a click, a field validation, an internal function call — Step 5 sets the floor |
 | **component** | ArchiMate's *Application Component*, at the granularity of C4's **container** (Level 2) | C4's *component* (Level 3), which is code inside a container |
-| **external dependency** | something the application consumes but is **not part of** — a platform, another application, a vendor; Step 6 defines it | a package or library dependency — one compiled into the application's deployable is part of the component, not a dependency of it |
+| **external dependency** | a deployable the flow runs through whose code **cannot be had** — a vendor, a third-party or software-as-a-service provider, a repository with no access; Step 6 defines it | a package or library dependency — one compiled into a component's deployable is part of the component, not a dependency of it |
 | **park** | ordinary operations usage — a file parked pending documents, a case parked on a desk — given a precise test at Step 4. Formally it is a token resting in a *place* rather than moving through a transition, and the queue term of queueing theory as against the service term | a parked thread or process, which is suspended for different reasons and by something other than the work |
 | **walk** (noun) | one run of this procedure under one declared frame — so *in this walk* means *under this frame*, and bounds scope | a **walkthrough** (IEEE 1028), which is a review meeting; a **Gemba walk**, which is going to look at the work in person |
 | **trace** | — **not used here at all** | the runtime record of one request reconstructed from telemetry, measured after the fact. This procedure is design-time. It reasons about what each level *could* be measured on; it measures nothing |
@@ -269,19 +269,20 @@ throws away:
 
 ## Step 0 — Declare the frame. Do not skip it and do not infer it silently.
 
-Five declarations, written on the artifact as **outputs**.
+Four declarations, written on the artifact as **outputs**.
 
 | Declaration | What it is |
 |---|---|
 | **The case** | The individual thing that travels. One loan application. One payment. One order. Not a system, not a team. |
-| **The delivering application** | The application, or applications, that deliver the capability being walked — named. Step 6 separates component from external dependency entirely on membership of this, so leaving it unstated makes every verdict at that level turn on a choice nobody recorded. Where several deployables share the work, name the set. |
 | **Whose expectation** | The party counting on this to happen, named. |
 | **The starting event** | Where that party's expectation begins. |
 | **The ending outcome** | Where that expectation is satisfied, or definitively is not. |
 
+No delivering application is declared. Whether a part is a component is decided at Step 6, by whether its code can be had.
+
 **Two of these can be the same word, and are not the same thing.** A loan *application* is a case;
 the origination *application* is software. Where the case's own name collides like this, write *the
-case* and *the delivering application* rather than either bare noun, and the rest of the draft stays
+case* and *the component* rather than either bare noun, and the rest of the draft stays
 readable.
 
 **The start and end are not free choices — the expectation sets them.** Everything below is relative
@@ -313,7 +314,7 @@ Two consequences follow from this and nothing else in the procedure justifies th
   path, a new service, a re-platform. An expectation tied to the flow is orphaned by every
   re-implementation. Tied to the capability it survives.
 
-Every assignment below is relative to these five. The same activity is a capability under one frame
+Every assignment below is relative to these four. The same activity is a capability under one frame
 and a single act under another, and neither is wrong. Two drafts made under different unstated
 frames look comparable and are not.
 
@@ -580,21 +581,21 @@ other. Two separate views cannot, however good each one is.
 
 ## Step 6 — Components and external dependencies
 
-Both passed Test 2: things that exist in an environment. Separate them by **whether they are part
-of the application**.
+Both passed Test 2: things that exist in an environment. Separate them by **whether their code
+can be had**.
 
 | | Test | What to bind it to |
 |---|---|---|
-| **Component** | It performs a step or supports one, and **it is part of the delivering application.** | Bind each one to the step or steps it performs or supports, and say which. A component that neither performs nor supports any step in this walk is out of scope for this frame — record it as `set aside`, with its evidence, rather than dropping it. |
-| **External dependency** | A component **requires** it and **inherits its failure** — or it performs a step with no component in front of it — and it is **not part of that application**. It can only be called, waited on, or failed over. | Bind each one to the component that requires it, or to the step it performs where no component is in front of it. Where a step also uses what it returns, bind it to that step as *supports* as well — both links, not one instead of the other. |
+| **Component** | It performs a step or supports one, and **its code can be had**, whatever its application id, repository or owning team. | Bind each one to the step or steps it performs or supports, and say which. A component that neither performs nor supports any step in this walk is out of scope for this frame — record it as `set aside`, with its evidence, rather than dropping it. |
+| **External dependency** | A component **requires** it and **inherits its failure** — or it performs a step with no component in front of it — and **its code cannot be had**: a vendor, a third-party or software-as-a-service provider, a repository with no access. It can only be called, waited on, or failed over. | Bind each one to the component that requires it, or to the step it performs where no component is in front of it. Where a step also uses what it returns, bind it to that step as *supports* as well — both links, not one instead of the other. |
 
 **Performs or supports: the two ways a component takes part in a step.** A component *performs* a
 step when its code carries the step out: the ordering API creating the order. It *supports* a step
 when the step uses it without it doing the step: the ordering application's own database storing
 that order. These are ArchiMate's *assignment* and *serving* relationships in plainer words. Both
-pass the membership test above — a database the application owns is a component; a shared database
-platform it only consumes is an external dependency — so both are in the walk, a fault in a component
-that performs or supports is fixed by changing the application, and both are inferred evidence about the step (Rule 2 of
+pass the test above — a database the step uses is a component, a system component in the technology
+layer, whoever runs it — so both are in the walk, a fault in a component
+that performs or supports is fixed by changing that component, and both are inferred evidence about the step (Rule 2 of
 [`what-each-level-can-report.md`](what-each-level-can-report.md)). The main reason to name them apart:
 a supporting part can make a step *wrong* with nothing failing — a stale balance served to a funds
 check lets through a payment the true balance would refuse — so when a step's result is wrong rather
@@ -605,7 +606,7 @@ keeps the database a service relies on.
 checks credit, and a stale or wrong file makes that step wrong with nothing failing, exactly as the
 stale balance does. Record it against the step as *supports*, and against the component that calls
 it as *depends on*: the first says where a wrong result can come from, the second says who calls it.
-Being outside the application, it is not fixed by changing the application; its remedies are the
+Its code cannot be had, so it is not fixed by changing a component; its remedies are the
 external dependency's, set out below.
 
 **What the split is worth, stated as what you do at three in the morning.** A component is
@@ -622,33 +623,32 @@ end — and it is worth measuring, because a person taking twice as long as usua
 fact. An alert on it wakes someone who cannot restore it, which is how alert fatigue starts. Measure
 it, report it, route it to whoever owns the work — never to whoever owns the systems.
 
-**The line is membership of the delivering application, not technology, and not the company boundary.** A database platform
-supported by a platform team is an external dependency even though it sits inside the same firm —
-the application consumes it, it is not part of it. A vendor's API is an external dependency for the
-same reason — the same reason, not a different one, which is the point. **Do not reach for
+**The line is whether the code can be had, not technology, not who owns it, and not the company boundary.**
+The line is not membership of any one application: a capability spans many applications and teams, and their code can be had. Another
+team's service under another application id is a component once the run gets its repository. A
+vendor's API is an external dependency because its code cannot be had. **Depth is bounded by the
+flow:** inside a component, read the operations this flow calls and what those operations call, not
+the whole service. **Do not reach for
 *first-party* and *third-party* here.** Those words are defined by who owns the thing, so they split
-the population on the company boundary, which is exactly the line this rule refuses. A library compiled into the application's own deployable is neither — it is part
+the population on the company boundary, which is exactly the line this rule refuses. A library compiled into a component's own deployable is neither — it is part
 of the component, which is where every build tool on earth will disagree with you.
 
 **The rule applied — component or external dependency.**
 
 | Reading from | Wrong | Right |
 |---|---|---|
-| Architecture documents | The database platform as a **component**, because it sits inside the company | The database platform as an **external dependency** — the application consumes it, it is not part of it |
+| Architecture documents | Another team's service as an **external dependency**, because it is registered under another application id | That service as a **component**, once its repository is got — the flow runs through it and its code can be had |
 | Source code | The JSON library as an **external dependency**, because the build tool calls it one | The JSON library as part of the **component** it compiles into |
 | Interview notes or an org chart | *The pricing team* as a component | The deployable that team operates, where it performs a step. The team itself is Test 2's *Set aside* — and is Evidence for the component, being who named it |
 | A vendor contract | *The credit bureau*, the company, as an external dependency | The bureau's API — the thing a component actually calls and inherits failure from |
 
-**The same thing is a component in one walk and an external dependency in another, and neither is
-wrong.** A platform team walking their own capability records that database platform as a component;
-an application team consuming it records it as an external dependency. The verdict is relative to
-the delivering application declared at Step 0, which is exactly why that declaration exists — and
-why an outsourcing decision, or a team taking over a system, changes the level without anything
-about the software changing. Two drafts under different declarations are not comparable here, and a
-draft that did not declare cannot be checked at all.
+**The verdict follows the code, not a declaration.** A service is an external dependency while the
+run cannot get its code, and a component once it can, without anything about the software changing.
+A draft made with an earlier version of this kit, or one that lists a reachable service as an external dependency,
+has it at the wrong level: get its code and map it as a component.
 
 **How many teams build a component does not enter the test.** One deployable may be built by one
-team or by ten, and it is one component either way. The unit is the application, not the team —
+team or by ten, and it is one component either way. The unit is the deployable, not the team —
 which is why the question *whose is it* never has to be asked about people.
 
 **A step performed by a person has no component, and that is a complete answer.** *The underwriter
@@ -750,7 +750,7 @@ enumerations to match against, and a thing missing from one of them is not there
 
 | Label | Values | Why |
 |---|---|---|
-| **Frame** | the case, the delivering application, whose expectation, starting event, ending outcome | every assignment is relative to it — and without the delivering application, Step 6 cannot separate component from external dependency at all, so the draft cannot say whether a failing thing is yours to fix |
+| **Frame** | the case, whose expectation, starting event, ending outcome | every assignment is relative to it |
 | **Evidence** | the specific thing you read — a call site, a section, a status enum, a named speaker. Where there is none: `none in source` if the material simply does not cover it, and `none exists` only where nothing could establish it at any effort. The first is somebody's backlog; the second is a limit, and reporting them with one word loses the difference | the assignment in the form the source gave it. A reviewer checks against it, and work that has to act on the draft needs the location rather than the sentence. Without it `attested` is an assertion about an assertion |
 | **Basis** | `attested` — stated in the source or given by the declared frame, cite which · `inferred` — derived, say from what · `undetermined` — the source does not settle it | on messy input this is the line between a draft and a fabrication |
 | **Alternative** | the reading you did not take, or `none`. **It may be that the thing is not one of the six at all** — that is a reading, and a common one | this is what a reviewer disagrees with; omitting it makes the draft uncorrectable |
@@ -811,11 +811,11 @@ Evidence citations below name arc42 sections, a convention for architecture docu
 numbered chapters (§3 context, §5 building blocks, §6 runtime) give a stable place to point at. Any
 citation scheme works; what matters is that it lands on something a reader can open.
 
-**Frame.** Case: one home loan application. Delivering application: the origination platform — the
-API, the bureau interface and the decision service, which are built and deployed together. Whose
-expectation: the applicant. Starting event: they
+**Frame.** Case: one home loan application. Whose expectation: the applicant. Starting event: they
 submit the application and begin waiting on an answer. Ending outcome: funds released, or the
-application declined — the point at which they have their answer or definitively do not.
+application declined — the point at which they have their answer or definitively do not. The flow
+runs through the origination platform: the API, the bureau interface and the decision service, which
+are built and deployed together. Their code is in hand, so they are components (Step 6).
 
 Note what the expectation boundary excluded. Everything the lender does after funding — servicing,
 collections, the secondary market — is real work and is outside this walk, because the applicant
@@ -841,7 +841,7 @@ the same systems.
 | Process step | `n/a` | Record the decision | `DecisionService.record()`, `DecisionService.java:52` | `attested` — named in the source | `none` | `n/a` | 2 in *Underwrite the loan* |
 | Process step | `n/a` | Clear the outstanding conditions | ops handbook §4, which assigns it to the underwriter | `inferred` — the section assigns it to a person, and names no system | may be automated policy checks rather than a person | `n/a` — the *Underwriter* row points at it | 1 in *Clear the conditions* |
 | Process step | `n/a` | Sign the disclosures | `SigningController.java:29`; ops handbook §5 | `attested` — named in the source | `none` | `n/a` | 1 in *Collect signatures* |
-| Process step | `n/a` | Release the funds | ops handbook §6; no call site found | `inferred` — the declared ending outcome, with no system evidence | may be performed outside the delivering application entirely | `undetermined` — nothing in the source says what performs it | 1 in *Fund the loan* |
+| Process step | `n/a` | Release the funds | ops handbook §6; no call site found | `inferred` — the declared ending outcome, with no system evidence | may be performed by a deployable whose code this walk does not have | `undetermined` — nothing in the source says what performs it | 1 in *Fund the loan* |
 | Component | `n/a` | Origination API | inbound handler, `OriginationController.java:17`; no deployment manifest seen | `inferred` — implied by the entry handler, not named as a deployable | could be the same deployable as the bureau interface | performs *submit the application* and *pull the credit file* | `n/a` |
 | Component | `n/a` | Bureau interface | arc42 §5 building block view; deployment manifest, `bureau-interface` | `attested` — named in the source | `none` | performs *pull the credit file* | `n/a` |
 | Component | `n/a` | Decision service | `DecisionService.java:52` | `inferred` — not named as a deployable, implied by a step that records a decision | could be a module inside the origination API rather than a deployable of its own | performs *record the decision* | `n/a` |

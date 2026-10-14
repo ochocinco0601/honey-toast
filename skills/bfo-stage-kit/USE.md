@@ -18,8 +18,14 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
 
 - VS Code with GitHub Copilot Chat in **agent mode**, so the model can read files and run terminal commands.
 - Python 3.9 or later on the path. Nothing else is installed.
-- The application's code open in the workspace. Where it spans several repositories, add each as a folder of one
-  workspace.
+- The code, or where it is: name the repositories, pages, diagrams and process descriptions in your request, and
+  the run gets them. Code already open in the workspace is read too; where it spans several repositories, add each
+  as a folder of one workspace. When the code calls a service whose code is not there, the run searches your code host for the repository behind it (and for repositories that call or deploy the flow's services) and gets that code too, with access you already have and read-only: it never requests access, enters credentials, or changes anything at the source, and `RUN.md` lists every source it fetched with what referenced it and why. To keep it to the sources you name, say *use only the sources I name*: it then neither searches nor fetches, and lists the rest under *still missing*.
+- Every repository open as a folder of one workspace (a multi-root workspace when there are several), never in a
+  temporary folder: the run's code tools reach only the open workspace, and a run that can't add them stops and asks.
+  Keep your own working folder as the first folder of the workspace, so the skill, your notes and the register stay
+  in reach (a skill is found in every folder's `.github/skills/`, and the first folder wins on a duplicate name),
+  and add the repositories after it; or install the skill in `~/.copilot/skills/`.
 - This folder, `bfo-stage-kit/`, in one of two places:
   - **as a skill** (the simpler way): copy it to `.github/skills/bfo-stage-kit/` in the workspace, or to
     `~/.copilot/skills/bfo-stage-kit/` for every workspace. Then ask Copilot in agent mode in your own words, for
@@ -32,57 +38,64 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
 Without the skill, copy it as it is into Copilot Chat in agent mode:
 
 ```text
-Follow bfo-stage-kit/FILL-STEPS.md from start to finish for the application whose code is in this workspace.
-First read bfo-stage-kit/register-template/REGISTER.md and the reference files FILL-STEPS.md cites in
-bfo-stage-kit/reference/. Look at bfo-stage-kit/example-eshop/ only to see what a finished register and its
-outputs look like; it is a different application and never a source of facts.
-Pick the application's main business flow: the one whose case the business most depends on. Do Step 11 first for the
-stage of that flow where a case most often waits, or can be left stranded, and say which stage you chose and why.
-Write the register into a new folder bfo-stage-kit/work/ named for the application, and generate the outputs with
-flow_outputs.py exactly as Step 11 says.
-Do not stop to ask me anything. Where the code does not say something, infer it and label it proposed: with the
-reason. Never edit a generated file: fix the register and generate again.
-When you finish, tell me the folder, the flow and stage you chose, the check results, and anything you could not do.
+Run bfo-stage-kit/SKILL.md for the application whose code is in this workspace, and any repositories,
+documents or diagrams I name here, following its calls into any other code you can get, with
+bfo-stage-kit/work/<application>/ as the register folder in place of bfo-work/<application>/. Its first act is
+RUN.md; follow its phases to the end and finish only when run_status.py says DONE.
+Do not stop to ask me anything. When you finish, tell me the folder, the flow and stage, the check results,
+anything you could not do, and paste run_status.py's output.
 ```
 
-**Every stage, one per run.** The map, the measures and the coverage check cover the whole flow in the first run.
-The failure modes, alerts and runbook (Step 11) are written for one stage per run, to keep each run's reading
-bounded. A flow is covered when every stage has had its Step 11: run it again on the same register for each of the
-others, saying *Do Step 11 for stage <id> next, in the register in <folder>*. The first run takes the stage where a
+To point it at sources, add one line at the end (optional): *These are the sources: …*, naming the repositories,
+pages, diagrams and process descriptions.
+
+**Every stage, one per run.** The map and the measures cover the whole flow in the first run. The coverage check
+fails a run only on its own stage and the flow; what only other stages hold is a warning until their own runs, so
+one stage's run passing does not mean the flow is covered. The failure modes, alerts and runbook (Step 11) are
+written for one stage per run, to keep each run's reading bounded. A flow is covered when every stage has had its
+Step 11 and its check passes: run it again on the same register for each of the
+others, saying *Do Step 11 for stage <id> next, in the register in <folder>*. Each such run regenerates and checks
+every stage already done, and is not finished until all of their checks pass. The first run takes the stage where a
 case most often waits or can be left stranded, because that is where cases are lost first; to set the order
 yourself, add one sentence at the end: *The stage I want first is …*.
 
-**A capability served by many services or repositories.** With many services in one repository the run still
-passes its check; across several repositories it has not been tried yet. Either way, read
-`KNOWN-GAPS.md` first: the runbook for a stage that many services carry is long. Two things help now:
-- add: *For this run's stage, read the code of the services that carry it in full. For the flow's other services,
+**A capability served by many services or repositories.** The same instructions hold at any size; FILL-STEPS
+covers what changes with the number of services. Tests of many parts of one kind become one sweep over all of them,
+shared dependencies are tested first, and a called service's own databases are reached through its tests. Citations
+are checked by sample, and every citation starts at the workspace root. The check errors only on the run's own
+stage and the flow; another stage's gaps wait for that stage's run. A capability spread over several repositories is not
+yet proven at that size. By default a run reads every service the flow touches. Two more things
+help:
+- only for a run that has to be cut, add: *For this run's stage, read the code of the services that carry it in full. For the flow's other services,
   read only what you need to place them, and gap their measures with the reason "not read in this run".* The runs
   for the other stages read their own services in full and replace those gaps.
-- open each repository as a folder of one workspace, and write every citation as a path from the workspace root, so
-  that no file is ambiguous between repositories.
+- open each repository as a folder of one workspace, and list each in `sources.csv` with its commit.
+
+Read `KNOWN-GAPS.md` for what is still open at that size.
 
 The run takes a while. If the model stops partway, say *continue from where you stopped, following FILL-STEPS.md*.
 
+**Where a run stands.** `RUN.md` in the register folder records each phase of the run as to do, doing, done or
+blocked, with the files that prove it or the reason it is blocked. Whether the run is done is said by
+`python <kit>/run_status.py <register folder>`, which lists every output the run owes and says DONE or NOT DONE.
+The Fullness block it prints after that line counts how full the register is and judges nothing.
+
 ## If you ran an earlier version of this kit
 
-The register from that run is kept: it is the folder of CSV files the run wrote in `bfo-stage-kit/work/`, named for
-the application. Before you replace the kit folder with this one, move that register folder out
-of `bfo-stage-kit/` (to `bfo-work/` at the workspace root), so replacing the kit does not delete it. Then copy this
-into Copilot Chat in agent mode, as it is:
+Keep the register from that run: the folder of CSV files in `bfo-stage-kit/work/`, or in `bfo-work/` if you used the
+kit as a skill. If it is inside `bfo-stage-kit/`, move it out (to `bfo-work/` at the workspace root) before you
+replace the kit folder with this one, so replacing the kit does not delete it. Then run the kit as usual.
 
-```text
-A register made with an earlier version of the bfo-stage-kit is in this workspace: a folder of CSV files including
-steps.csv, measures.csv and failure-modes.csv, under bfo-work/ or bfo-stage-kit/work/. Find it and tell me its path.
-The kit is the folder that holds flow_outputs.py, in .github/skills/bfo-stage-kit/ or bfo-stage-kit/.
-Run the kit's flow_outputs.py on that register with --check, for the flow and stage that the register's stage-
-folders are named for, as Step 12 of the kit's FILL-STEPS.md shows. For each failure, read the kit's KNOWN-GAPS.md,
-find the note that begins "A register filled with an earlier version of this kit" for that failure, and change the
-register as the note says, from the code in this workspace. Re-run the check after each change until it reports
-0 errors. Then generate the stage files for every stage the register has a stage- folder for, and the map with the
-kit's one_canvas.py into views.html in the register folder, with the commands FILL-STEPS.md gives.
-Do not stop to ask me anything. Never edit a generated file: fix the register and generate again.
-When you finish, tell me the register's path, what you changed and why, and the check results.
-```
+**The new run never builds on the earlier register, and never writes into it.** An earlier register is unchecked
+output, so the run walks the code afresh into a new register folder. Once its own map is checked, the kit's
+`reconcile.py` compares each earlier register with the new one, row by row. A row cited to code is checked against
+the code the new run read, and added only if the code says it. A row cited to a document is checked in the document.
+A row a person gave is carried forward, cited to that person, and any disagreement with the new run is listed for a
+person to settle. A guess (`proposed:`) is dropped, and a row about code the new run did not read is marked not
+assessed. `RUN.md` and the final report name each earlier register and what was added, carried, not supported, not
+assessed and disagreed. Alerts and runbooks from the earlier run are not carried: each stage gets its own new run.
+
+The earlier in-place upgrade prompt is retired (CHANGELOG, Release 2).
 
 ## What comes out
 
@@ -95,7 +108,7 @@ In `bfo-work/<application>/` at the workspace root when the kit is installed as 
   flow to light its chain and see its measures. `how-this-map-was-made.html` beside it says how the map was made, for whoever builds or checks it; each stage's
   `RUNBOOK.html` and `ALERT.html` sit in `stage-<id>/` beside it.
 
-`example-eshop/` is a finished example of all of it, for the stage "Accept the order" of eShop's order flow.
+`example-eshop/` is a finished example of all of it, for every stage of eShop's order flow: "Place the order", "Accept the order", "Ship the order" and "Deliver the order".
 
 ## How to read it
 

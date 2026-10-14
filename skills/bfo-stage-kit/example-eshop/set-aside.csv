@@ -7,7 +7,7 @@ AdventureWorks Concierge chat assistant (LLM agent in WebApp),out of scope part,
 Microsoft Foundry chat and embedding models,out of scope part,F2,Used by the chat assistant and catalogue semantic search only,eShop.AppHost/Extensions.cs:49-61; Catalog.API/Extensions/Extensions.cs:38-47
 identitydb,out of scope part,S10,Identity API's own store; no move of F1 names it,"eShop.AppHost/Program.cs:17, 24-27"
 WebhookClient (webhook receiver),out of scope part,S18,A receiver the AppHost runs; in F1 a subscriber is whatever URL was registered (S18),eShop.AppHost/Program.cs:66-68
-HybridApp (MAUI hybrid client),out of scope part,F1,No ordering code found in it (searched for 'order' in its .cs and .razor files),src/HybridApp (searched 2026-10-08); README.md
+HybridApp (MAUI hybrid client),out of scope part,F1,No ordering code found in it (searched for 'order' in its .cs and .razor files),src/HybridApp; README.md
 "eShop.AppHost, the Aspire dashboard and OpenTelemetry exporters",out of scope part,,Orchestration and monitoring; they carry no move,eShop.AppHost/Program.cs:1-104; eShop.ServiceDefaults/Extensions.cs:50-97
 A real payment gateway,other,6,Absent: the setting PaymentOptions:PaymentSucceeded stands in for it,PaymentProcessor/IntegrationEvents/EventHandling/OrderStatusChangedToStockConfirmedIntegrationEventHandler.cs:15-28; PaymentProcessor/appsettings.json:14-16
 Grace period an order waits in Submitted (1 minute),rule or policy,3,"A business rule the timer carries, not a level",OrderProcessor/appsettings.json:15; OrderProcessor/Services/GracePeriodManagerService.cs:51; OrderProcessor/Services/GracePeriodOrdersRepository.cs:27

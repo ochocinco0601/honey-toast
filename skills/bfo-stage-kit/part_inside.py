@@ -21,6 +21,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import capability_views as cv  # noqa: E402
 import step_sequence as ss  # noqa: E402
+import view_questions as vq  # noqa: E402
 
 GAP = ss.GAP
 W, ROWH, OPX = 760, 30, 14
@@ -311,10 +312,12 @@ def card(M, pid):
                      + ("" if cv.ids(r.get("step_hint")) else ", at start-up") + ")</span></li>"
                      for x, r in dict((x, r) for x, r in dep).items())
     hosted = [a for a, c in ins.items() if c == pid]
+    purpose = vq.purpose(M, pid)
     rows = [("Kind", E(s.get("part_kind", "")) or GAP),
-            ("Purpose", GAP),
-            ("Its operations, and the process steps each serves", f"<ul>{op_li}</ul>" if op_li else GAP),
-            ("Depends on", f"<ul>{dep_li}</ul>" if dep_li else "nothing on record"),
+            ("Purpose", E(purpose) or GAP),
+            ("Its operations, and the process steps each serves",
+             f"<ul>{op_li}</ul>" if op_li else vq.said(M, "part: operations", pid, GAP)),
+            ("Depends on", f"<ul>{dep_li}</ul>" if dep_li else vq.said(M, "part: depends on", pid, "nothing on record")),
             ("Where it sits", E(ss.where_it_sits(M, pid, ins)))]
     if hosted:
         rows.append(("Runs inside it", E(", ".join(M["subj"][a].get("name", "") for a in hosted))))
@@ -358,7 +361,7 @@ def key(M, pid):
             + (" The run below shows which of the agent's own operations reach each part." if agent else "")]
     if any(M["subj"][x].get("level") == "external dependency" for x in targets):
         rows.append("Long-dashed box: an external dependency, run by someone else.")
-    return ('<details class="seqkey" open><summary>Key to the drawing</summary><ul>'
+    return ('<details class="seqkey"><summary>Key to the drawing</summary><ul>'
             + "".join(f"<li>{cv.esc(r)}</li>" for r in rows) + "</ul></details>")
 
 

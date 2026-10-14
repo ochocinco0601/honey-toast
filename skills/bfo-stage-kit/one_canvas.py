@@ -94,6 +94,16 @@ def node_parts(M, rel):
     return out
 
 
+def node_steps(M):
+    """Per stage and flow box, the steps inside it."""
+    out = {}
+    for f in M["flows"]:
+        for st in f["_stages"]:
+            out["g:" + st["stage"]] = {x["step"] for x in st["_steps"]}
+        out["f:" + f["flow_id"]] = set().union(*[out["g:" + st["stage"]] for st in f["_stages"]])
+    return out
+
+
 def op_steps(M, pid, m):
     """The steps the part performs with an operation the measure names, in step order."""
     mo = ops(m.get("operation")) - {"reply"}
@@ -113,6 +123,13 @@ def part_measures(M, pid):
 def relied_measures(M, pid):
     """What a step relying on the part is shown: its measures not scoped to one step or stage, which a step lists as its own."""
     return [m for m in part_measures(M, pid) if not m.get("stage") and not m.get("step")]
+
+
+def relied_here(M, pid, steps):
+    """The part's relied-on measures that bear on these steps: those whose operation the part performs one of them
+    with, and those the register ties to no step (a measure of the whole part, or an operation no step names)."""
+    steps = set(steps)
+    return [m for m in relied_measures(M, pid) if not op_steps(M, pid, m) or steps & set(op_steps(M, pid, m))]
 
 
 def ops(v):
@@ -157,18 +174,18 @@ def coverage(M):
     the box relies on) or nothing proposed."""
     out, Ls = {}, layers(M)
     rel = relied_on(M)
-    via_of = lambda pids, skip=(): [m for p in pids for m in relied_measures(M, p) if m.get("handle") not in skip]
+    via_of = lambda pids, steps, skip=(): [m for p in pids for m in relied_here(M, p, steps) if m.get("handle") not in skip]
     at_op = at_operation(M)
     for sid in M["step"]:
         ms = own_at_step(M, sid, at_op)
-        via = via_of(rel[sid], {m.get("handle") for m in ms})
+        via = via_of(rel[sid], {sid}, {m.get("handle") for m in ms})
         out["s:" + sid] = with_any({L: status_with(ms, via, L) for L in Ls}, ms, via)
     for s in M["comps"] + M["deps"] + M["persons"] + [k for ks in M["dep_parts"].values() for k in ks]:
         ms = M["m_part"].get(s["subject_id"], [])
         out["p:" + s["subject_id"]] = with_any({L: status(ms, L) for L in Ls}, ms)
-    parts = node_parts(M, rel)
+    parts, under = node_parts(M, rel), node_steps(M)
     for key, ms in node_measures(M).items():
-        via = via_of(parts.get(key, ()))
+        via = via_of(parts.get(key, ()), under.get(key, ()))
         out[key] = with_any({L: status_with(ms, via, L) for L in Ls}, ms, via)
     return out
 
@@ -203,10 +220,24 @@ def the_map(M, mid="c", what="every flow", fold=None):
                      ("owner not assessed", "owner " + NS), ("run by: not assessed", "run by: " + NS),
                      ("owner and responder not assessed", "owner and responder " + NS)):
         svg = svg.replace(old, new)  # an empty owner cell reads as the tables read it
+    svg = re.sub(r'(<g class="sel folded"[^>]*data-node="([^"]*)")',  # a folded line names the boxes it hides
+                 lambda m: m.group(1) + (f' data-holds="{cv.esc(" ".join(held(M, html.unescape(m.group(2)))))}"'
+                                         if held(M, html.unescape(m.group(2))) else ""), svg)
     heads = "|".join(re.escape(k) for k in COLUMN_TERMS)
     return re.sub(r'<text ([^>]*)class="k">(' + heads + r')</text>',  # a column's name opens its meaning where it stands
                   lambda m: (f'<g class="term" tabindex="0" role="button" data-term="{cv.esc(COLUMN_TERMS[m.group(2)])}">'
                              f'<text {m.group(1)}class="k term">{m.group(2)}</text></g>'), svg)
+
+
+def held(M, node):
+    """What a folded line hides: a stage's steps, or a group's capabilities under it."""
+    if node.startswith("g:"):
+        return ["s:" + s["step"] for s in M["stage"][node[2:]]["_steps"]]
+
+    def under(cid):
+        return [m for k in M["kids"].get(cid, []) for m in [k["capability_id"]] + under(k["capability_id"])]
+    return ["c:" + m for m in under(node[2:])] if node.startswith("c:") else []
+
 
 COLUMN_TERMS = {'CAPABILITY': 'Capability', 'INTENDED FLOW': 'Intended flow', 'STAGE': 'Stage', 'PROCESS STEP': 'Process step', 'PART': 'Part', 'EXTERNAL DEPENDENCY': 'External dependency'}
 
@@ -217,23 +248,39 @@ def glossary_terms(M):
             re.findall(r"<tr><th>([^<]+)</th><td>(.*?)</td>", cv.words(M, set(M["stage"]), folded=True))}
 
 
-MAP_LINE = "Click any box to light its chain and open its details. ▸ opens a folded line."
+MAP_LINE = "Click any box to light its chain and open its details. ▸ expands a line; ▾ collapses it."
 
 
 def map_line():
-    """One plain line above the map, in place of a key: every mark is written on the box, and ▸ marks a folded line."""
+    """One plain line above the map, in place of a key: every mark is written on the box; ▸ expands a line and ▾ collapses it."""
     return f'<p class="mapline">{cv.esc(MAP_LINE)}</p>'
 
 
 def fold_keys(M):
-    """The folded maps the page carries: on load, each capability group opened, each flow and each stage in focus."""
-    return ([""] + ["c:" + r["capability_id"] for r in M["kids"].get("", [])]
-            + ["f:" + f["flow_id"] for f in M["flows"]] + ["g:" + s for s in M["stage"]])
+    """The folded maps the page carries: on load, each capability group opened, each stage's steps opened, each flow
+    and each stage in focus; then every map a ▸ or ▾ on one of those names (a line of others opened, a group folded)."""
+    return list(_folds(M))
+
+
+def _folds(M):
+    """{key: map}, every key a ▸ or ▾ reaches drawn once; "all" is the page's own open map."""
+    if "_folds" not in M:
+        out, todo = {}, ([""] + ["c:" + r["capability_id"] for r in M["kids"].get("", [])] + ["o:" + s for s in M["stage"]]
+                         + ["f:" + f["flow_id"] for f in M["flows"]] + ["g:" + s for s in M["stage"]])
+        while todo:
+            k = todo.pop(0)
+            if k in out:
+                continue
+            out[k] = the_map(M, "c", fold=k)
+            todo += [html.unescape(t) for t in re.findall(r'data-open="([^"]*)"', out[k]) if t != "all"
+                     and html.unescape(t) not in out and html.unescape(t) != "load"]
+        M["_folds"] = out
+    return M["_folds"]
 
 
 def folded_maps(M):
     """Each folded map as an inert template the page swaps in on a click; the open map is the page's own."""
-    return "".join(f'<template data-fold="{cv.esc(k or "load")}">{the_map(M, "c", fold=k)}</template>' for k in fold_keys(M))
+    return "".join(f'<template data-fold="{cv.esc(k or "load")}">{svg}</template>' for k, svg in _folds(M).items())
 
 
 def stage_docs(reg):
@@ -256,6 +303,88 @@ def watched(m):
         return ""
     src = (m.get("watched_source") or "").strip()
     return w + (": " + src if src else "")
+
+
+WHOLE_PART = "A measure of the whole part"  # the register's own words for a part measure with no operation
+NO_STEP = "Its operation is not one this part performs a step with"
+NO_ALERT_THRESHOLD = (fo.THRESHOLD.split("*")[1] + " No alert is proposed on this measure. Any value it is judged "
+                      "against, a number in its name included, is the operators' to set.")
+
+
+def gap_layer(R, question):
+    """The layer a measure-gaps.csv question is about, read off flow_outputs' coverage receipt: the promise and a
+    stage's questions are the first layer the receipt lets answer them (business health), a step's two are the
+    business layer after it (business impact), application and technology name their own layer, and a run metric or
+    an agent question is agentic. None for a question the receipt does not ask."""
+    if question == "the promise" or question in fo.STAGE_ASKS:
+        return fo.STAGE_ASKS.get(question, (fo.BUSINESS,))[0][0]
+    if question in fo.STEP_QUESTIONS:
+        return fo.BUSINESS[1]
+    if question in fo.LAYERS:
+        return question
+    if question in fo.RUN_QUESTIONS or question in {a["agent_question"] for a in R.get("agent-questions", [])}:
+        return "agentic"
+    return None
+
+
+GAP_LABELS = fo.GAP_KINDS  # measure-gaps.csv `kind` -> the words the panel opens a gap with
+
+
+def measure_names(R):
+    return {m["handle"]: "“" + (m.get("measure") or "") + "”" for m in R["measures"] if m.get("handle")}
+
+
+def id_names(R):
+    """Each register id a reason may name (a measure, a part, a stage, a flow), as the page names it."""
+    names = measure_names(R)
+    names.update({s["subject_id"]: s.get("name", "") for s in R["subjects"] if s.get("subject_id")})
+    names.update({s["stage"]: s.get("name", "") for s in R["stages"] if s.get("stage")})
+    names.update({f["flow_id"]: f.get("name", "") for f in R["flows"] if f.get("flow_id")})
+    return names
+
+
+def gap_label(M, g):
+    """The words a gap opens with, from its `kind`: a gap counted by another measure names that measure, the first
+    the reason names by id (flow_outputs --check fails a `counted by` gap whose reason names none)."""
+    kind = fo.norm(g.get("kind")).lower()
+    if kind not in GAP_LABELS:
+        return "No measure"  # --check fails a gap with no kind, but a register is drawn whatever the check says
+    if kind != "counted by":
+        return GAP_LABELS[kind]
+    handles = measure_names(M["R"])
+    first = next((w for w in re.findall(r"[\w-]+", g.get("why") or "") if w in handles), None)
+    return GAP_LABELS[kind] + (" " + handles[first] if first else "")
+
+
+def gap_text(M, g):
+    """A gap's line: the label of its kind, then its reason in plain words, every register id named by what it names,
+    and no sources: register provenance stays off the engineer's page."""
+    names = id_names(M["R"])
+    why = g.get("why") or ""
+    words = re.sub(r"\s*\(:\d[\d\s,–-]*\)", "", ss.plain(why))
+    if names:
+        ids = re.compile(r"(?<![\w-])(" + "|".join(re.escape(i) for i in sorted(names, key=len, reverse=True)) + r")(?![\w-])")
+        words = ids.sub(lambda m: names[m.group(1)], words)
+    words = re.sub(r"\b[Ss]teps? (\d+)\b",  # a step by the title the map gives it
+                   lambda m: "“" + cv.step_title(M, m.group(1)) + "”" if m.group(1) in M["step"] else m.group(0), words)
+    words = words.strip()
+    return cv.esc(gap_label(M, g) + ": " + words + ("" if words.endswith((".", "!", "?")) else "."))
+
+
+def gap_lines(M, P):
+    """Per box of the panel, per layer, each measure-gaps.csv gap there, labelled by its kind. A gap on a component, or on
+    one of its operations, shows under that part."""
+    path = pathlib.Path(M["R"].get("_path") or "") / "measure-gaps.csv"
+    if not M["R"].get("_path") or not path.exists():
+        return
+    R = dict(M["R"], **{"agent-questions": fo.read_csv(fo.HERE / "method" / "agent-questions.csv")})
+    for g in fo.read_csv(path):
+        el, layer = (g.get("element") or "").split(), gap_layer(R, fo.norm(g.get("question")))
+        kind = next((k for k in ("flows", "stages", "steps", "parts") if el and el[0] in P[k]), None)
+        if not (kind and layer and fo.norm(g.get("why")) and fo.norm(g.get("source"))):
+            continue
+        got = P[kind][el[0]].setdefault("gaps", {})
+        got[layer] = (got[layer] + " " if layer in got else "") + gap_text(M, g)
 
 
 def panel_data(M, docs=None):
@@ -297,10 +426,12 @@ def panel_data(M, docs=None):
         out["flows"][f["flow_id"]] = {"name": f.get("name", ""), "measures": [row(m) for m in mine]}
         for st in f["_stages"]:
             out["stages"][st["stage"]] = {"name": f'Stage {st.get("order")}: {st.get("name", "")}', "flow": f["flow_id"],
+                                          "label": f'Stage {st.get("order")}',
                                           "measures": [row(m) for m in ms if m.get("stage") == st["stage"] and not m.get("step")]}
             for x in st["_steps"]:
                 out["steps"][x["step"]] = {"name": cv.step_title(M, x["step"]), "stage": st["stage"], "flow": f["flow_id"],
                                            "qualifier": cv.plain_qualifier(x.get("qualifier", "")) if cv.carried(x) else "",
+                                           "unassessed": not cv.carried(x),
                                            "measures": [row(m) for m in own_at_step(M, x["step"], at_op)]}
     for sid, x in M["subj"].items():
         if x.get("kind") != "element" or sid in business:
@@ -309,25 +440,61 @@ def panel_data(M, docs=None):
                              "measures": [dict(row(m), n=i, at=at(op_steps(M, sid, m))) for i, m in enumerate(part_measures(M, sid), 1)]}
     order = {sid: i for i, sid in enumerate(M["subj"])}
 
-    def via(pids, skip=()):  # the measures of each part relied on, under its name, in the part's own form
-        rows = {p: [row(m) for m in relied_measures(M, p) if m.get("handle") not in skip] for p in pids if p in out["parts"]}
-        return [{"part": p, "name": out["parts"][p]["name"], "measures": rows[p]}
+    def where(p, m, steps):  # the steps of these a relied-on measure serves, or what the register says instead
+        here = [x for x in op_steps(M, p, m) if x in steps]
+        if here:
+            return at(here)
+        return WHOLE_PART if not ops(m.get("operation")) else NO_STEP
+
+    def via(pids, steps, skip=()):  # each part relied on: only its measures that bear on these steps, under its name
+        rows = {p: [dict(row(m), at=where(p, m, steps)) for m in relied_here(M, p, steps) if m.get("handle") not in skip]
+                for p in pids if p in out["parts"]}
+        def of(p):  # how many relied-on measures the part has in each layer, so a layer's list says how many it leaves out
+            n = {}
+            for m in relied_measures(M, p):
+                L = row(m)["layer"]
+                n[L] = n.get(L, 0) + 1
+            return n
+        return [{"part": p, "name": out["parts"][p]["name"], "measures": rows[p], "of": of(p)}
                 for p in sorted(rows, key=lambda p: order.get(p, 0)) if rows[p]]
-    rel = relied_on(M)
+    rel, under = relied_on(M), node_steps(M)
     nodes = node_parts(M, rel)
     for sid, nd in out["steps"].items():
-        nd["via"] = via(rel.get(sid, ()), {r["id"] for r in nd["measures"]})
+        nd["via"] = via(rel.get(sid, ()), {sid}, {r["id"] for r in nd["measures"]})
     for gid, nd in out["stages"].items():
-        nd["via"] = via(nodes.get("g:" + gid, ()))
+        nd["via"] = via(nodes.get("g:" + gid, ()), under["g:" + gid])
     for fid, nd in out["flows"].items():
-        nd["via"] = via(nodes.get("f:" + fid, ()))
+        nd["via"] = via(nodes.get("f:" + fid, ()), under["f:" + fid])
+    # the rail's header: a part's stages and flows (the steps relying on it), a dependency's reliers, a capability's group
+    used = {}
+    for sid, ps in rel.items():
+        for q in ps:
+            used.setdefault(q, set()).add(sid)
+    deps = {d["subject_id"] for d in M["deps"]}
+    for pid, nd in out["parts"].items():
+        steps = (used.get(pid, set()) | cv.steps_of(M, pid)) & set(out["steps"])
+        nd["stages"] = [g for g in out["stages"] if any(out["steps"][x]["stage"] == g for x in steps)]
+        nd["flows"] = [f for f in out["flows"] if any(out["steps"][x]["flow"] == f for x in steps)]
+        if pid in deps:
+            fam = {pid} | {k["subject_id"] for k in M.get("dep_parts", {}).get(pid, [])}
+            nd["relied_by"] = [c for c in out["parts"] if c not in fam and fam & M["uses"].get(c, set())]
+
+    def group(cid):  # the top of the capability's tree: its group, or none for a group itself
+        top, seen = cid, set()
+        while M["cap"].get(top, {}).get("parent") in M["cap"] and top not in seen:
+            seen.add(top)
+            top = M["cap"][top]["parent"]
+        return top if top != cid else ""
+    out["caps"] = {cid: {"name": c.get("name", ""), "group": group(cid)} for cid, c in M["cap"].items()}
     with (fo.HERE / "method" / "layers.csv").open(encoding="utf-8", newline="") as fh:
         import csv as _csv
-        out["layers"] = [{"layer": r["layer"], "heading": r["layer"][:1].upper() + r["layer"][1:] + ": " + r["question_it_asks"]}
+        out["layers"] = [{"layer": r["layer"], "name": r["layer"][:1].upper() + r["layer"][1:], "question": r["question_it_asks"]}
                          for r in _csv.DictReader(fh)]
-    out["threshold"] = "Threshold: " + fo.THRESHOLD.replace("*", "")
+    out["threshold"] = fo.THRESHOLD.replace("*", "")  # an alerting measure's own Threshold line, as the kit's alert form words it
+    out["threshold_none"] = NO_ALERT_THRESHOLD  # every other measure's Threshold line: the same operator value, no alert
     out["docs"] = docs or {}
     out["terms"] = glossary_terms(M)
+    gap_lines(M, out)
     return out
 
 
@@ -359,7 +526,7 @@ main{max-width:1440px}
 .side select{font:13px var(--sans);margin-top:6px;max-width:100%}
 .sw{display:inline-block;width:14px;height:12px;border:1px solid var(--g500);vertical-align:-1px;margin-right:6px}
 .key div{margin:2px 0}
-#readout ul{padding-left:18px;margin:4px 0}#readout ul.lines{list-style:none;padding-left:0}#readout .trail{font-size:13px;margin:0 0 6px}#readout .crumb{font:inherit;color:var(--clay-d);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}#readout .here{font-weight:600}#readout h4{font-size:13px;margin:10px 0 2px}#readout dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 8px;font-size:12.5px;margin:4px 0 8px}#readout dt{color:var(--g500)}#readout dd{margin:0;min-width:0;overflow-wrap:anywhere}#readout pre{white-space:pre-wrap;margin:0}
+#readout ul{padding-left:18px;margin:4px 0}#readout ul.lines{list-style:none;padding-left:0}#readout .mof{margin:0 0 6px}#readout h4{font-size:13px;margin:10px 0 2px}#readout dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 8px;font-size:12.5px;margin:4px 0 8px}#readout dt{color:var(--g500)}#readout dd{margin:0;min-width:0;overflow-wrap:anywhere}#readout pre{white-space:pre-wrap;margin:0}
 #readout li{margin-bottom:4px}#readout li.at{margin:8px 0 2px;font-weight:600;color:var(--g600)}.warn-state{color:var(--clay-d);font-weight:600}.warn-tag{color:var(--clay-d)}#readout details.via>ul.lines{padding-left:16px;border-left:1px solid var(--g300);margin-left:4px}
 .note{font-size:13px;color:var(--g600)}
 .tables{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;margin-top:18px}
@@ -373,15 +540,17 @@ details{margin:6px 0}summary{cursor:pointer}
 .words summary{cursor:pointer}.words summary h2{display:inline-block;border-top:none;margin:20px 0 6px;padding-top:0}
 .words td{word-break:break-word}
 table.readiness tr[hidden]{display:none}table.readiness ol.nums{margin:0;padding-left:20px}table.readiness ol.nums li{margin:0}table.readiness .crumb{font:inherit;font-weight:600;color:var(--clay-d);background:none;border:0;padding:0;cursor:pointer;text-align:left;text-decoration:underline}table.readiness tr.here>*{background:var(--g200)}table.readiness tr.here>th{box-shadow:inset 3px 0 0 var(--clay)}
-.mapline{font-size:12.5px;color:var(--g600);margin:0 0 6px;padding-right:300px}
+.mapline{font-size:12.5px;color:var(--g600);margin:0 0 6px}
+.fig>.zoom{position:static;justify-content:flex-end;margin:0 0 6px}
+.canvas .fig{box-sizing:border-box;height:96vh;display:flex;flex-direction:column}.canvas .fig svg.map{flex:1 1 0;min-height:0;height:auto}
 svg.map g.fold{cursor:pointer}svg.map g.fold:focus{outline:none}svg.map g.fold:focus-visible rect.bx{stroke:var(--clay)}
+svg.map g.sel.folded.held rect.bx{stroke-opacity:1!important;stroke-dasharray:none!important}
 svg.map g.term{cursor:help}svg.map g.term:focus-visible text{fill:var(--clay-d)}svg.map text.term{fill:var(--slate)}
 .termtip{position:absolute;z-index:5;max-width:22rem;background:var(--paper);border:1px solid var(--g400);border-radius:4px;padding:6px 8px;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.15)}
-.showall{font:13px var(--sans);color:var(--slate);background:var(--paper);border:1px solid var(--g400);border-radius:4px;padding:3px 9px;cursor:pointer}
-#stagedocs{margin-top:8px}
+.railhead{position:sticky;top:0;z-index:3;background:var(--ivory);margin:0 0 4px;padding:0 0 8px;border-bottom:1px solid var(--g300)}.railhead[hidden]{display:none}.railhead .trail{font-size:12.5px;margin:0;color:var(--g600)}.railhead .crumb{font:inherit;color:var(--clay-d);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}.railhead h2{font-size:20px;line-height:1.25;margin:2px 0 4px;border-top:none;padding-top:0}#stagedocs{margin:0}.rail a{color:var(--clay-d)}
 .pagehead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px}.pagehead h1{margin-right:auto}
 details.glossary{margin:0}details.glossary[open]{flex-basis:100%;order:2}
-.casemoves .trail{font-size:13px;margin:0 0 6px}.casemoves .here{font-weight:600}section.case[hidden]{display:none}details.glossary>summary{display:inline-block;font:13px var(--sans);color:var(--clay-d);text-decoration:underline;cursor:pointer}
+section.case[hidden]{display:none}details.glossary>summary{display:inline-block;font:13px var(--sans);color:var(--clay-d);text-decoration:underline;cursor:pointer}
 details.glossary[open]>summary{margin-bottom:6px}
 
 @media (max-width:1100px){.canvas,.tables{grid-template-columns:minmax(0,1fr)}.divider{display:none}.rail{position:static;max-height:none}}
@@ -395,15 +564,20 @@ details.glossary[open]>summary{margin-bottom:6px}
 #readout table.mtable{border-collapse:collapse;width:100%;font-size:12.5px;margin:2px 0 8px}#readout table.mtable th,#readout table.mtable td{text-align:left;vertical-align:top;padding:4px 6px;border-top:1px solid var(--g200)}
 #readout table.mtable{table-layout:fixed}#readout col.c-m{width:44%}#readout col.c-s{width:17%}#readout col.c-o{width:19%}#readout col.c-a{width:20%}#readout table.mtable td{overflow-wrap:anywhere}
 #readout table.mtable thead th{font:11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--g500);border-top:0}#readout table.mtable tr.at td{font-weight:600;color:var(--g600);padding-top:8px}
-#readout table.mtable tr.layer th{font-size:13px;font-weight:600;color:var(--slate);padding-top:12px;border-top:1px solid var(--g400)}#readout table.mtable tr.nil td,#readout table.mtable .tally{color:var(--g600)}
+#readout table.mtable tr.layer th{color:var(--slate);padding:20px 0 0;border-top:1px solid var(--g400)}#readout table.mtable tbody tr.layer:first-child th{border-top:0;padding-top:4px}
+#readout .lname,#readout .lband{display:block;background:var(--g200);color:var(--slate);font:600 14px var(--sans);border-radius:3px;padding:3px 8px;margin:0}
+#readout .lq{display:block;font:400 12px var(--sans);color:var(--g600);margin:3px 8px 4px}
+#readout .lgroup{border-bottom:1px solid var(--g400);padding-bottom:6px;margin:0 0 16px}#readout .lgroup>ul.lines,#readout .lgroup>div.nil{margin:2px 0 0 16px}#readout div.nil{color:var(--g600);font-size:12.5px}
+#readout li.relies,#readout table.mtable tr.relies td{font:600 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--g500);margin:8px 0 2px}
+#readout table.mtable tr.mrow>td:first-child,#readout table.mtable tr.at td,#readout table.mtable tr.more td,#readout table.mtable tr.nil td{padding-left:16px}#readout table.mtable tr.relies td{padding:8px 6px 2px 16px}#readout table.mtable tr.nil td,#readout table.mtable .tally{color:var(--g600)}
 #readout table.mtable .why{display:block;color:var(--clay-d);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#readout table.mtable tr[hidden]{display:none}
 #readout table.mtable .mmore{font:inherit;color:var(--clay-d);background:none;border:0;padding:0 0 0 14px;cursor:pointer;text-decoration:underline}
 #readout table.mtable .mopen{font:inherit;color:var(--slate);background:none;border:0;padding:0;cursor:pointer;text-align:left}#readout table.mtable .mopen::before{content:"▸ ";color:var(--g500)}#readout table.mtable .mopen[aria-expanded="true"]::before{content:"▾ "}
-#readout table.mtable tr.mform>td{border-top:0;padding:0 6px 6px 22px}#readout tr.mform[hidden]{display:none}
-#seqout .trail{font-size:13px;margin:0 0 6px}#seqout .crumb{font:inherit;color:var(--clay-d);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}#seqout .here{font-weight:600}
+#readout table.mtable tr.mform>td{border-top:0;padding:0 6px 6px 32px}#readout table.mtable>tbody{border-bottom:1px solid var(--g400)}#readout tr.mform[hidden]{display:none}
 .rail [hidden]{display:none!important}#rail-prompt{margin:0}
 #seqout section.seq[hidden]{display:none}
-#insideout section.inside[hidden]{display:none}#insideout .trail{font-size:13px;margin:0 0 6px}#insideout .here{font-weight:600}
+#insideout section.inside[hidden]{display:none}
+.rail>*{min-width:0}.rail .seqfig{overflow-x:auto;overflow-y:hidden}.rail p.figcut{margin:0 0 8px;color:var(--g600);font-size:12.5px}
 #insideout .seqfig{background:var(--paper);border:1px solid var(--g200);border-radius:4px;margin:0 0 6px;overflow-x:auto}
 #insideout svg.seq{display:block;width:100%;height:auto;min-width:0;cursor:default;touch-action:auto}
 #seqout .seqfig{background:var(--paper);border:1px solid var(--g200);border-radius:4px;margin:0 0 6px;overflow-x:auto}
@@ -413,6 +587,8 @@ details.glossary[open]>summary{margin-bottom:6px}
 #seqout .card ol,#seqout .card ul{margin:0;padding-left:18px}#seqout .card li{margin:0 0 3px}
 #seqout details{font-size:12px;color:var(--g600)}#seqout details ul{padding-left:18px;margin:4px 0}
 .canvas:not(.wide-seq) #seqout .card dl{grid-template-columns:minmax(0,1fr)}
+.canvas:not(.wide-seq) .insideout .card dl{grid-template-columns:minmax(0,1fr)}
+.canvas:not(.wide-seq) .casemoves .card dl{grid-template-columns:minmax(0,1fr)}
 svg.seq .frame{fill:none;stroke:var(--g500);stroke-width:1.1}
 svg.seq .tag{fill:var(--g200);stroke:var(--g500);stroke-width:1.1}
 svg.seq .tagt{font:600 12px var(--sans);fill:var(--slate)}
@@ -438,7 +614,7 @@ svg.seq .guard{font-family:var(--sans);font-size:12px;fill:var(--slate)}
 """
 
 FOLD_JS = """<script>
-(function () {  // folding: the thing in focus open, its neighbours one line each; Show all opens everything
+(function () {  // folding: the thing in focus open, its neighbours one line each; ▸ expands, ▾ collapses; Show all opens everything
   var svg = document.querySelector('svg.map'); if (!svg) return;
   var T = {}, now = '', ALL = svg.cloneNode(true);
   document.querySelectorAll('template[data-fold]').forEach(function (t) { T[t.dataset.fold] = t; });
@@ -456,13 +632,38 @@ FOLD_JS = """<script>
   window.cvFold = show;
   svg.addEventListener('click', function (ev) {  // capture: the map is swapped before the click lights its chain
     if (svg.dataset.dragged) return;
+    var t = ev.target.closest('g.tog, g.fold');  // a ▸ or ▾ opens or folds, and never changes what is picked
+    if (t) { ev.stopPropagation(); show(t.dataset.open); return; }
     var g = ev.target.closest('[data-open]'); if (g) show(g.dataset.open);
   }, true);
   svg.addEventListener('keydown', function (ev) {
-    var g = ev.target.closest && ev.target.closest('g.fold');
-    if (g && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); g.dispatchEvent(new MouseEvent('click', {bubbles: true})); }
-  });
+    var t = ev.target.closest && ev.target.closest('g.tog, g.fold');
+    if (t && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); ev.stopPropagation(); show(t.dataset.open); }
+  }, true);
   document.querySelectorAll('[data-showall]').forEach(function (b) { b.addEventListener('click', function () { show('all'); }); });
+  document.querySelectorAll('[data-collapseall]').forEach(function (b) {  // every line back to its on-load fold; the pick stays lit, its panels stay
+    b.addEventListener('click', function () { show('load'); });
+  });
+})();
+</script>"""
+
+HELD_JS = """<script>
+(function () {  // a folded stage or group line that hides lit boxes says how many, and lights rather than dims
+  var svg = document.querySelector('svg.map'); if (!svg) return;
+  var CHAIN = {};
+  try { CHAIN = JSON.parse((document.getElementById('chain-data') || {}).textContent || '{}'); } catch (e) {}
+  function count() {
+    var cur = svg.dataset.cur, lit = new Set(cur ? [cur].concat(CHAIN[cur] || []) : []);
+    svg.querySelectorAll('g.sel.folded[data-holds]').forEach(function (x) {
+      var ts = x.querySelectorAll('text'), t = ts[ts.length - 1];
+      if (t.dataset.said !== undefined) { t.textContent = t.dataset.said; delete t.dataset.said; }
+      x.classList.remove('held');
+      var n = cur ? x.dataset.holds.split(' ').filter(function (k) { return lit.has(k); }).length : 0;
+      if (n) { x.classList.add('held'); x.classList.remove('off'); t.dataset.said = t.textContent; t.textContent += ' \\u00b7 ' + n + ' lit'; }
+    });
+  }
+  new MutationObserver(count).observe(svg, {attributes: true, attributeFilter: ['data-cur']});
+  svg.addEventListener('mapswap', count);
 })();
 </script>"""
 
@@ -472,7 +673,7 @@ JS = """<script>
   var key = function (g) { return g.dataset.node || (g.dataset.step ? 's:' + g.dataset.step : 'p:' + g.dataset.part); };
   document.querySelectorAll('[data-showall]').forEach(function (b) {
     b.addEventListener('click', function () {
-      document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'})); stageDocs(''); view('');
+      document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'})); railHead(''); view('');
       readout.innerHTML = '<p class="note">Click a process step, a part, a stage or a flow to see its measures.</p>';
       document.querySelectorAll('section.seq, section.inside').forEach(function (x) { x.hidden = true; });
       ['seq-empty', 'inside-empty'].forEach(function (id) { var e = document.getElementById(id); if (e) e.hidden = false; });
@@ -499,22 +700,28 @@ JS = """<script>
   }
   terms(); svg.addEventListener('mapswap', terms);  // a folded map swapped in brings its own column names
   document.addEventListener('click', function (ev) { if (!ev.target.closest('g.term')) tip.hidden = true; });
-  var docsBox = document.getElementById('stagedocs'), prompt = document.getElementById('rail-prompt');
+  var head = document.getElementById('railhead'), prompt = document.getElementById('rail-prompt');
   var VIEWS = {'s:': '.seqpanel', 'p:': '.insidepanel', 'g:': '.casepanel[data-kind="stage"]', 'f:': '.casepanel[data-kind="flow"]'};
-  function view(k) {  // one view at a time: the one for the kind clicked, plus Measures; nothing clicked, one line
-    if (prompt) prompt.hidden = !!k;
-    document.querySelectorAll('aside.measpanel').forEach(function (x) { x.hidden = !k; });
-    if (docsBox) docsBox.hidden = k !== 'g:';
+  function view(k) {  // one view at a time: the one for the kind clicked, then Measures; nothing clicked, one line
+    if (prompt) prompt.hidden = prompt.parentNode.hidden = !!k;  // the line's own box goes too, leaving no gap
+    document.querySelectorAll('aside.measpanel').forEach(function (x) { x.hidden = !k || k === 'c:'; });  // a capability: its header only
     Object.keys(VIEWS).forEach(function (v) { document.querySelectorAll('aside' + VIEWS[v]).forEach(function (x) { x.hidden = v !== k; }); });
   }
   view('');
-  function stageDocs(st) {  // the stage's alerts and runbook, once anything in a stage is chosen
-    if (!docsBox) return;
-    var d = st && P.docs[st];
-    docsBox.innerHTML = d ? '<b>' + esc(P.stages[st].name) + '</b>: ' + Object.keys(d).map(function (k) {
-      return '<a href="' + esc(d[k]) + '">' + esc(k) + '</a>'; }).join(' · ') : st ? esc(P.stages[st].name) + ': no alerts or runbook generated for this stage yet.' : '';
+  function railHead(name, trail, st) {  // the rail names its subject once: the trail up the chain, the name, its stage's documents
+    if (!head) return;
+    head.hidden = !name;
+    if (!name) return;
+    var t = document.getElementById('railtrail'), docs = document.getElementById('stagedocs'), d = st && P.docs[st];
+    t.innerHTML = trail.length ? trail.join(' <span class="sep">›</span> ') + ' <span class="sep">›</span>' : '';
+    t.hidden = !trail.length;
+    document.getElementById('railname').textContent = name;
+    docs.innerHTML = !st ? '' : esc(P.stages[st].label) + ': ' + (d && Object.keys(d).length ? Object.keys(d).map(function (k) {
+      return '<a href="' + esc(d[k]) + '">' + esc(k) + '</a>'; }).join(' · ') : 'no alerts or runbook yet');  // always names its stage
+    docs.hidden = !st;
   }
-  function mlabel(m) { return (m.n ? m.n + '. ' : '') + esc(m.title) + (m.state === 'defective' ? ' <b class="warn-state">(exists, but misleading)</b>' : esc(' (' + (m.state === 'exists' ? 'exists' : 'proposed') + ')')) + (m.alert ? ' <b>proposed alert</b>' : ''); }
+  function mlabel(m) { return (m.n ? m.n + '. ' : '') + esc(m.title) + (m.state === 'defective' ? ' <b class="warn-state">(exists, but misleading)</b>' : esc(' (' + (m.state === 'exists' ? 'exists' : 'proposed') + ')')) + (m.alert ? ' ' + alertLink(m) : ''); }
+  function alertLink(m) { return m.runbook ? '<a class="alert" href="' + esc(m.runbook) + '"><b>proposed alert</b></a>' : '<b>proposed alert</b>'; }  // the same entry the widened Alert cell opens
   function mtitle(m) { return (m.n ? m.n + '. ' : '') + esc(m.title) + (m.alert ? ' <b>proposed alert</b>' : ''); }
   function mstate(m) { return m.state === 'defective' ? '<b class="warn-state">' + esc('exists, but misleading') + '</b>' : esc(m.state === 'exists' ? 'exists' : 'proposed'); }
   function mrow(m, on, fold) {  // widened: the same measure line as a table row; opening it gives the same form
@@ -530,46 +737,64 @@ JS = """<script>
   }
   function detail(m) {
     var rows = [['Answers', esc(m.answers)], ['Kind', esc(m.kind)], ['Counted on', esc(m.counted_on)],
-      ['Counted how', /^(oc |psql|curl|kubectl)|-- psql/.test(m.how) ? '<pre>' + esc(m.how) + '</pre>' : esc(m.how)], ['Exists today', esc(m.exists_today)]].concat(m.watched ? [['Watched', esc(m.watched)]] : []).concat(m.defect ? [['Why misleading', esc(m.defect)]] : []).concat(m.runbook ? [['Its alert', '<a href="' + esc(m.runbook) + '">this alert&rsquo;s entry in the runbook</a>']] : []);
+      ['Counted how', /^(oc |psql|curl|kubectl)|-- psql/.test(m.how) ? '<pre>' + esc(m.how) + '</pre>' : esc(m.how)], ['Exists today', esc(m.exists_today)]].concat(m.watched ? [['Watched', esc(m.watched)]] : []).concat(m.defect ? [['Why misleading', esc(m.defect)]] : []).concat([['Threshold', esc(m.alert ? P.threshold : P.threshold_none)]]).concat(m.runbook ? [['Its alert', '<a href="' + esc(m.runbook) + '">this alert&rsquo;s entry in the runbook</a>']] : []);
     return '<dl>' + rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl>';
   }
-  function crumb(label, node) { return node ? '<button type="button" class="crumb" data-go="' + esc(node) + '">' + esc(label) + '</button>' : '<span class="here">' + esc(label) + '</span>'; }
+  function crumb(label, node) { return node ? '<button type="button" class="crumb" data-go="' + esc(node) + '">' + esc(label) + '</button>' : esc(label); }
+  var OF = {'f:': 'Of this flow, and of the parts its steps rely on', 'g:': 'Of this stage, and of the parts its steps rely on',
+    's:': 'Of this step, and of the parts it relies on', 'p:': 'Of this part'};  // whose measures these are
+  function either(xs) { return xs.join(', '); }  // several flows, or several reliers: one place in the trail
   function openNode(node) {
-    var k = node.slice(0, 2), id = node.slice(2), nd, trail;
-    stageDocs(k === 'g:' ? id : '');
-    if (k === 's:') { nd = P.steps[id]; if (!nd) return false; trail = [crumb(P.flows[nd.flow].name, 'f:' + nd.flow), crumb(P.stages[nd.stage].name, 'g:' + nd.stage), crumb(nd.name)]; }
-    else if (k === 'g:') { nd = P.stages[id]; if (!nd) return false; trail = [crumb(P.flows[nd.flow].name, 'f:' + nd.flow), crumb(nd.name)]; }
-    else if (k === 'f:') { nd = P.flows[id]; if (!nd) return false; trail = [crumb(nd.name)]; }
-    else if (k === 'p:') { nd = P.parts[id]; if (!nd) return false; trail = [crumb(nd.kind), crumb(nd.name)]; }
+    var k = node.slice(0, 2), id = node.slice(2), nd, trail, st = '';
+    if (k === 's:') { nd = P.steps[id]; if (!nd) return false; trail = [crumb(P.flows[nd.flow].name, 'f:' + nd.flow), crumb(P.stages[nd.stage].name, 'g:' + nd.stage)]; st = nd.stage; }
+    else if (k === 'g:') { nd = P.stages[id]; if (!nd) return false; trail = [crumb(P.flows[nd.flow].name, 'f:' + nd.flow)]; st = id; }
+    else if (k === 'f:') { nd = P.flows[id]; if (!nd) return false; trail = []; }
+    else if (k === 'p:') {  // a part: its flow, and its stage's documents when it is used in one stage only; a dependency: the parts relying on it
+      nd = P.parts[id]; if (!nd) return false;
+      if (nd.relied_by) trail = nd.relied_by.length ? [either(nd.relied_by.map(function (q) { return crumb(P.parts[q].name, 'p:' + q); }))] : [];
+      else { trail = nd.flows.length ? [either(nd.flows.map(function (f) { return crumb(P.flows[f].name, 'f:' + f); }))] : []; st = nd.stages.length === 1 ? nd.stages[0] : ''; }
+    }
+    else if (k === 'c:') {  // a capability: its group above it, and nothing else in the rail
+      nd = P.caps[id]; if (!nd) return false;
+      view(k); railHead(nd.name, nd.group ? [crumb(P.caps[nd.group].name, 'c:' + nd.group)] : [], '');
+      document.dispatchEvent(new CustomEvent('cvpick', {detail: node}));
+      return true;
+    }
     else return false;
-    view(k);
+    view(k); railHead(nd.name, trail, st);
     document.dispatchEvent(new CustomEvent('cvpick', {detail: node}));  // a pick not on the folded map still reaches its view
-    var out = '<p class="trail">' + trail.join(' <span class="sep">›</span> ') + '</p>';
+    var out = '<p class="note mof">' + OF[k] + '</p>';
     if (nd.qualifier) out += '<p class="note">' + esc(nd.qualifier) + '</p>';
-    var line = function (m) { return '<li><details><summary>' + mlabel(m) + '</summary>' + detail(m) + '</details></li>'; }, any = nd.measures.length > 0;
+    var line = function (m) { return '<li><details><summary>' + mlabel(m) + '</summary>' + detail(m) + '</details></li>'; };
     var narrow = '', wide = '', self = {'s:': 'this step', 'p:': 'this part', 'g:': 'this stage', 'f:': 'this flow'}[k], nf = 0;
-    P.layers.forEach(function (L) {
+    var RELIES = k === 's:' ? 'On parts it relies on' : 'On parts its steps rely on', NONE = 'No measure on record';
+    var UNASSESSED = 'Not assessed: no part carrying this step was found in the sources examined.';
+    P.layers.forEach(function (L) {  // each layer its own group: a band with its name, its question beneath, a rule closing it
       var inL = function (m) { return m.layer === L.layer; }, ms = nd.measures.filter(inL);
-      var vs = (nd.via || []).map(function (v) { return {name: v.name, ms: v.measures.filter(inL)}; }).filter(function (v) { return v.ms.length; });
-      wide += '<tr class="layer"><th colspan="4" scope="colgroup">' + esc(L.heading) + '</th></tr>';
-      if (!ms.length && !vs.length) { wide += '<tr class="nil"><td colspan="4">No measure for ' + self + '</td></tr>'; return; }
-      any = true;
+      var vs = (nd.via || []).map(function (v) { return {name: v.name, of: v.of[L.layer] || 0, ms: v.measures.filter(inL)}; }).filter(function (v) { return v.ms.length; });
+      wide += '<tr class="layer"><th colspan="4" scope="colgroup"><span class="lname">' + esc(L.name) + '</span><span class="lq">' + esc(L.question) + '</span></th></tr>';
+      narrow += '<section class="lgroup"><h4 class="lband">' + esc(L.name) + '</h4><p class="lq">' + esc(L.question) + '</p>';
+      if (!ms.length && !vs.length) {  // not found is not absent: a layer the run gapped says why, one it did not says only that none is on record
+        var gap = (nd.gaps || {})[L.layer], nil = nd.unassessed ? UNASSESSED : gap || NONE;  // each gap opens with its kind
+        wide += '<tr class="nil"><td colspan="4">' + nil + '</td></tr>'; narrow += '<div class="nil">' + nil + '</div></section>'; return; }
       var last = '', lastW = '';
       wide += ms.map(function (m) { var head = m.at && m.at !== lastW ? '<tr class="at"><td colspan="4">' + esc(m.at) + '</td></tr>' : ''; lastW = m.at || lastW; return head + mrow(m, self); }).join('') +
+        (vs.length ? '<tr class="relies"><td colspan="4">' + RELIES + '</td></tr>' : '') +
         vs.map(function (v) {  // every part relied on is counted: its first row, the rest folded with their states
           var rest = v.ms.slice(1), f = 'mf' + (nf++);
-          return mrow(v.ms[0], v.name) + (rest.length ? '<tr class="more"><td colspan="4"><button type="button" class="mmore" data-fold="' + f + '" aria-expanded="false">' +
+          var on = function (m) { return v.name + ': ' + m.at; };  // which of this box's steps the measure serves, or the register's word for none
+          return mrow(v.ms[0], on(v.ms[0])) + (rest.length ? '<tr class="more"><td colspan="4"><button type="button" class="mmore" data-fold="' + f + '" aria-expanded="false">' +
             esc('… ' + rest.length + ' more on ' + v.name) + '</button> <span class="tally">' + tally(rest) + '</span></td></tr>' +
-            rest.map(function (m) { return mrow(m, v.name, f); }).join('') : ''); }).join('');
-      narrow += '<h4>' + esc(L.heading) + '</h4><ul class="lines">' + ms.map(function (m) {
+            rest.map(function (m) { return mrow(m, on(m), f); }).join('') : ''); }).join('');
+      narrow += '<ul class="lines">' + ms.map(function (m) {
         var head = m.at && m.at !== last ? '<li class="note at">' + esc(m.at) + '</li>' : ''; last = m.at || last;
-        return head + line(m); }).join('') + (vs.length ? '<li class="note">On a part it relies on:</li>' : '') + vs.map(function (v) {
-        return '<li><details class="via"><summary>' + esc(v.name + ' (' + v.ms.length + (v.ms.length === 1 ? ' measure' : ' measures')) + (function (d) { return d ? ', <b class="warn-state">' + d + ' ' + esc('exists, but misleading') + '</b>' : ''; })(v.ms.filter(function (m) { return m.state === 'defective'; }).length) + ')' +
-          '</summary><ul class="lines">' + v.ms.map(line).join('') + '</ul></details></li>'; }).join('') + '</ul>';
+        return head + line(m); }).join('') + (vs.length ? '<li class="relies">' + RELIES + '</li>' : '') + vs.map(function (v) {
+        var at = '';  // headed by the step each serves, as this box's own measures are
+        return '<li><details class="via"><summary>' + esc(v.name + ' (' + v.ms.length + ' of its ' + v.of + (v.of === 1 ? ' measure' : ' measures') + ' here') + (function (d) { return d ? ', <b class="warn-state">' + d + ' ' + esc('exists, but misleading') + '</b>' : ''; })(v.ms.filter(function (m) { return m.state === 'defective'; }).length) + ')' +
+          '</summary><ul class="lines">' + v.ms.map(function (m) { var head = m.at !== at ? '<li class="note at">' + esc(m.at) + '</li>' : ''; at = m.at; return head + line(m); }).join('') + '</ul></details></li>'; }).join('') + '</ul></section>';
     });
-    if (narrow) out += '<div class="m-narrow">' + narrow + '</div><div class="m-wide"><table class="mtable"><colgroup><col class="c-m"><col class="c-s"><col class="c-o"><col class="c-a"></colgroup>' +
+    out += '<div class="m-narrow">' + narrow + '</div><div class="m-wide"><table class="mtable"><colgroup><col class="c-m"><col class="c-s"><col class="c-o"><col class="c-a"></colgroup>' +
       '<thead><tr><th scope="col">Measure</th><th scope="col">State</th><th scope="col">On</th><th scope="col">Alert</th></tr></thead><tbody>' + wide + '</tbody></table></div>';
-    out += any ? '<p class="note">' + esc(P.threshold) + '</p>' : '<p class="note">none</p>';
     readout.innerHTML = out;
     return true;
   }
@@ -588,9 +813,11 @@ JS = """<script>
         if (r.classList.contains('mrow')) { r.hidden = !open; r.querySelector('.mopen').setAttribute('aria-expanded', false); } else r.hidden = true; });
       return;
     }
+  });
+  if (head) head.addEventListener('click', function (ev) {  // the trail clicks up the chain, as a click on the map would
     var b = ev.target.closest('button.crumb'); if (!b) return;
     var node = b.dataset.go, k = node.slice(0, 2), id = node.slice(2);
-    var g = svg.querySelector(k === 'g:' || k === 'f:' ? 'g.sel[data-node="' + node + '"]' : k === 's:' ? 'g.sel[data-step="' + id + '"]' : 'g.sel[data-part="' + id + '"]');
+    var g = svg.querySelector(k === 'g:' || k === 'f:' || k === 'c:' ? 'g.sel[data-node="' + node + '"]' : k === 's:' ? 'g.sel[data-step="' + id + '"]' : 'g.sel[data-part="' + id + '"]');
     if (g) g.dispatchEvent(new MouseEvent('click', {bubbles: true})); else openNode(node);
   });
 })();
@@ -695,12 +922,25 @@ SEQ_JS = """<script>
       });
     });
   });
-  out.addEventListener('click', function (ev) {
-    var b = ev.target.closest('button.crumb'); if (!b) return;
-    var node = b.dataset.go, k = node.slice(0, 2), id = node.slice(2);
-    var svg = document.querySelector('svg.map'); if (!svg) return;
-    var g = svg.querySelector(k === 's:' ? 'g.sel[data-step="' + id + '"]' : 'g.sel[data-node="' + node + '"]');
-    if (g) g.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+})();
+</script>"""
+
+RAIL_FIG_NOTE = "Wider than the panel: scroll it, or Widen this panel."
+RAIL_FIG_JS = """<script>
+(function () {  // a drawing in the rail is never zoomed out for the reader: its smallest text keeps the panel's body size,
+  // and a drawing wider than the panel at that size scrolls inside its own frame, with one line saying so
+  var NOTE = """ + json.dumps(RAIL_FIG_NOTE) + """;
+  document.querySelectorAll('.rail .seqfig').forEach(function (f) {
+    var svg = f.querySelector('svg'); if (!svg) return;
+    var vb = (svg.getAttribute('viewBox') || '').split(/[\\s,]+/).map(Number), w = vb[2];
+    var sizes = [].map.call(svg.querySelectorAll('text'), function (t) { return parseFloat(getComputedStyle(t).fontSize) || 0; })
+      .filter(function (s) { return s > 0; });
+    var body = parseFloat(getComputedStyle(f.closest('.panel') || f.parentNode).fontSize) || 13;
+    if (w > 0 && sizes.length) svg.style.minWidth = Math.ceil(w * body / Math.min.apply(null, sizes)) + 'px';
+    var note = document.createElement('p'); note.className = 'note figcut'; note.textContent = NOTE; note.hidden = true;
+    f.parentNode.insertBefore(note, f.nextSibling);
+    var check = function () { note.hidden = !(f.clientWidth > 0 && f.scrollWidth > f.clientWidth + 1); };
+    if (window.ResizeObserver) new ResizeObserver(check).observe(f); else window.addEventListener('resize', check);
   });
 })();
 </script>"""
@@ -709,17 +949,11 @@ SEQ_JS = """<script>
 def seq_panel(M):
     """The step, in order: a panel of its own beside the measures panel, empty until a step is clicked; each step's
     sequence drawing and scenario card drawn once, shown by the click on the step."""
-    crumb = lambda label, node: (f'<button type="button" class="crumb" data-go="{cv.esc(node)}">{cv.esc(label)}</button>'
-                                 if node else f'<span class="here">{cv.esc(label)}</span>')
     blocks = []
     for f in M["flows"]:
         for st in f["_stages"]:
             for x in st["_steps"]:
-                trail = ' <span class="sep">&rsaquo;</span> '.join([
-                    crumb(f.get("name", ""), "f:" + f["flow_id"]), crumb(f'Stage {st.get("order")}: {st.get("name", "")}', "g:" + st["stage"]),
-                    crumb(cv.step_title(M, x["step"]), "")])
-                blocks.append(f'<section class="seq" data-seq="{cv.esc(x["step"])}" hidden><p class="trail">{trail}</p>'
-                              f'{ss.block(M, x["step"])}</section>')
+                blocks.append(f'<section class="seq" data-seq="{cv.esc(x["step"])}" hidden>{ss.block(M, x["step"])}</section>')
     return ('<aside class="panel seqpanel" hidden><div class="seqhead"><h3>How this step is carried out</h3>'
             '<button type="button" class="widen" data-widen aria-pressed="false">Widen this panel</button></div>'
             '<div id="seqout"><p class="note" id="seq-empty">Click a step on the map to see its interactions in order, '
@@ -733,11 +967,9 @@ def case_panels(M, docs):
         return (f'<aside class="panel casepanel" data-kind="{kind}" hidden><div class="seqhead"><h3>{cv.esc(title)}</h3>' +
                 f'<button type="button" class="widen" data-widen aria-pressed="false">Widen this panel</button></div>'
                 f'<div class="casemoves"><p class="note case-empty">{empty}</p>' + "".join(blocks) + "</div></aside>")
-    stages = [f'<section class="case" data-case="g:{cv.esc(st["stage"])}" hidden><p class="trail"><span class="here">'
-              f'Stage {cv.esc(st.get("order", ""))}: {cv.esc(st.get("name", ""))}</span></p>{sfv.block(M, st["stage"], docs)}</section>'
+    stages = [f'<section class="case" data-case="g:{cv.esc(st["stage"])}" hidden>{sfv.block(M, st["stage"], docs)}</section>'
               for f in M["flows"] for st in f["_stages"]]
-    flows = [f'<section class="case" data-case="f:{cv.esc(f["flow_id"])}" hidden><p class="trail"><span class="here">'
-             f'{cv.esc(f.get("name", ""))}</span></p>'
+    flows = [f'<section class="case" data-case="f:{cv.esc(f["flow_id"])}" hidden>'
              + (sfv.flow_block(M, f["flow_id"], docs) if f["_stages"] else
                 '<p class="note">The register does not break this flow into stages, so there is no order of stages '
                 'to draw.</p>') + '</section>'
@@ -761,11 +993,9 @@ def kind_said(M, p, block):
 def inside_panel(M, drawn=None):
     """Inside this part: a panel of its own beside the measures panel, empty until a part is clicked; each part's
     operations, card and, for an AI agent, its run, drawn once and shown by the click on the part."""
-    blocks = [f'<section class="inside" data-inside="{cv.esc(p)}" hidden><p class="trail"><span class="here">'
-              f'{cv.esc(M["subj"][p].get("name", ""))}</span></p>{kind_said(M, p, pi.block(M, p))}</section>'
+    blocks = [f'<section class="inside" data-inside="{cv.esc(p)}" hidden>{kind_said(M, p, pi.block(M, p))}</section>'
               for p in pi.parts(M) if drawn is None or p in drawn]
-    blocks += [f'<section class="inside" data-inside="{cv.esc(x["subject_id"])}" hidden><p class="trail"><span class="here">'
-               f'{cv.esc(x.get("name", ""))}</span></p><p class="note">A person: no operations or parts inside to draw. '
+    blocks += [f'<section class="inside" data-inside="{cv.esc(x["subject_id"])}" hidden><p class="note">A person: no operations or parts inside to draw. '
                f'The process steps they carry out light on the map, and their measures are in Measures.</p></section>'
                for x in M["persons"] if drawn is None or x["subject_id"] in drawn]
     return ('<aside class="panel insidepanel" hidden><div class="seqhead"><h3>Inside this part</h3>'
@@ -782,11 +1012,25 @@ RAIL_PROMPT = "Click anything on the map. Its details open here."
 
 
 def side(M, docs):
-    """Above the panels: the way out of a focus, the one line shown while nothing is chosen, and a stage's alerts and
-    runbook once a stage is chosen."""
-    hint = ('<div id="stagedocs" class="note" hidden></div>' if docs else "")
-    return ('<aside class="side"><button type="button" class="showall" data-showall>Show all</button>'
-            f'<p class="note" id="rail-prompt">{RAIL_PROMPT}</p>{hint}</aside>')
+    """The one line shown while nothing is chosen; Show all is on the map's toolbar."""
+    return f'<aside class="side"><p class="note" id="rail-prompt">{RAIL_PROMPT}</p></aside>'
+
+
+SHOW_ALL = '<button type="button" class="showall" data-showall>Show all</button>'
+COLLAPSE_ALL = '<button type="button" class="collapseall" data-collapseall>Collapse all</button>'
+
+
+def toolbar():
+    """The map's toolbar: zoom, Fit, Zoom to selection, Show all, Collapse all."""
+    assert cv.ZOOM.endswith("</div>")
+    return cv.ZOOM[:-len("</div>")] + SHOW_ALL + COLLAPSE_ALL + "</div>"
+
+
+def rail_head():
+    """The rail names its subject once, above every panel: the trail back up the chain, the thing clicked in large
+    type, and for anything in a stage that stage's Alerts and Runbook. Filled by railHead in JS."""
+    return ('<header id="railhead" class="railhead" hidden><p class="trail" id="railtrail"></p>'
+            '<h2 id="railname"></h2><p class="note" id="stagedocs" hidden></p></header>')
 
 def left_out(M):
     """The map's Not drawn line: the left-out steps and stages."""
@@ -869,16 +1113,16 @@ def page(M, reg_label, build_cmd, checked, docs=None):
             f'<p class="lede">{plural(len(M["flows"]), "flow")}, {plural(len(M["stage"]), "stage")}, '
             f'{plural(len(M["step"]), "process step")} '
             f'({n_na} not assessed). Design-time only; no live values.</p>'
-            f'<div class="canvas"><figure><div class="fig">{cv.ZOOM}{map_line()}{svg}</div>{left_out(M)}</figure>'
+            f'<div class="canvas"><figure><div class="fig">{map_line()}{toolbar()}{svg}</div>{left_out(M)}</figure>'
             f'<div class="divider" role="separator" aria-orientation="vertical" aria-label="Resize the map and the panels" '
             f'title="Drag to resize; double-click to reset" tabindex="0" aria-valuemin="360" aria-valuenow="0"></div>'
-            f'<div class="rail">{side(M, docs)}'
+            f'<div class="rail">{side(M, docs)}{rail_head()}{seq_panel(M)}{inside_panel(M, drawn)}{case_panels(M, docs)}'
             f'<aside class="panel measpanel" aria-live="polite" hidden><div class="seqhead"><h3>Measures</h3>'
             f'<button type="button" class="widen" data-widen aria-pressed="false">Widen this panel</button></div><div id="readout"><p class="note">Click a process step, '
             f'a part, a stage or a flow to see its measures.</p></div></aside>'
-            f'{seq_panel(M)}{inside_panel(M, drawn)}{case_panels(M, docs)}</div></div>'
+            f'</div></div>'
             f'<script type="application/json" id="panel-data">{json.dumps(panel_data(M, docs)).replace("</", "<" + chr(92) + "/")}</script>'
-            + folded_maps(M) + "</main>" + cv.chain_data(M) + FOLD_JS + cv.SCRIPT + JS + SEQ_JS + DIVIDER_JS + INSIDE_JS + CASE_JS + "</body></html>\n")
+            + folded_maps(M) + "</main>" + cv.chain_data(M) + FOLD_JS + cv.SCRIPT + HELD_JS + JS + SEQ_JS + DIVIDER_JS + INSIDE_JS + CASE_JS + RAIL_FIG_JS + "</body></html>\n")
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
