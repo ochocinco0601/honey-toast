@@ -20,10 +20,29 @@ files that prove it done or the reason it is blocked. `python ../run_status.py <
 - **Not found is not absent.** If you looked for something and did not find it, leave the cell blank or leave the
   row out. Never write "none" or "no owner" as a value. The views draw a blank as *not assessed*.
 - **Proposed is labelled.** A value you drafted with no source to confirm it starts with `proposed:`.
-- **Ids are short and stable** (`C1`, `F1`, `ST1`, `S01`). Fields that list ids separate them with `;`.
+- **Ids are short and stable** (`C1`, `F1`, `ST1`, `S01`). An expectation's id is lowercase (`e1`, `e2`). Fields
+  that list ids separate them with `;`.
 - Columns are read by name, and the tables below define them: the template's CSV files carry the same headers.
   `--check` errors on a table that lacks a column defined here, unless its description begins *Optional*, and
   warns about a column defined nowhere here, which the programs ignore. A missing table file is not checked.
+- **A column with a closed list of values declares it** with a `One of:` list ending its description: the values in
+  backticks, or a `../method/` file whose first column holds them. `--check` warns on a value outside the list; a
+  blank cell is always allowed, and in a `;` separated column each value is checked.
+
+## What a finding in a register changes
+
+The checks guard what this definition declares: the tables, their columns, the values a column allows, the ids
+one table names in another, and the questions each view must answer. They guard consistency, never whether the
+register is true to the code; the walk of the sources does that. So **a finding in a register adds no check.** It
+leads to one of two things:
+
+- **A declaration that was missing.** The finding shows a column, a value or a relationship the model already
+  defines that this file does not declare. The declaration is added here, and the check reads it from here.
+- **A content judgment.** The finding is about what was written, not its shape. It becomes wording in FILL-STEPS,
+  and review catches it.
+
+The list of checks grows only when this definition grows. Every check is listed in `../CHECKS.md`, one row each,
+and every check in the code has a row there.
 
 ## The tables
 
@@ -47,14 +66,15 @@ Stages, steps, parts, measures and the runbook are read off it.
 | move_id | `L01`, `L02`, ... in the order a case meets them on the main path, then alternatives |
 | flow | The flow id |
 | from_state | The state the case is in before the move, as the system records it (cited), or `implicit: ` and the state in words. `(none)` for the move that creates the case |
-| from_kind | `park` (nothing is progressing the case; the next move needs a trigger not already in motion) or `in act` (the act is still working: a message on its way to a consumer that will act on it, a call out and back) |
+| from_kind | `park` (nothing is progressing the case; the next move needs a trigger not already in motion) or `in act` (the act is still working: a message on its way to a consumer that will act on it, a call out and back). One of: `park`, `in act`. |
 | park_because | For a park: what the next move waits on: `timer`, `schedule`, `person`, `outside party`, `customer` |
 | move | The act, in the case's terms, never naming its performer |
 | to_state | The state the case is in after the move |
-| path | `main`, `alternative` (another ending the design allows) or `exception` |
+| path | `main`, `alternative` (another ending the design allows) or `exception`. One of: `main`, `alternative`, `exception`. |
 | order_note | Blank, `parallel with <move_id>` or `loops to <state>` |
 | travels_by | How the move reaches the case: `in-process`, `call`, `message` (name the event and broker), `outbox`, `poll`, `timer`, `person`; several hops in order, `;` separated |
 | carried_by | The parts that carry the act out, by name or subject id |
+| started_by | Optional. On a move that can happen at any time while the case is in a stage (a cancel, a withdrawal): who starts it, in words, cited: the flow's customer, a role, an outside party, `timer`, or `the software`. The stage's drawing names it, and draws a message from the customer only where this names the customer |
 | needs | The stores, brokers and outside services the move cannot complete without |
 | timing | What the code assumes about time for this move (grace period, poll interval, timeout, retries), cited |
 | if_not | What happens to the case if the move does not happen, cited |
@@ -93,8 +113,8 @@ what was read and excluded from what was never opened.
 | case | What one case is, and where it is recorded |
 | starts_at, ends_at | The event that starts one case and the outcome that ends it |
 | delivers | The capability ids this flow delivers, `;` separated. A flow can deliver several; a capability can be delivered by several flows |
-| expectation_of | Whose expectation the flow meets |
-| promise | The expectation stated as a bound, or `none stated; proposed: ...` |
+| customer | The party the flow serves: its role name only; a citation for it goes in `source` |
+| bound_in_code | Optional. Fill it only where the application's own code sets a timer, deadline or overdue rule for one case, end to end: `proposed: ` and the limit, cited to the code that sets it. Leave it empty otherwise, never `none assumed`: few applications set one, and an empty cell owes nothing, no gap and no question. A limit a document or a person states goes in `expectations.csv` → `objective`, never here; the parties' expectations are what the flow's card leads with. Where it is filled, the page shows it as "Time limit in the code" |
 | case_identifier | Which field names one case, and where it is lost |
 | source | Citation |
 
@@ -107,9 +127,28 @@ what was read and excluded from what was never opened.
 | order | 1, 2, 3 within its flow |
 | name | The stretch, as the business would name it |
 | entry, exit | What is true when a case enters and leaves it |
-| promise | A bound for this stage, if one is stated; else `proposed: ` and a bound from what the application does |
+| bound_in_code | Optional. Fill it only where the application's own code sets a timer, deadline or overdue rule for this stage: `proposed: ` and the limit, cited to the code that sets it. Leave it empty otherwise, never `none assumed`: few applications set one, and an empty cell owes nothing, no gap and no question. A limit a document or a person states, or one the business shows the party, goes in `expectations.csv` → `objective`, never here; the parties' expectations are the stage card's main content. Where it is filled, the page shows it as "Time limit in the code", and the receipt asks the stage `past the time limit` |
 | arrivals_per_period | Cases arriving per period at this stage. The operators' measured value; `not stated: measured by the operators` until they give it |
 | source | Citation |
+
+### expectations.csv: whom the flow serves, and what each party counts on
+
+FILL-STEPS Step 3a. One row per party per expectation, of the whole flow or of one stage: the flow's stakeholder
+register. A party is someone the flow's outcome serves or binds: the customer named in `flows.csv`, a regulator, a
+sponsor. A person who carries out a step is a party only where a document or a person states what they expect of
+the flow. A measure names the expectations it is evidence of in `measures.csv` → `expectation`.
+
+| Column | What goes in it |
+|---|---|
+| expectation_id | `e1`, `e2`, ... lowercase, unique across the register |
+| flow | The flow id |
+| stage | The stage id, or blank for an expectation of the whole flow |
+| party | Who holds the expectation, by the role name the business uses. The customer is written exactly as `flows.csv` → `customer` writes it. `proposed: ` and the basis where no document or person names the party (a persona in the code, an authorisation role, a rule the code enforces) |
+| expectation | What the party counts on, in the party's own words where a source has them, quoted and cited: a document, a person, text the system shows the party, or a rule the code enforces. Otherwise `proposed: ` and the expectation |
+| satisfied_when | The satisfaction condition: what one case shows when the expectation is met (its state, the record written, the values it carries), testable on one case. `proposed: ` unless a document or a person states it, as for `right_outcome` |
+| objective | A bound, only where a document or a person states one, including text the business shows the party ("1-2 weeks" on a status screen). Written as stated: two bounds shown stay two, never summed. A rule the code enforces counts only where the code names its authority. Never drafted: blank where nothing states one, and never `proposed:` |
+| objective_source | Where `objective` is set: the citation of the statement, such as the line that shows the text to the party. For a rule the code enforces, the code line and the authority it names. Required when `objective` is set |
+| source | Citation for the row. A party inferred from the rules the code enforces adds `only the obligations this code enforces were read` |
 
 ### steps.csv: business outcomes inside each stage
 
@@ -136,8 +175,8 @@ A step that nothing carries out stays in the table. Give it no rows in participa
 |---|---|
 | subject_id | `S01`, ... for elements; `R01`, ... for interactions |
 | kind | `element` or `relationship` |
-| band | Architecture layer: `business`, `application` or `technology`. A service, worker, front end or AI agent is an application component (`application`); a database, cache, message broker, search index, file store, host or runtime, or platform service is a system component (`technology`), even when the application owns it. An interaction takes `application` when it joins components, and `technology` when it is a part's call to the store or platform it runs on |
-| level | `component` (a deployable part inside the system), `external dependency` (relied on, run by someone else), or blank for a person, a case or an interaction |
+| band | Architecture layer: `business`, `application` or `technology`. A service, worker, front end or AI agent is an application component (`application`); a database, cache, message broker, search index, file store, host or runtime, or platform service is a system component (`technology`), even when the application owns it. An interaction takes `application` when it joins components, and `technology` when it is a part's call to the store or platform it runs on. One of: `business`, `application`, `technology`. |
+| level | `component` (any deployable the flow runs through whose code can be had, whoever owns it), `external dependency` (relied on, and its code cannot be had), or blank for a person, a case or an interaction |
 | part_kind | One of the kinds in `../method/part-kinds.csv`. If none fits, use the nearest kind and say so in `source` ("nearest kind: a content delivery network"). The lists in `../method/` are not edited during a run |
 | name | The part's name as its owners use it |
 | purpose | For a part (a row with level `component` or `external dependency`): what this part does in this flow, in one sentence, with a citation in brackets, read from the same source as the row (`Takes the shopper's order and keeps it (src/orders/api.py:12)`). Required on every part row; blank for a person, the case and an interaction. The page's *Inside this part* card prints it |
@@ -187,6 +226,7 @@ joined to the process steps it serves.
 | serves_business_step | For the run or an operation: the business step id(s) it performs or supports |
 | source_ref | Citation |
 | decision_point | Optional. On an operation row only, and only for a model call whose output a later call of the chain relies on, where no tool's or reply's decision point in `participation.csv` holds it (a room description written by a first call and fed to a second): `yes:` and why, with the citation of the call that reads it. The receipt keys it by the agent and the step's id (`S03 AS2`) (FILL-STEPS Step 9). Blank on every other row; `no:` with the reason where you looked and it is not one |
+| next | Optional. The run's control flow, read from the code that sequences it (the orchestration's graph or loop). On the run row: the operation or operations a run starts with. On an operation row: the operations a run may go on to after it, `;` separated, or `end` where a run can end there. Name an earlier operation where the run repeats (the model decides again after a tool call). Where there is more than one, a condition in square brackets may follow each, in plain words (`AS3 [a tool call]; AS6 [an answer]`). The page draws the run as an activity diagram from it, a move only where it is recorded; blank, it says the order is not on record |
 
 The parts an agent usually has: the code that sequences its operations, the decider (the model with its prompt and
 rules), its tools, what it retrieves from, and the checks that stop an answer outside policy.
@@ -200,25 +240,27 @@ Design-time: each row is a measure someone could take. It is proposed unless the
 | handle | `M01`, ... |
 | subject_id | What it is about: a part, an interaction, or the case subject of a flow (with `step` blank, a measure of the whole flow) |
 | step | The step it is about, if one |
-| stage | For a measure of a whole stage (its case subject, `step` blank): the stage id. Counts the cases in the stage, the oldest one's age, the time through, or those past the stage's promise |
+| stage | For a measure of a whole stage (its case subject, `step` blank): the stage id. Counts the cases in the stage, the oldest one's age, the time through, or those past the stage's time limit |
 | flow | For a measure of a whole flow (its case subject, `step` blank): the flow id. Required when two flows share one case subject, or the measure is counted for neither |
 | measure | Its name |
 | question_it_answers | The question, first |
 | layer | `business health`, `business impact`, `application`, `technology` or `agentic` (`../method/layers.csv`) |
 | counted_on | `cases`, `events`, `requests`, `resources` or `runs`. Business measures count cases |
 | counted_how | One line: what one count is |
-| form | Its form, from `../method/measure-forms.csv` where one fits; blank where none does |
+| form | Its form, from `../method/measure-forms.csv` where one fits; blank where none does. One of: the forms in `../method/measure-forms.csv`. |
 | exists | `yes` if the system already emits it, else `no`. A log line counts. So does a framework's built-in metric switched on by a dependency or setting: cite that line. Emitted but not collected anywhere is still `yes`; whether anything collects it goes in `watched` |
 | agent_question | For a measure of an agent: the row of `../method/agent-questions.csv` it answers |
 | source | `declared` (found in the code) or `proposed` |
 | source_ref | Citation of the emitting line, or of what the proposal rests on. Only that: what an emitted measure counts wrong goes in `defect` |
-| alert | `yes:` and the basis, on each measure proposed for alerting: a measure of that stage, counted on cases (the cases past its promise, or the cases leaving it wrongly). The basis is the expectation the alert guards, in free text; the moves it counts go in `counted_moves`, and a move id written here is never read as one. Blank on every other measure. Whether an alert pages a person, opens a ticket or shows on a dashboard is the operators' decision. The alerts and the runbook are generated from this column |
+| alert | `yes:` and the basis, on each measure drafted as a proposed alert, at any level: the flow, a stage, a step or a part. Whether to alert, and on what, is the team's decision; the register drafts. The alert is drafted on every stage its measure reaches (a step's stage, every stage of a flow, each stage a part serves in `participation.csv`), and the runbook generator works that stage's tests for it, which fits best a stage's measure counted on cases (the cases past its time limit, or the cases leaving it wrongly). The basis is free text: why this measure would show the expectation broken. The expectation it guards is named by id in `expectation`, and the moves it counts go in `counted_moves`; an id written in the basis is never read as one. Blank on every other measure. Whether an alert pages a person, opens a ticket or shows on a dashboard is the operators' decision. The alerts and the runbook are generated from this column |
 | counted_moves | On a measure proposed for alerting that counts cases leaving the stage: the lifecycle moves (`L..`) whose cases it counts, by id, `;` separated (`L25; L26`). Each is a move of that stage in `lifecycle.csv`. The runbook entry works the tests of the states those moves leave from. Blank on a measure of cases waiting and on every measure not proposed for alerting. `flow_outputs.py --check` fails on an alert of cases leaving with it blank, and on an id not in `lifecycle.csv` or not a move of the stage |
+| expectation | Optional. The expectations this measure is evidence of, by id, `;` separated (`e2; e5`), in the same form as `counted_moves`. **Required on every measure with `alert` set**: the expectation the alert guards. Optional on every other measure. A measure at `business health` or `business impact`, of the flow, a stage or a step, that names an expectation is its indicator (FILL-STEPS Step 9, mechanism 2). Each id is an `expectation_id` in `expectations.csv`. `--check` fails on an alerting measure with it blank, a register without the column included, and on an id `expectations.csv` does not hold |
 | operation | For an application or agentic measure: the operation or operations it counts, `;` separated, written exactly as `participation.csv` writes them (`uw_render_decision`, `PATCH /api/orders/{id}`); `reply` and the operation for a measure of an agent's reply (`reply; uw_render_decision`, `reply; POST /`), or `reply` alone for a reply at the step in `step`; the step's id in `agent-system.csv` (`AS2`) for a model output a later call relies on. Blank for a measure of the whole part. The receipt (FILL-STEPS Step 9) reads it |
-| receipt_question | The receipt question or questions it answers (FILL-STEPS Step 9), `;` separated. For a measure of a step: `did it happen`, `was its outcome right`. For a measure of a stage: `in the stage`, `oldest's age`, `time through`, `past the promise`. For an agent's `operations` measure: `run duration`, `failed tool calls`, `tokens`, `refusals`, `fallbacks to a person`. Blank where the receipt reads the measure without it (the flow's promise, an operation, a component, a decision point). The receipt reads it. |
+| receipt_question | The receipt question or questions it answers (FILL-STEPS Step 9), `;` separated. For a measure of a step: `did it happen`, `was its outcome right`. For a measure of a stage: `in the stage`, `oldest's age`, `time through`, `past the time limit`. For an agent's `operations` measure: `run duration`, `failed tool calls`, `tokens`, `refusals`, `fallbacks to a person`. Blank where the receipt reads the measure without it (the flow's time limit, an operation, a component, a decision point). The receipt reads it. One of, for each: `did it happen`, `was its outcome right`, `in the stage`, `oldest's age`, `time through`, `past the time limit`, `run duration`, `failed tool calls`, `tokens`, `refusals`, `fallbacks to a person`. |
 | defect | Only where `exists` is `yes`: in one line, what the emitted measure counts wrong, with its citation (a duration split evenly across a batch, a label that never varies, a counter nothing increments, a panel serving generated data). Blank where no defect is known. `flow_outputs.py --check` fails on a defect written on a measure that is not emitted |
 | watched | Optional. Only where `exists` is `yes`: whether operations monitoring collects the emitted measure (FILL-STEPS Step 9). `yes` where a scrape configuration, collector, exporter, log shipper or monitoring dashboard takes it; `in the app only` where an application screen shows it and nothing collects it; `no` where nothing does (a metric nothing scrapes, a log nothing ships); `unknown` where no such configuration is within reach. Never settled by reading the emitting code. Blank on a proposed measure. The page shows it in an opened measure, as Watched |
 | watched_source | Optional. Where `watched` is set: the collection or dashboard configuration read, with its citation, or the words `no inventory reachable`, which only `unknown` may rest on. `flow_outputs.py --check` fails on a value outside `yes`, `in the app only`, `no`, `unknown`, on `watched` with no source, and on `watched` written on a measure that is not emitted |
+| taken_from | The kind of record the measure is counted from. Where `exists` is `yes`, the kind of the line cited in `source_ref`; on a proposed measure, the kind it would be taken from. Decide it from what the measure counts, never from the tools at hand (FILL-STEPS Step 9). One of: `metric`, `log or event record`, `trace`, `the edge`, `external probe`, `client-side instrumentation`, `the case's own record`, `a message log kept with the state`, `configuration`, `platform lifecycle events`, `another organisation's record`. |
 
 A measure is a candidate: something that could show whether the capability works. Choosing which are wanted, and
 setting any target or threshold, is done later by people; the register holds none unless a source states one.
@@ -235,14 +277,15 @@ The same table gaps a question a view asks and the register cannot answer: a ste
 operations or what it depends on, a stage's other outcomes or the moves that cannot be undone, an alert's own tests.
 The card then prints the gap's kind and reason instead of "not in the map yet", and `run_status.py` counts it gapped,
 not empty. The `question` is the view question's id, exactly: `step: trigger`, `step: timeouts`, `part: operations`,
-`part: depends on`, `stage: other outcomes`, `stage: cannot be undone`, `alert: its own tests`. The `element` is the
-step id, the part's subject id, the stage id, or the alert measure's handle. The other view questions take no gap:
+`part: depends on`, `stage: other outcomes`, `stage: cannot be undone`, `alert: its own tests`,
+`expectation: indicator`. The `element` is the step id, the part's subject id, the stage id, the alert measure's
+handle, or the expectation's id (`e3`). The other view questions take no gap:
 they are answered, or counted only.
 
 | Column | What goes in it |
 |---|---|
-| element | What is not covered, as the receipt names it: a flow id (`F1`), a stage id (`ST2`), a step id (`7`), a component's id and an operation (`S03 PATCH /api/orders/{id}`), including the route an agent's own component serves (`S06 POST /chatclient`), a component's id (`S08`), every component whatever its involvement, `records` included, a decision point: an agent's id and the tool it calls (`S04 uw_render_decision`), or `S04 at step 15` for an agent row naming no tool, or an agent's reply classed `yes:` in `reply_decision_point` (`S04 reply to uw_render_decision`, `S03 reply on POST /`, `S04 reply at step 17`), or a model output a later call relies on, by the agent and its step in `agent-system.csv` (`S03 AS2`), or an agent's id for its runs (`S04`) |
-| question | The question not answered: `the promise` (flow), `in the stage`, `oldest's age`, `time through`, `past the promise` (stage), `did it happen`, `was its outcome right` (step), `application` (an operation or component), `technology` (a system component), an agent question from `../method/agent-questions.csv` (decision point), or a run metric, `run duration`, `failed tool calls`, `tokens`, `refusals`, `fallbacks to a person` (an agent's runs) |
+| element | What is not covered, as the receipt names it: a flow id (`F1`), an expectation id (`e3`), a stage id (`ST2`), a step id (`7`), a component's id and an operation (`S03 PATCH /api/orders/{id}`), including the route an agent's own component serves (`S06 POST /chatclient`), a component's id (`S08`), every component whatever its involvement, `records` included, a decision point: an agent's id and the tool it calls (`S04 uw_render_decision`), or `S04 at step 15` for an agent row naming no tool, or an agent's reply classed `yes:` in `reply_decision_point` (`S04 reply to uw_render_decision`, `S03 reply on POST /`, `S04 reply at step 17`), or a model output a later call relies on, by the agent and its step in `agent-system.csv` (`S03 AS2`), or an agent's id for its runs (`S04`) |
+| question | The question not answered: `the time limit` (flow, only where its `bound_in_code` is filled), `in the stage`, `oldest's age`, `time through`, `past the time limit` (stage, only where its `bound_in_code` is filled), `did it happen`, `was its outcome right` (step), `application` (an operation or component), `technology` (a system component), an agent question from `../method/agent-questions.csv` (decision point), or a run metric, `run duration`, `failed tool calls`, `tokens`, `refusals`, `fallbacks to a person` (an agent's runs), or `expectation: indicator` (an expectation in `expectations.csv`, by its id: `e3`) |
 | kind | Which of four the gap is: `does not apply` (ruled out by design: the question cannot arise here, and `why` says why), `counted by` (folded into another measure, whose id `why` names: `folded into M51:`), `no record` (the code keeps nothing that could count it today), `not read` (not assessed in this run). The map labels the gap from it ("Does not apply", "Counted by" and the measure's name, "No record to count", "Not assessed") and never from the reason's wording; the run's status counts the gaps by it. `flow_outputs.py --check` fails on a row with it blank or not one of the four, and on a `counted by` row whose `why` names no measure of `measures.csv` |
 | why | Why no candidate is proposed: the record that does not exist, the candidate it is folded into (`folded into M51:` and why), or why the question does not apply here. Cite the line |
 | source | Citation |
@@ -287,7 +330,7 @@ has no row.
 
 | Column | What goes in it |
 |---|---|
-| remedy | `R1`, ... |
+| remedy | `RM1`, `RM2`, ... (interactions in subjects.csv are `R01`, ...) |
 | kind | `restore` (bring a part back), `re-drive` (move stranded cases on), `roll back` (undo a change), `none exists` (say so, and what to record), `do not` (an action that looks like a fix and is not) |
 | action | What to do, runnable as written, in the configuration `about.csv` names |
 | expected | What the responder sees when it worked |
@@ -313,7 +356,7 @@ the map, so a reader can see what was done by a tool, what a model drafted, and 
 | Column | What goes in it |
 |---|---|
 | pass | The pass this row belongs to: `1` for the first fill, `2` for the first update, and so on (see sources.csv) |
-| step | The step's number in FILL-STEPS.md (`0` for Before you start) |
+| step | The step's number in FILL-STEPS.md (`0` for Before you start, `3a` for the step inserted after Step 3) |
 | name | The step's name |
 | went_in | What you worked from: the code at a commit, a document by title, a person by role, a tool's output file |
 | came_out | The register files this step wrote, `;` separated (`flows.csv; stages.csv`) |
@@ -331,7 +374,7 @@ added it.
 | source_id | `SRC1`, `SRC2`, ... |
 | what | A repository at a commit (with no version history, the folder as found), a document by title and date, a person by role, or a tool's output file |
 | kind | `code`, `document`, `person` or `tool output` |
-| repository | Optional: a register read from one repository may leave it out. For code: the repository's folder in the workspace, the first folder of every citation into it, and every citation is then checked to start with one listed here. Blank for other kinds |
+| repository | Optional: a register read from one repository may leave it out. For code: the repository's folder in the workspace, the first folder of every citation into it, and every citation is then checked to start with one listed here. For a `tool output` saved into the workspace (a dashboard or alert export): its folder. Blank for other kinds |
 | commit | Optional. For code: the commit read, or `folder as found` with no version history |
 | as_of | The date the source describes, or the date you were told |
 | pass | The pass that first read it |

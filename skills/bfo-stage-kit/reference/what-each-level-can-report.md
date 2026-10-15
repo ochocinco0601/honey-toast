@@ -27,14 +27,14 @@ how its software did the work.
 | Level | Runs | Counted on | Business health: is the expectation met? | Business impact: for how many cases is it not? | Why |
 |---|---|---|---|---|---|
 | Capability | no | Its flows, the ones that deliver it | Derived or asserted from its flows, and says which. Its own measure is coverage: how much of what it contains is modelled | Its flows' counts, kept per flow. A total only in a unit they share, labelled derived | |
-| Intended flow | yes | Each case, start to end, or over any stretch between two points of the flow | Cases started, finished and still open; cases finished on time and right; cases still open past the promise | Cases wrong or late anywhere in the flow, qualified by what is at stake and by whether they move on or stay stranded | |
-| Stage | yes | Each case, from entry to exit of the stage | Cases in it now, the age of the oldest, the time to get through, and how many are past the stage's promise | Cases wrong or late here, located here, qualified as for the flow. Projected separately: the cases still upstream that will reach it | |
+| Intended flow | yes | Each case, start to end, or over any stretch between two points of the flow | Cases started, finished and still open; cases finished on time and right; cases still open past the time limit | Cases wrong or late anywhere in the flow, qualified by what is at stake and by whether they move on or stay stranded | |
+| Stage | yes | Each case, from entry to exit of the stage | Cases in it now, the age of the oldest, the time to get through, and how many are past the stage's time limit | Cases wrong or late here, located here, qualified as for the flow. Projected separately: the cases still upstream that will reach it | |
 | Process step | yes | One event per case | Did it happen for this case, and was what it produced right | Cases where it did not happen, or produced the wrong outcome | Application and agentic measures taken at the step, about how its software did the work |
 | Component | yes | Requests, runs or resources | | | How the mechanism behaved, by its kind's set (below). It explains a business measure and is never one itself |
 | External dependency | yes | Calls, from the calling side | | | Whether what the step required was available, on time, and what it answered. The step inherits what goes wrong with it |
 
 **Health and impact both need the expectation stated.** That means what a right outcome is, for
-the flow and for each step, and the time promise for the flow and each stage. Where none is
+the flow and for each step, and the time limit for the flow and each stage. Where none is
 stated, count against one proposed from what the application does, as Rule 3 says. Asking
 whether a flow met its expectation over a period also needs an objective: a target share of
 cases over a window. The method names the objective; its value is for the operators to set.
@@ -323,7 +323,7 @@ lacks is a finding about that flow: nobody has stated it.
 | Each stage's entry and exit criteria | Rule 1, stage counts |
 | For each measure, what it is counted on and which thing it counts | Rule 1 |
 | For each system the case passes through, whether it carries the case identifier | Rule 2 |
-| The promise for the flow and for each stage: stated, or else a bound proposed from what the application does | Rule 3, counting late cases |
+| The time limit for the flow and for each stage: stated, or else a bound proposed from what the application does | Rule 3, counting late cases |
 | What a right outcome is, for the flow and for each step | Rule 3, counting wrong cases |
 | The objective, a target share of cases over a window: named here, set by the operators | business health over a period |
 | Cases arriving per period, at the flow and each stage | Rule 3, projecting |

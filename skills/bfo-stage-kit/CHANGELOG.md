@@ -3,6 +3,384 @@
 Newest first. Each release replaces the one before it. If you ran an earlier release, see USE.md, "If you ran an
 earlier version of this kit": a new run leaves your earlier register untouched and checks it against the code.
 
+From Release 3, each entry ends with an effect line: what a register you already have needs for it. It is
+`none`, `rename: reconcile.py --migrate` (a mechanical rename that touches no content; the check refuses the
+register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
+`re-walk` a named part of the walk, with the reason.
+
+## Release 3 — 2026-10-15
+
+### What you will notice
+
+- **A stage's unfolded process steps and outcomes are boxes on the map**, as its parts are, each reached by the keyboard;
+  a click on one opens its own side panel and lights its chain.
+  Effect: none: pages only.
+- **The side panel's trail says where the box is**, as a level page's does: "Map › Flow: name › Stage N: name", then
+  the box itself as plain text. "Map" closes the panel, as Show all does.
+  Effect: none: pages only.
+
+- **The side panel closes from its heading row.** A close control (×) beside the name, and Escape, close the panel
+  and clear what the map lights, as Show all does.
+  Effect: none: pages only.
+- **Every level page's trail says where the page is**: "Map", then each level above it by its own page's title, each
+  opening that page ("Map › Flow: name › Stage N: name"), then the page itself as plain text. On a part's page the trail
+  runs through the process step it was opened from.
+  Effect: none: pages only.
+- **The links under the side panel's title name what each opens, never the title again**: a stage's read "Process
+  diagram · Alerts · Runbook"; a flow's "Value stream"; a process step's "Sequence diagram", then its stage's page and
+  documents; a part's "Operations", then its stage's where it is used in one only.
+  Effect: none: pages only.
+- **A process step's card says "Expected outcome"**, the word every other page uses, in place of "Right outcome".
+  Effect: none: pages only.
+- **No line on a page talks about the screen or sends the reader elsewhere.** Gone: "Wider than the panel." under a
+  side-panel drawing; "1 measured on a call below" in a sequence drawing's heads; the note on a person picked on the
+  map (a person now opens no inside panel); "The card below names them." and "The run below shows..." in a part's
+  key; "Each measure is listed in Measures..." under an agent's questions.
+  Effect: none: pages only.
+- **A link to an outcome opens its stage's page with that outcome picked**, its measures filtered as a click on its
+  mark filters them (`STAGE.html#s:<id>`); on a part's page, its rows and trail link this way.
+  Effect: none: pages only.
+- **A sequence drawing reads with no key and every word whole.** Its frame is titled with the process step's name in words, with no "sd". On a step with moves, a recorded call no hop accounts for is listed on the card only, never drawn, and every message drawn carries the number the card lists it by, a call drawn under another as "2.1". A part's name breaks only at a space, "-", "_", "/" or "."; a name with none of these that is wider than its head widens the head, and the lifelines draw closer to keep the drawing within 1200 px. A message's words break at those or at a CamelCase hump, an identifier broken across lines starts its own line, and nothing is cut short with "…". A message's words sit along its own arrow, inside its span, and a self-message's between its lifeline and the next, so no label runs past its arrow's end across another lifeline. Each drawing's arrowheads have ids of their own, so two drawings can share a page.
+  Effect: none: pages only.
+- **The map's panel says a measure's state as the other pages do.** A measure that cannot be counted reads "cannot be
+  counted" in its line, its row and the count of a folded group, never "proposed".
+  Effect: none: pages only.
+- **On a stage's page, each of its alerts links to its entry in the stage's runbook**, where that runbook is written.
+  Effect: none: pages only.
+- **A register's words that cite a flow by its id read the flow's name**, as a process step's id reads its label:
+  "(F1 starts)" is "(Fulfilling a customer's order starts)" on the example.
+  Effect: none: pages only.
+- **A stage's runbook page wears the flow, stage and step pages' frame.** A trail opens the map, the flow's page and
+  the stage's page; the title (and the tab) is "Stage N runbook: name", with no draft chip. "No test of this runbook is
+  on record." stands under the title and at the top of every alert's entry. The landing's columns are "Its alerts",
+  "The stage" and "Shared by every alert", with no question as a label. The stage is one link to its own page, in
+  place of the copy of it; what is at stake for declaring an incident is in the escalation fold. "Before you start"
+  is the first of the shared folds.
+  Effect: none: pages only.
+- **The runbook says "time limit", never "bound"**, and the alert page's "Age bound" row is "Time limit". An entry for
+  a measure not emitted yet says what to do when the alert shows No data. Where a log command reads only its last
+  lines (`--tail`), the entry says a line not found there rules a cause out only if those lines reach back to the
+  look-back time.
+  Effect: none: pages only.
+- **A command pastes as it stands.** What follows "run" with a flag after it, or a shell loop kept whole, is its own
+  block, with the place it runs in said before it; a SQL statement that opens a field comes after the shell it runs
+  in, ends with its semicolon, and leaves its aside as a note below; a command written in parentheses inside a
+  sentence is set as code in the sentence, never the sentence in a block; a count that is a description is prose.
+  Effect: none: pages only.
+- **A remedy that needs approval says whose:** "Needs approval from the team that owns <part> (not recorded yet)."
+  No owner is drafted; owners are filled at the right time.
+  Effect: none: runbook wording only.
+- **FILL-STEPS: a call that both reads and writes is two interaction rows**, one per direction of data, so each
+  message in the sequence drawing is labelled from its own row.
+  Effect: fill from each row's citation: split any such row by what its cited lines read and write.
+- **Each process step has its own page, `stage-<id>/step-<id>/STEP.html`, in the frame of the flow and stage pages.** Its trail runs system › flow › stage and its title names it ("Process step 2.2: ..."). The sequence drawing carries the measures: each part's head holds its name, its kind, the stages of the flow it serves where it serves several ("serves Stages 1–4"), and a square per measure under its layer's word; a part's measure of one operation sits under the arrow that carries that operation, and the head says how many sit on a call below; the process step's own measures are a pill beside the drawing's name. A box picked opens its measures beside the drawing, by layer and name with their state, and filters the table; nothing is open on load. The card folds, closed: trigger, what happens in each part's own words, outcomes, if it does not happen, recovery and timeouts. The measures table is the shared one, every layer the step's measures fall in, one row per square. The stage page's tasks, the map's process step rows and the side panel's head link to it.
+  Effect: none: pages only; read from the rows the register already holds.
+- **Each part has its own page, `part-<id>/PART.html`, in the frame of the flow, stage and process step pages,** for every part or dependency a process step relies on. Its title names it ("Part: ..." or "Agent: ..."); its trail runs system › flow › stage › the process step it was opened from, or, opened from the map, the first process step it serves. Above the drawing, every process step and outcome it takes part in, once each, by stage (and by flow where it serves several), the one it was opened from in bold. The drawing is the part form: one row per operation, the process steps that rely on it, the calls in those steps and its measures, a square per measure under its layer's word; a process step it takes part in with no operation named is a dashed row, "No operation on record"; a store or a broker, with no operation, has its process steps as its rows; the whole part's measures sit at the drawing's top right. An AI agent adds one run of the agent. The card and the measures table follow, the table in the part's own layers only (application and technology, and agentic for an agent). Each part's head on a process step's page and the side panel's head for a part on the map link to it.
+  Effect: none: pages only; read from the rows the register already holds.
+- **A process step's panel never squeezes its drawing.** It opens beside the drawing only where the drawing at its natural width and the panel fit the column; otherwise it opens as a sheet at the window's right edge, over the page. Picked again, or Clear filters, it closes.
+  Effect: none: pages only.
+- **A measures pill's squares start after its widest layer word,** so "Application" no longer runs into its first square; and a place with no measure reads "none on record" in plain words, with no dashed box (a dashed outline is the code of a measure that cannot be counted).
+  Effect: none: pages only.
+- **A part's card and a measure's form read truer.** A bullet that starts with an identifier ("ordering-api", "rabbitmqctl list_queues") keeps its case; "Where it sits" is left out where it would only say "a component of this system"; an agent's card lists only the agent parts found, and under Depends on only the dependencies those parts use that the list does not already name; a measure's form never prints a register id: an id in brackets is left out, an id in the words reads as that measure's name. An agent's run with no recorded order reads "One run: <name> · order not on record", an operation with no agent part reads "by no agent part found", and an operation whose agent part names the agent's own operations says which it calls.
+  Effect: none: pages only.
+- **Every sequence drawing fits a 1200 px column at its natural size,** its lifelines closer where it has many, and a part's name wraps whole in its head, never cut short. A call is drawn under another only where that other is the only recorded call into its sender in the step; otherwise it stands on its own.
+  Effect: none: drawings only.
+- **A process step's sequence drawing shows who calls whom, in the order the register gives.** The hops of the step's moves are the order. Each hop's sender is the part the register names: the clause's subject, an "X to Y" whose X is a part, a "from X" whose X is a part, the broker and the outbox store for an outbox or message hop, or the person of the hop before. A message passed through a broker is drawn into the broker and out of it, with an open arrowhead. A part's read or write to its store is drawn inside the hop. A dot with "sender not recorded" beside it is drawn only where none of these names a sender. A recorded call is labelled with its own words, never with what its receiver does in the step. Long identifiers wrap at their CamelCase humps, "/", "_" and "."; an operation name is never cut short; every text is 13 px or more. There are no coregion brackets, no orange numbers, no notes in the drawing and no key: a head says "person" or "run by someone else" where that applies.
+  Effect: none: drawings only; read from the rows the register already holds.
+- **Calls whose order is not recorded are said in words.** On a step with moves, a recorded call no hop accounts for is listed on the card under "Other recorded calls (order not recorded)". On a step with no move, the calls are drawn in one plain frame named "order not recorded", each call from a receiver under the call it serves. What the register does not hold is listed on the card under "Not in the map yet".
+  Effect: none: drawings and cards only.
+- **FILL-STEPS says `step_hint` lists only the process steps a call is made in for each case;** a call made at startup is not hinted to any process step.
+  Effect: fill from each row's citation: clear step_hint on a call its citation shows is made at startup.
+- **The measures table on the flow and stage pages works like a spreadsheet.** Its columns are Layer, Measure, State, On and Alert. A click on a column's name sorts by it; its ▾ opens a checklist of the column's values, with (Select all), OK and Cancel. While a filter is set, a line above the table says how many measures show, with Clear filters. In layer order a tinted band heads each layer with its question, and inside it the page's own measures come first, then each stage or process step in the drawing's order. A box or pill picked on the drawing filters the table to that place.
+  Effect: none: pages only.
+- **FILL-STEPS says how to read `taken_from` when a line could be read two ways:** the kind of the cited line itself; a part's own health check is the kind that runs it.
+  Effect: none: wording for the next walk; a filled cell is read from the same citation.
+- **A measure's state is exists, proposed or cannot be counted, and nothing more.** "exists, not watched" and the Watched line of a measure's form are gone; the register's `watched` column stays.
+  Effect: none: pages only; the `watched` column stays.
+- **Every page says "process step", never bare "step"**, for the business's step: labels ("Process step 2.2"), counts ("2 process steps · 4 outcomes"), the drawings' task headers and the panels. A gateway's question sits clear of the arrowhead into it.
+  Effect: none: pages and labels only; no row changes.
+- **The On column names the place by its short label** ("Process step 2.1", "Stage 2", "Flow"), with its full name on hover; an other outcome reads by the state it ends in and what tells it apart ("Cancelled: because payment failed"), and on the flow page each label leads with its stage ("Stage 2 · Process step 2.1"). Where a measure counts one call, the call is named in its form ("On its call").
+  Effect: none: pages only.
+- **A measure's opened form names the expectation it guards, and where it was taken from** (`taken_from`), where the register says.
+  Effect: none: the form shows what the register already holds.
+- **An alert in the measures table is "proposed".**
+  Effect: none: pages only.
+- **The flow and stage pages wear one frame.** A centred column with a compact head: a trail of links (system › flow › stage), then the title, which names the kind ("Flow: ...", "Stage 2: ..."); then three sections in the same order, each named by what it holds at 18 px: the drawing ("Stages, and where each is measured" on a flow, "The process of the stage, and where each step is measured" on a stage), with the square key at the end of its heading and, on a stage, the whole stage's measures as a pill beside its title, the card, which folds and opens by default ("The case, whom it serves, what it delivers"; "Expectations, entry, outcomes and alerts"), and "Measures". Their tabs are named for the page and the system.
+  Effect: none: pages only.
+- **A stage's runbook and alert page set code apart as the cards do.** Identifiers, routes, file names and quoted names in their text wear the code face; an alert's reason and the cases its entry works, and an entry's opening, are broken up into lines and bullets like a card's fields.
+  Effect: none: pages only.
+- **The measures table keeps its columns still.** Layer, State, On and Alert have set widths and Measure takes the rest; a measure's form opens in a full-width row below it, so opening one moves no column and no other row. Rows are tighter.
+  Effect: none: pages only.
+- **An existing dashboard or alert export can be a source.** Read it like any other source, record where it came from and when, and cite, propose or set aside each panel or alert (FILL-STEPS "When something new arrives"); `sources.csv` `repository` may name the folder an export was saved into. The `watched` column keeps its plain definition.
+  Effect: none: a new kind of source you may add; no row changes.
+- **Card and form text is broken up so it can be scanned.** On the step, stage and flow cards, the flow and stage pages, the part cards and the measure forms, a value's lead clause ends in a colon and each ";" item under it is its own bullet; each further sentence is its own line; a trailing "Recovery: ..." gets its own row. The ways a step fails to happen are bullets, not numbers. The words are the register's; only the layout changes.
+  Effect: none: layout only; the words are the register's.
+- **Code in the text is set apart.** Identifiers (in CamelCase or snake_case), routes such as `POST /api/orders`, file paths and file:line citations, and quoted names are set in a monospace face on a light tint, in light and dark. Ordinary words, product names and the names the register gives (parts, steps, the system) are never marked.
+  Effect: none: pages only.
+- **Cards run the full width of the page,** like the drawing and the measures table. No card text is under 13 px.
+  Effect: none: pages only.
+- **A lifecycle state is written as its name everywhere,** mid-sentence too: "the order in Stock confirmed", never "stock confirmed". A one-word state is read in its code form or with its capital, so "the paid order" stays an ordinary phrase, and a state quoted as a code literal ('Paid') is left as written.
+  Effect: none: pages only.
+- **A step's qualifier (partial, or simulated) is on no page.** The map's step boxes carry no tag and no tooltip line, the side panel and the measure rows no note; `steps.csv` `qualifier` stays in the register and `--check` still reads it.
+  Effect: none: `qualifier` stays in the register and is read as before.
+- **A stage's page marks its measures on its steps.** `STAGE.html` shows the whole stage's measures with the state key, then the process diagram with a pill on each step: one square per business measure counted on cases at that step, under its layer's word, or a dashed "No measure"; then the stage card and the measures. A pill picked filters the measures to that step and names it in the count line above them, with Show all.
+  Effect: none: pages only.
+- **Partial and stub are no longer tags on a stage's drawing.**
+  Effect: none: pages only.
+- **A proposed measure's square is hatched,** on the stage's page and the flow's page alike, so it no longer reads as an empty box.
+  Effect: none: pages only.
+- **A stage box on a flow's page opens that stage's page.**
+  Effect: none: pages only.
+- **An alert is drafted at whatever level the register puts it: the flow, a stage, a step or a part.** The kit no longer presumes which measures can alert. Each alert's page and runbook entry are written on every stage its measure reaches: a step's stage, every stage of its flow, each stage a part serves (from `participation.csv`, narrowed by `operation` where it is set). Where a stage holds an alert off its own level, the alert page says where each is placed and every stage and step it reaches. The checks that an alert has a basis and names the expectation it guards apply to every drafted alert, at any level.
+  Effect: none: the outputs are written again from the rows as they are; what an alert owes for the expectation it guards is in the expectations entries under "Changed in the register".
+- **A stage with no alert gets no alert page, and its runbook says no alert is proposed for it.** `flow_outputs.py --check` used to fail a stage with no alert, and an alert that was not a stage's count of cases; both are now notes (`note:` in its output, rows fo-62 and fo-63 of `CHECKS.md`), and neither stops the outputs being written. An alert page left by an earlier run is removed, so the map links none that is not there.
+  Effect: none: a check failure became a note.
+- **FILL-STEPS puts expectations before alerts, and its alert wording is guidance, not a rule.** Step 3a: usually write each expectation from what a party is told or a source states, before any alert is drafted. Step 9: usually give each expectation a business health and a business impact measure, or a gap; draft alerts as proposals that name the expectation they guard, and leave whether to alert, and on what, to the team.
+  Effect: none: wording for the next walk; what an earlier register lacks here is in the expectations entries under "Changed in the register".
+- **A step's sequence diagram draws its arrowheads in the page's ink again**, not black.
+  Effect: none: pages only.
+- **A flow opens its own page.** Each flow has `flow-<id>/FLOW.html` beside the map: its value stream (the stages left to right, each stage's other ways out leaving at that stage), a "Measured here" lane under each stage and under the end with one square per business measure counted on cases, by layer and state (exists, proposed, cannot be counted), then the flow's card, then its measures. A lane box picked shows only that place's measures. The flow's line in the side panel links it as "Value stream and measures", and the page's trail goes back to the map with the flow selected.
+  Effect: none: pages only.
+- **A step the reference model adds and nothing carries is counted the same way by the check and the view questions.** Its moves read as does not apply, instead of empty.
+  Effect: none: the check and the view questions now agree; no row changes.
+- **A finding in a register adds no check.** REGISTER.md says so, in "What a finding in a register changes": a finding adds a declaration the definition was missing, or it becomes FILL-STEPS wording and review. The list of checks grows only when the definition grows.
+  Effect: none: no check is added.
+- **Every check the kit runs is listed in `CHECKS.md`,** one row each: where it sits, its severity, its class (structure, integrity, coverage or residue), the lead words of its message, and what it guards.
+  Effect: none: a list of the checks; nothing new is checked.
+- **The check accepts the `step: moves` gap that `run_status.py` accepts.** A step with no move passes the check only where no part carries it: a step the reference model adds, or one whose `step: moves` gap of kind `no record` cites the code read, judged as `run_status.py` judges it. The check used to refuse that gap, and to pass a reference-model step a part carries.
+  Effect: none: the check accepts more, never less.
+- **The check warns on a value outside a column's declared list.** REGISTER.md declares the allowed values of `band`, `from_kind`, `path`, `form` and `receipt_question` with a `One of:` list ending each description, and `capability_views.py --check` warns on any other value; a blank cell passes, and each value of a `;` list is checked. They are warnings for now, so a register already in use does not fail on them.
+  Effect: none: warnings only, so a register in use does not fail on them.
+- **A stage's process diagram is its own page.** Each stage folder holds `STAGE.html` beside its runbook and alert page, with the diagram at its own size; the stage line in the side panel links it as "Process diagram". The side panel keeps its reading width, so the map stays in view with the stage lit, and the page's trail (flow › stage) goes back to the map with that stage selected.
+  Effect: none: pages only.
+- **FILL-STEPS Step 4 says a stage's steps are written in the order they run.** The stage drawing chains software-only work in that order where the lifecycle does not.
+  Effect: none: wording for the next walk; steps in an earlier order still draw.
+- **Two instructions tightened in FILL-STEPS.** An impact measure that guards an expectation counts only the cases that fail its `satisfied_when` (Step 9); `satisfied_when` holds the condition only, and what the code cannot show goes in a `no record` gap row (Step 3a).
+  Effect: none: wording for the next walk; `satisfied_when` is in `expectations.csv`, which is new in this release.
+- **The check warns when a step needs a dependency nothing calls on that step.** The step's lifecycle names it in `needs`, but no interaction listing that step reaches it, so the map would draw no caller.
+  Effect: none: a warning only.
+- **Every page reads as one product.** The map, a stage's runbook and alert page, how the map was made and inside each part share the map screen's colours, in light and dark, and its sans type; no word is under 13 px.
+  Effect: none: pages only.
+- **A stage's drawing fits a 1200 px column at its own size, with no text under 13 px.** The stages before and after sit in a strip above the stage; inside it, the work (up to three steps a row), then the decision across the stage, its chain breaking onto a second line where it would not fit, then the event sub-processes side by side.
+  Effect: none: pages only.
+- **The map starts at the flow.** Five columns, from intended flow to external dependency; capabilities are no longer drawn on the map, and each flow's card still names the capabilities it delivers.
+  Effect: none: pages only.
+- **A stage's key is drawn under the figure, open, and only for marks the drawing cannot label.** A message says whom it is from, a timer its duration, the ~ box who does the work, the error boundary what happens; the key under the figure keeps only what is left (a plain start or end, a folded stage, a partial or stub tag), each a mark and a few words. The folded "Key to the drawing" list under a stage, with its line weights and white boxes, is gone.
+  Effect: none: pages only.
+- **A stage's drawing says who starts what can happen at any time, and draws the customer only where a message comes from them.** The box's title says what starts it: a message from whom, after how long, or a condition and whether the software checks it. The customer's band across the top is drawn only where a message comes down from it, which needs the move's new `started_by` to name the customer. Where it is blank and the move is first carried by a front end or an app, the box reads "a request from someone using the web front end" (the kind of part, never its name), with no customer drawn; where nothing says, it reads "on a condition; who starts it is not recorded".
+  Effect: none: pages only.
+- **A stage's drawing says only what is there.** The line under its title about what is drawn elsewhere is gone. The decision no longer opens with a "Decide which way out" step that repeats its box's name: its start runs to the first gateway, whose question says who decides ("Which way out? Decided by the underwriter, on an AI agent's proposal", or "Decided by the software"). A state is spelled one way: in sentence case where it starts a label ("Cancelled: payment failed"), in lower case inside one ("In stock confirmed: which way out?"), however the register's prose writes it.
+  Effect: none: pages only.
+- **A stage's neighbours are the stages before and after it in stages.csv.** The folded stage above-left is the one before it in order, never every stage a move comes from. Where the register records no lifecycle moves for a stage, the stage after it in order is drawn, the drawing says its ways out are not recorded, and no end is drawn, so the stage no longer reads as the whole flow.
+  Effect: none: pages only.
+- **The ~ (ad-hoc) mark only where a person does the work.** A stage's work is drawn with ~ only where a business role performs one of its steps, and its box is titled with that role. Work the software does alone is a plain box whose steps follow one another, in the order the lifecycle chains them or else the order of steps.csv; a single step is drawn as a bare step.
+  Effect: none: pages only.
+- **A stage's drawing reads at one type scale and never cuts its words short.** Labels and tags are 13 px, a step's name 14.5, a box's title 15.5 and the stage's title 20, all in one sans face. A box grows to hold its words; nothing ends in "…", so a step's header keeps who does it whole.
+  Effect: none: pages only.
+- **A stage's folded steps count its outcomes apart.** The map reads "2 steps · 4 outcomes", not "6 steps", and the line under the title counts process steps without the endings.
+  Effect: none: pages only.
+- **The runbook and alert pages say each thing once, name states as the cards do, and number a remedy by its
+  register id.** Moves that share an outcome no longer print "Cannot be undone: ..." once per move; every list on the
+  two pages prints a line once. A state reads as words wherever the pages print it ("Awaiting validation", not
+  "AwaitingValidation"), with the same function the cards use; a status quoted as the database holds it stays as
+  written. A remedy keeps one number on every page: RM6 is "Remedy 6" on its card and "Restore: remedy 6" on a
+  check, never "Action 6" in one stage and "Action 2" in another. Register text can now write "remedy 4" and it links
+  to that remedy's card; text from earlier releases that says "restore action 4" now means remedy 4 (RM4), is
+  linked the same way, and reads "remedy 4".
+  Effect: none: pages only.
+- **The map is the new map screen.** Six columns, from capability to external dependency, with a capability's
+  flows beside it. Each stage's steps fold to a count that opens in place, and with them the parts that carry those
+  steps and the external dependencies those parts call, on the stage's row and joined along the chain. Pointing at a
+  box lights its chain and fades the rest; clicking it opens its page in the panel beside the map, which stays closed
+  until then. Nothing on the screen is smaller than 13 px at Fit, nothing is faded on load, and the instruction lines
+  are gone. Parts no step's chain reaches are named in one line under the map.
+  Effect: none: pages only.
+- **The flow and stage cards read right on any register.** A value written "proposed: ..." keeps its words and shows
+  "(proposed)" after them, where the cards used to print only "proposed". State names read as words whatever the
+  code's style: "StockConfirmed" reads "stock confirmed", "in_review" reads "in review". Where no lifecycle move says
+  how a case enters a stage, "A case enters" gives the stage's own entry instead of "not in the map yet". "At stake"
+  no longer repeats every case attribute's stake under every stage: the register does not say which stage each
+  attribute matters in, so the card says so in one line and names the flow's attributes.
+  Effect: none: pages only.
+- **An application with no AI agent says the agentic layer does not apply.** Every Measures panel used to show
+  "Agentic: No measure on record" even where the register names no AI agent, which reads as something missing. It
+  now reads once: "Does not apply: no AI agent in this flow." A gap the register records there still shows instead.
+  Effect: none: pages only.
+- **No stage the register gives a flow is dropped.** A stage whose every step is drafted from a reference model and
+  carried by nothing used to vanish, with its measures, and the header counted fewer stages than the register holds.
+  It is now drawn with those steps marked not assessed. A lone step of that kind in a stage with other steps is still
+  left out, and listed under "Not drawn".
+  Effect: none: pages only.
+- **The Glossary's State and Status examples come from the register.** State shows a state the case's lifecycle
+  names, an unrecorded one where there is one, and Status a state a system records. A register with no lifecycle
+  table says "none in the register".
+  Effect: none: pages only.
+- **The Operation example finds tools in any naming style.** A tool is an AI agent's operation that is one name,
+  in camelCase or snake_case alike; with no agent, the example gives a handler instead. A page or a path is never
+  given as a tool.
+  Effect: none: pages only.
+- **An operation serving several flows names each flow.** Inside this part read "Stages 1 to 1" where an
+  operation served the first stage of two flows. It now reads each flow by name with its stages, as "Fulfilling a
+  customer's order: Stage 1; Filling a basket: Stage 1".
+  Effect: none: pages only.
+- **Who makes a move is whoever the code lets make it.** The fill steps record a person's move as made by a named
+  role where a guard names roles, by "anyone signed in" where the guard asks only for a sign-in, and by "anyone, the
+  code checks no identity" where there is no guard, each cited to the guard or to its absence. Where a guard names
+  roles but nothing records who holds them or which of them made the move, the step's trigger reads "No record to
+  count" instead of a blank.
+  Effect: none: wording for the next walk; an earlier row still draws.
+- **"ok" never means out of date.** Each runbook, alert and structure file a stage run writes now records which
+  version of the register it was made from. If the register changes afterwards, `run_status.py` marks the file STALE,
+  names the tables that changed and gives the command that writes it again, and the run is not done. A file made by
+  an earlier release has no such record, so it reads as stale until you generate it again.
+  Effect: none: generate each stage folder again, as `run_status.py` names them; no row changes.
+- **`reconcile.py --migrate` says what it leaves for you.** At the end it lists the stage folders to generate again
+  (it never does that itself) and, for each table, the columns this release defines that the register still lacks.
+  Fill each as its column's entry under "Changed in the register" says in its effect line (`taken_from`: from each
+  row's citation, with nothing walked again); never add them blank. The list and the check's message carry that
+  effect beside the column.
+  Effect: none: it reports; it changes no row.
+- **An old "promise" no longer shows as the time limit in the code unless the code is cited.** `--migrate` keeps an
+  earlier `promise` in `bound_in_code` only where the cell or the row's source cites a file and line. Any other is a
+  stated bound: it goes to `expectations.csv` as the objective of its stage or flow, party "not stated", and the
+  migration names each one moved. The check now fails a filled `bound_in_code` that cites no code.
+  Effect: rename: reconcile.py --migrate; it moves each `promise`, then fill from each row's citation for any uncited
+  value it sends to `expectations.csv`.
+- **One test for component, and the example says "time limit".** The vocabulary and the register template now give
+  the same test as the fill steps: a component is any deployable the flow runs through whose code can be had, whoever
+  owns it. The application layer counts operation completions, not step completions. The eShop example no longer
+  says "promise": it reads "time limit" where the code sets one, and the customer's expected time where it does not.
+  Effect: none: the test is the one FILL-STEPS already gave; only the vocabulary and the template now say it too.
+- **The Glossary reads as a thesaurus.** Its first column is "Term", and a new "Related terms" column gives each
+  entry's synonyms (UF), broader and narrower terms (BT, NT) and related terms (RT), the same from both ends. New
+  entries: State and Status (where a case stands, and the value a system records for it; neither is a stage).
+  Component is narrower than Part, and is now any deployable whose code can be had; an external dependency is one
+  whose code cannot. Operation has two entries, one per sense: "of a part" (a tool, route or handler a component
+  offers) and "in a run" (an act inside an AI agent's run). A column name's hover shows the related terms too.
+  Effect: none: pages only.
+- **The cards say who the flow serves and what each party expects.** The flow card's "Serves" lists the customer
+  first, then each other party with what it expects of the whole flow. The stage card gives one line per party: what
+  it expects of the stage, what one case shows when that is met, and the objective someone stated, with where it was
+  stated, or "not stated". Where a stated objective differs from the code's time limit, the card shows both as a
+  finding, and does not pick one. A register with no expectations says "No expectations recorded".
+  Effect: none: drawn from `expectations.csv` where it exists; what that needs is in the entries under "Changed in the register".
+- **The time limit in the code is optional.** Few applications set their own timer, deadline or overdue rule, so
+  `bound_in_code` is filled only where the code sets one, and the pages show it only there; an empty cell shows
+  nothing and owes no gap or question. The parties' expectations are each stage's main content.
+  Effect: none: the column is optional, and an empty cell owes nothing.
+- **An AI agent's run is drawn as a UML activity diagram.** Inside this part shows the run with a start node, its
+  operations as actions, an end node, and the moves between them: a diamond where the run chooses its next move, a
+  diamond where moves join, and a line back up where it repeats. A move is drawn only where the register records
+  it; where it does not, the drawing says so in plain words. The agent's measures are no longer listed inside the
+  part: they are in its Measures, with the measures of the calls it makes, and the part keeps the questions asked of
+  an agent and how each is settled.
+  Effect: none: drawn from what the register records; `next` is optional.
+- **The agent's run and its questions read more plainly.** Each condition in the run's diagram sits on its own move
+  where the move leaves the decision; moves that skip ahead run on the left and moves back up on the right, each on
+  its own line. A run whose order the register does not record is listed, not drawn, with that line first. The
+  table of questions asked of an agent says, per question, how many of its measures answer it, or "No measure on
+  record", or the gap the register records. The Glossary says what UF, BT, NT and RT mean, a column name's hover
+  spells them out, and "Operation (of a part)" has an example from the register.
+  Effect: none: pages only.
+- **A stage is drawn as a business process (BPMN).** Clicking a stage now opens a BPMN sub-process of its flow in
+  place of the state machine. The flow is the pool, and the customer is a closed pool above it. The stages before and
+  after the stage are drawn folded. Inside the stage:
+  - the steps that leave the case in the stage form "Work the case", with no required order. Where the register
+    orders two of them, an arrow joins them;
+  - the ways out are decided in "Decide the way out". Each ends in an event named by the state the case is left in,
+    with "cannot be undone" where the move cannot be undone. Where a decided move can leave the case stranded, a
+    boundary event leads back to the work;
+  - moves any of several roles can make, or that leave from every state of the stage, are event sub-processes
+    ("At any time"), each started as its lifecycle row says (below);
+  - the time limit in the code is a timer that stops nothing, and is drawn only where the code sets one.
+
+  A gateway after the stage routes on how it ended. Each step's box says who does it. The parts and any AI agent are
+  left to the step's sequence diagram. The key lists only the marks drawn.
+  Effect: none: pages only.
+- **How an "at any time" move starts is read from its lifecycle row.**
+  - A move that travels by a person, or whose `carried_by` names a person or a role, starts as a message from
+    those people. The box title names them. Where the person is the flow's customer, a dashed line comes down from
+    the customer's band.
+  - A move that travels by a timer starts with a timer.
+  - Any other move starts on a condition. That is what the register records when it names no party.
+  Effect: none: drawn from each lifecycle row as it is; `started_by` is optional.
+- **A stage's decision follows the order the register gives it.** When a stage's ways out leave from more than one of
+  its states, and the lifecycle chains those states, the decision has a gateway at each state, in that order. The
+  step that moves the case on sits between them. In the eShop example, the order's stock is confirmed or it is
+  cancelled; then payment is taken or it is cancelled. A single gateway is drawn only when every way out leaves from
+  the same state. Where two branches would read the same, each adds what its step's name says that the other's does
+  not, for example "cancelled: an item is out of stock" and "cancelled: payment failed".
+  Effect: none: pages only.
+- **The stage card says each thing once.** An outcome reached by several moves is listed once, and no line on the
+  card prints a move id.
+  Effect: none: pages only.
+- **A sentence a move id is taken out of still reads.** An id set off between commas goes with both commas, and a
+  comparison with a move ("unlike" and the id) goes with its comma, so no stray comma is left behind.
+  Effect: none: pages only.
+- **A word that starts with a dot keeps the space before it.** Taking a citation out of the runbook and alert text no
+  longer joins ".NET" to the word before it.
+  Effect: none: pages only.
+- **An alert's reason ends cleanly.** On the alerts page, no period is printed after the reason's last paragraph; in
+  the runbook, the "expectation it guards" line ends with a period.
+  Effect: none: pages only.
+- **A check reached from more than one test links back to each.** Where several tests in an alert's entry send the
+  responder to the same check, the check's card has a "Back to" link to every one of them, not only the first.
+  Effect: none: pages only.
+- **Each timing the design assumes names its process step.** The alert page's Window row, and the runbook's "Was it
+  planned?" check, lead each timing with the process step it belongs to, so a reader can tell which wait is whose.
+  Effect: none: pages only.
+- **A check on several parts asks of them all.** "Are Ordering database and Catalog database down or unreachable?",
+  "… falling behind on their queues?": a check that names more than one part reads in the plural, in its card, its
+  line in an entry and the escalation table.
+  Effect: none: pages only.
+- **The alert page has the runbook page's trail.** Its trail opens the map, the flow, the stage and the runbook.
+  Effect: none: pages only.
+
+### Changed in the register
+
+- **measures.csv has a required `taken_from` column**, filled on every measure: the kind of record a measure is counted from, one of eleven (`metric`, `log or event record`, `trace`, `the edge`, `external probe`, `client-side instrumentation`, `the case's own record`, `a message log kept with the state`, `configuration`, `platform lifecycle events`, `another organisation's record`). Where `exists` is `yes`, the kind of the cited line; on a proposed measure, where it would be taken from. `--check` fails a register without the column and warns on any other value.
+  Effect: fill from each row's citation: the kind of the line `source_ref` cites, or on a proposed measure the kind it would be taken from; nothing is walked again.
+- **lifecycle.csv has an optional `started_by` column**, beside `carried_by`: on a move that can happen at any time while the case is in a stage (a cancel, a withdrawal), who starts it, cited: the flow's customer, a role, an outside party, `timer` or `the software`. Fill it where you know; `reconcile.py --migrate` adds it empty to an earlier register.
+  Effect: none: optional; `reconcile.py --migrate` adds it empty, and you fill it where you know.
+- Two columns are renamed: `flows.csv` → `expectation_of` is now `customer` (the role name only; its citation goes in
+  the row's `source`), and `flows.csv` and `stages.csv` → `promise` is now `bound_in_code`, shown as "Time limit in
+  the code". The receipt questions `the promise` and `past the promise` are now `the time limit` and `past the time
+  limit`. An earlier register needs nothing: `reconcile.py` reads it under the new names when it compares it with
+  the new one. To draw an earlier register with this kit, run `python reconcile.py --migrate <register>` on a copy
+  of it: that renames the columns and those question cells in place and moves a code citation out of `customer` into
+  `source`. Without it, the check fails that register with a missing-column error.
+  Effect: rename: reconcile.py --migrate; on a copy, and no row's content changes.
+- Remedy ids are renamed from `R1`, `R2`, ... to `RM1`, `RM2`, ..., so a remedy no longer reads like an interaction
+  (`R01` in `subjects.csv`, unchanged). What an earlier register needs: run `python reconcile.py --migrate
+  <register>` on a copy of it. That renames each id in `remedies.csv`, the `remedy` column of `failure-modes.csv`,
+  and each remedy one remedy's `action`, `expected` or `if_different` names. Without it, `flow_outputs.py --check`
+  fails the register with an error naming the old ids.
+  Effect: rename: reconcile.py --migrate; on a copy, and no row's content changes.
+- A new table, `expectations.csv`, names whom the flow serves and what each party counts on, of the whole flow and
+  of each stage: the party, the expectation in their words, what one case shows when it is met, and an objective
+  only where a document, a person or the text the business shows the party states one. The new Step 3a in
+  FILL-STEPS says how to fill it. A time limit a source states now goes there as an objective; `bound_in_code`
+  holds only the code's own time limit, and where the two disagree the stage card shows both.
+  Effect: re-walk Step 3a, the parties and their expectations, because what a party is told or a source states is cited by no row of an earlier register.
+- `measures.csv` has a new column, `expectation`: the ids of the expectations a measure is evidence of. Every
+  measure you propose for alerting names the expectation it guards there. A business health or business impact
+  measure that names an expectation shows whether it is met; an expectation no measure names gets a gap row.
+  Effect: re-walk Step 3a, the parties and their expectations first, because the ids this column names come from `expectations.csv`; each alerting measure then names the one it guards.
+- What an earlier register needs: add `expectations.csv` from the template and write the parties and their
+  expectations into it (Step 3a), add the `expectation` column to `measures.csv`, and put the id of the expectation
+  each alert guards on every measure proposed for alerting. Until then the check fails every alerting measure.
+  Effect: re-walk Step 3a, the parties and their expectations, because no row of an earlier register holds them.
+- A run now fills who each flow serves and what each party expects: a new `expectations.csv` with at least one row
+  for the whole flow and one for every stage, each with what one case shows when it is met, and a measure that shows
+  it (or a gap row saying why there is none). A run is not DONE while any of these is empty. An earlier register's
+  alerting measures fail the check until their new `expectation` column names the expectation each one guards.
+  Effect: re-walk Step 3a, the parties and their expectations, because a run is not done without them and no row of an earlier register holds them.
+- `agent-system.csv` gains an optional `next` column: the run's control flow, read from the code that sequences it. On
+  the run row, the operation a run starts with; on an operation row, the operations that may follow, or `end`, each
+  with an optional condition in square brackets. An earlier register needs nothing: the column may be absent or
+  blank, and the run is drawn without moves until it is filled.
+  Effect: none: optional; the run is drawn without moves until it is filled.
+
 ## Release 2 — 2026-10-14 (afternoon)
 
 ### What you will notice

@@ -1,16 +1,14 @@
 # Fulfilling a customer's order: stage 1 of 4, Place the order: where each measure is counted
 
-**Expected of the stage:** none assumed by the code beyond one request: placing is a single call (L01), bounded only by the HTTP client's resilience defaults (eShop.ServiceDefaults/Extensions.cs:22-29). The time limit is the operators' to set.
-
 **Proposed for alerting:** M300, the measures marked **proposed alert** below. The alert is in [ALERT.md](ALERT.md); when it fires, follow its own entry in RUNBOOK.md ([M300](RUNBOOK.md#alert-m300-checkouts-that-ended-with-no-order)). Every other measure is read by the runbook's tests where ALERT.md lists it as a companion measure.
 
-Steps are numbered within their stage, the same in every stage file. A step's row holds the measures counted on the case at that step; each component's row holds its own.
+Process steps are numbered within their stage, the same in every stage file. A process step's row holds the measures counted on the case at that process step; each component's row holds its own.
 
 | | Business health<br>is the expectation met? (counted on cases) | Business impact<br>for how many cases is it not? | Application<br>how did the software behave? | System<br>how did the infrastructure behave? |
 |---|---|---|---|---|
 | **Stage 1: Place the order** | none | M300 Checkouts that ended with no order (exists) **proposed alert** | none | none |
 | Expected outcome: The order is placed (done by WebApp, ClientApp, Mobile BFF, Basket API, Catalog API, Ordering API) | M20 Orders placed (log) (exists) | M21 Order requests answered OK with no order created (exists)<br>M121 Orders placed with a line at other than the catalogue price (proposed) | none | none |
-| Step 1.1: The customer's basket is emptied (done by WebApp, ClientApp, Basket API, Ordering API) | none | none | none | none |
+| Process step 1.1: The customer's basket is emptied (done by WebApp, ClientApp, Basket API, Ordering API) | none | none | none | none |
 | Application component: WebApp | none | none | M73 WebApp rate, errors, duration (exists)<br>M117 Requests to POST /checkout, by status, and their duration (exists) | none |
 | Application component: ClientApp | none | none | M78 Mobile app order and cancel calls that fail (proposed) | none |
 | Application component: Mobile BFF | none | none | M77 Mobile BFF responses by route and status (proposed) | none |
@@ -73,3 +71,5 @@ Steps are numbered within their stage, the same in every stage file. A step's ro
 | M90 Broker running | Is the broker up? | Failed requests or resource-level errors | resources | rabbitmq-diagnostics -q ping; run in the eventbus container (az containerapp exec --name eventbus --resource-group <rg>) | no, proposed |
 | M91 Broker resource alarms and headroom | Is the broker blocking publishers for lack of memory or disk? | Queued work beyond current capacity | resources | rabbitmq-diagnostics check_local_alarms; memory and disk free against their watermarks in rabbitmqctl status; run in the eventbus container (az containerapp exec --name eventbus --resource-group <rg>) | yes: built into RabbitMQ; broker provisioned at eShop.AppHost/Program.cs:9-10; command named in https://www.rabbitmq.com/docs/monitoring |
 | M92 Bindings on exchange eshop_event_bus | Does every event have a queue bound to receive it? | not stated | resources | rabbitmqctl list_bindings source_name destination_name routing_key, rows with source eshop_event_bus; run in the eventbus container (az containerapp exec --name eventbus --resource-group <rg>) | yes: built into RabbitMQ; broker provisioned at eShop.AppHost/Program.cs:9-10; bindings made by each consumer at start (EventBusRabbitMQ/RabbitMQEventBus.cs:20, 279-285) |
+
+<!-- bfo-generated-from {"flow": "F1", "stage": "ST1", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "f3ef7b5dbcfd", "measures": "3c7ec5c71e65", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->

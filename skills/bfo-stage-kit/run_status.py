@@ -5,7 +5,9 @@ Usage: python run_status.py <register folder> [stage id ...]
 A stage is owed its six files (STRUCTURE.md, MEASURES.md, ALERT.md, RUNBOOK.md, ALERT.html, RUNBOOK.html in
 stage-<id>/) when it has a stage-<id> folder, when RUN.md in the register folder names stage-<id>, or when it is
 given on the command line. The register is owed views.html and how-this-map-was-made.html. An empty file counts as
-missing. The run is also NOT DONE while a view question that is required, or answer or gap, is empty for an element
+missing. A stage output is STALE, and the run NOT DONE, when it carries no stamp of the register it was generated from
+(flow_outputs.py writes one into each) or when a table it was generated from has changed since: its line names the
+tables and the command that regenerates it. The run is also NOT DONE while a view question that is required, or answer or gap, is empty for an element
 the run owes (the flows with an owed stage, the owed stages and their steps, every part, each alert drafted in an owed
 stage), or is gapped `not read` on a first run (view_questions.py holds the questions and their predicates, which the
 cards print from). Count-only questions, owner and responder among them, never change DONE. Then a line DONE or NOT
@@ -50,6 +52,28 @@ def expected(reg, named):
 def present(reg, rel):
     p = reg / rel
     return p.is_file() and p.stat().st_size > 0
+
+
+def stale(reg, rel):
+    """Why a stage output no longer matches the register, or "" where it does. flow_outputs.py stamps each output with
+    the fingerprint of the register tables it read; an output with no stamp, or one whose tables have changed since,
+    is stale. The map files carry no stamp and are not compared."""
+    if not rel.startswith("stage-"):
+        return ""
+    sys.path.insert(0, str(HERE))
+    import flow_outputs as fo
+    stage = rel.split("/", 1)[0][len("stage-"):]
+    got = fo.stamp_of((reg / rel).read_text(encoding="utf-8", errors="replace"))
+    flow = (got or {}).get("flow") or next((r.get("flow", "").strip() for r in table(reg, "stages")
+                                           if r.get("stage", "").strip() == stage), "") or "<flow>"
+    if got is None:
+        why = "no record of the register it was generated from"
+    else:
+        changed = fo.changed_since(got.get("tables"), reg)
+        if not changed:
+            return ""
+        why = f"{', '.join(changed)} changed since it was generated"
+    return f"{why}: regenerate with {fo.regenerate_command(reg, flow, stage)}"
 
 
 # ---------------------------------------------------------------- how full the register is
@@ -210,18 +234,22 @@ def main(argv):
     owed = expected(reg, argv[1:])
     width = max(len(r) for r in owed)
     print(f"Register: {reg}")
-    missing = 0
+    missing = old = 0
     if not stages(reg, argv[1:]):
         print(f"{'stage-<id>/':<{width}}  MISSING (no stage has had Step 11)")
         missing += 1
     for rel in owed:
         ok = present(reg, rel)
         missing += not ok
-        print(f"{rel:<{width}}  {'ok' if ok else 'MISSING'}")
+        why_stale = stale(reg, rel) if ok else ""
+        old += bool(why_stale)
+        print(f"{rel:<{width}}  {('STALE (' + why_stale + ')') if why_stale else 'ok' if ok else 'MISSING'}")
     total = len(owed) + (0 if stages(reg, argv[1:]) else 1)
     vq_lines, why = view_questions(reg, stages(reg, argv[1:]))
     said = f"{missing} of {total} expected outputs missing" if missing else f"all {total} expected outputs exist"
-    if missing or why:
+    if old:
+        said += f"; {old} stale (generated from the register as it was, not as it is now)"
+    if missing or why or old:
         print(f"NOT DONE: {said}" + (f"; view questions not answered: {'; '.join(why)}" if why else ""))
     else:
         print(f"DONE: {said}")
@@ -230,7 +258,7 @@ def main(argv):
     except Exception as e:  # the other counts never change whether the run is done
         block = [f"Fullness: not counted ({type(e).__name__}: {e})"] + vq_lines
     print("\n".join(block))
-    return 1 if missing or why else 0
+    return 1 if missing or why or old else 0
 
 
 if __name__ == "__main__":

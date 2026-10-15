@@ -11,8 +11,8 @@ term, the field's term is used.
 | **Intended flow** | One path a single case takes through the business, start to ending, as designed | Placing an order |
 | **Stage** | A stretch of the flow with entry and exit criteria, ending in a value item for the party it serves: something they would recognise as done | Accept the order |
 | **Process step** | One outcome inside a stage that the business would recognise, named without its performer | Stock is confirmed for the order |
-| **Component** | A part of the application that delivers the capability: a service, a worker, a front end, a database, a broker | The ordering service; the ordering database |
-| **External dependency** | Something the application calls, waits on or fails over to, and does not include | A payment provider |
+| **Component** | Any deployable the flow runs through whose code can be had, whoever owns it: a service, a worker, a front end, a database, a broker | The ordering service; the ordering database |
+| **External dependency** | Something the flow calls, waits on or fails over to whose code cannot be had (a vendor, a software-as-a-service provider, a repository there is no access to); drawn and measured from the calling side | A payment provider |
 
 **Relations.** A capability is **delivered by** flows (several, and a flow may deliver several): the two are
 **cross-mapped**, and neither contains the other. A flow
@@ -44,7 +44,7 @@ level and an architecture layer; a measure has an observability layer.
 | **Path** | `main`; `alternative` (another ending the design allows: rejected, cancelled); `exception` (a failure the code reports back) |
 | **Recovery** | What happens to cases when a move does not happen: `moves on` once the cause is fixed; `stranded` until someone acts; `not created` (the request fails and nothing is kept) |
 | **Irreversible** | A move that cannot be undone: money taken, goods shipped, a filing made |
-| **Promise** | The time within which a case should leave a stage, stated by a source or `proposed:` from the timing the design assumes |
+| **Time limit in the code** (`bound_in_code`) | Optional. A timer, deadline or overdue rule the application's own code sets for a stage or a flow, `proposed:` and cited. Most applications set none, and then the cell is empty and nothing shows; what each party expects goes in `expectations.csv` |
 
 ## Measures
 

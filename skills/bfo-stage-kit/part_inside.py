@@ -1,4 +1,4 @@
-"""Inside one part: its operations drawing, its whitebox card and, for an AI agent, its run. Drawn from the register.
+"""Inside one part: its operations drawing, its blackbox card and, for an AI agent, its run. Drawn from the register.
 
     python -I part_inside.py REGISTER OUT.html [PART_ID ...]
 
@@ -7,7 +7,8 @@ register only:
 - participation.csv: the operations the part performs each process step with (`operation`, `;` separated);
 - subjects.csv: the part's name, kind and the interactions it makes (`from_id`, `to_id`, `step_hint`, and the
   optional `operation`: which of its operations makes the call);
-- agent-system.csv: for an AI agent, its run, the run's operations, its agent parts and its dependencies;
+- agent-system.csv: for an AI agent, its run, the run's operations, its agent parts and its dependencies, and the
+  run's control flow in `next`;
 - method/agent-questions.csv: the questions asked of an agent.
 A link from an operation to a part it calls is drawn as a call only where the interaction's `operation` names it.
 Otherwise it is derived from a shared process step and drawn "via the step": the part made the call during a step
@@ -81,16 +82,35 @@ def called(M, pid):
 
 def serves_text(M, steps):
     """The stages whose steps the operation serves, by name: "Stage 2: " and the stage's name; more than two stages read
-    "Stages 1 to 4", with "every stage of the flow" where that is so. The steps themselves are lit on the map."""
+    "Stages 1 to 4", with "every stage of the flow" where that is so. Steps in more than one flow are read flow by flow,
+    each under its flow's name, since a stage's number is only its order within its flow. The steps themselves are lit
+    on the map."""
     if not steps:
         return "serves no process step on record"
     stages = list(dict.fromkeys(M["step"][s].get("stage") for s in steps))
-    st = [M["stage"].get(k, {}) for k in stages]
-    if len(st) <= 2:
-        return "; ".join(f'Stage {x.get("order", "")}: {x.get("name", "")}' for x in st)
-    flow = M["flow_of_stage"].get(stages[0])
-    every = set(stages) >= {k for k, f in M["flow_of_stage"].items() if f == flow and k in M["stage"]}
-    return f'Stages {st[0].get("order", "")} to {st[-1].get("order", "")}' + (", every stage of the flow" if every else "")
+    flows = list(dict.fromkeys(M["flow_of_stage"].get(k) for k in stages))
+
+    def order(k):
+        o = str(M["stage"].get(k, {}).get("order", ""))
+        return (0, int(o)) if o.isdigit() else (1, o)
+
+    def of_flow(flow, named):
+        mine = sorted((k for k in stages if M["flow_of_stage"].get(k) == flow), key=order)
+        st = [M["stage"].get(k, {}) for k in mine]
+        if len(st) <= 2 and not named:
+            return "; ".join(f'Stage {x.get("order", "")}: {x.get("name", "")}' for x in st)
+        if len(st) == 1:
+            return f'Stage {st[0].get("order", "")}'
+        every = set(mine) >= {k for k, f in M["flow_of_stage"].items() if f == flow and k in M["stage"]}
+        if every:
+            return "every stage" if named else f'Stages {st[0].get("order", "")} to {st[-1].get("order", "")}, every stage of the flow'
+        if len(st) == 2:
+            return f'Stages {st[0].get("order", "")} and {st[1].get("order", "")}'
+        return f'Stages {st[0].get("order", "")} to {st[-1].get("order", "")}'
+    if len(flows) == 1:
+        return of_flow(flows[0], False)
+    name = {f["flow_id"]: f.get("name", "") for f in M["flows"]}
+    return "; ".join(f'{name.get(f, f)}: {of_flow(f, True)}' for f in flows)
 
 
 def _mid(pid):
@@ -222,9 +242,77 @@ def reaches(M, pid, op_row):
     return list(dict.fromkeys(out))
 
 
+EDGE = "stroke:var(--m-ink2);stroke-width:1.4;fill:none"
+
+
+def run_moves(M, pid):
+    """The run's control flow as the register records it in `next`: [(from, to, guard)], from "start" (the run row) or an
+    operation id, to an operation id or "end". Only moves between the agent's own operations are kept."""
+    rows = agent_rows(M, pid)
+    ops = {r.get("id") for r in rows if r.get("element") == "operation"}
+    out = []
+    for r in rows:
+        src = "start" if r.get("element") == "run" else r.get("id") if r.get("element") == "operation" else None
+        for dst, guard in cv.next_moves(r.get("next")) if src else []:
+            if dst in ops or (dst == "end" and src != "start"):
+                out.append((src, dst, guard))
+    return out
+
+
+def tools_of(M, pid, op_row):
+    """The agent's own operations (its participation rows) that the agent parts performing one run operation name,
+    in their name or what they are: a run's "call a tool" joined to the operations it calls. Derived, never a column."""
+    rows = agent_rows(M, pid)
+    parts = {r.get("id"): r for r in rows if r.get("element") == "agent part"}
+    text = " ".join(f'{parts[a].get("name", "")} {parts[a].get("what_it_is", "")}'
+                    for a in cv.ids(op_row.get("performed_by")) if a in parts)
+    return [op for op, _ in operations(M, pid) if re.search(r"(?<![\w/])" + re.escape(op) + r"(?![\w/])", text)]
+
+
+def act_side(M, pid, r, parts):
+    """(the operation's name, "· not assessed" where its agent part was looked for and not found, and the lines beside
+    it: the agent parts that perform it and what those reach)."""
+    mine = [parts[a] for a in cv.ids(r.get("performed_by")) if a in parts]
+    unfound = bool(mine) and not any(cv.ids(p.get("subject_id")) for p in mine)
+    side = [f"by {', '.join(p.get('name', '') for p in mine)}" if mine else NO_PART]
+    called = tools_of(M, pid, r)
+    if called:
+        side.append("calls " + ", ".join(called))
+    reach = reaches(M, pid, r)
+    if reach:
+        side.append("reaches " + ", ".join(reach))
+    return r.get("name", "") + (" · not assessed" if unfound else ""), unfound, side
+
+
+def run_list(M, pid, run, ops, parts):
+    """A run whose order the register does not record: its name, with the order said to be not on record, then its
+    operations as a plain list, with no start, end or edge, so nothing reads as a sequence."""
+    E = cv.esc
+    lis = "".join(f'<li><b>{E(name)}</b> <span class="ref">{E("; ".join(side))}</span></li>'
+                  for name, _, side in (act_side(M, pid, r, parts) for r in ops))
+    return (f'<div class="seq inside run"><p class="runname"><b>One run: {E(run.get("name") or GAP)}</b> '
+            f'<span class="nr">· {NO_ORDER_SAID}</span></p><ul>{lis}</ul></div>')
+
+
+def side_points(cx, top, d, n, side):
+    """n points spread down one side of a diamond whose top is at `top` and half-size `d`: its side vertex for one."""
+    sign = -1 if side == "L" else 1
+    out = []
+    for i in range(n):
+        dy = 2 * d * (i + 1) / (n + 1)
+        out.append((cx + sign * (d - abs(dy - d)), top + dy))
+    return out
+
+
 def run_drawing(M, pid):
-    """One run: its operations as the register lists them, each with the agent parts that perform it and what those
-    reach. The register holds no order between them, no repeats and no exit, so none is drawn."""
+    """One run as a UML activity diagram: an initial node, the run's operations as actions in register order, a final
+    node, and the control flow the register records in `next`: a decision node where an action has several next moves,
+    a merge node where several moves enter one, an edge drawn back up where the run repeats. Each condition sits on its
+    own edge where the edge leaves the decision, as UML places a guard. A move that skips ahead runs on the left, a move
+    back up on the right, each on its own lane and entering or leaving a node at its own point, the shorter inside, so
+    no two moves share a line. No edge is drawn that the register does not record; what it does not record is said
+    under the drawing. Beside each action: the agent parts that perform it and what those reach. A run with no
+    recorded order is listed, not drawn."""
     E = cv.esc
     rows = agent_rows(M, pid)
     run = next((r for r in rows if r.get("element") == "run"), {})
@@ -232,72 +320,206 @@ def run_drawing(M, pid):
     parts = {r.get("id"): r for r in rows if r.get("element") == "agent part"}
     if not ops:
         return '<p class="note">The register names no operation inside this agent\'s run.</p>'
-    cx, AW = 150, 250
+    moves = run_moves(M, pid)
+    if not moves:
+        return run_list(M, pid, run, ops, parts)
+    seq = ["start"] + [r.get("id") for r in ops] + ["end"]
+    pos = {k: i for i, k in enumerate(seq)}
+    indeg, outdeg = {}, {}
+    for a, b, _ in moves:
+        outdeg[a] = outdeg.get(a, 0) + 1
+        indeg[b] = indeg.get(b, 0) + 1
+    straight = {}  # a move to the very next node goes straight down, one per source
+    for a, b, g in moves:
+        if pos[b] == pos[a] + 1 and a not in straight:
+            straight[a] = (b, g)
+    routed = [(a, b, g) for a, b, g in moves if straight.get(a) != (b, g)]
+    span = lambda m: (abs(pos[m[1]] - pos[m[0]]), pos[m[0]])
+    lanes = {"L": sorted([m for m in routed if pos[m[1]] > pos[m[0]]], key=span),  # skips ahead, the shortest inside
+             "R": sorted([m for m in routed if pos[m[1]] <= pos[m[0]]], key=span)}  # back up
+    side_of = {m: s for s, ms in lanes.items() for m in ms}
+    lane_no = {m: i for ms in lanes.values() for i, m in enumerate(ms)}
+    # the moves leaving and entering each node, per side, in the order that keeps one lane off another's line
+    exits, entries = {}, {}
+    for m in routed:
+        exits.setdefault((m[0], side_of[m]), []).append(m)
+        entries.setdefault((m[1], side_of[m]), []).append(m)
+    for (k, s), ms in exits.items():  # going down on the left, the outer leaves higher; going up on the right, lower
+        ms.sort(key=lambda m: -lane_no[m] if s == "L" else lane_no[m])
+    for (k, s), ms in entries.items():  # coming down on the left, the outer enters lower; coming up on the right, higher
+        ms.sort(key=lambda m: lane_no[m] if s == "L" else -lane_no[m])
+    count = lambda table, k: max([len(table.get((k, s), [])) for s in "LR"])
+    D, LANE, AW, GAPY, CH = 10, 14, 240, 26, 6.4  # CH: the width of one character of a condition
+    guard_w = lambda m: CH * (len(m[2]) + 2) if m[2] else 0
+    left = 24 + LANE * len(lanes["L"])
+    for m in lanes["L"]:  # a condition leaving on the left reads leftwards from its point, inside the frame
+        if m[0] in outdeg and outdeg[m[0]] > 1:
+            n = count(exits, m[0])
+            left = max(left, guard_w(m) + (D if n < 2 else 8 * (n + 1)) + 12 - AW / 2)
+        else:
+            left = max(left, guard_w(m) + 20)
+    cx = left + AW / 2
+    lane_x = {m: (left - LANE * (lane_no[m] + 1) if side_of[m] == "L" else left + AW + LANE * (lane_no[m] + 1))
+              for m in routed}
+    sx = left + AW + 14 + LANE * len(lanes["R"])
+    mk = _mid(pid) + "-ad"
+    out = [f'<defs><marker id="{mk}" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto">'
+           '<path d="M0,0 L8,4 L0,8 z" style="fill:var(--m-ink2)"/></marker></defs>']
+    arrow = f' marker-end="url(#{mk})"'
+
+    def diamond(kind, at, y, d):
+        out.append(f'<g class="ad-node" data-kind="{kind}" data-at="{E(at)}"><path d="M{cx:g} {y:g} l{d:g} {d:g} '
+                   f'l{-d:g} {d:g} l{-d:g} {-d:g} z" class="bx"/></g>')
+    start_pt, end_pt = {}, {}  # move -> the point it leaves from / enters at
+    port = {}  # node -> (top y, bottom y)
     y = 44
-    out = []
-    for r in ops:
-        mine = [parts[a] for a in cv.ids(r.get("performed_by")) if a in parts]
-        unfound = bool(mine) and not any(cv.ids(p.get("subject_id")) for p in mine)
-        name = cv.wrap(r.get("name", "") + (" · not assessed" if unfound else ""), AW - 20, 12.5, 3)
-        h = 14 * len(name) + 18
-        style = ' style="stroke-dasharray:3 2"' if unfound else ""
-        out.append(f'<g class="act" data-op="{E(r.get("id"))}"><rect x="{cx - AW / 2:g}" y="{y}" width="{AW}" height="{h}" '
-                   f'rx="12" class="bx"{style}/>' + "".join(f'<text x="{cx}" y="{y + 17 + 14 * j}" class="nm">{E(ln)}</text>'
-                                                             for j, ln in enumerate(name)))
-        side = [f"by {', '.join(p.get('name', '') for p in mine)}" if mine else f"by: {GAP}"]
-        reach = reaches(M, pid, r)
-        if reach:
-            side.append("reaches " + ", ".join(reach))
-        lines = [ln for s in side for ln in cv.wrap(s, 300, 11.5, 2)]
-        out += [f'<text x="{cx + AW / 2 + 12:g}" y="{y + 13 + 14 * j}" class="tv dim">{E(ln)}</text>' for j, ln in enumerate(lines)]
-        out.append("</g>")
-        y += max(h, 14 * len(lines) + 4) + 10
+    for k in seq:
+        top = y
+        merge = k != "start" and indeg.get(k, 0) > 1
+        if merge:
+            d = D if count(entries, k) < 2 else 6 * (count(entries, k) + 1)
+            diamond("merge", k, y, d)
+            for s in "LR":
+                for m, pt in zip(entries.get((k, s), []), side_points(cx, y, d, len(entries.get((k, s), [])), s)):
+                    end_pt[m] = pt
+            y += 2 * d + 12
+            out.append(f'<line x1="{cx:g}" y1="{y - 12:g}" x2="{cx:g}" y2="{y:g}" class="ar"{arrow}/>')
+        if k == "start":
+            out.append(f'<g class="ad-node" data-kind="initial" data-at="start"><circle cx="{cx:g}" cy="{y + 8:g}" r="8" '
+                       'class="dot"/></g>')
+            h, half = 16, 8
+        elif k == "end":
+            out.append(f'<g class="ad-node" data-kind="final" data-at="end"><circle cx="{cx:g}" cy="{y + 10:g}" r="10" '
+                       f'class="bx"/><circle cx="{cx:g}" cy="{y + 10:g}" r="6" class="dot"/></g>')
+            h, half = 20, 10
+        else:
+            r = next(o for o in ops if o.get("id") == k)
+            full, unfound, side = act_side(M, pid, r, parts)
+            name = cv.wrap(full, AW - 20, 12.5, 3)
+            lines = [ln for s in side for ln in cv.wrap(s, W - sx - 14, 11.5, 2)]
+            h = max(14 * len(name) + 18, 14 * len(lines) + 4)
+            half = AW / 2
+            style = ' style="stroke-dasharray:3 2"' if unfound else ""
+            out.append(f'<g class="act" data-op="{E(k)}"><rect x="{left:g}" y="{y:g}" width="{AW}" height="{h:g}" rx="12" '
+                       f'class="bx"{style}/>' + "".join(f'<text x="{cx:g}" y="{y + 17 + 14 * j:g}" class="nm">{E(ln)}</text>'
+                                                        for j, ln in enumerate(name))
+                       + "".join(f'<text x="{sx:g}" y="{y + 13 + 14 * j:g}" class="tv dim">{E(ln)}</text>'
+                                 for j, ln in enumerate(lines)) + "</g>")
+        if not merge:  # a single move in enters the node's side in its upper part
+            for s in "LR":
+                for m in entries.get((k, s), []):
+                    end_pt[m] = (cx - half if s == "L" else cx + half, y + (h / 2 if k in ("start", "end") else h / 3))
+        y += h
+        if k != "end" and outdeg.get(k, 0) > 1:
+            out.append(f'<line x1="{cx:g}" y1="{y:g}" x2="{cx:g}" y2="{y + 18:g}" class="ar"{arrow}/>')
+            y += 18  # room for a condition above a line leaving the decision
+            d = D if count(exits, k) < 2 else 8 * (count(exits, k) + 1)
+            diamond("decision", k, y, d)
+            for s in "LR":
+                for m, pt in zip(exits.get((k, s), []), side_points(cx, y, d, len(exits.get((k, s), [])), s)):
+                    start_pt[m] = pt
+            y += 2 * d
+        else:  # a single move out leaves the node's side in its lower part
+            for s in "LR":
+                for m in exits.get((k, s), []):
+                    start_pt[m] = (cx - half if s == "L" else cx + half, y - (h / 2 if k in ("start", "end") else h / 3))
+        port[k] = (top, y)
+        y += GAPY
+    labels = []  # drawn over every line, so no line crosses a condition
+    for a, (b, g) in straight.items():
+        y1, y2 = port[a][1], port[b][0]
+        out.append(f'<path class="ad-edge" data-from="{E(a)}" data-to="{E(b)}" data-back="no" d="M{cx:g} {y1:g} V{y2:g}" '
+                   f'style="{EDGE}"{arrow}/>')
+        if g:
+            labels.append(f'<text class="guard h" data-from="{E(a)}" data-to="{E(b)}" x="{cx + 8:g}" y="{y1 + 13:g}">'
+                          f'[{E(g)}]</text>')
+    for m in routed:
+        a, b, g = m
+        (x1, y1), (x2, y2), lane = start_pt[m], end_pt[m], lane_x[m]
+        back = "yes" if side_of[m] == "R" else "no"
+        out.append(f'<path class="ad-edge" data-from="{E(a)}" data-to="{E(b)}" data-back="{back}" '
+                   f'd="M{x1:g} {y1:g} H{lane:g} V{y2:g} H{x2:g}" style="{EDGE}"{arrow}/>')
+        if g:
+            gx, anchor = (x1 - 4, "end") if side_of[m] == "L" else (x1 + 4, "start")
+            labels.append(f'<text class="guard h" data-from="{E(a)}" data-to="{E(b)}" x="{gx:g}" y="{y1 - 7:g}" '
+                          f'style="text-anchor:{anchor}">[{E(g)}]</text>')
+    out += labels
+    names = {r.get("id"): r.get("name", "") for r in ops}
+    notes = [] if outdeg.get("start") else ["Where a run starts: not on record."]
+    notes += [f"After “{names[k]}”: not on record." for k in seq[1:-1] if not outdeg.get(k)]
     again = {}
     for r in ops:
         for d in reaches(M, pid, r):
             again.setdefault(d, []).append(r.get("name", ""))
-    notes = [f"The order a run takes these operations, which it repeats and how many times, and what ends it: {GAP}."]
     notes += [f"{d} is reached by more than one operation in a run: {'; '.join(n)}." for d, n in again.items() if len(n) > 1]
-    ny = y + 16
+    ny = y + 8
     for n in notes:
         for ln in cv.wrap(n, W - 40, 11.5, 3):
-            out.append(f'<text x="14" y="{ny}" class="tv dim">{E(ln)}</text>')
+            out.append(f'<text x="14" y="{ny:g}" class="tv dim">{E(ln)}</text>')
             ny += 14
         ny += 4
     H = ny + 6
     title = "One run: " + (run.get("name") or GAP)
-    return (f'<svg class="seq inside run" viewBox="0 0 {W} {H:g}" role="img" aria-label="{E(title)}, its operations">'
+    return (f'<svg class="seq inside run" viewBox="0 0 {W} {H:g}" role="img" aria-label="{E(title)}, as an activity diagram">'
             f'<rect x="2" y="4" width="{W - 4}" height="{H - 8:g}" class="frame"/>'
             f'<text x="12" y="24" class="tagt">{E(cv.wrap(title, W - 40, 12, 1)[0])}</text>{"".join(out)}</svg>')
 
 
-def questions(M, pid):
-    agent = M["subj"][pid]
-    qms = cv.agent_measures(M, agent)
+NO_MEASURE = "No measure on record"  # the kit's words for a layer with nothing on record
+NO_PART = "by no agent part found"  # a run operation whose agent part was looked for and not found
+NO_ORDER_SAID = "order not on record"  # a run whose order the register does not record
+SAYS_NOTHING = "a component of this system"  # where a part sits when the register places it nowhere more exactly
 
-    def state(m):
-        if m.get("exists") != "yes":
-            return "proposed"
-        d = (m.get("defect") or "").strip()
-        return "exists, but misleading: " + ss.plain(d) if d else "emitted by the code"
-    def listed(q):  # one measure kept once per decision point it is asked at: named once, with how many
-        got = {}
-        for m in qms:
-            if m.get("agent_question") == q:
-                k = f'{m.get("measure")} ({state(m)})'
-                got[k] = got.get(k, 0) + 1
-        return "; ".join(k if n == 1 else f"{k}, at {n} decision points" for k, n in got.items())
-    trs = "".join(
-        f'<tr><th>{cv.esc(q["question"])}</th><td>'
-        + (cv.esc(listed(q["agent_question"])) or '<span class="ref">none on record</span>')
-        + f'</td><td>{cv.esc(q["status"])}</td></tr>' for q in M["R"]["method"]["agent-questions"])
-    return ('<table class="agent"><thead><tr><th>Question</th><th>On record in this register</th>'
-            f'<th>How settled in the method</th></tr></thead><tbody>{trs}</tbody></table>')
+
+def question_gaps(M, pid):
+    """measure-gaps.csv rows on one agent, or on one of its operations: [(operation or "", question id, row)]."""
+    import one_canvas as oc  # the page imports this module; importing it back only here avoids a cycle
+    path = pathlib.Path(M["R"].get("_path") or "") / "measure-gaps.csv"
+    if not M["R"].get("_path") or not path.exists():
+        return []
+    out = []
+    for g in oc.fo.read_csv(path):
+        el = (g.get("element") or "").split(None, 1)
+        if el and el[0] == pid and oc.fo.norm(g.get("why")):
+            out.append((el[1] if len(el) > 1 else "", oc.fo.norm(g.get("question")), g))
+    return out
+
+
+def measures_cell(M, pid, q, gaps):
+    """How many of the agent's measures answer one question, and in what state; or that none is on record; then any gap
+    measure-gaps.csv records for it, by its kind and reason."""
+    import one_canvas as oc
+    ms = [m for m in cv.agent_measures(M, M["subj"][pid]) if m.get("agent_question") == q]
+    states = {"exist": 0, "exist but misleading": 0, "proposed": 0}
+    for m in ms:
+        if not (m.get("exists") or "").strip().lower().startswith("yes"):
+            states["proposed"] += 1
+        else:
+            states["exist but misleading" if (m.get("defect") or "").strip() else "exist"] += 1
+    said = [f"{n} {w.replace('exist', 'exists', 1) if n == 1 else w}" for w, n in states.items() if n]
+    if len(said) == 1 and len(ms) > 1:
+        said = ["all " + said[0].split(" ", 1)[1]]
+    out = [cv.esc(f"{len(ms)} measure{'' if len(ms) == 1 else 's'}: {', '.join(said)}.")] if ms else []
+    out += [(cv.esc(f"At {op}: ") if op else "") + oc.gap_text(M, g) for op, qq, g in gaps if qq == q]
+    return " ".join(out) or cv.esc(NO_MEASURE)
+
+
+def questions(M, pid):
+    """The questions asked of an agent: per question, how many of its measures answer it, or that none is on record, or
+    the gap the register records; and how each is settled in the method."""
+    gaps = question_gaps(M, pid)
+    trs = "".join(f'<tr><th>{cv.esc(q["question"])}</th><td>{measures_cell(M, pid, q["agent_question"], gaps)}</td>'
+                  f'<td>{cv.esc(q["status"])}</td></tr>' for q in M["R"]["method"]["agent-questions"])
+    return ('<table class="agent"><thead><tr><th>Question</th><th>Its measures</th><th>How settled in the method</th>'
+            f'</tr></thead><tbody>{trs}</tbody></table>')
 
 
 # ---------------------------------------------------------------- the card
 
-def card(M, pid):
+def card(M, pid, ops_row=True):
+    """The part's card: its kind, purpose, operations (left out with `ops_row` False, for a page that draws them),
+    what it depends on, where it sits where that says more than "a component of this system", and for an AI agent the
+    agent parts found and the dependencies they reach that the list above does not name."""
     E = cv.esc
     s = M["subj"][pid]
     ins = ss.inside(M)
@@ -313,23 +535,30 @@ def card(M, pid):
                      for x, r in dict((x, r) for x, r in dep).items())
     hosted = [a for a, c in ins.items() if c == pid]
     purpose = vq.purpose(M, pid)
+    sits = ss.where_it_sits(M, pid, ins)
     rows = [("Kind", E(s.get("part_kind", "")) or GAP),
-            ("Purpose", E(purpose) or GAP),
-            ("Its operations, and the process steps each serves",
-             f"<ul>{op_li}</ul>" if op_li else vq.said(M, "part: operations", pid, GAP)),
-            ("Depends on", f"<ul>{dep_li}</ul>" if dep_li else vq.said(M, "part: depends on", pid, "nothing on record")),
-            ("Where it sits", E(ss.where_it_sits(M, pid, ins)))]
+            ("Purpose", cv.prose(M, purpose) or GAP)]
+    if ops_row:
+        rows.append(("Its operations, and the process steps each serves",
+                     f"<ul>{op_li}</ul>" if op_li else vq.said(M, "part: operations", pid, GAP)))
+    dep_at = len(rows)
+    rows.append(("Depends on", f"<ul>{dep_li}</ul>" if dep_li else vq.said(M, "part: depends on", pid, "nothing on record")))
+    if sits != SAYS_NOTHING:
+        rows.append(("Where it sits", cv.prose(M, sits)))
     if hosted:
         rows.append(("Runs inside it", E(", ".join(M["subj"][a].get("name", "") for a in hosted))))
     if M["family"](s) == "agent":
         ar = agent_rows(M, pid)
-        aps = "".join(f'<li>{E(r.get("name", ""))}: {E(ss.plain(r.get("what_it_is", "")))}</li>'
-                      for r in ar if r.get("element") == "agent part")
-        ads = [r.get("name", "") for r in ar if r.get("element") == "dependency"]
-        rows.insert(4, ("Agent parts", f"<ul>{aps}</ul>" if aps else GAP))
+        found = [r for r in ar if r.get("element") == "agent part" and cv.ids(r.get("subject_id"))]
+        aps = "".join(f'<li>{E(r.get("name", ""))}: {cv.prose(M, ss.plain(r.get("what_it_is", "")))}</li>' for r in found)
+        used = {d for r in found for d in cv.ids(r.get("uses"))}
+        named = {x for x, _ in dep}
+        ads = [r.get("name", "") for r in ar if r.get("element") == "dependency" and r.get("id") in used
+               and not set(cv.ids(r.get("subject_id"))) & named]
+        rows.insert(dep_at + 1, ("Agent parts", f"<ul>{aps}</ul>" if aps else GAP))
         if ads:
-            rows[3] = ("Depends on", (f"<ul>{dep_li}</ul>" if dep_li else "")
-                       + f'<p>Through its agent parts: {E(", ".join(dict.fromkeys(ads)))}</p>')
+            rows[dep_at] = ("Depends on", (f"<ul>{dep_li}</ul>" if dep_li else "")
+                            + f'<p>Through its agent parts: {E(", ".join(dict.fromkeys(ads)))}</p>')
     body = "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in rows)
     return f'<div class="card"><dl>{body}</dl></div>'
 
@@ -340,7 +569,7 @@ def sources(M, pid):
     lis = [f'<li>{E(p.get("step"))}: {E(p.get("involvement", ""))}' + (f', {E(p["operation"])}' if p.get("operation") else "")
            + (f'; {E(p.get("activity"))}' if p.get("activity") else "") + "</li>"
            for p in M["R"]["participation"] if p.get("subject_id") == pid]
-    lis += [f'<li>{E(r.get("subject_id"))}: to {E(r.get("to_id"))}, steps {E(r.get("step_hint") or "none")}'
+    lis += [f'<li>{E(r.get("subject_id"))}: to {E(r.get("to_id"))}, process steps {E(r.get("step_hint") or "none")}'
             + (f', operation {E(r["operation"])}' if r.get("operation") else ", operation not named") + f'; {E(r.get("source"))}</li>'
             for r in interactions(M, pid)]
     lis += [f'<li>{E(r.get("id"))} {E(r.get("element"))}: {E(r.get("what_it_is"))}; {E(r.get("source_ref"))}</li>'
@@ -351,14 +580,12 @@ def sources(M, pid):
 def key(M, pid):
     """The drawing's key, with a row only for the marks this part's drawing uses."""
     targets = called(M, pid)
-    agent = M["family"](M["subj"][pid]) == "agent"
-    rows = ["Each row is one operation the part performs (a tool, a route or a handler), the stages whose steps it "
-            "serves, and the parts it calls. Click an operation to light, on the map, the process steps it serves: "
-            "what stops if it fails. The card below names them.",
+    rows = ["Each row is one operation the part performs (a tool, a route or a handler), the stages whose process steps it "
+            "serves, and the parts it calls. An operation picked lights, on the map, the process steps it serves: "
+            "what stops if it fails.",
             "Columns: the parts this part calls. Filled dot on a column: the register says this operation makes the call.",
-            "Open dot on a dotted line: via the step. The part makes the call during a process step this operation serves; "
-            "the register does not say this operation makes it."
-            + (" The run below shows which of the agent's own operations reach each part." if agent else "")]
+            "Open dot on a dotted line: via the process step. The part makes the call during a process step this operation serves; "
+            "the register does not say this operation makes it."]
     if any(M["subj"][x].get("level") == "external dependency" for x in targets):
         rows.append("Long-dashed box: an external dependency, run by someone else.")
     return ('<details class="seqkey"><summary>Key to the drawing</summary><ul>'
@@ -366,10 +593,16 @@ def key(M, pid):
 
 
 RUN_KEY = ('<details class="seqkey"><summary>Key to the run</summary><ul>'
-           "<li>Rounded box: one operation inside a run, as the register lists them. Beside it: the agent parts that "
-           "perform it, and what those reach.</li>"
+           "<li>A UML activity diagram. Filled dot: a run starts. Ringed dot: a run ends.</li>"
+           "<li>Rounded box: one operation inside a run, in the order the register lists them. Beside it: the agent "
+           "parts that perform it, and what those reach.</li>"
+           "<li>Diamond under a box: a decision, where a run takes one of several next moves. Diamond over a box: a "
+           "merge, where several moves lead into it. A line back up, on the right: the run repeats. A line on the "
+           "left: a move that skips ahead. [In brackets], where a move leaves a decision: the condition on that move, "
+           "as the register gives it.</li>"
            "<li>Short-dashed box, not assessed: the agent part that would perform it was looked for and not found.</li>"
-           f"<li>No arrows: the order a run takes its operations, which it repeats and what ends it are {GAP}.</li>"
+           "<li>A move is drawn only where the register records it; what it does not record is said under the "
+           "drawing.</li>"
            "</ul></details>")
 
 
@@ -378,10 +611,12 @@ def block(M, pid):
     s = M["subj"][pid]
     out = [f'<div class="seqfig">{drawing(M, pid)}</div>', key(M, pid)]
     if M["family"](s) == "agent":
-        out += ['<h4>One run</h4>', f'<div class="seqfig">{run_drawing(M, pid)}</div>', RUN_KEY]
+        drawn = bool(run_moves(M, pid))
+        out += ['<h4>One run</h4>', f'<div class="{"seqfig" if drawn else "runlist"}">{run_drawing(M, pid)}</div>']
+        out += [RUN_KEY] if drawn else []
     out.append(card(M, pid))
     if M["family"](s) == "agent":
-        out += ["<h4>The agentic layer: what it can report</h4>", questions(M, pid)]
+        out += ["<h4>The agentic layer: the questions asked of it</h4>", questions(M, pid)]
     out.append(sources(M, pid))
     return "".join(out)
 
@@ -394,14 +629,14 @@ def parts(M):
 
 CSS = """
 .insideout h4{margin:10px 0 4px;font-size:13px}
-.insideout .seqfig{background:var(--paper);border:1px solid var(--g200);border-radius:4px;margin:0 0 6px;overflow-x:auto}
+.insideout .seqfig{background:var(--m-col);border:1px solid var(--m-page);border-radius:4px;margin:0 0 6px;overflow-x:auto}
 .insideout svg.seq{display:block;width:100%;height:auto}
-.insideout .card dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 10px;margin:6px 0;font-size:12.5px}
-.insideout .card dt{color:var(--g500);font-weight:600}.insideout .card dd{margin:0;overflow-wrap:anywhere}
+.insideout .card dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 10px;margin:6px 0;font-size:13px}
+.insideout .card dt{color:var(--m-ink3);font-weight:600}.insideout .card dd{margin:0;overflow-wrap:anywhere}
 .insideout .card ul{margin:0;padding-left:18px}.insideout .card li{margin:0 0 3px}.insideout .card p{margin:4px 0 0}
-.insideout details{font-size:12px;color:var(--g600)}.insideout details ul{padding-left:18px;margin:4px 0}
-svg.seq.inside .bx{fill:var(--paper);stroke:var(--g600);stroke-width:1.2}
-.insideout g.oprow{cursor:pointer}.insideout g.oprow:hover>rect.bx,.insideout g.oprow:focus-visible>rect.bx,.insideout g.oprow.on>rect.bx{stroke:var(--clay);stroke-width:2}
+.insideout details{font-size:13px;color:var(--m-ink2)}.insideout details ul{padding-left:18px;margin:4px 0}
+svg.seq.inside .bx{fill:var(--m-col);stroke:var(--m-ink2);stroke-width:1.2}
+.insideout g.oprow{cursor:pointer}.insideout g.oprow:hover>rect.bx,.insideout g.oprow:focus-visible>rect.bx,.insideout g.oprow.on>rect.bx{stroke:var(--m-acc);stroke-width:2}
 .insideout g.oprow:focus{outline:none}
 """
 

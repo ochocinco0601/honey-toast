@@ -6,8 +6,8 @@ into. For one stage, it then produces four files you can take to the engineers w
 
 | File | What it is |
 |---|---|
-| `STRUCTURE.md` | The stage drawn: its steps, the order a case takes through them, the alternative endings, and every part that carries each step or is needed by it |
-| `MEASURES.md` | What could be measured for the stage, each step and each part, by layer (business health, business impact, application, system), marked *exists* or *proposed* |
+| `STRUCTURE.md` | The stage drawn: its process steps, the order a case takes through them, the alternative endings, and every part that carries each process step or is needed by it |
+| `MEASURES.md` | What could be measured for the stage, each process step and each part, by layer (business health, business impact, application, system), marked *exists* or *proposed* |
 | `ALERT.md` | The measures proposed for alerting on the stage: what each counts, what it rests on, and the values the operators must set |
 | `RUNBOOK.md` | What the responder to an alert does: a short entry per alert (what fired, the opening checks, what to contain first, its own tests in order, each saying what a match means), then one shared section for the stage with every test written once, the causes the alerts share, the restores, and whom to escalate to |
 
@@ -20,9 +20,10 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
 - Python 3.9 or later on the path. Nothing else is installed.
 - The code, or where it is: name the repositories, pages, diagrams and process descriptions in your request, and
   the run gets them. Code already open in the workspace is read too; where it spans several repositories, add each
-  as a folder of one workspace. When the code calls a service whose code is not there, the run searches your code host for the repository behind it (and for repositories that call or deploy the flow's services) and gets that code too, with access you already have and read-only: it never requests access, enters credentials, or changes anything at the source, and `RUN.md` lists every source it fetched with what referenced it and why. To keep it to the sources you name, say *use only the sources I name*: it then neither searches nor fetches, and lists the rest under *still missing*.
+  as a folder of one workspace. When the code calls a service whose code is not there, the run gets that code too, with access you already have and read-only: it never requests access, enters credentials, or changes anything at the source, and `RUN.md` lists every source it fetched with what referenced it and why. It also searches your code host, with your access and read-only, for the rest of the repository set: the repositories behind references nothing in the workspace answers, and those that call this flow's services. To keep it to the sources you name, say *use only the sources I name*: it then neither fetches nor searches, and lists the rest under *still missing*.
 - Every repository open as a folder of one workspace (a multi-root workspace when there are several), never in a
-  temporary folder: the run's code tools reach only the open workspace, and a run that can't add them stops and asks.
+  temporary folder: the run's code tools reach only the open workspace, and a run that can't add them is blocked: it names the
+  repositories and tells you to open them as one multi-root workspace and start again.
   Keep your own working folder as the first folder of the workspace, so the skill, your notes and the register stay
   in reach (a skill is found in every folder's `.github/skills/`, and the first folder wins on a duplicate name),
   and add the repositories after it; or install the skill in `~/.copilot/skills/`.
@@ -104,8 +105,8 @@ In `bfo-work/<application>/` at the workspace root when the kit is installed as 
 
 - the register, a set of CSV files: the model, row by row, each row cited;
 - `stage-<id>/` holding the four files above;
-- `views.html`, the same model drawn as one map, which opens in a browser: click a step, a part, a stage or the
-  flow to light its chain and see its measures. `how-this-map-was-made.html` beside it says how the map was made, for whoever builds or checks it; each stage's
+- `views.html`, the same model drawn as one map, which opens in a browser: point at a box to light its chain, open a
+  stage's process steps to see the parts that carry them, and click a box to see its measures and drawings. `how-this-map-was-made.html` beside it says how the map was made, for whoever builds or checks it; each stage's
   `RUNBOOK.html` and `ALERT.html` sit in `stage-<id>/` beside it.
 
 `example-eshop/` is a finished example of all of it, for every stage of eShop's order flow: "Place the order", "Accept the order", "Ship the order" and "Deliver the order".
@@ -113,8 +114,8 @@ In `bfo-work/<application>/` at the workspace root when the kit is installed as 
 ## How to read it
 
 1. **Start with `STRUCTURE.md`.** The diagram is Mermaid. VS Code's Markdown preview draws it from VS Code
-   1.121 on; on an older version, install the Markdown Preview Mermaid Support extension. Arrows between steps follow one case; several arrows out of one step are
-   alternatives. Check the stage's start and end, and the parts on each step, against what you know.
+   1.121 on; on an older version, install the Markdown Preview Mermaid Support extension. Arrows between process steps follow one case; several arrows out of one process step are
+   alternatives. Check the stage's start and end, and the parts on each process step, against what you know.
 2. **`ALERT.md`** says what is proposed for alerting and what it counts. The threshold, the window, the time limit,
    and whether an alert pages anyone, are left for the operators to set.
 3. **`RUNBOOK.md`**: one entry per alert, which the alert's runbook link in `ALERT.md` points at, then the stage's

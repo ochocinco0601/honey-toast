@@ -6,9 +6,9 @@ a business measure moves, the application and system layers explain why.
 
 | Layer | The question | What it counts | Examples |
 |---|---|---|---|
-| **Business health** | Is the expectation being met? | Cases: how many reached the right outcome, within the promise | Orders accepted within the promise; applications decided right |
+| **Business health** | Is the expectation being met? | Cases: how many reached the right outcome, within the time limit | Orders accepted within the time limit; applications decided right |
 | **Business impact** | For how many cases is it not, and what does that cost? | Cases, in the unit the affected party feels: customers affected, money at risk, compliance cases, operational effort | Orders stranded with payment taken; order totals not collected |
-| **Application** | Is the software executing the workflow correctly? | Requests, events and runs: errors, validation failures, step completions, duration | Failed message handling; outbox publish failures; request errors |
+| **Application** | Is the software executing the workflow correctly? | Requests, events and runs: errors, validation failures, operation completions, duration | Failed message handling; outbox publish failures; request errors |
 | **System** (technology) | Is the platform the software runs on operational? | Resources: availability, latency, saturation, utilization | Database accepting connections; queue depth; broker reachable |
 | **Agentic** (conditional) | Is a step that makes a judgment call deciding well? | Decisions: correct against a reference, grounded in its inputs, traceable | Share of decisions agreeing with a labelled set |
 

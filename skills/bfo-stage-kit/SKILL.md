@@ -58,9 +58,7 @@ chat has started, read it first and continue from the first phase that is not do
    and tell the person to open them as one multi-root workspace and start again; write the same in `RUN.md`. A source you cannot reach (no access, a dead link) is listed under
    *still missing* in `RUN.md` with what you tried, and the run goes on: a missing source changes what the map is
    worth, never whether the run continues.
-   **Check the repository set is complete**, without being asked, unless the person's request says to use only
-   the sources they name: then do not search, and list each unresolved reference under *still missing* instead.
-   Otherwise: (a) for every reference the code makes that no
+   **Check the repository set is complete**, without being asked: (a) for every reference the code makes that no
    folder in the workspace answers (a host or service name, a client package, a queue or topic, an image, a
    configuration key, a URL), search the code host with the person's own access (repository search, code search
    across the organisation) for the repository behind it; (b) search the other way too, for repositories that call,
@@ -68,7 +66,8 @@ chat has started, read it first and continue from the first phase that is not do
    nothing new. Record each repository found in `sources.csv` with the search that found it, and add it to the
    workspace as a further folder, read-only; what is found and cannot be had goes under *still missing*. `RUN.md`'s
    Phase 0 line answers "Is this the complete set of repositories?" with that evidence, and Phase 0 is not done while
-   a reference is unresolved and unsearched.
+   a reference is unresolved and unsearched. If the person's request says to use only the sources they name, do not
+   search: list each unresolved reference under *still missing* instead.
    **This phase lists and places; it does not read everything.** Read each source only far enough to say what it
    is and which step uses it. Code is read in full from Phase 1 on, every service the flow touches, as the rules for
    the whole run below say.
@@ -76,7 +75,7 @@ chat has started, read it first and continue from the first phase that is not do
 1. **The case and its lifecycle** (Steps 1 and 2).
    In: the sources. Out: `flows.csv` (the case, whose expectation, start and end), `lifecycle.csv`. Pick the main business flow, the one whose case the business most
    depends on, unless the person named one, and write it into `RUN.md`.
-2. **Stages, steps, parts and agents** (Steps 3 to 7).
+2. **Stages, process steps, parts and agents** (Steps 3 to 7).
    In: the lifecycle. Out: `stages.csv`, `steps.csv`, `subjects.csv`, `participation.csv`, `set-aside.csv`,
    `agent-system.csv`. Choose this run's stage for Phase 5 and write it into `RUN.md` as `stage-<id>`: the stage
    the person named; else, if the register already has `stage-<id>` folders, the next stage with none; else the
@@ -88,8 +87,9 @@ chat has started, read it first and continue from the first phase that is not do
 5. **One stage's failure modes, alerts and runbook** (Step 11).
    In: the register and the chosen stage. Out: `failure-modes.csv`, `remedies.csv`, and `stage-<id>/` holding
    `STRUCTURE.md`, `MEASURES.md`, `ALERT.md`, `RUNBOOK.md`, `ALERT.html` and `RUNBOOK.html`, written by
-   `flow_outputs.py --out`. It writes the last four only when its check passes, so a missing one means the check
-   failed: fix the register. Regenerate every other `stage-<id>/` already in the folder, each with its own check.
+   `flow_outputs.py --out`. It writes the last four only when its check passes, so a missing runbook means the
+   check failed: fix the register. A stage no proposed alert reaches (on the stage, its process steps, the parts they use
+   or the flow) gets no `ALERT.md` or `ALERT.html`, and its runbook says so; the check notes it, and does not fail. Regenerate every other `stage-<id>/` already in the folder, each with its own check.
 6. **Check and draw** (Step 12).
    In: the register. Out: the three checks of Step 12 run, every failure fixed in the step that produced it;
    `views.html` and `how-this-map-was-made.html` in the register folder, written by `one_canvas.py`.
@@ -133,7 +133,7 @@ chat has started, read it first and continue from the first phase that is not do
   the measures read every service the flow runs through, whatever stage it carries. Only Step 11 is per stage, as
   above. A run is cut shorter only when the person asks for it (`USE.md`). `KNOWN-GAPS.md` "At scale" says what is
   still open at size.
-- **Talk to the person in names, not ids.** In every message and report, name parts, steps and stages by their
+- **Talk to the person in names, not ids.** In every message and report, name parts, process steps and stages by their
   names ("the Ordering API", "Accept the order"), never by register id. An id may follow a name in
   brackets only where the person must find a row in a file.
 - Do not stop to ask the person anything. Where the sources do not say something, infer it and label it

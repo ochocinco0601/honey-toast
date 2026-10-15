@@ -18,11 +18,14 @@ import re
 from types import SimpleNamespace
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import page_style as ps  # noqa: E402
+
 HERE = pathlib.Path(__file__).resolve().parent
 METHOD = HERE / "method"
 
 TABLES = ["about", "capabilities", "flows", "stages", "steps", "subjects", "participation", "agent-system",
-          "measures", "step-impact", "case-attributes", "how-made", "sources"]
+          "measures", "step-impact", "case-attributes", "how-made", "sources", "expectations"]
 COUNTED_ON = ("cases", "events", "requests", "resources", "runs")
 LEVELS = ("component", "external dependency", "")
 RECOVERY = ("moves on", "stranded", "not created", "")
@@ -55,16 +58,39 @@ def ids(v):
     return [x.strip() for x in re.split(r"[;,]", v or "") if x.strip()]
 
 
+def next_moves(v):
+    """agent-system.csv `next`: [(operation id or "end", guard or "")], `;` separated, each with an optional guard in
+    square brackets (`AS3 [a tool call]`)."""
+    out = []
+    for tok in (v or "").split(";"):
+        target, _, guard = tok.partition("[")
+        if target.strip():
+            out.append((target.strip(), guard.strip().rstrip("]").strip()))
+    return out
+
+
 def register_columns(doc=None):
     """{table: {column: optional}} from the column tables of register-template/REGISTER.md: the one definition of a
     register, which the template's headers are tested against and --check compares every table with. A column is
     optional where its description begins `Optional`."""
+    out = {}
+    for table, name, what in column_rows(doc):
+        out.setdefault(table, {})
+        if name:
+            out[table][name] = what.startswith("Optional")
+    return out
+
+
+def column_rows(doc=None):
+    """(table, column, its description) for each row of the column tables of REGISTER.md; a table's heading alone
+    yields (table, "", "")."""
     doc = doc or HERE / "register-template" / "REGISTER.md"
-    out, table = {}, None
+    table = None
     for line in doc.read_text(encoding="utf-8").splitlines():
         m = re.match(r"###\s+([\w-]+)\.csv\b", line)
         if m:
-            table = out.setdefault(m.group(1), {})
+            table = m.group(1)
+            yield table, "", ""
             continue
         if line.startswith("## "):
             table = None
@@ -74,8 +100,45 @@ def register_columns(doc=None):
         if len(cells) < 2 or cells[0] == "Column" or not cells[0].strip("-"):
             continue
         for name in cells[0].split(","):
-            table[name.strip().strip("`")] = cells[1].startswith("Optional")
+            yield table, name.strip().strip("`"), cells[1]
+
+
+ONE_OF = re.compile(r"\bOne of(, for each)?:\s*(.*)$")
+
+
+def register_values(doc=None):
+    """{table: {column: (its allowed values, whether the cell is a `;` list)}} for each column REGISTER.md declares a
+    closed list for, with a `One of:` list ending its description (`One of, for each:` for a `;` separated column):
+    the values in backticks, or those in the first column of a `../method/` file it names."""
+    out = {}
+    for table, name, what in column_rows(doc):
+        m = ONE_OF.search(what)
+        if not name or not m:
+            continue
+        values = []
+        for v in re.findall(r"`([^`]+)`", m.group(2)):
+            if v.endswith(".csv"):
+                rows = read_csv(METHOD / pathlib.Path(v).name)
+                values += [r[next(iter(r))] for r in rows]
+            else:
+                values.append(v)
+        out.setdefault(table, {})[name] = (tuple(values), bool(m.group(1)))
     return out
+
+
+def declared_value_failures(reg, declared):
+    """A warning per cell holding a value outside the list REGISTER.md declares for its column. A blank cell passes:
+    not found is not absent."""
+    warn = []
+    for table, cols in declared.items():
+        for n, r in enumerate(read_csv(pathlib.Path(reg) / f"{table}.csv"), 2):
+            for col, (values, is_list) in cols.items():
+                cell = (r.get(col) or "").strip()
+                for v in ([x.strip() for x in cell.split(";")] if is_list else [cell]):
+                    if v and v not in values:
+                        warn.append(f"{table}.csv line {n}: {col} {v!r} is not one of the values REGISTER.md "
+                                    f"declares for it ({', '.join(values)})")
+    return warn
 
 
 # A column the definition no longer holds, with what to do about it, said instead of the plain undefined warning.
@@ -86,6 +149,18 @@ RETIRED = {
     "view draws the route a row belonged to",
     ("step-impact", "cause"): "step-impact.csv: the cause column is retired and no longer read; remove it, since "
     "failure effects are out of the views (what can stop each move goes in failure-modes.csv)",
+}
+
+
+# A column renamed since an earlier release: old name to new. Kept in step with reconcile.RENAMED.
+RENAMED = {"expectation_of": "customer", "promise": "bound_in_code"}
+
+# What a register made by an earlier release needs for a required column it lacks: the effect line of the changelog
+# entry that added it. Read by --check and by reconcile.py's still-owed list; a column not named here is filled as
+# FILL-STEPS says.
+EFFECT = {
+    ("measures", "taken_from"): "fill from each row's citation: the kind of the line `source_ref` cites, or on a "
+    "proposed measure the kind it would be taken from; nothing is walked again",
 }
 
 
@@ -107,13 +182,20 @@ def column_failures(R, said=()):
     err, warn = [], []
     for t, have in R.get("_columns", {}).items():
         defined = R["_defined"].get(t, {})
+        old = [(c, RENAMED[c]) for c in have if c in RENAMED and RENAMED[c] in defined and RENAMED[c] not in have]
+        if old:
+            err.append(f"{t}.csv: " + "; ".join(f"{o} is now called {n}" for o, n in old) + " (a register made with "
+                       "an earlier version of this kit): rename each header, keeping its values, or run "
+                       "reconcile.py --migrate on a copy of the register")
+        have = [RENAMED.get(c, c) if (c, RENAMED.get(c)) in old else c for c in have]
         miss = [c for c, optional in defined.items() if not optional and c not in have
                 and not any(s.startswith(f"{t}.csv has no {c} column") for s in said)]
         if miss:
             err.append(f"{t}.csv has no {', '.join(miss)} column{'s' if len(miss) > 1 else ''}, which "
-                       f"register-template/REGISTER.md defines (a register made with an earlier version of this kit): add "
-                       f"each from register-template/{t}.csv, in its place, and fill it as FILL-STEPS says; a blank cell "
-                       "reads as not assessed")
+                       f"register-template/REGISTER.md defines (a register made with an earlier version of this kit): "
+                       f"fill it on every row as FILL-STEPS says, with its header from register-template/{t}.csv; "
+                       f"never leave a cell of it blank"
+                       + "".join(f". {c}: {EFFECT[(t, c)]}" for c in miss if (t, c) in EFFECT))
         extra = []
         for c in have:
             if (t, c) in RETIRED:
@@ -364,6 +446,12 @@ def check(R):
             for p in ids(r.get("uses")):
                 if own.get(p) != "dependency":
                     err.append(f"agent-system.csv {r['id']}: uses {p} is not one of agent {a}'s dependencies")
+            for p, _ in next_moves(r.get("next")):
+                if r.get("element") not in ("run", "operation"):
+                    err.append(f"agent-system.csv {r['id']}: next is for the run or an operation only")
+                elif own.get(p) != "operation" and not (p == "end" and r.get("element") == "operation"):
+                    err.append(f"agent-system.csv {r['id']}: next {p} is not one of agent {a}'s operations"
+                               + ("" if r.get("element") == "run" else " or end"))
             for s in ids(r.get("serves_business_step")):
                 if s not in steps:
                     err.append(f"agent-system.csv {r['id']}: serves_business_step {s} is not a step")
@@ -391,8 +479,38 @@ def check(R):
                 continue
             if not any(r.get(c) for c in SOURCE_COLS) and not any(CITE.search(v) for v in r.values() if v):
                 warn.append(f"{t}.csv line {n}: no citation")
+    err += bound_failures(R)
+    if R.get("_path"):
+        warn += declared_value_failures(R["_path"], register_values())
     col_err, col_warn = column_failures(R, err)
     return col_err + err, col_warn + warn
+
+
+# A file and its lines (`path:41`, `path:41-60`): the citation of code. Kept in step with reconcile.CODE.
+CODE_CITATION = re.compile(r"(?:[A-Za-z]:)?[\w.~\-/\\]+\.[A-Za-z0-9]+:\d")
+
+
+def bound_cites_code(row, value=None):
+    """Whether a flows.csv or stages.csv row's `bound_in_code` (or `value`, an earlier `promise` that reconcile.py
+    --migrate is placing) cites code: a file and line in the cell itself, or in the row's `source`."""
+    v = row.get("bound_in_code") if value is None else value
+    return bool(CODE_CITATION.search(v or "") or CODE_CITATION.search(row.get("source") or ""))
+
+
+def bound_failures(R):
+    """An error per flow or stage whose `bound_in_code` names a limit and cites no code: a bound a document or a person
+    states is an objective, never the code's own time limit."""
+    sys.path.insert(0, str(HERE))  # run isolated (-I), the script's folder is not on the path
+    from flow_outputs import time_limit  # flow_outputs imports this module
+    err = []
+    for t, idcol in (("flows", "flow_id"), ("stages", "stage")):
+        for r in R.get(t, []):
+            v = (r.get("bound_in_code") or "").strip()
+            if time_limit(v) and not bound_cites_code(r):
+                err.append(f"{t}.csv {r.get(idcol, '?')}: bound_in_code {v!r} cites no code (no file and line in the "
+                           "cell or the row's source), so it is not a limit the code sets: a stated bound belongs in "
+                           "expectations.csv objective, with its objective_source; leave bound_in_code empty")
+    return err
 
 
 # ---------------------------------------------------------------- the model
@@ -643,14 +761,55 @@ DX, DW = 1540, 210
 LH = 14
 TAG = 'class="s" style="font-size:12px"'
 SUB = 'class="s" style="font-size:12px"'
-SUM = ' style="stroke:var(--slate);stroke-width:2.2"'
+SUM = ' style="stroke:var(--m-ink);stroke-width:2.2"'
 COUNT = ' style="stroke-dasharray:5 4"'
 INFER = ' style="stroke-dasharray:1.5 3"'
-SUPPORT = ' style="stroke-dasharray:6 3;stroke:var(--g400)"'
-OPEN = ' style="stroke:var(--clay);stroke-width:2"'
-HEAVY = ' style="stroke:var(--slate);stroke-width:2.4"'
+SUPPORT = ' style="stroke-dasharray:6 3;stroke:var(--m-link)"'
+OPEN = ' style="stroke:var(--m-acc);stroke-width:2"'
+HEAVY = ' style="stroke:var(--m-ink);stroke-width:2.4"'
 FAINT = ".2"
-FOLDED = ' style="fill:var(--ivory);stroke-opacity:.45;stroke-dasharray:2 2"'  # a folded line: click to open
+FOLDED = ' style="fill:var(--m-col);stroke-opacity:.45;stroke-dasharray:2 2"'  # a folded line: click to open
+
+
+def given_names(M):
+    """The names the register gives (the system, each part, flow, stage, step and capability), which the prose
+    renderer reads as names, never as code, however they are written (in CamelCase, say)."""
+    if "_given_names" not in M:
+        R = M.get("R", {})
+        rows = [M.get("subj", {}).values(), M.get("step", {}).values(), M.get("stage", {}).values(), M.get("flows", []),
+                R.get("capabilities", [])]
+        M["_given_names"] = {M.get("system", "")} | {(r.get("name") or "").strip() for rs in rows for r in rs} - {""}
+    return M["_given_names"]
+
+
+FLOW_ID = re.compile(r"(?<![\w.])F\d+\b(?!\.\w)")  # a bare flow id in prose: "F1", never "orders.F1" or "F1.2"
+
+
+def named_flows(M, text):
+    """Register prose cites a flow by its register id ("F1 starts"); a reader sees the flow's name instead. Only an id
+    that names a row of flows.csv is replaced, and never inside a code term."""
+    names = {f.get("flow_id", ""): (f.get("name") or "").strip() for f in M.get("flows", [])}
+    one = lambda m: names.get(m.group(0)) or m.group(0)  # noqa: E731
+    text, out, at = text or "", [], 0
+    for m in ps.CODE_TERM.finditer(text):
+        out += [FLOW_ID.sub(one, text[at:m.start()]), m.group(0)]
+        at = m.end()
+    return "".join(out) + FLOW_ID.sub(one, text[at:])
+
+
+def prose(M, text):
+    """A card or form value, broken up and with its code terms set apart (page_style.prose), as HTML."""
+    return ps.prose(named_flows(M, text), given_names(M))
+
+
+def prose_rows(M, label, text):
+    """[(label, html)]: a card field by `prose`, with its "Recovery: ..." as a row of its own."""
+    return ps.prose_rows(label, named_flows(M, text), given_names(M))
+
+
+def marked(M, text):
+    """Text kept inline, as escaped HTML with its code terms set apart."""
+    return ps.marked(named_flows(M, text), given_names(M))
 
 
 def esc(s):
@@ -680,14 +839,20 @@ def text_w(s, fs=12):
 
 def wrap(s, width, fs=12, max_lines=2, first=None):
     """Greedy word wrap to a pixel width (the first line to `first` where given, leaving room beside it); the last
-    line is cut at a word and marked with an ellipsis."""
+    line is cut at a word and marked with an ellipsis. A word longer than the line (an identifier, a path) is broken
+    where it breaks itself: at a CamelCase hump, after "/", "_" or "."; only a piece with none of these is cut."""
     first = width if first is None else first
     words, lines, cur = [], [], ""
     per = max(4, int(width / (fs * 0.54)))
-    for w in (s or "").split():  # a word longer than the line (a path) is broken into pieces that fit
-        words += [w[i:i + per] for i in range(0, len(w), per)]
-    for w in words:
-        t = (cur + " " + w).strip()
+    for w in (s or "").split():  # (piece, glued to the piece before it)
+        if len(w) <= per:
+            words.append((w, False))
+            continue
+        pieces = [p for p in re.split(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[/_.])(?=.)", w) if p]
+        pieces = [q for p in pieces for q in (p[i:i + per] for i in range(0, len(p), per))]
+        words += [(p, i > 0) for i, p in enumerate(pieces)]
+    for w, glued in words:
+        t = (cur + w) if glued else (cur + " " + w).strip()
         if text_w(t, fs) <= (first if not lines else width) or not cur:
             cur = t
         else:
@@ -716,13 +881,13 @@ def tree(ends, s):
 
 def defs(mid):
     return (f'<defs><pattern id="na-{mid}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'
-            f'<rect width="6" height="6" style="fill:var(--paper)"/><line x1="0" y1="0" x2="0" y2="6" style="stroke:var(--g300);stroke-width:2"/></pattern>'
+            f'<rect width="6" height="6" style="fill:var(--m-col)"/><line x1="0" y1="0" x2="0" y2="6" style="stroke:var(--m-line);stroke-width:2"/></pattern>'
             f'<pattern id="own-{mid}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'
-            f'<rect width="4" height="4" style="fill:var(--paper)"/><line x1="0" y1="0" x2="0" y2="4" style="stroke:var(--g500);stroke-width:1.6"/></pattern></defs>')
+            f'<rect width="4" height="4" style="fill:var(--m-col)"/><line x1="0" y1="0" x2="0" y2="4" style="stroke:var(--m-ink3);stroke-width:1.6"/></pattern></defs>')
 
 
 def na_style(mid):
-    return f' style="fill:url(#na-{mid});stroke:var(--g400);stroke-dasharray:2 2"'
+    return f' style="fill:url(#na-{mid});stroke:var(--m-link);stroke-dasharray:2 2"'
 
 
 class Box:
@@ -779,7 +944,7 @@ def key_block(rows, x, y, width=262):
 
 
 def wrap_svg(aria, width, height, parts, axis, cls=""):
-    head = (f'<text x="12" y="16" class="k" style="fill:var(--slate)">{esc(axis)}</text>'
+    head = (f'<text x="12" y="16" class="k" style="fill:var(--m-ink)">{esc(axis)}</text>'
             f'<line x1="12" y1="24" x2="{width - 12}" y2="24" class="rule" style="stroke-width:.8"/>') if axis else ""
     klass = f' class="{cls}"' if cls else ""
     return (f'<svg{klass} viewBox="0 0 {width} {height + 40:g}" role="img" aria-label="{esc(aria)}">'
@@ -1356,7 +1521,7 @@ def proposed_marker(mid, used):
     used.add("call-proposed")
     return (' marker-start="url(#pr-' + mid + ')"',
             f'<defs><marker id="pr-{mid}" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7">'
-            '<circle cx="5" cy="5" r="3.2" style="fill:var(--paper);stroke:var(--g600);stroke-width:1.4"/></marker></defs>')
+            '<circle cx="5" cy="5" r="3.2" style="fill:var(--m-col);stroke:var(--m-ink2);stroke-width:1.4"/></marker></defs>')
 
 
 def free_y(M, mid, x, y, text, end=False):
@@ -1374,7 +1539,7 @@ def seq_label(x, y, cls, ends, step, seq, anchor=""):
     """A call's order number, with what it means as its title: said where it shows, not in the key."""
     return (f'<g><title>{esc(SEQ_SAYS[seq == "~"])}</title>'
             f'<text x="{x:g}" y="{y:g}"{anchor} class="{cls} seq" {ends} data-steps="{esc(step)}" data-seq="{esc(seq)}" '
-            f'style="font-family:var(--sans);font-size:12px;font-weight:700;fill:var(--clay-d)">{esc(seq)}</text></g>')
+            f'style="font-family:var(--m-sans);font-size:12px;font-weight:700;fill:var(--m-acc)">{esc(seq)}</text></g>')
 
 
 SEQ_SAYS = ("this call's place among calls that always run one after another, in this order, on one way of the step",
@@ -1393,15 +1558,15 @@ def call_arcs(M, mid, cbox, calls, used):
         return ""
     rows.sort(key=lambda r: abs(cbox[r["from_id"]].mid - cbox[r["to_id"]].mid))
     out = [f'<defs><marker id="ar-{mid}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">'
-           f'<path d="M0,0 L8,4 L0,8 z" style="fill:var(--g600)"/></marker></defs>']
+           f'<path d="M0,0 L8,4 L0,8 z" style="fill:var(--m-ink2)"/></marker></defs>']
     x0 = CX + CW
     for k, r in enumerate(rows):
         a, b = cbox[r["from_id"]], cbox[r["to_id"]]
         oa, ob = M["subj"][r["from_id"]].get("owner", ""), M["subj"][r["to_id"]].get("owner", "")
         kind = "handoff" if oa and ob and oa != ob else ("same" if oa and ob else "unknown")
         used.add("call-" + kind)
-        style = {"handoff": "stroke:var(--clay);stroke-width:1.6", "same": "stroke:var(--g600);stroke-width:1.3",
-                 "unknown": "stroke:var(--g500);stroke-width:1.2;stroke-dasharray:3 2"}[kind]
+        style = {"handoff": "stroke:var(--m-acc);stroke-width:1.6", "same": "stroke:var(--m-ink2);stroke-width:1.3",
+                 "unknown": "stroke:var(--m-ink3);stroke-width:1.2;stroke-dasharray:3 2"}[kind]
         ya, yb = a.y + a.h * 0.35, b.y + b.h * 0.65
         bx = x0 + 8 + min(18, 3 * k)
         cls = f'call{" on" if calls == "all" else ""} {kind}'
@@ -1464,7 +1629,7 @@ def outcome_short(name):
 
 
 def step_title(M, sid, short=False):
-    """A process step as the reader sees it: "Step 3.1: …" for an act inside its stage, "Expected outcome: …" or
+    """A process step as the reader sees it: "Process step 3.1: …" for an act inside its stage, "Expected outcome: …" or
     "Other outcome: …" for a way the stage ends; short=True gives an outcome its short name, for its box on the
     map. A page that does not number its steps keeps the register's id."""
     name = M["step"].get(sid, {}).get("name", "")
@@ -1480,21 +1645,14 @@ def kind_label(M, s):
 
 
 def step_box(M, view, mid, s, n, used):
-    q = s.get("qualifier", "")
     suffix = ""
     style, marks = "", []
     if not carried(s):
         suffix = " · not assessed"
-    full = ""
-    if q and carried(s):  # the box carries the qualifier's kind word; its full words are in the tooltip and the panel
-        q = re.sub(r"\bas step (\d+)\b(?!\.\d)", lambda m: "as " + (f"\u201c{outcome_short(M['step'][m.group(1)].get('name', ''))}\u201d"
-                   if m.group(1) in M["step"] and is_outcome(M, m.group(1)) else m.group(0)), q)
-        full = plain_qualifier(q)
-        suffix = " \u00b7 " + full.split(":", 1)[0].strip()  # "partial" or "simulated"
     lines = [(t, "sx") for t in wrap(f"{step_title(M, s['step'], short=True)}{suffix}", PW - 20, 12, 3)]
     if view == "reports":
         lines += sub_lines(measure_summary(M["m_at_step"].get(s["step"], [])), PW - 20, 1)
-    b = Box(PX, PW, lines, style, title=step_title(M, s["step"]) + (f"\n{full}" if full else suffix), marks=marks)
+    b = Box(PX, PW, lines, style, title=step_title(M, s["step"]) + suffix, marks=marks)  # the qualifier stays in the register
     return b
 
 
@@ -1546,7 +1704,7 @@ def dep_box(M, view, s, callers, direct, numbers):
 def reports_head():
     """The reports view's top: what each column is and counts on, then the business bands and the why band."""
     out = []
-    band = 'fill="none" style="stroke:var(--g300);stroke-width:1.2"'
+    band = 'fill="none" style="stroke:var(--m-line);stroke-width:1.2"'
     out.append(f'<rect x="4" y="64" width="{PX + PW + 12 - 4}" height="62" rx="6" {band}/><text x="12" y="80" class="k">BUSINESS HEALTH LAYER · IS THE EXPECTATION MET?</text>')
     out.append(f'<rect x="4" y="134" width="{PX + PW + 12 - 4}" height="62" rx="6" {band}/><text x="12" y="150" class="k">BUSINESS IMPACT LAYER · FOR HOW MANY CASES IS IT NOT?</text>')
     out.append(f'<rect x="{CX - 12}" y="64" width="{DX + DW + 12 - CX + 12}" height="132" rx="6" {band}/><text x="{CX}" y="80" class="k">WHY · APPLICATION, TECHNOLOGY, AGENTIC LAYERS</text>')
@@ -1686,7 +1844,7 @@ def figure_agent(M, agent, mid):
     bot = max(bottoms) + 24
     title = f'{agent.get("name", "")} · {kind_label(M, agent)} · drawn as its own system of interest'.upper()
     e.append(f'<rect x="{L}" y="{top:g}" width="{Rr - L}" height="{bot - top:g}" rx="10" class="bx"{HEAVY}/>'
-             f'<text x="{L + 16}" y="{top + 22:g}" class="k" style="fill:var(--slate)">{esc(title)}</text>'
+             f'<text x="{L + 16}" y="{top + 22:g}" class="k" style="fill:var(--m-ink)">{esc(title)}</text>'
              f'<text x="{Rr - 16}" y="{top + 22:g}" class="warn" text-anchor="end">still forming</text>')
     for x, k in [(RX, "RUN"), (TX, "ITS STEPS"), (QX, "ITS PARTS"), (DX2, "ITS DEPENDENCIES")]:
         e.append(f'<text x="{x}" y="{ct:g}" class="k">{k}</text>')
@@ -1735,7 +1893,7 @@ def figure_agent(M, agent, mid):
             yq += LH
         yq += 6
     mb = yq + 20
-    e.append(f'<rect x="{L}" y="{mt:g}" width="{Rr - L}" height="{mb - mt:g}" rx="6" fill="none" style="stroke:var(--g300);stroke-width:1.2"/>'
+    e.append(f'<rect x="{L}" y="{mt:g}" width="{Rr - L}" height="{mb - mt:g}" rx="6" fill="none" style="stroke:var(--m-line);stroke-width:1.2"/>'
              f'<text x="{L + 16}" y="{mt + 20:g}" class="k">AGENTIC LAYER · WHAT IT CAN REPORT, BENEATH THE STEP</text>'
              f'<text x="{L + 480}" y="{mt + 20:g}" class="k">ON RECORD IN THIS REGISTER</text>'
              f'<text x="{Rr - 16}" y="{mt + 20:g}" class="k" text-anchor="end">HOW SETTLED</text>')
@@ -1794,7 +1952,7 @@ def figure_how_made(M, mid, checked, reg_label):
             hl = wrap(head_, VW - 40, 13.6, 2)
             y += 6
             for n_, ln in enumerate(hl):
-                e.append(f'<text x="{SXc}" y="{y + 12 + LH * n_:g}" class="k" style="fill:var(--slate)">{esc(ln)}</text>')
+                e.append(f'<text x="{SXc}" y="{y + 12 + LH * n_:g}" class="k" style="fill:var(--m-ink)">{esc(ln)}</text>')
             y += 14 + LH * len(hl)
             for sl in src_lines:
                 for ln in wrap(sl, VW - 40, 12, 6):
@@ -1821,7 +1979,7 @@ def figure_how_made(M, mid, checked, reg_label):
         for who in by:
             w = text_w(who, 12) + 16
             e.append(f'<rect x="{cx:g}" y="{y + 5:g}" width="{w:g}" height="20" rx="3" class="bx"{BY_STYLE.get(who, "")}/>'
-                     f'<text x="{cx + 8:g}" y="{y + 19:g}" class="s" style="font-size:12px;fill:var(--slate)">{esc(who)}</text>')
+                     f'<text x="{cx + 8:g}" y="{y + 19:g}" class="s" style="font-size:12px;fill:var(--m-ink)">{esc(who)}</text>')
             cx += w + 8
         for n, ln in enumerate(note):
             e.append(f'<text x="{BX}" y="{y + 42 + LH * n:g}" {SUB}>{esc(ln)}</text>')
@@ -1834,7 +1992,7 @@ def figure_how_made(M, mid, checked, reg_label):
     ksvg, kbot = key_block(krows, 12, ky, width=520)
     e.append(ksvg)
     head = (f'<defs><marker id="{mid}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">'
-            f'<path d="M0,0 L8,4 L0,8 z" style="fill:var(--g600)"/></marker></defs>')
+            f'<path d="M0,0 L8,4 L0,8 z" style="fill:var(--m-ink2)"/></marker></defs>')
     return wrap_svg(f"How the register behind this page was made: {len(rows)} steps, from {reg_label}.", VW, kbot + 10,
                     [head] + e, "EACH STEP: WHAT WENT IN, WHAT CAME OUT, AND WHO DID IT")
 
@@ -1846,9 +2004,17 @@ WORDS = [  # the controlled vocabulary for system and work-structure terms
     ("Intended flow", "One case's path from start to end, as designed."),
     ("Stage", "One ordered stretch of a flow, with an entry and an exit."),
     ("Process step", "One act inside a stage, with an outcome the business would recognise, that happened or did not."),
-    ("Part", "A person or a component that carries out or supports a step. The field's term is participant."),
-    ("Component", "A deployable part of the system that performs or supports a step. An AI agent is one."),
-    ("External dependency", "Something the system relies on and does not run."),
+    ("Part", "A person or a component that carries out or supports a process step: anything that carries a process step, an AI agent "
+             "included."),
+    ("Component", "A deployable the flow's process steps run through whose code can be had, whatever its application, "
+                  "repository or team. An AI agent is one."),
+    ("External dependency", "A deployable the flow relies on whose code cannot be had: a vendor, a hosted service, a "
+                            "repository with no access. Seen from the calling side; it can still perform a process step."),
+]
+
+PART_WORDS = [  # what a part offers, seen from outside
+    ("Operation (of a part)", "A tool, route or handler a component offers, joined to the process steps it serves. "
+                              "Not a code module."),
 ]
 
 
@@ -1858,12 +2024,97 @@ OUTCOME_WORDS = [  # the ways a stage ends, drawn after its numbered steps
 ]
 
 AGENT_WORDS = [  # the levels of an AI agent seen as its own system
-    ("Run", "One request an AI agent takes for one case, from taking it to its reply. The field's term is agent "
-            "invocation.", "run"),
-    ("Operation", "One act inside a run: a call to its model, a tool, or a check. Not a process step.", "operation"),
+    ("Run", "One request an AI agent takes for one case, from taking it to its reply.", "run"),
+    ("Operation (in a run)", "One act inside a run: a call to its model, a tool, or a check. Not a process step.",
+     "operation"),
     ("Agent part", "A piece of the agent's own machinery: its model, the functions it may call, its guardrails or its orchestration.",
      "agent part"),
 ]
+
+CASE_WORDS = [  # one case and where it stands: a data concern, apart from the stage
+    ("State", "Where one case stands in its lifecycle: one of the states it can be in and move between. A system "
+              "records it as a status, or it is implicit where the case plainly waits and nothing records it."),
+    ("Status", "The value a system records and shows for a case's state. A data concern, not a stage: the two often "
+               "line up but do not coincide, since a stage can span two statuses and a stage's process steps can leave the "
+               "status unchanged."),
+]
+
+# Thesaurus relations (ISO 25964-1, ANSI/NISO Z39.19): UF names a non-preferred synonym, BT a broader term, RT a
+# related one. NT and the reverse of each RT are derived, so every relation reads the same from both ends.
+RELATIONS = {
+    "Part": {"UF": ("participant",)},
+    "Component": {"BT": ["Part"], "RT": ["External dependency", "Operation (of a part)"]},
+    "Operation (of a part)": {"RT": ["Process step"]},
+    "Run": {"UF": ["agent invocation"], "RT": ["Operation (in a run)", "Agent part"]},
+    "State": {"RT": ["Status", "Case", "Stage"]},
+    "Status": {"RT": ["Stage"]},
+}
+
+
+def term_relations():
+    """Every term's relations as thesaurus lines: NT derived from each BT, and each RT made two-way."""
+    rel = {}
+    for w, kinds in RELATIONS.items():
+        for kind, others in kinds.items():
+            for o in others:
+                rel.setdefault(w, []).append(f"{kind} {o}")
+                if kind in ("BT", "RT"):
+                    rel.setdefault(o, []).append(f"{'NT' if kind == 'BT' else 'RT'} {w}")
+    order = {"UF": 0, "BT": 1, "NT": 2, "RT": 3}
+    return {w: sorted(dict.fromkeys(r), key=lambda x: order[x.split(" ", 1)[0]]) for w, r in rel.items()}
+
+
+RELATION_KEY = "Related terms: UF = also called; BT = broader term; NT = narrower term; RT = related term."
+RELATION_WORDS = {"UF": "also called ", "BT": "broader: ", "NT": "narrower: ", "RT": "related: "}
+
+
+def relations_in_words(lines):
+    """Thesaurus lines ("UF participant", "NT Component") in words, one phrase per kind:
+    "also called participant; narrower: Component"."""
+    kinds = {}
+    for ln in lines:
+        kind, _, term = ln.partition(" ")
+        kinds.setdefault(kind, []).append(term)
+    return "; ".join(RELATION_WORDS.get(k, k + " ") + ", ".join(t) for k, t in kinds.items())
+
+
+ROUTE = re.compile(r"(GET|POST|PUT|PATCH|DELETE) /\S*")
+TOOL = re.compile(r"[A-Za-z_][\w.:-]*")  # one identifier in any case style (list_owners, addOwnerToPetclinic, ListProducts); never a page, a path or words
+
+
+def operation_example(M):
+    """An operation of a part, from the register: a route of the part offering the most routes, and a tool, an AI
+    agent's first operation that is one identifier, whatever its case; with no agent, a handler, any part's first such
+    operation."""
+    seen = []
+    for p in M["R"]["participation"]:
+        s = M["subj"].get(p.get("subject_id"), {})
+        seen += [(o.strip(), s) for o in (p.get("operation") or "").split(";") if o.strip()]
+    routes = list(dict.fromkeys((o, s.get("subject_id")) for o, s in seen if ROUTE.fullmatch(o)))
+    most = max(dict.fromkeys(x for _, x in routes), key=lambda x: sum(y == x for _, y in routes), default=None)
+    route = next((o for o, x in routes if x == most), "")
+    named = [(o, s) for o, s in seen if TOOL.fullmatch(o) and not ROUTE.fullmatch(o)]
+    tool = next((o for o, s in named if M["family"](s) == "agent"), "")
+    handler = "" if tool else next((o for o, _ in named), "")
+    said = ([f"a route such as {route}"] if route else []) + ([f"a tool such as {tool}"] if tool else []) + (
+        [f"a handler such as {handler}"] if handler else [])
+    return ", or ".join(said)
+
+
+def lifecycle_states(M, flow_id=None):
+    """The case's states lifecycle.csv names, the flow's own first, in order: (state, recorded), where a state the
+    register writes `implicit: ` is not recorded by any system, and (none) is no state."""
+    path = pathlib.Path(M["R"].get("_path") or "") / "lifecycle.csv"
+    rows = read_csv(path) if M["R"].get("_path") and path.exists() else []
+    rows = [r for r in rows if r.get("flow") == flow_id] or rows
+    out = {}
+    for r in rows:
+        for c in ("from_state", "to_state"):
+            v = (r.get(c) or "").strip()
+            if v and v != "(none)":
+                implicit = v.lower().startswith("implicit:")
+                out.setdefault(v.split(":", 1)[1].strip() if implicit else v, not implicit)
+    return list(out.items())
 
 
 def cited(text):
@@ -1882,79 +2133,79 @@ def words(M, opened, folded=False):
     part = "; ".join(x.get("name", "") for x in M["persons"][:1] + M["comps"][:1])
     ex = [caps[0].get("name", "") if caps else "", f.get("name", ""), st.get("name", ""), step.get("name", ""), part,
           comp, M["deps"][0].get("name", "") if M["deps"] else "none in the register"]
-    trs = "".join(f"<tr><th>{w}</th><td>{d}</td><td class=\"ex\">{esc(e)}</td></tr>" for (w, d), e in zip(WORDS, ex))
+    rel = term_relations()
+    tr = lambda w, d, e: (f'<tr><th>{w}</th><td>{d}</td><td class="rel">{esc(" · ".join(rel.get(w, [])))}</td>'
+                          f'<td class="ex">{e}</td></tr>')
+    trs = "".join(tr(w, d, esc(e)) for (w, d), e in zip(WORDS, ex))
+    trs += "".join(tr(w, d, esc(operation_example(M))) for w, d in PART_WORDS)
     lab = M.get("_step_label", {})
     for w, d_ in OUTCOME_WORDS:
         e = next((M["step"][s].get("name", "") for s in lab if lab[s] == w and s in M["step"]), "")
-        trs += f"<tr><th>{w}</th><td>{d_}</td><td class=\"ex\">{esc(e)}</td></tr>"
+        trs += tr(w, d_, esc(e))
     rows = next((M["agent_rows"][a["subject_id"]] for a in M["agents"] if M["agent_rows"].get(a["subject_id"])), [])
     first = lambda el: next((r.get("name", "") for r in rows if r.get("element") == el), "")
-    trs += "".join(f"<tr><th>{w}</th><td>{d}</td><td class=\"ex\">{esc(first(el))}</td></tr>" for w, d, el in AGENT_WORDS)
+    trs += "".join(tr(w, d, esc(first(el))) for w, d, el in AGENT_WORDS)
     status = [("Case", "One instance going through a flow, from its start to its end: what the business measures count.",
-               re.split(r"[:;,(]", f.get("case", ""), maxsplit=1)[0].strip()),  # its name; where it is stored stays off the page
-              ("On record", "A measure the register holds: proposed, or emitted by the code today. Never a reading.", ""),
-              ("Not assessed", "Looked for in the sources examined and not found, or not looked at. Never a finding "
-                               "that it is absent.", "")]
-    trs += "".join(f"<tr><th>{w}</th><td>{d}</td><td class=\"ex\">{cited(e)}</td></tr>" for w, d, e in status)
-    table = ('<table><thead><tr><th>Level</th><th>What it means</th>'
-             f'<th>Example, from this register</th></tr></thead><tbody>{trs}</tbody></table>')
+               re.split(r"[:;,(]", f.get("case", ""), maxsplit=1)[0].strip())]  # its name; where it is stored stays off the page
+    states = lifecycle_states(M, f.get("flow_id"))
+    state = next((x for x, rec in states if not rec), states[0][0] if states else "none in the register")
+    stat = next((x for x, rec in states if rec), "none in the register")
+    status += [(w, d, e) for (w, d), e in zip(CASE_WORDS, (state, stat))]
+    status += [("On record", "A measure the register holds: proposed, or emitted by the code today. Never a reading.", ""),
+               ("Not assessed", "Looked for in the sources examined and not found, or not looked at. Never a finding "
+                                "that it is absent.", "")]
+    trs += "".join(tr(w, d, cited(e)) for w, d, e in status)
+    table = (f'<p class="note">{esc(RELATION_KEY)}</p><table><thead><tr><th>Term</th><th>What it means</th>'
+             f'<th>Related terms</th><th>Example, from this register</th></tr></thead><tbody>{trs}</tbody></table>')
     if folded:  # one link at the top of a page, closed until the reader opens it
         return f'<details class="words glossary"><summary>Glossary</summary>{table}</details>'
     return f'<section class="words"><h2>Glossary</h2>{table}</section>'
 
 
-CSS = """
-:root{--ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;--clay:#D97757;--clay-d:#B85C3E;--olive:#788C5D;
---g200:#DDD9CF;--g300:#C4BFB3;--g400:#9A958A;--g500:#736F66;--g600:#57544D;
---serif:ui-serif,Georgia,"Times New Roman",serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ivory:#1B1B19;--paper:#262624;--slate:#ECEAE3;--clay:#E08A6D;--clay-d:#E89A7E;
---g200:#3A3935;--g300:#4E4C47;--g400:#77736B;--g500:#A39F96;--g600:#C2BEB5}}
-:root[data-theme="dark"]{--ivory:#1B1B19;--paper:#262624;--slate:#ECEAE3;--clay:#E08A6D;--clay-d:#E89A7E;
---g200:#3A3935;--g300:#4E4C47;--g400:#77736B;--g500:#A39F96;--g600:#C2BEB5}
-html,body{background:var(--ivory)}
-body{margin:0;color:var(--slate);font:15px/1.6 var(--sans)}
+CSS = ps.CSS + """
+body{line-height:1.6}
 main{max-width:1800px;margin:0 auto;padding:24px 16px 64px}
-h1{font-family:var(--serif);font-weight:500;font-size:28px;margin:8px 0 4px}
-h2{font-family:var(--serif);font-weight:500;font-size:22px;margin:44px 0 6px;border-top:1px solid var(--g300);padding-top:20px}
-p.lede,p.ask{max-width:68rem;color:var(--g600);margin:0 0 12px}
+h2{margin:44px 0 6px;border-top:1px solid var(--m-line);padding-top:20px}
+p.lede,p.ask{max-width:68rem;color:var(--m-ink2);margin:0 0 12px}
 p.ask{font-style:italic}
 figure{margin:0 0 20px}
-.fig{position:relative;background:var(--paper);border:1px solid var(--g300);border-radius:6px;padding:12px;overflow:hidden}
+.fig{position:relative;background:var(--m-col);border:1px solid var(--m-line);border-radius:6px;padding:12px;overflow:hidden}
 .fig svg{display:block;width:100%;height:auto;touch-action:none;cursor:grab}
 .zoom{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:1}
-.zoom button{font:12px var(--sans);color:var(--slate);background:var(--paper);border:1px solid var(--g400);border-radius:4px;padding:2px 8px;cursor:pointer}
-.zoom button:focus-visible{outline:2px solid var(--clay)}
+.zoom button{font:13px var(--m-sans);color:var(--m-ink);background:var(--m-col);border:1px solid var(--m-link);border-radius:4px;padding:2px 8px;cursor:pointer}
+.zoom button:focus-visible{outline:2px solid var(--m-acc)}
 .zoom button[disabled]{opacity:.4;cursor:default}
-figcaption{font-size:14px;color:var(--g600);margin-top:6px;max-width:68rem}
-.words table{border-collapse:collapse;width:100%;max-width:68rem;font-size:15px;background:var(--paper);border:1px solid var(--g200)}
-.words th,.words td{text-align:left;vertical-align:top;padding:8px 12px;border-top:1px solid var(--g200)}
-.words thead th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--g500);border-top:none}
+figcaption{font-size:14px;color:var(--m-ink2);margin-top:6px;max-width:68rem}
+.words table{border-collapse:collapse;width:100%;max-width:68rem;font-size:15px;background:var(--m-col);border:1px solid var(--m-page)}
+.words th,.words td{text-align:left;vertical-align:top;padding:8px 12px;border-top:1px solid var(--m-page)}
+.words thead th{font-family:var(--m-mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--m-ink3);border-top:none}
 .words tbody th{white-space:nowrap;font-weight:600}
-.words td.ex{color:var(--g600)}
-svg .bx{fill:var(--paper);stroke:var(--g500);stroke-width:1.4}
-svg .t{font-family:var(--serif);font-size:15px;fill:var(--slate)}
-svg .s{font-family:var(--sans);font-size:12.5px;fill:var(--g500)}
-svg .r{font-family:var(--serif);font-style:italic;font-size:12.5px;fill:var(--g600)}
-svg .k{font-family:var(--mono);font-size:12px;letter-spacing:.1em;fill:var(--g400)}
-svg .warn{font-family:var(--serif);font-style:italic;font-size:13px;fill:var(--clay-d)}
-svg .ln{stroke:var(--g600);stroke-width:1.4;fill:none}
-svg .rule{stroke:var(--slate);stroke-width:1.3}
-svg .hit{fill:var(--g600)}
-svg .sx{font-family:var(--sans);font-size:12px;fill:var(--slate)}
+.words td.ex{color:var(--m-ink2)}
+.words td.rel{font-size:13px;color:var(--m-ink2)}
+svg .bx{fill:var(--m-col);stroke:var(--m-ink3);stroke-width:1.4}
+svg .t{font-family:var(--m-sans);font-size:15px;fill:var(--m-ink)}
+svg .s{font-family:var(--m-sans);font-size:12.5px;fill:var(--m-ink3)}
+svg .r{font-family:var(--m-sans);font-style:italic;font-size:12.5px;fill:var(--m-ink2)}
+svg .k{font-family:var(--m-mono);font-size:12px;letter-spacing:.1em;fill:var(--m-link)}
+svg .warn{font-family:var(--m-sans);font-style:italic;font-size:13px;fill:var(--m-acc)}
+svg .ln{stroke:var(--m-ink2);stroke-width:1.4;fill:none}
+svg .rule{stroke:var(--m-ink);stroke-width:1.3}
+svg .hit{fill:var(--m-ink2)}
+svg .sx{font-family:var(--m-sans);font-size:12px;fill:var(--m-ink)}
 svg g.sel{cursor:pointer}
 svg g.sel:focus{outline:none}
-svg g.sel:focus-visible rect.bx{stroke:var(--clay)}
+svg g.sel:focus-visible rect.bx{stroke:var(--m-acc)}
 svg .off{opacity:.1}
 svg g.sel.folded.off{opacity:.35}
 svg g.fold.off{opacity:.35}svg g.fold.held rect.bx{stroke-opacity:1!important;stroke-dasharray:none!important}
-svg g.tog{cursor:pointer}svg g.tog:focus{outline:none}svg g.tog:focus-visible rect{stroke:var(--clay)!important;stroke-width:1.5px!important}
+svg g.tog{cursor:pointer}svg g.tog:focus{outline:none}svg g.tog:focus-visible rect{stroke:var(--m-acc)!important;stroke-width:1.5px!important}
 svg.reach g.sel.folded:not(.off) rect.bx{stroke-opacity:1!important;stroke-dasharray:none!important}
 svg.fade-links .ln.link[data-step]{opacity:.35}
 svg.fade-links.picked .ln.link[data-step]:not(.off){opacity:1}
 svg.picked .link.off,svg.fade-links.picked .ln.link.off,svg.picked .tree.off{opacity:0}
 svg .call{display:none}
 svg .call.on,svg .call.shown{display:inline}
-p.hint{font-size:13px;color:var(--g500);margin:0 0 8px}
+p.hint{font-size:13px;color:var(--m-ink3);margin:0 0 8px}
 """
 
 SCRIPT = """<script>

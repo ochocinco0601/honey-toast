@@ -1,7 +1,22 @@
 """Reconcile an earlier register with this run's new one: match rows by content, class each old row by its citation,
-and check each code citation against the files the new walk read. The earlier register is only read, never written.
+and check each code citation against the files the new walk read. Reconciling only reads the earlier register;
+`--migrate` is the one mode that writes, and it rewrites the register folder it is pointed at, in place.
 
 Usage: python reconcile.py <earlier register> <new register> [--workspace <folder>] [--out <file>]
+       python reconcile.py --migrate <register> [<register> ...]
+
+Columns renamed since an earlier release (RENAMED) are read under their new names whenever an earlier register is
+reconciled. `--migrate` rewrites a register in place to the current names: the columns, the receipt questions that
+carry the name (in measure-gaps.csv `question` and measures.csv `receipt_question`), and a code citation inside
+`customer`, which moves to the row's `source`. It also renames remedy ids `R1`, `R2`, ... to `RM1`, `RM2`, ...
+(interaction ids keep `R01`): in remedies.csv `remedy`, in failure-modes.csv `remedy`, and where a remedy's
+`action`, `expected` or `if_different` names another remedy of the register. The register's own prose (how-made.csv
+notes, a citation) is never rewritten. An earlier `promise` moves to `bound_in_code` only where it cites code (a file
+and line in the cell or in the row's `source`) or names no limit; any other is a stated bound, so `bound_in_code` is
+left empty and the value is written to expectations.csv as the objective of its stage (or of the flow), party
+`not stated`, each move named. It closes by naming what it leaves for a person: the stage-<id> folders generated from
+the register as it was (it never regenerates them), and the defined columns each table still lacks, to be filled
+on every row as FILL-STEPS says (it never adds them). Point it at a copy.
 
 The workspace is the folder every citation starts from (default: two levels above the new register, as for
 bfo-work/<application>/). The report goes to <new register>/reconciliation-<earlier folder name>.md unless --out says.
@@ -36,6 +51,7 @@ import pathlib
 import re
 import sys
 
+HERE = pathlib.Path(__file__).resolve().parent
 KEYS = {
     "flows.csv": ("name",),
     "lifecycle.csv": ("from_state", "move", "to_state"),
@@ -47,9 +63,9 @@ KEYS = {
     "expectations.csv": ("party", "stage", "expectation"),
 }
 CLAIMS = {
-    "flows.csv": ("case", "starts_at", "ends_at", "expectation_of", "promise"),
+    "flows.csv": ("case", "starts_at", "ends_at", "customer", "bound_in_code"),
     "lifecycle.csv": ("travels_by", "carried_by", "timing", "if_not", "irreversible"),
-    "stages.csv": ("entry", "exit", "promise"),
+    "stages.csv": ("entry", "exit", "bound_in_code"),
     "steps.csv": ("right_outcome",),
     "subjects.csv": ("kind", "level", "part_kind", "repository", "owner", "responder"),
     "participation.csv": ("involvement", "operation"),
@@ -58,6 +74,16 @@ CLAIMS = {
 }
 IDS = {"flows.csv": "flow_id", "lifecycle.csv": "move_id", "stages.csv": "stage", "steps.csv": "step",
        "subjects.csv": "subject_id", "expectations.csv": "expectation_id"}
+# Columns renamed since an earlier release: old name to new. Applied where the earlier register is read (table()).
+RENAMED = {"expectation_of": "customer", "promise": "bound_in_code"}
+# An optional lifecycle column added since an earlier release; --migrate adds it empty, beside carried_by.
+ADDED_LIFECYCLE = "started_by"
+# Receipt questions that carried a renamed column's name.
+RENAMED_QUESTIONS = {"the promise": "the time limit", "past the promise": "past the time limit"}
+# A remedy id from an earlier release (`R1`), renamed `RM1` so it no longer reads as an interaction (`R01`).
+OLD_REMEDY = re.compile(r"\bR(\d+)\b")
+# The remedies.csv columns where one remedy names another (flow_outputs.REMEDY_TEXT, less the parties it escalates to).
+REMEDY_REFS = ("action", "expected", "if_different")
 CITE = ("source", "source_ref", "basis", "activity")
 # A file and its lines: `path:41`, `path:41-60`, `path:79-83, 101-103`. The path keeps a drive letter.
 CODE = re.compile(r"((?:[A-Za-z]:)?[\w.~\-/\\]+\.[A-Za-z0-9]+):(\d+(?:-\d+)?(?:,\s*\d+(?:-\d+)?(?![\w./-]))*)")
@@ -82,12 +108,192 @@ def norm(v):
     return re.sub(r"[^a-z0-9]+", " ", (v or "").lower()).strip()
 
 
-def table(reg, name):
+def table(reg, name, earlier=False):
+    """A register's rows. An earlier register's rows are read under the current column names (RENAMED); this run's
+    new register is read as written, so old names there are not taken for the new."""
     p = reg / name
     if not p.is_file():
         return []
     with p.open(encoding="utf-8-sig", newline="") as f:
-        return list(csv.DictReader(f))
+        rows = list(csv.DictReader(f))
+    return [renamed(r) for r in rows] if earlier else rows
+
+
+def renamed(row):
+    """A row under the current column names."""
+    return {RENAMED.get(k, k): v for k, v in row.items()}
+
+
+def fold_customer_citation(row):
+    """`customer` holds the role name only: a trailing parenthetical that cites code (with any `, who ...` clause
+    before it) moves to the end of the row's `source`."""
+    v = row.get("customer") or ""
+    m = re.search(r"\s*\(([^()]*)\)\s*$", v)
+    if not m or not CODE.search(m.group(1)):
+        return row
+    head, moved = v[:m.start()], m.group(1).strip()
+    who = re.search(r",\s*(who\b.*)$", head)
+    if who:
+        head, moved = head[:who.start()], f"{who.group(1)} ({moved})"
+    src = (row.get("source") or "").strip()
+    return dict(row, customer=head.strip(), source=f"{src}; customer: {moved}" if src else f"customer: {moved}")
+
+
+def old_remedy_ids(reg):
+    """The remedy ids of a register still written the earlier way (`R1`), in remedies.csv order."""
+    return [r["remedy"] for r in table(reg, "remedies.csv") if OLD_REMEDY.fullmatch(r.get("remedy") or "")]
+
+
+def renamed_remedies(name, rows, old):
+    """A table's rows with each earlier remedy id in `old` renamed `RM<n>`: the id columns whole, and in a remedy's
+    text only a token that is one of the register's own remedy ids, so an interaction id is never touched."""
+    def new(v):
+        return "RM" + v[1:] if v in old else v
+
+    def in_text(v):
+        return OLD_REMEDY.sub(lambda m: new(m.group(0)), v or "")
+    if name == "remedies.csv":
+        return [dict(r, remedy=new(r.get("remedy")), **{c: in_text(r[c]) for c in REMEDY_REFS if c in r})
+                for r in rows]
+    if name == "failure-modes.csv":
+        return [dict(r, remedy=new(r.get("remedy"))) if "remedy" in r else r for r in rows]
+    return rows
+
+
+def kit():
+    """The kit's own modules, imported when first needed (they import nothing of this one)."""
+    sys.path.insert(0, str(HERE))
+    import capability_views as cv
+    import flow_outputs as fo
+    import run_status as rs
+    return cv, fo, rs
+
+
+def unbound(name, rows, moved):
+    """An earlier `promise` stays in `bound_in_code` only where it cites code (a file and line in the cell or in the
+    row's source) or names no limit; any other is a stated bound: its cell is emptied and it is added to `moved` as
+    (table, id, flow, stage, value, source), for expectations.csv."""
+    cv, fo, _ = kit()
+    idcol = IDS[name]
+    out = []
+    for r in rows:
+        v = (r.get("bound_in_code") or "").strip()
+        if v and fo.time_limit(v) and not cv.bound_cites_code(r, v):
+            flow = r.get("flow_id") if name == "flows.csv" else r.get("flow")
+            stage = "" if name == "flows.csv" else r.get("stage")
+            moved.append((name, r.get(idcol) or "?", flow or "", stage or "", v, (r.get("source") or "").strip()))
+            r = dict(r, bound_in_code="")
+        out.append(r)
+    return out
+
+
+def add_objectives(reg, moved, notes):
+    """Write each moved bound into expectations.csv as an objective of its stage, or of the flow, party `not stated`,
+    with ids continuing those present; create the table with the template's header where the register has none."""
+    p = reg / "expectations.csv"
+    rows, fields = [], []
+    if p.is_file():
+        with p.open(encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f)
+            fields, rows = list(reader.fieldnames or []), list(reader)
+    with (HERE / "register-template" / "expectations.csv").open(encoding="utf-8-sig", newline="") as f:
+        template = next(csv.reader(f))
+    fields = fields + [c for c in template if c not in fields]
+    n = max([int(m.group(1)) for r in rows for m in [re.fullmatch(r"e(\d+)", (r.get("expectation_id") or "").strip())]
+             if m] or [0])
+    for table_name, rid, flow, stage, value, source in moved:
+        n += 1
+        rows.append({c: "" for c in fields} | {
+            "expectation_id": f"e{n}", "flow": flow, "stage": stage, "party": "not stated", "objective": value,
+            "objective_source": source or "not stated",
+            "source": f"reconcile.py --migrate: the earlier register's {table_name} {rid} promise"})
+        whose = f"stage {stage}" if stage else f"flow {flow}"
+        note = (f"{table_name} {rid}: its earlier promise {value!r} cites no code (no file and line in the cell or the "
+                f"row's source), so it is not a limit the code sets: bound_in_code is left empty and the value is now "
+                f"expectations.csv e{n}, the objective of {whose}, party not stated. Like any expectation, it needs its "
+                "party named, its expectation and satisfied_when written, and a measure naming it as its indicator, "
+                "or the view questions count it empty")
+        if value.lower().startswith("proposed:"):
+            note += (", and find the document or person that states the bound and cite it in objective_source, or "
+                     "blank the objective: it was proposed, and an objective is only ever stated (--check fails "
+                     "until then)")
+        notes.append(note)
+    with p.open("w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields, lineterminator="\n")
+        w.writeheader()
+        w.writerows(rows)
+
+
+def migrate(reg, notes=None):
+    """Rewrite one register in place to the current column names (RENAMED) and receipt questions
+    (RENAMED_QUESTIONS), folding a code citation out of `customer` into `source`, and to the current remedy ids
+    (`RM1`). An earlier `promise` that cites no code moves to expectations.csv (unbound). Returns the files changed;
+    `notes`, where given, gets one line per bound moved."""
+    reg = pathlib.Path(reg)
+    notes = [] if notes is None else notes
+    old = set(old_remedy_ids(reg))
+    changed, moved = [], []
+    for name in sorted(p.name for p in reg.glob("*.csv")):
+        p = reg / name
+        with p.open(encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f)
+            fields, rows = list(reader.fieldnames or []), list(reader)
+        new_fields = [RENAMED.get(c, c) for c in fields] if name in ("flows.csv", "stages.csv") else fields
+        new_rows = [renamed(r) if new_fields != fields else dict(r) for r in rows]
+        if name in ("flows.csv", "stages.csv") and "promise" in fields:
+            new_rows = unbound(name, new_rows, moved)
+        if name == "flows.csv" and "expectation_of" in fields:
+            new_rows = [fold_customer_citation(r) for r in new_rows]
+        if name == "measure-gaps.csv":
+            new_rows = [dict(r, question=RENAMED_QUESTIONS.get(r.get("question"), r.get("question")))
+                        if "question" in r else r for r in new_rows]
+        if name == "measures.csv" and "receipt_question" in fields:
+            new_rows = [dict(r, receipt_question="; ".join(RENAMED_QUESTIONS.get(q.strip(), q.strip())
+                                                           for q in r["receipt_question"].split(";")))
+                        if any(q.strip() in RENAMED_QUESTIONS for q in (r["receipt_question"] or "").split(";"))
+                        else r for r in new_rows]
+        if old:
+            new_rows = renamed_remedies(name, new_rows, old)
+        if name == "lifecycle.csv" and fields and ADDED_LIFECYCLE not in new_fields:
+            at = new_fields.index("carried_by") + 1 if "carried_by" in new_fields else len(new_fields)
+            new_fields = new_fields[:at] + [ADDED_LIFECYCLE] + new_fields[at:]
+            new_rows = [dict(r, **{ADDED_LIFECYCLE: ""}) for r in new_rows]
+        if new_fields == fields and new_rows == rows:
+            continue
+        with p.open("w", encoding="utf-8", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=new_fields, lineterminator="\n")
+            w.writeheader()
+            w.writerows(new_rows)
+        changed.append(name)
+    if moved:
+        add_objectives(reg, moved, notes)
+        changed = sorted(set(changed) | {"expectations.csv"})
+    return changed
+
+
+def still_owed(reg):
+    """What a migration leaves for a person, as closing lines: the stage folders whose outputs no longer match the
+    register (it never regenerates them), and the defined columns each table still lacks (it never adds them)."""
+    cv, fo, rs = kit()
+    out, folders = [], []
+    for d in sorted(p for p in reg.glob("stage-*") if p.is_dir()):
+        why = [w for w in (rs.stale(reg, f"{d.name}/{f}") for f in rs.STAGE_FILES if (d / f).is_file()) if w]
+        if why:
+            folders.append(f"  {d.name}/: {why[0].split(': regenerate with ', 1)[-1]}")
+    if folders:
+        out += ["Stage folders generated from the register as it was; regenerate each (this migration did not):"] + folders
+    defined = cv.register_columns()
+    miss = []
+    for t, cols in cv.headers(reg, defined).items():
+        lack = [c for c, optional in defined[t].items() if not optional and c not in cols]
+        if lack:
+            miss.append(f"  {t}.csv: " + ", ".join(f"{c} ({cv.EFFECT[(t, c)]})" if (t, c) in cv.EFFECT else c
+                                                    for c in lack))
+    if miss:
+        out += ["Columns register-template/REGISTER.md defines that this register still lacks; the check refuses it "
+                "until each is filled on every row as FILL-STEPS says, with its header from register-template/; "
+                "never leave a cell of it blank:"] + miss
+    return out
 
 
 def citations(text):
@@ -390,7 +596,7 @@ def reconcile(old, new, ws):
             new_rows.setdefault(key(new_names, name, r), []).append(r)
             if idcol and r.get(idcol):
                 by_id[r[idcol]] = r
-        for row in table(old, name):
+        for row in table(old, name, earlier=True):
             k = key(old_names, name, row)
             candidates = new_rows.get(k, [])
             match = min(candidates, key=lambda n: len(differs(name, row, n))) if candidates else None
@@ -518,6 +724,19 @@ def render(old, new, report):
 
 
 def main(argv):
+    if argv[:1] == ["--migrate"]:
+        if len(argv) < 2:
+            sys.exit("usage: python reconcile.py --migrate <register> [<register> ...]")
+        for reg in argv[1:]:
+            if not pathlib.Path(reg).is_dir():
+                sys.exit(f"not a folder: {reg}")
+            notes = []
+            print(f"{reg}: " + (", ".join(migrate(reg, notes)) or "already current"))
+            if notes:
+                print("Bounds moved to expectations.csv:")
+                print("\n".join(f"  {n}" for n in notes))
+            print("\n".join(still_owed(pathlib.Path(reg))))
+        return 0
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("old")
     ap.add_argument("new")

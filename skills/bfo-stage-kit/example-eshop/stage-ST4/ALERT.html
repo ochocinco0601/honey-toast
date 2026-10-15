@@ -5,85 +5,118 @@
 -->
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Alerts: Deliver the order</title><style>
-:root{--bg:#f6f7f5;--surf:#fff;--fg:#1d2420;--muted:#5d6862;--line:#c5cdc8;--bar:#e3e8e4;--lit:#1f6e8c;
---ok:#2f7d4f;--bad:#b4561f;color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1e1c;--surf:#232725;--fg:#e4e9e5;
---muted:#9aa59f;--line:#4b544f;--bar:#2e3330;--lit:#6cc0de;--ok:#6fc28f;--bad:#e08a52;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#1b1e1c;--surf:#232725;--fg:#e4e9e5;--muted:#9aa59f;--line:#4b544f;--bar:#2e3330;
---lit:#6cc0de;--ok:#6fc28f;--bad:#e08a52;color-scheme:dark}
+/* page style: begin */
+:root{--m-page:#eef0f3;--m-col:#ffffff;--m-ink:#15171a;--m-ink2:#464b53;--m-ink3:#6b717a;--m-line:#c9ced6;--m-link:#9aa1ab;
+--m-acc:#1f5fd0;--m-acc-ink:#ffffff;--m-bus:#fff3c4;--m-bus-s:#a07c0b;
+--m-app:#dcebff;--m-app-s:#2f6fbf;--m-agt:#ece2ff;--m-agt-s:#6c46bd;--m-tec:#dcf1d4;--m-tec-s:#3c7f2e;--m-per:#f3e5d2;--m-per-s:#a8672a;
+--m-ok:#2f7d4f;--m-bad:#b4561f;--m-code:#e8ecf2;--m-code-ink:#24344f;
+--m-sans:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+--m-mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;color-scheme:light}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--m-page:#111316;--m-col:#1b1e22;--m-ink:#f1f2f4;--m-ink2:#c3c8cf;
+--m-ink3:#8f96a0;--m-line:#343941;--m-link:#5c636d;--m-acc:#6ea1ff;--m-acc-ink:#0b1526;
+--m-bus:#37301a;--m-bus-s:#e6c350;--m-app:#172b45;--m-app-s:#6eaaf0;--m-agt:#2a2145;--m-agt-s:#ae90f0;--m-tec:#1a3117;--m-tec-s:#7dc468;
+--m-per:#3a2c1c;--m-per-s:#e0a363;--m-ok:#6fc28f;--m-bad:#e08a52;--m-code:#272d37;--m-code-ink:#cddaf2;color-scheme:dark}}
+:root[data-theme="dark"]{--m-page:#111316;--m-col:#1b1e22;--m-ink:#f1f2f4;--m-ink2:#c3c8cf;--m-ink3:#8f96a0;--m-line:#343941;
+--m-link:#5c636d;--m-acc:#6ea1ff;--m-acc-ink:#0b1526;--m-bus:#37301a;--m-bus-s:#e6c350;
+--m-app:#172b45;--m-app-s:#6eaaf0;--m-agt:#2a2145;--m-agt-s:#ae90f0;--m-tec:#1a3117;--m-tec-s:#7dc468;--m-per:#3a2c1c;--m-per-s:#e0a363;
+--m-ok:#6fc28f;--m-bad:#e08a52;--m-code:#272d37;--m-code-ink:#cddaf2;color-scheme:dark}
+
+html,body{background:var(--m-col)}
+body{margin:0;color:var(--m-ink);font:15px/1.5 var(--m-sans)}
+main{margin:0 auto;padding:24px 16px 64px}
+h1{font:700 30px/1.15 var(--m-sans);margin:8px 0 4px}
+h2{font:600 22px/1.3 var(--m-sans);margin:0}
+h3{font:600 16px/1.35 var(--m-sans);margin:0}
+a{color:var(--m-acc)}
+code,pre{font-family:var(--m-mono)}
+code{font-size:max(13px,.92em)}
+code.ct{background:var(--m-code);color:var(--m-code-ink);border-radius:3px;padding:0 .3em;overflow-wrap:anywhere}
+main.frame{max-width:1240px;margin:0 auto;padding:8px 20px 48px;box-sizing:border-box}
+main.frame .trail{font-size:13px;margin:0 0 2px;color:var(--m-ink2)}main.frame .trail .sep{color:var(--m-ink3)}
+main.frame h1{font-size:22px;line-height:1.25;margin:0 0 4px}
+h2.sec{display:flex;align-items:baseline;gap:16px;font:600 18px/1.3 var(--m-sans);color:var(--m-ink);margin:14px 0 6px;padding:0 0 4px;border-top:none;border-bottom:2px solid rgba(127,127,127,.35)}
+details.fold>summary{list-style:none;cursor:pointer}details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary h2.sec::before{content:"\25B8\00a0"}details.fold[open]>summary h2.sec::before{content:"\25BE\00a0"}
+main.frame .card,main.frame dl.card{font-size:15px}main.frame .card dl{font-size:15px}
+.prose p{margin:0 0 4px}.prose p:last-child{margin-bottom:0}
+.prose ul{margin:2px 0 6px;padding-left:20px}.prose li{margin:0 0 3px}
+/* page style: end */
+
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{line-height:1.55}
 main{max-width:76rem;margin:0 auto;padding:24px 16px 64px;display:grid;gap:24px}
-a{color:var(--lit)}
-h1{font:600 1.6rem/1.25 Georgia,serif;margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-h2{font:600 1.3rem/1.3 Georgia,serif;margin:0}
-h3{font-size:1rem;margin:0}
+a{color:var(--m-acc)}
+h1{margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 p{margin:0 0 6px;max-width:68rem}
-.doc{background:var(--surf);border:1px solid var(--line);border-radius:6px;padding:18px 20px;display:grid;gap:12px;
+.doc{background:var(--m-col);border:1px solid var(--m-line);border-radius:6px;padding:18px 20px;display:grid;gap:12px;
 min-width:0}
-.trail{color:var(--lit);font-size:13px}
-.lbl{font:500 .72rem/1.4 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.trail{color:var(--m-acc);font-size:13px}
+.lbl{font:500 13px/1.4 var(--m-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--m-ink2)}
 .landing{display:grid;grid-template-columns:1fr 1fr;gap:24px}
 @media (max-width:760px){.landing{grid-template-columns:1fr}}
 .col{display:grid;gap:8px;align-content:start;min-width:0}
-.card{border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:grid;gap:2px;text-decoration:none;
-color:var(--fg)}
-a.card b{color:var(--lit)}
-.card.gap{border-color:var(--bad)}.card.gap b{color:var(--bad)}
-.sub{color:var(--muted);font-size:13px}
-.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:10px;border:1px solid var(--line);
-text-decoration:none;color:var(--fg)}
-.chip.ok{border-color:var(--ok);color:var(--ok)}.chip.bad{border-color:var(--bad);color:var(--bad)}
-.chip.warn{color:var(--muted)}
-.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px;color:var(--muted)}
-.meta b{color:var(--fg)}
-.now{border:2px solid var(--fg);border-radius:6px;padding:10px 14px}
+.card{border:1px solid var(--m-line);border-radius:6px;padding:10px 12px;display:grid;gap:2px;text-decoration:none;
+color:var(--m-ink)}
+a.card b{color:var(--m-acc)}
+.card.gap{border-color:var(--m-bad)}.card.gap b{color:var(--m-bad)}
+.sub{color:var(--m-ink2);font-size:13px}
+.chip{display:inline-block;font-size:13px;padding:1px 8px;border-radius:10px;border:1px solid var(--m-line);
+text-decoration:none;color:var(--m-ink)}
+.chip.ok{border-color:var(--m-ok);color:var(--m-ok)}.chip.bad{border-color:var(--m-bad);color:var(--m-bad)}
+.chip.warn{color:var(--m-ink2)}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px;color:var(--m-ink2)}
+.meta b{color:var(--m-ink)}
+.now{border:2px solid var(--m-ink);border-radius:6px;padding:10px 14px}
 .now ol{margin:6px 0 0;padding-left:1.3em;display:grid;gap:6px}
 .sec{font-weight:600;margin-top:6px}
-.hint{font-weight:400;color:var(--muted);font-size:13px}
+.hint{font-weight:400;color:var(--m-ink2);font-size:13px}
 .tw{overflow-x:auto}
 table{border-collapse:collapse;width:100%}
-td,th{border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
-th{font:500 .72rem/1.4 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-table.chk td:first-child{width:2em;color:var(--muted);font-variant-numeric:tabular-nums}
+td,th{border-bottom:1px solid var(--m-line);padding:6px 8px;vertical-align:top;text-align:left}
+th{font:500 13px/1.4 var(--m-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--m-ink2)}
+table.chk td:first-child{width:2em;color:var(--m-ink2);font-variant-numeric:tabular-nums}
 table.chk td:nth-child(3){width:30%}
 @media (max-width:600px){table.chk tr{display:grid;grid-template-columns:2em 1fr}
-table.chk td{border:0}table.chk tr{border-bottom:1px solid var(--line)}
+table.chk td{border:0}table.chk tr{border-bottom:1px solid var(--m-line)}
 table.chk td:nth-child(3){grid-column:2;width:auto;padding-top:0}}
-tr.grp td{font:500 .72rem/1.4 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;
-color:var(--muted);padding-top:12px}
-details{border-bottom:1px solid var(--line);padding:6px 0}
+tr.grp td{font:500 13px/1.4 var(--m-mono);letter-spacing:.06em;text-transform:uppercase;
+color:var(--m-ink2);padding-top:12px}
+details{border-bottom:1px solid var(--m-line);padding:6px 0}
 details>summary{cursor:pointer}
 details.how{border:0;padding:2px 0}
-details.how>summary{color:var(--lit);font-size:13px}
-.box{margin-top:6px;display:grid;gap:6px;padding:8px 10px;border-left:3px solid var(--line)}
-pre{margin:0;padding:8px 10px;background:var(--bar);border-radius:4px;white-space:pre-wrap;word-break:break-word;
-font:12.5px/1.45 ui-monospace,Consolas,monospace}
-code{font-family:ui-monospace,Consolas,monospace;font-size:.92em}
+details.how>summary{color:var(--m-acc);font-size:13px}
+.box{margin-top:6px;display:grid;gap:6px;padding:8px 10px;border-left:3px solid var(--m-line)}
+pre{margin:0;padding:8px 10px;background:var(--m-page);border-radius:4px;white-space:pre-wrap;word-break:break-word;
+font:13px/1.45 var(--m-mono)}
 .row2{display:flex;flex-wrap:wrap;gap:4px 22px;font-size:14px}
-.small{font-size:13px;color:var(--muted)}
-.done{font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.small{font-size:13px;color:var(--m-ink2)}
+.done{font-size:13px;color:var(--m-ink2);display:flex;gap:14px;flex-wrap:wrap}
 ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
 .ref{display:grid;gap:12px}
 :target{scroll-margin-top:12px}
-</style></head><body><main>
-<section class="doc"><div class="trail">Fulfilling a customer&#x27;s order › Stage 4: Deliver the order</div><h1>Alerts proposed: Deliver the order</h1>
+main.frame.rbpage section.doc:first-of-type{padding-top:8px}
+main.frame.rbpage p.untested{margin:2px 0 10px;font:600 15px var(--m-sans);color:var(--m-bad)}
+main.frame.rbpage .landing .lbl{font:600 15px var(--m-sans);letter-spacing:0;text-transform:none;color:var(--m-ink)}
+</style></head><body><main class="frame rbpage">
+<section class="doc"><p class="trail"><a href="../views.html">Map</a> <span class="sep">›</span> <a href="../flow-F1/FLOW.html">Flow: Fulfilling a customer&#x27;s order</a> <span class="sep">›</span> <a href="STAGE.html">Stage 4: Deliver the order</a> <span class="sep">›</span> <a href="RUNBOOK.html">Runbook</a> <span class="sep">›</span> <span aria-current="page">Alerts proposed: Deliver the order</span></p><h1>Alerts proposed: Deliver the order</h1>
 <p>Each is its own alert. When one fires, follow its own entry in <a href="RUNBOOK.html">the runbook</a>. Thresholds, windows and whether an alert pages a person are the operators’ values, not set here.</p></section>
-<section class="doc" id="alert-M301"><h2>Shipped orders not confirmed delivered within the stage&#x27;s promise</h2>
+<section class="doc" id="alert-M301"><h2>Shipped orders not confirmed delivered within the expected time</h2>
 <p><a href="RUNBOOK.html#alert-M301">Its entry in the runbook ›</a></p>
 <div class="tw"><table>
-<tr><th>The question it answers</th><td>How many shipped orders have not reached the customer within the delivery promise?</td></tr>
-<tr><th>What it counts</th><td><p>Per order, the time since its OrderStatusChangedToShipped outbox row "CreationTime" with no delivery confirmation for it; needs a per-order delivery record (a carrier's confirmation) the code does not keep: the last state is Shipped</p><p class="small">Counted on cases.</p></td></tr>
-<tr><th>Why it is proposed</th><td>a shipped order not delivered within the stage's promise leaves the customer without the goods they expect (flows.csv the flow “Fulfilling a customer's order”, delivers). The record this alert needs does not exist yet: the code records nothing after Shipped, so a per-order delivery confirmation must be added before it can fire. The bound is the stage's promise, which no source states (stages.csv the stage “Deliver the order”, proposed:). Its runbook entry has no tests, and that is the finding, not an omission: tests come from the failures of the move a stage's cases wait on, and these wait on delivery, which no part of the application carries out. The stage's one recorded move, “Webhook subscribers are told the order is shipped”, tells webhook subscribers and does not move an order. Its cases go to the carrier, outside this runbook, until a delivery move and its record are added. This measure is not emitted yet; deployed as written, the alert fires on No data until it is.</td></tr>
-<tr><th>Which cases its entry works</th><td>By the state the case is in: <code>Shipped</code>. Its runbook entry groups the cases by state and works each state's tests.</td></tr>
+<tr><th>The question it answers</th><td>How many shipped orders have not reached the customer within the time they expect?</td></tr>
+<tr><th>What it counts</th><td><p>Per order, the time since its <code class="ct">OrderStatusChangedToShipped</code> outbox row <code class="ct">"CreationTime"</code> with no delivery confirmation for it; needs a per-order delivery record (a carrier's confirmation) the code does not keep: the last state is Shipped</p><p class="small">Counted on cases.</p></td></tr>
+<tr><th>Why it is proposed</th><td><div class="prose"><p>a shipped order not delivered within the expected time leaves the customer without the goods they expect (<code class="ct">flows.csv</code> the flow “Fulfilling a customer's order”, delivers).</p><p>The record this alert needs does not exist yet: the code records nothing after Shipped, so a per-order delivery confirmation must be added before it can fire.</p><p>The bound is the customer's expected delivery time, which no source states and the code sets no time limit for (<code class="ct">expectations.csv</code> e5; <code class="ct">stages.csv</code> the stage “Deliver the order”).</p><p>Its runbook entry has no tests, and that is the finding, not an omission: tests come from the failures of the move a stage's cases wait on, and these wait on delivery, which no part of the application carries out.</p><p>The stage's one recorded move, “Webhook subscribers are told the order is shipped”, tells webhook subscribers and does not move an order.</p><p>Its cases go to the carrier, outside this runbook, until a delivery move and its record are added.</p></div> This measure is not emitted yet; deployed as written, the alert fires on No data until it is.</td></tr>
+<tr><th>Which cases its entry works</th><td><div class="prose"><p>By the state the case is in: Shipped.</p><p>Its runbook entry groups the cases by state and works each state's tests.</p></div></td></tr>
 <tr><th>Threshold</th><td><i>Operator value, not set here.</i> For each measure, the value at which the alert fires. Whether it pages a person, opens a ticket or shows on a dashboard is the operators' decision.</td></tr>
-<tr><th>Window</th><td><i>Operator value, not set here.</i> How long the condition must hold before it fires. What the design assumes about time: Each post is bounded only by the standard resilience handler every HTTP client carries: each attempt 10 seconds, up to 3 retries, 30 seconds in all; the posts to all subscriptions go out together and are awaited together. No clock watches the message waiting in queue Webhooks.</td></tr>
-<tr><th>Age bound</th><td><i>Operator value.</i> The stage’s promise: proposed: none assumed by the code; the carrier's delivery commitment would set one</td></tr>
+<tr><th>Window</th><td><i>Operator value, not set here.</i> How long the condition must hold before it fires. What the design assumes about time: Process step 4.1: Webhook subscribers are told the order is shipped — Each post is bounded only by the standard resilience handler every HTTP client carries: each attempt 10 seconds, up to 3 retries, 30 seconds in all; the posts to all subscriptions go out together and are awaited together. No clock watches the message waiting in queue Webhooks.</td></tr>
+<tr><th>Time limit</th><td><i>Operator value.</i> How old a waiting case may be is the operators’ value.</td></tr>
 <tr><th>No data</th><td>It also fires when its measure cannot be counted for longer than the window. A count that finds no events in a window is zero, not missing data. A count fails when what it is read from is down; What it counts says where that is.</td></tr>
 <tr><th>Symptom, not cause</th><td>It fires on what happens to cases, not on any component’s errors. Telling causes apart is the runbook’s job.</td></tr>
 <tr><th>Exists today</th><td>no, proposed</td></tr>
 </table></div>
-<details class="small"><summary>For maintainers: register ids and sources</summary><ul><li>Measure: M301</li><li>Emitted at: Ordering.Domain/AggregatesModel/OrderAggregate/OrderStatus.cs:12; Ordering.Domain/AggregatesModel/OrderAggregate/Order.cs:130-140; stages.csv ST4</li><li>Basis as written: yes: a shipped order not delivered within the stage&#x27;s promise leaves the customer without the goods they expect (flows.csv F1, delivers). The record this alert needs does not exist yet: the code records nothing after Shipped, so a per-order delivery confirmation must be added before it can fire. The bound is the stage&#x27;s promise, which no source states (stages.csv ST4, proposed:). Its runbook entry has no tests, and that is the finding, not an omission: tests come from the failures of the move a stage&#x27;s cases wait on, and these wait on delivery, which no part of the application carries out (step 4.2 has no lifecycle row; the code&#x27;s last state is Shipped, Ordering.Domain/AggregatesModel/OrderAggregate/OrderStatus.cs:12). The stage&#x27;s one recorded move, L14, tells webhook subscribers and does not move an order. Its cases go to the carrier, outside this runbook, until a delivery move and its record are added</li></ul></details></section>
+<details class="small"><summary>For maintainers: register ids and sources</summary><ul><li>Measure: M301</li><li>Emitted at: <code class="ct">Ordering.Domain/AggregatesModel/OrderAggregate/OrderStatus.cs:12</code>; <code class="ct">Ordering.Domain/AggregatesModel/OrderAggregate/Order.cs:130-140</code>; <code class="ct">stages.csv</code> ST4</li><li>Basis as written: yes: a shipped order not delivered within the expected time leaves the customer without the goods they expect (<code class="ct">flows.csv</code> F1, delivers). The record this alert needs does not exist yet: the code records nothing after Shipped, so a per-order delivery confirmation must be added before it can fire. The bound is the customer's expected delivery time, which no source states and the code sets no time limit for (<code class="ct">expectations.csv</code> e5; <code class="ct">stages.csv</code> ST4). Its runbook entry has no tests, and that is the finding, not an omission: tests come from the failures of the move a stage's cases wait on, and these wait on delivery, which no part of the application carries out (process step 4.2 has no lifecycle row; the code's last state is Shipped, <code class="ct">Ordering.Domain/AggregatesModel/OrderAggregate/OrderStatus.cs:12</code>). The stage's one recorded move, L14, tells webhook subscribers and does not move an order. Its cases go to the carrier, outside this runbook, until a delivery move and its record are added</li></ul></details></section>
 <section class="doc"><h2>Companion measures</h2><p>Read by the runbook’s checks, not proposed for alerting:</p><ul>
 </ul></section>
 </main><script>(function(){function go(){try{var h=decodeURIComponent(location.hash.slice(1));var e=h&&document.getElementById(h);for(var p=e;p;p=p.parentElement){if(p.tagName==='DETAILS')p.open=true;}var d=e&&e.tagName==='TR'&&e.querySelector('details');if(d)d.open=true;if(e)e.scrollIntoView();}catch(x){}}window.addEventListener('hashchange',go);window.addEventListener('load',go);})();</script></body></html>
+
+<!-- bfo-generated-from {"flow": "F1", "stage": "ST4", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "f3ef7b5dbcfd", "measures": "3c7ec5c71e65", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->

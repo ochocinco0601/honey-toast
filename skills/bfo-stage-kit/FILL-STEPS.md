@@ -15,19 +15,23 @@ a running system. Nothing you write is a live value.
 and `reference/what-each-level-can-report.md` (cited as *Rules*). Where a step below says what to do,
 the method says why. The terms are defined in `reference/vocabulary.md`, and the measure layers in `reference/four-layers.md`. One thing is built first, and everything else is read off it: **the case's lifecycle**,
 the states one case passes through and the moves between them. Stages and alerts are drafted from it with the
-basis of each cited; steps, parts, measures and the runbook are each derived from it by a stated rule. Either
+basis of each cited; process steps, parts, measures and the runbook are each derived from it by a stated rule. Either
 way a later check has something to compare them with.
 
 Three sources feed a register: the **code**, the **documents** (runbooks, architecture pages, service catalogue
 entries, the business's own process descriptions), and anything people have said that was written down (notes,
-tickets, recorded answers). Code shows what carries each move. Owners, responders, promises and volumes that no
-source states are inferred and labelled `proposed:`; volumes stay named for the operators to measure.
+tickets, recorded answers). Code shows what carries each move. Owners, responders and volumes that no source
+states are inferred and labelled `proposed:`; volumes stay named for the operators to measure. A party's objective
+is never inferred: it is written only where a source states it (Step 3a).
 
 ## Before you start
 
 1. Start the register with `python "<skill>/start_register.py" "<your-folder>"`, in a new folder named for the
    capability. It copies the CSV files in `register-template/` (not `REGISTER.md`), and refuses a folder that
-   already holds a CSV file, so earlier work is never copied over. As you
+   already holds a CSV file, so earlier work is never copied over. Where the workspace holds a register with its own
+   `RUN.md` from this kit (one with the section *Earlier registers*), read the effect lines in the kit's
+   `CHANGELOG.md` and recommend to the person the least work that brings it up to this kit: nothing, fills from
+   each row's citation, or the re-walks those lines name. The person decides. As you
    do each step below, add a row to `how-made.csv`: what went in, which files came out, and who did it (a tool,
    a model drafting, a person confirming, or by hand). `RUN.md` from the same folder is the run's record of its
    phases: when the kit is run as a skill, the skill's `SKILL.md` says how it is written and kept.
@@ -52,12 +56,13 @@ source states are inferred and labelled `proposed:`; volumes stay named for the 
    | Source | What the method takes from it | Used in |
    |---|---|---|
    | Code, with its build and deployment definitions | The line that creates the case; states, moves, how each travels, what carries it, what it needs, timing and what happens if it does not happen; each part's repository; the configuration that runs | Before you start 4; Steps 1, 2, 5, 6 |
-   | A business process description (a process page, a process diagram, a procedure) | Whose expectation, where the case starts and ends; what the party would recognise as done, which places stage cuts; a stated bound; what a right outcome is | Steps 1, 3, 4 |
+   | A business process description (a process page, a process diagram, a procedure) | Whom the flow serves and what each party expects of it; where the case starts and ends; what the party would recognise as done, which places stage cuts; a stated bound (an objective); what a right outcome is | Steps 1, 3, 3a, 4 |
+   | Code: the text it shows a party (status messages, notifications, notices) and the rules it enforces | A party's expectation in the words the party is shown; an objective, where the shown text states a bound, or where an enforced rule states one and the code names the rule's authority; a party the code shows only as a persona, a role or a rule, labelled `proposed:` | Step 3a |
    | An architecture page or diagram | The deployables the flow runs through, and where each one's code is; a cross-check of the parts the walk found, and of component against external dependency (whether its code can be had); an outside service's own parts, one level | Steps 5, 6 |
    | A service catalogue or configuration database entry | A part's registered id, owner and responder, with the date true | Step 5 |
    | A runbook, a support or incident page | Owner, responder, escalation; how a failure shows and what is done about it | Steps 5, 11 |
    | A document saying what the organisation is able to do | The capability, named from the documents alone | Step 8, second route |
-   | People's notes, tickets, recorded answers | Owners, responders, promises and volumes no other source states | Steps 3, 5; "When something new arrives" |
+   | People's notes, tickets, recorded answers | Owners, responders, parties with their expectations and objectives, and volumes no other source states | Steps 3, 3a, 5; "When something new arrives" |
 
    A source is read only far enough here to place it in this table; the steps read it in full.
 
@@ -66,7 +71,9 @@ source states are inferred and labelled `proposed:`; volumes stay named for the 
 
    | `proposed:` or blank in | Settled by | From the table's row |
    |---|---|---|
-   | `stages.csv` → `source` (a cut), `promise` | A business process description; a person | Step 3 |
+   | `stages.csv` → `source` (a cut) | A business process description; a person | Step 3 |
+   | `stages.csv` and `flows.csv` → `bound_in_code`, where filled | The code or its configuration: the line that sets the timer, deadline or overdue rule | Step 3 |
+   | `expectations.csv` → `party`, `expectation`, `satisfied_when`; `objective` blank | A business process description; the text the business shows the party; a person | Step 3a |
    | `steps.csv` → `right_outcome` | A business process description; a person | Step 4 |
    | `subjects.csv` → `owner`, `responder`, `application_id` | A catalogue or configuration database entry; a runbook; a person | Step 5 |
    | `stages.csv` → `arrivals_per_period` and other volumes | The operators (never derived) | Step 3 |
@@ -95,9 +102,7 @@ source states are inferred and labelled `proposed:`; volumes stay named for the 
    operations this flow calls and what those call. If its code cannot be had, it is still a part (Step 5), cited by
    the line that identified it, with `repository` blank: an external dependency, and its measures are gapped with
    the reason. List it under *still missing* in `RUN.md`.
-   **Check the repository set is complete**, without being asked, unless the person's request says to use only
-   the sources they name: then do not search, and list each unresolved reference under *still missing* instead.
-   Otherwise: (a) for every reference the code makes that no
+   **Check the repository set is complete**, without being asked: (a) for every reference the code makes that no
    folder in the workspace answers (a host or service name, a client package, a queue or topic, an image, a
    configuration key, a URL), search the code host with the person's own access (repository search, code search
    across the organisation) for the repository behind it; (b) search the other way too, for repositories that call,
@@ -105,7 +110,8 @@ source states are inferred and labelled `proposed:`; volumes stay named for the 
    nothing new. Record each repository found in `sources.csv` with the search that found it, and add it to the
    workspace as a further folder, read-only; what is found and cannot be had goes under *still missing*. `RUN.md`'s
    Phase 0 line answers "Is this the complete set of repositories?" with that evidence, and Phase 0 is not done while
-   a reference is unresolved and unsearched.
+   a reference is unresolved and unsearched. If the person's request says to use only the sources they name, do not
+   search: list each unresolved reference under *still missing* instead.
 
 ## Step 1. Declare the frame (*Assigning* Step 0; *Rules*, Rule 0)
 
@@ -114,13 +120,14 @@ Four declarations, written before anything else and never inferred silently:
 | Declaration | Where it goes | The rule |
 |---|---|---|
 | The case | `flows.csv` → `case` | One individual business item: one order, one application, one appointment. Never a system, a team, a batch, a request or a basket. A flow has one kind of case. Write its name only; where it is stored and what identifies it go in `case_identifier` |
-| Whose expectation | `flows.csv` → `expectation_of` | The party counting on the outcome |
+| Whom it serves | `flows.csv` → `customer` | The party counting on the outcome, the one whose outcome ends the flow: its role name only; a citation for it goes in the row's `source`. Every other party the flow serves or binds is named in Step 3a |
 | The starting event | `flows.csv` → `starts_at` | **The act that first creates the case's record.** Cite the line that creates it. This is also where the party begins counting on an outcome: before it there is nothing for them to wait on |
 | The ending outcome | `flows.csv` → `ends_at` | Where the party has what they were waiting for, or definitively does not. Name both endings. **The flow runs to that outcome even where the code stops sooner:** an order is delivered, not "Shipped"; the stretch after the last state the system records is added by the reference-model check in Step 3, drawn as not assessed |
 
-`flows.csv` → `promise`: the bound the party is promised for one case, end to end, stated or `proposed:` as for a
-stage's promise (Step 3). The four declarations, `promise` and `delivers` (Step 8) are **required** for the view
-*How a case moves end to end*.
+`flows.csv` → `bound_in_code` is optional: fill it only where the application's code sets its own timer, deadline
+or overdue rule for one case, end to end, cited as for a stage's (Step 3), and leave it empty otherwise. A limit a
+source states is an objective (Step 3a). The four declarations and `delivers` (Step 8) are **required** for the view
+*How a case moves end to end*; whom it serves is led by the parties' expectations (Step 3a).
 
 **Everything before the case exists belongs to another flow.** Browsing, filling a basket, signing in, filling
 in a form: real work, and set aside for this one. Write each in `set-aside.csv` with kind `other flow` and the
@@ -157,14 +164,17 @@ For each move, record:
   the broker), `outbox` (written with the state, relayed later), `poll` (a worker on a schedule), `timer`,
   `person`. A move that takes several hops lists them in order, `;` separated. **Every hop has its body in
   brackets**, saying who does what (`person (the underwriter opens the file and approves it)`), never a bare
-  `person;`: the first hop's body is what *How this step is carried out* prints as the step's trigger, so it is
+  `person;`: the first hop's body is what *How this process step is carried out* prints as the process step's trigger, so it is
   required.
 - `carried_by`: the parts that carry the act out. `needs`: the stores, brokers and outside services the move
   cannot complete without. **Write each part as its subject id and name (`S04 Ordering API`)**, giving it the id now
   that becomes its `subjects.csv` row in Step 5. Every output is generated from these two columns, so a part named
   here and nowhere in `subjects.csv` fails the check.
+- `started_by` (optional): on a move that can happen at any time while the case is in a stage (a cancel, a
+  withdrawal), who starts it, cited: the flow's customer, a role, an outside party, `timer`, or `the software`.
+  The stage's drawing names the starter; left blank, it reads as a condition whose starter is not recorded.
 - `timing`: what the code assumes about time for this move (a grace period, a poll interval, a timeout, a retry
-  schedule), cited. Required for *How this step is carried out*: where the code sets none, write that with its
+  schedule), cited. Required for *How this process step is carried out*: where the code sets none, write that with its
   citation ("no timeout is set on the call") or gap it `no record`; a person's act with no clock is gapped
   `does not apply`. **A retry or timeout counts only where the code applies it:**
   read the call site, not only the setting (a policy configured but wrapped around the wrong call never fires).
@@ -172,7 +182,7 @@ For each move, record:
   `from_state` with nothing to move it; lost; failed back to the party. Cite it. This is the summary; Step 11 reads
   every hop's failure modes one by one, and where that reading finds the summary wrong, correct it here.
 - `recovery`: `moves on`, `stranded`, `not created` or blank, as in step-impact.csv (Step 10). `if_not` is
-  required for *How this step is carried out*, and `recovery` beside it wherever the move can fail.
+  required for *How this process step is carried out*, and `recovery` beside it wherever the move can fail.
 - `irreversible`: `yes` where the move cannot be undone (money taken, goods shipped, a filing made), and `no`
   otherwise, never blank: *How a case moves through this stage* reads a blank as not looked at.
 
@@ -180,7 +190,7 @@ Parallel moves get `parallel with <move>` in `order_note`; a move back to an ear
 <state>`. Exceptions the code does not handle are written as `if_not`, not invented as moves. **A failure the code
 does handle by telling the party** (an error page, a refusal returned to the caller) is a move: path
 `exception`, into an ending named for it (`implicit: order failed back, shopper told`). Every way a case can leave
-its stage then has a row, and a step (Step 4).
+its stage then has a row, and a process step (Step 4).
 
 **An act that changes no state of the case** (emptying a basket, sending an email) is still a row, with `to_state`
 the same as `from_state`. Its `from_state` is the earliest state it happens in: if it runs inside the same request
@@ -193,7 +203,7 @@ leave from, each cited to the guard that allows it.
 ## Step 3. Cut the stages from the lifecycle (*Assigning* Step 4)
 
 **Draft the stages by judgment and say what each cut rests on.** A stage ends in a value item for the party in
-`expectation_of`: something they would recognise as done (*Assigning*, Step 4). Consider the parks, the
+`customer`: something they would recognise as done (*Assigning*, Step 4). Consider the parks, the
 `irreversible` moves, a status the business uses, the domain's standard process and the documents. None of them
 forces or forbids a boundary. Do not cut by service, sub-agent, deployable, a status the system exposes, or
 message.
@@ -204,49 +214,109 @@ message.
   on, or write `proposed:` with the reason.
 - Name each stage for what it achieves for the case, verb first, two or three words. The state at the boundary
   is the exit criterion, not the name.
-- `promise`: a stated bound if a source gives one. Otherwise `proposed:` and a bound read from the
-  lifecycle's `timing` for the stage's moves, cited: what the application's own design assumes. If the design
-  assumes nothing, write `proposed: none assumed by the code` and say what would set one. A stage with no bound
-  is a finding about the flow, not a reason to stop. The promise is required for *How a case moves through this
-  stage*, with the entry, the main exit and what is at stake (Step 10). A stage with no alternative or exception
+- `bound_in_code` (optional): the code's own time limit for the stage, filled only where the code sets one. Few
+  applications do. Where the lifecycle's `timing` for the stage's moves shows a timer, a deadline or an overdue rule,
+  write `proposed:` and the limit, cited. Otherwise leave the cell empty: never `none assumed`, and no gap is owed.
+  **A bound a document or a person states, or one the business shows the party, never goes here**: it is
+  an objective, written in Step 3a in `expectations.csv` → `objective`. Where the code's limit and a stated
+  objective disagree (the code marks a case overdue after 5 days, and the customer is told "1-2 weeks"), keep both:
+  neither is corrected to the other, and the stage card shows the two side by side as a finding. The parties'
+  expectations (Step 3a) are the stage card's main content; *How a case moves through this stage* also needs the
+  entry, the main exit and what is at stake (Step 10). A stage with no alternative or exception
   exit is gapped `does not apply` for its other outcomes.
 - `arrivals_per_period`: `not stated: measured by the operators`, unless they give it.
 - Do not merge or split to reach a count.
 
 **Then check the cut against the domain's reference model** (APQC's process classification, SCOR, the domain's
 standard process), from the starting event to the ending only. A stretch the reference model expects inside
-that frame that no lifecycle row carries is added as a stage or step with no participation, drawn as not
+that frame that no lifecycle row carries is added as a stage or process step with no participation, drawn as not
 assessed. A stretch the reference model puts before the case exists is set aside (Step 1).
 
-## Step 4. Write the steps from the moves (*Assigning* Step 5; *Rules*, Rule 0)
+## Step 3a. Name the parties and their expectations
 
-**Each step is one move, or several moves with no park between them that make one outcome the business would
+Numbered 3a so that the steps after it keep their numbers; in `how-made.csv` its `step` is `3a`.
+
+Write `expectations.csv`: whom the flow serves, and what each of them counts on, of the whole flow and of each
+stage. It is the flow's stakeholder register, one row per party per expectation. It comes after the stages because
+a stage's expectations are written per stage, and before the measures, because Step 9 ties each measure to the
+expectations it is evidence of.
+
+**Who counts as a party.** A party is someone the flow's outcome serves or binds: the customer (`flows.csv` →
+`customer`, the one party whose outcome ends the flow), a regulator whose rules the flow must keep, a sponsor. A
+person who carries out a process step (a row in `participation.csv`: a clerk, an underwriter) is a performer, and is a party
+only where a document or a person states what they expect of the flow. Name each party by the role the business
+uses, and write the customer exactly as `flows.csv` writes it. A party no document or person names, read from the
+code alone (a persona, an authorisation role, a rule the code enforces), is written `proposed: ` with that basis.
+
+**What each party expects.** For each party, the expectation of the whole flow (`stage` blank), and of each stage
+where they expect something of it, in their own words where a source has them, quoted and cited. Code is a source
+here for two things only: **the text the system shows the party** (status messages, notifications, notices) and
+**the rules the code enforces** (a notice that must be sent within a deadline). Where no source has the words,
+write `proposed: ` and the expectation. The customer has at least one expectation of the whole flow, and every
+stage has at least one expectation, the customer's included: the flow card's *Serves* and the stage card read them.
+
+**Expectations come before alerts.** Usually write each expectation from what a party is told or a source states,
+before any alert is drafted. An alert then names the expectation it guards (Step 9); the expectation is not written
+from the alert.
+
+**What satisfies it.** `satisfied_when` is the satisfaction condition: what one case would show if the expectation
+is met (its state, the record written, the values it carries), read from the lifecycle and the process steps. It is
+testable on one case. Write it `proposed:` unless a source states it, as for `right_outcome`. It holds the
+condition only: what the code cannot show (the last state it records falls short of the condition) is never
+appended after a `;`. Step 9 writes it as a `measure-gaps.csv` row of kind `no record`, whose `why` says which
+record is missing.
+
+**The objective is never drafted.** `objective` holds a bound only where a document or a person states one, and
+`objective_source` cites the statement. **Text the business shows the party is a stated objective**: "1-2 weeks"
+on the customer's status screen is the business stating a bound, cited to the line that shows it. Write it as
+stated: two bounds shown for one stage stay two, never summed or averaged. Where nothing states one, leave
+`objective` blank, never `proposed:`. A blank objective is a finding for the people who will later choose
+objectives, not a gap in the run.
+
+**A rule the code enforces is a stated objective only where the code names its authority** (a check that cites the
+regulation it implements). Then `objective_source` carries both the code line and the authority it names, for a
+person to confirm. Where the code names no authority, the bound is the code's own: it belongs in `bound_in_code`
+(Step 3), and `objective` stays blank.
+
+**Not found is not absent.** A party inferred from the rules the code enforces was read only as far as the code
+goes. Write in that row's `source`: `only the obligations this code enforces were read`. Obligations the code does
+not enforce were not looked for.
+
+**The code's limit and the objective stay apart.** `bound_in_code` is what the application assumes; `objective` is
+what a party has been told or a rule states. Where they disagree, both are kept, and the stage card shows the two
+as a finding (Step 3).
+
+## Step 4. Write the process steps from the moves (*Assigning* Step 5; *Rules*, Rule 0)
+
+**Each process step is one move, or several moves with no park between them that make one outcome the business would
 recognise.** No park between moves is needed to merge them, and is not enough: work that never waits is still
-several steps where it makes several outcomes the business would recognise. Hops between components inside one
-outcome are one step: they are mechanism, recorded in Step 6.
+several process steps where it makes several outcomes the business would recognise. Hops between components inside one
+outcome are one process step: they are mechanism, recorded in Step 6.
 
-- Name the step as its outcome, without its performer: "Stock is confirmed for the order", not "Catalog API
+- **Write a stage's process steps in `steps.csv` in the order they run.** The drawings number and chain them in that
+  order where the lifecycle does not chain them itself.
+- Name the process step as its outcome, without its performer: "Stock is confirmed for the order", not "Catalog API
   confirms stock", never "POST /items returns 201".
-- **Every stage's last step is the move that takes the case out of it**, into the next stage's entry or an
-  ending. One step per way out: the main move, and each alternative or exception ending. A stage with no step
+- **Every stage's last process step is the move that takes the case out of it**, into the next stage's entry or an
+  ending. One process step per way out: the main move, and each alternative or exception ending. A stage with no process step
   whose `to_state` is its exit is cut wrong: go back to Step 2.
 - `right_outcome`: what a right outcome is for one case, stated or `proposed:` (the state the case should be in
-  after it, with the values it should carry). Required for *How this step is carried out*.
-- A step carried only in part gets `qualifier` `partial: <what is missing>`; one carried by a stand-in (a
-  hard-coded value, a simulated call) gets `stub: <what stands in>`. A step nothing carries stays, with no
+  after it, with the values it should carry). Required for *How this process step is carried out*.
+- A process step carried only in part gets `qualifier` `partial: <what is missing>`; one carried by a stand-in (a
+  hard-coded value, a simulated call) gets `stub: <what stands in>`. A process step nothing carries stays, with no
   participation rows.
-- Write the lifecycle row ids each step comes from in `source`, with the code citation. They are required: a
-  step that cites no `L..` move has nothing in *How this step is carried out*.
+- Write the lifecycle row ids each process step comes from in `source`, with the code citation. They are required: a
+  process step that cites no `L..` move has nothing in *How this process step is carried out*.
 
 ## Step 5. List the parts from the lifecycle (*Assigning* Step 6; *Rules*, Rules 0 and 2)
 
 Every part named in `carried_by` or `needs` gets one `element` row in `subjects.csv`. Nothing else does.
 
 - **Component or external dependency** is whether its code can be had: `level` `component` for any deployable the
-  flow's steps run through whose code the run can get, whatever its application id, repository or owning team;
+  flow's process steps run through whose code the run can get, whatever its application id, repository or owning team;
   `external dependency` for one whose code it cannot get (a vendor, a third-party or software-as-a-service
   provider, a repository the run has no access to), drawn and measured from the calling side, and it can still
-  perform a step. Not the company boundary, not who owns it, and not whether it is open source. **Depth is bounded
+  perform a process step. Not the company boundary, not who owns it, and not whether it is open source. **Depth is bounded
   by the flow:** inside a component, read the operations this flow calls and what those operations call, not the
   whole service. A shared service many flows use adds only the operations this flow uses.
 - **Application component or system component** is its layer, in `band`. Services, workers, front ends and AI
@@ -255,7 +325,7 @@ Every part named in `carried_by` or `needs` gets one `element` row in `subjects.
   them. A system component is measured with its kind's set at the technology layer, never as an application
   component. `part_kind` from `method/part-kinds.csv` decides the set; an AI agent is a component with
   `part_kind` `LLM agent`.
-- **A part with no step it performs or supports is set aside**, in `set-aside.csv` with kind `out of scope part`
+- **A part with no process step it performs or supports is set aside**, in `set-aside.csv` with kind `out of scope part`
   and the evidence that named it: monitoring, platform tooling, a service no move uses. It is not deleted and not
   left out silently.
 - A job that handles many cases per run (a polling worker, a nightly batch) is a component; its runs are its own
@@ -264,7 +334,7 @@ Every part named in `carried_by` or `needs` gets one `element` row in `subjects.
   or lost (*Rules*, Rule 2).
 - A front end served from inside another deployable is still its own component; say where it is deployed in
   `source`.
-- A person who carries out a move: a `person` row, no level. It is the method's set-aside role, bound to its step.
+- A person who carries out a move: a `person` row, no level. It is the method's set-aside role, bound to its process step.
 - `application_id`: the name the component is registered under in the organisation's configuration database, from that
   record; blank where no source states one. `repository`, filled for every component, never left blank: the code
   repository it is built from, from its build or deployment definition, with the path inside it where one repository builds several components; `not built here:`
@@ -281,27 +351,36 @@ Every part named in `carried_by` or `needs` gets one `element` row in `subjects.
 - `purpose`, on every component and external dependency: what this part does in this flow, in one sentence, cited.
   Required for *Inside this part*.
 
-## Step 6. Record who carries out each step
+## Step 6. Record who carries out each process step
 
-For every step, in `participation.csv`, from the lifecycle rows it came from: each part in `carried_by`
-**performs** it; each part in `needs` **supports** it (the step blocks or goes wrong without it, including a
-database constraint that enforces the step's rule). The part that carries the move out of a stage performs that
-stage's last step. Every part in `carried_by` performs; none leads. The generated outputs name all of them, so the
-part that changes the case's state and the part that decides (a stock checker, a payment service) are both shown. `records` (only reads or writes the step's trace) may be added for a part that also performs
-or supports some step; a part whose only involvement is `records` is set aside (Step 5). Write the activity in
-a few words with the file and line in brackets. Name the `operation` that does the step: the agent tool, HTTP route or message handler
+For every process step, in `participation.csv`, from the lifecycle rows it came from: each part in `carried_by`
+**performs** it; each part in `needs` **supports** it (the process step blocks or goes wrong without it, including a
+database constraint that enforces the process step's rule). The part that carries the move out of a stage performs that
+stage's last process step. Every part in `carried_by` performs; none leads. The generated outputs name all of them, so the
+part that changes the case's state and the part that decides (a stock checker, a payment service) are both shown.
+Where a person makes the move through a route or screen, its performers are whoever the code lets make it, each a
+`person` part in `carried_by` (Step 5): a named role, where a guard names roles (a role check, a permission
+check, an admin path); `anyone signed in`, where the guard asks only for a sign-in; `anyone, the code checks no
+identity`, where there is no guard. Cite the guard, or for its absence the route's declaration and the security
+configuration you looked for and did not find. A move whose guard names roles but whose performers are not on
+record (no source says who holds the roles, or which of them made the move) gets a `measure-gaps.csv` row on its
+process step, question `step: trigger`, kind `no record`, citing the guard; it is never left blank. `records` (only reads or writes the process step's trace) may be added for a part that also performs
+or supports some process step; a part whose only involvement is `records` is set aside (Step 5). Write the activity in
+a few words with the file and line in brackets. Name the `operation` that does the process step: the agent tool, HTTP route or message handler
 the part offers, read from its declaration (the tool's name, the route's method and path). Where the cited line
 is not itself a declaration (a status value, a shared service function), follow the move's `travels_by` to what the
-caller invokes. The operation is what a caller calls, not the code structure behind it, so it survives a refactor. A part that shows the step's result to the party performs the
-step whose outcome is that the party sees it. Each component's operations are required for *Inside this part*; a
+caller invokes. The operation is what a caller calls, not the code structure behind it, so it survives a refactor. A part that shows the process step's result to the party performs the
+process step whose outcome is that the party sees it. Each component's operations are required for *Inside this part*; a
 data store or external dependency, which offers none, is gapped `does not apply`.
 
 Then add an `interaction` row (`kind` relationship) in `subjects.csv` for each hop in `travels_by`: `from_id`,
-`to_id`, and the steps it happens within in `step_hint`. Where the code shows which of the calling part's operations
+`to_id`, and the process steps it happens within in `step_hint`. A call that both reads and writes is two rows,
+one per direction of data, so the drawing labels each message from its own row. `step_hint` lists only the process steps the call
+is made in for each case; a call made at startup is not hinted to any process step. Where the code shows which of the calling part's operations
 make the call (the route or tool whose handler calls it), name them in `operation`, as `participation.csv` names
 them, and cite the line; leave it blank where the call is made once for a session or a connection. `band` `application` between components, `technology`
 for a part's call to the store or broker it runs on. A message published through a broker is two hops: the
-publisher to the broker, the broker to the consumer. Number the hops of one step in `sequence` in the order they
+publisher to the broker, the broker to the consumer. Number the hops of one process step in `sequence` in the order they
 happen, only for calls made once, one after another, on one way. Leave `sequence` blank, and say why in the
 citation, for a call repeated per item, made in parallel, not waited for, or made only on one branch. These rows
 are each part's dependencies, required for *Inside this part*; a part that calls nothing is gapped `does not
@@ -318,7 +397,7 @@ address in `map_link`.
 For each `LLM agent` component, add a block to `agent-system.csv`. If the capability has none, leave it with its
 header only and write a `how-made.csv` row naming where you looked.
 
-1. **The run:** one decision for one case, or one request answered. Name the business steps it serves.
+1. **The run:** one decision for one case, or one request answered. Name the process steps it serves.
 2. **Its steps:** what one run does (take the request, decide the next move, call a tool, retrieve, write the
    answer, check the answer).
 3. **Its parts:** the sequencing code; the decider (the model, its prompt and its rules); its tools; what it
@@ -327,7 +406,7 @@ header only and write a `how-made.csv` row naming where you looked.
 4. **Its dependencies:** the model provider and the systems its tools call. Fill `uses` on each part.
 
 An agent's conversation is a flow of its own only when it is one case's path the business would name, with its
-own start and end; otherwise the parts it uses carry steps of an existing flow, recorded as participation rows
+own start and end; otherwise the parts it uses carry process steps of an existing flow, recorded as participation rows
 (Step 6) like any other part's.
 
 ## Step 8. Name the capability, twice (*Assigning* Steps 2 and 7)
@@ -356,21 +435,22 @@ stage or an unmeasured agent step is caught rather than left unnoticed.
 Work down the levels, asking the question first and then naming the measure:
 
 1. **The flow** (its case subject, `flow` set, `step` and `stage` blank): cases started, finished, still open;
-   finished on time and right; still open past the promise.
+   finished on time and right; where the code sets the flow a time limit, still open past it.
 2. **Each stage** (its case subject, `stage` set): cases in the stage now, the age of the oldest, the time to get
-   through, and cases past the stage's promise. Counted from the case's state changes at the stage's entry and
-   exit. A stage measure counts cases, never requests. Mark each in `receipt_question` with the candidates it
-   answers (`in the stage`, `oldest's age`, `time through`, `past the promise`); one measure may answer two.
-3. **Each step that matters** (one event per case): did it happen for this case, and was its outcome right. The
-   steps that matter are each stage's **exits**, read from its moves in `lifecycle.csv` (a step whose move takes
-   the case out of the stage, by the main move and by every alternative or exception ending, never the step that
-   happens to be listed last), the flow's first step, every step with a step-impact row, and every step an AI
-   agent serves (its participation rows, and its `agent-system.csv` run and operations). Mark each step measure in
+   through, and, where the code sets the stage a time limit, cases past it. Counted from the case's state changes
+   at the stage's entry and exit. A stage measure counts cases, never requests. Mark each in `receipt_question` with
+   the candidates it answers (`in the stage`, `oldest's age`, `time through`, `past the time limit`); one measure
+   may answer two.
+3. **Each process step that matters** (one event per case): did it happen for this case, and was its outcome right. The
+   process steps that matter are each stage's **exits**, read from its moves in `lifecycle.csv` (a process step whose move takes
+   the case out of the stage, by the main move and by every alternative or exception ending, never the process step that
+   happens to be listed last), the flow's first process step, every process step with a step-impact row, and every process step an AI
+   agent serves (its participation rows, and its `agent-system.csv` run and operations). Mark each process step measure in
    `receipt_question` with the question it answers.
 4. **Each part, its kind's set** (`method/part-kinds.csv`), at its layer: `application` for an application
    component, `technology` for a system component. An external dependency is asked the same sets from the
    calling side. An application component is asked **per operation** (mechanism 3). Every component that takes part
-   in a step is asked, whatever its involvement: a store whose only rows are `records` (a basket store a restart
+   in a process step is asked, whatever its involvement: a store whose only rows are `records` (a basket store a restart
    empties) is asked its set like one that performs. An AI agent is read at two grains (below): its judgment at
    each **decision point**, and its operation at its **runs**. **An agent whose own component also serves a route**
    (the agent is the deployable, and a caller reaches it by an HTTP route) is asked both: the agent questions, and
@@ -401,14 +481,14 @@ split the two; the reason is where the difference is kept.
 **Then class each reply.** The agent's reply to a person is a decision point when the person relies on it: it
 reports or explains a result, such as a recommendation, a risk assessment or a check's outcome.
 Its operation is the agent's turn, not a tool, so a tool computed by fixed rules (classed `no:`) can still be
-reported by a reply that is a decision point. On the agent's row for that step, write `reply_decision_point`:
+reported by a reply that is a decision point. On the agent's row for that process step, write `reply_decision_point`:
 `yes:` where the person relies on the reply, `no:` where it only confirms what the person asked, asks for more, or
-replies to no person at that step, and why, citing the prompt or the code that hands the tool's result to the
+replies to no person at that process step, and why, citing the prompt or the code that hands the tool's result to the
 model. The check fails on an agent row whose reply is not classed. Each reply classed `yes:` is a decision point keyed, like a tool's, by the agent
-and the operation whose result it reports, element `S04 reply to uw_render_decision`, listing every step it spans: a
-judge sampling the agent's replies after that operation is one measure whichever of those steps the case is in. Its
+and the operation whose result it reports, element `S04 reply to uw_render_decision`, listing every process step it spans: a
+judge sampling the agent's replies after that operation is one measure whichever of those process steps the case is in. Its
 candidates name `reply` and the operation in `operation` (`reply; uw_render_decision`). A row naming no tool keys its
-reply by its step (`S04 reply at step 17`), with `reply` in `operation` and the step in `step`. **An agent with no
+reply by its process step (`S04 reply at step 17`), with `reply` in `operation` and the process step in `step`. **An agent with no
 tools** still has its reply as a decision point, keyed by the agent and the route that runs it: element
 `S03 reply on POST /`, candidates naming `reply; POST /`. The receipt writes `reply on` where the row's operation
 is a route and `reply to` where it is a tool.
@@ -418,7 +498,7 @@ with one model call and a later call decides from it (a description of a room wr
 the call that chooses products), that first output is a judgment no tool or reply holds. Class it on the operation row
 of `agent-system.csv` that makes the call, in `decision_point`: `yes:` and why, citing the line that feeds it on.
 It is keyed by the agent and its place in the chain, element `S03 AS2`, and asked the same questions; its
-candidates name the step's id in `operation` (`AS2`). Only a step row classed `yes:` is asked. Do not class a step
+candidates name the process step's id in `operation` (`AS2`). Only a process step row classed `yes:` is asked. Do not class a process step
 whose output a tool's or a reply's decision point already holds: the model's choice of a tool's arguments is that
 tool's decision point. Grounding comes first:
 does the reply say what the tool returned (a judge sampling replies against the tool's output, NIST AI 600-1
@@ -476,6 +556,13 @@ a framework's built-in metric, in `source_ref`, and write `declared` in `source`
 written once per case: read where it is written and what triggers it. Everything else is `exists` `no`, `source`
 `proposed`.
 
+On every measure, write in `taken_from` the kind of record it is counted from, one of the eleven `REGISTER.md` lists: where
+`exists` is `yes`, the kind of the cited line; on a proposed measure, where it would be taken from, decided from what
+the measure counts and never from the tools at hand. For how a measure could be taken from each kind, and what each
+cannot do, see the implementing-a-measure skill, §2. Name the kind of the cited line itself, never of what it
+reports on: a part's own health check is the kind of record that runs it (a probe or a metric), never the case's own
+record or configuration.
+
 **A measure can be emitted and never collected.** On every measure whose `exists` is `yes`, write `watched`:
 `yes` where operations monitoring collects it, `in the app only` where an application screen shows it and nothing
 collects it, `no` where nothing does (a metrics endpoint no scrape configuration lists), or `unknown`; and
@@ -504,33 +591,51 @@ a row with no `kind` or one not in the list, and on a `counted by` row whose `wh
 
 | Start-set | Element (`element` in measure-gaps.csv) | Question (`question`) | Covered by a candidate that is |
 |---|---|---|---|
-| The flow | its id (`F1`) | `the promise` | of the flow (stage and step blank), counted on cases, `business health`, form `cycle time` or `completion rate` |
+| The flow, where its `bound_in_code` is filled | its id (`F1`) | `the time limit` | of the flow (stage and process step blank), counted on cases, `business health`, form `cycle time` or `completion rate` |
 | Every stage | its id (`ST2`) | `in the stage` | of the stage, counted on cases, `business health`, form `backlog`, marked `in the stage` in `receipt_question`: the cases in it now |
 | | | `oldest's age` | the same, marked `oldest's age`: the age of the oldest case in it |
-| | | `time through` | of the stage, counted on cases, `business health`, form `cycle time` or `completion rate`, marked `time through`: the time through, set against the promise |
-| | | `past the promise` | of the stage, counted on cases, `business health` or `business impact`, form `backlog`, marked `past the promise`: the cases in it older than its promise |
-| Every step that matters (item 3) | its step id (`7`) | `did it happen` | of the step, on its case subject, counted on cases, `business health` or `business impact`, with `did it happen` in `receipt_question` |
+| | | `time through` | of the stage, counted on cases, `business health`, form `cycle time` or `completion rate`, marked `time through`: the time through |
+| | | `past the time limit`, only where the stage's `bound_in_code` is filled | of the stage, counted on cases, `business health` or `business impact`, form `backlog`, marked `past the time limit`: the cases in it older than its time limit |
+| Every process step that matters (item 3) | its process step id (`7`) | `did it happen` | of the process step, on its case subject, counted on cases, `business health` or `business impact`, with `did it happen` in `receipt_question` |
 | | | `was its outcome right` | the same, with `was its outcome right` in `receipt_question` |
-| Every operation (each `operation` in `participation.csv` of an application component that takes part in a step, whatever its involvement) | the component's id and the operation (`S03 PATCH /api/applications/{id}`) | `application` | of the component, `application`, with the operation, written as participation writes it, in `operation` |
+| Every operation (each `operation` in `participation.csv` of an application component that takes part in a process step, whatever its involvement) | the component's id and the operation (`S03 PATCH /api/applications/{id}`) | `application` | of the component, `application`, with the operation, written as participation writes it, in `operation` |
 | A component whose row names no operation | its id (`S12`) | `application` | of the component, `application` |
 | Every route an agent's own component serves (an `operation` on an agent's row written as a route) | the agent's id and the route (`S06 POST /chatclient`) | `application` | of the agent's component, `application`, with the route in `operation` |
-| Every system component (`band` `technology`) that takes part in a step, whatever its involvement | its id (`S08`) | `technology` | of the component, `technology` |
-| Every decision point: an agent with a tool its participation rows class `yes:` in `decision_point` (the rows of one tool, at several steps, are one decision point) | the agent's id and the tool (`S04 uw_render_decision`); for a row naming no tool, `S04 at step 15` | each agent question in `method/agent-questions.csv` whose `status` is `provisional` and `grain` is `decision point` | of the agent, `agentic`, with that `agent_question` and the tool in `operation` (for a row naming no tool, that `step`) |
+| Every system component (`band` `technology`) that takes part in a process step, whatever its involvement | its id (`S08`) | `technology` | of the component, `technology` |
+| Every decision point: an agent with a tool its participation rows class `yes:` in `decision_point` (the rows of one tool, at several process steps, are one decision point) | the agent's id and the tool (`S04 uw_render_decision`); for a row naming no tool, `S04 at step 15` | each agent question in `method/agent-questions.csv` whose `status` is `provisional` and `grain` is `decision point` | of the agent, `agentic`, with that `agent_question` and the tool in `operation` (for a row naming no tool, that `step`) |
 | Every reply relied on: an agent row classed `yes:` in `reply_decision_point`, one per agent and operation | the agent's id, `reply to` and the tool (`S04 reply to uw_render_decision`), or `reply on` and the route for an agent with no tool (`S03 reply on POST /`); a row naming no operation, `reply at step` and the step | the same agent questions | of the agent, `agentic`, with that `agent_question`, `reply` and the operation in `operation` (a row naming no operation: `reply` and that `step`) |
 | Every model output a later call relies on: an agent's operation in `agent-system.csv` classed `yes:` in `decision_point` | the agent's id and the operation's id (`S03 AS2`) | the same agent questions | of the agent, `agentic`, with that `agent_question` and the operation's id in `operation` |
-| Every agent that performs or supports a step, or whose `agent-system.csv` run serves one | its id (`S04`) | each run metric: `run duration`, `failed tool calls`, `tokens`, `refusals`, `fallbacks to a person` | of the agent, `agentic`, answering the agent question of grain `run` (`operations`), with the metric in `receipt_question` |
+| Every agent that performs or supports a process step, or whose `agent-system.csv` run serves one | its id (`S04`) | each run metric: `run duration`, `failed tool calls`, `tokens`, `refusals`, `fallbacks to a person` | of the agent, `agentic`, answering the agent question of grain `run` (`operations`), with the metric in `receipt_question` |
 
 An agent question marked `candidate` is not asked until the agentic layer settles it. A tool classed `no:` is not a
 decision point, and its agent is still asked at the run.
 
 **2. The expectation chain** (that question set, q15b). Every
-expectation has a business health candidate that would show it is met. The question set gives the reason: without it,
-candidates default to *whatever the service's API behavior suggests rather than what stakeholders need to know*.
-Here the expectations are the flow's promise, each stage's promise, and each step's `right_outcome`, so the
-receipt asks `the promise` of the flow and `time through` and `past the promise` of every stage, and **"was its outcome right" is derived from the
-step's `right_outcome`**: read that column, and name what one case would show if it did not hold (the state, the
-values it should carry). Name the measure for what it counts (below). Where nothing records the values the right
-outcome names, the gap says which record is missing.
+expectation has a business candidate that would show whether it is met. The question set gives the reason: without
+it, candidates default to *whatever the service's API behavior suggests rather than what stakeholders need to know*.
+Here the expectations are the rows of `expectations.csv` (Step 3a) and each process step's `right_outcome`:
+
+- **Each row of `expectations.csv`** is covered by a candidate at `business health` or `business impact`, of the
+  flow, a stage or a process step, that names its id in `expectation`. Either business layer counts, which is broader than
+  the question set's business health alone: whether a case's outcome was right is often counted at business impact.
+  Read the row's `satisfied_when`, and name what one case would show if it did not hold. A tied measure whose
+  `defect` says it counts nothing does not answer it: propose another, or gap it. An expectation no candidate names
+  gets a `measure-gaps.csv` row: element its id (`e3`), question `expectation: indicator`, and its kind. Where
+  nothing records what `satisfied_when` names, the kind is `no record`, and `why` says which record is missing.
+- **Usually give each expectation at least one business health measure** (the cases that meet `satisfied_when`)
+  **and at least one business impact measure** (the cases that fail it), or a gap for each with its kind. Several
+  are fine. Consider tagging every business measure that counts against `satisfied_when`. A stage's exit-step
+  "did it happen" count is a place to start the health side, but it matches only where the stage has one wanted
+  exit: where the expectation also accepts other endings, it does not count what the expectation counts.
+- **A business impact measure that guards an expectation counts the cases that fail its `satisfied_when`.** A case
+  the condition counts as met never appears in it. Where cases ending some other way (cancelled, refunded) matter,
+  count them in a measure of their own.
+- **"Was its outcome right" is derived from the process step's `right_outcome`**: read that column, and name what one case
+  would show if it did not hold (the state, the values it should carry). Where nothing records the values the right
+  outcome names, the gap says which record is missing.
+
+Name the measure for what it counts (below). The flow's `the time limit` and each stage's questions are asked
+in mechanism 1, as the flow's and the stages' coverage; this mechanism adds no second gate on them.
 
 **3. Signals per operation** (that question set, q40 to q43). Where
 telemetry can tell a component's operations apart (a metric labelled by route or tool name, a log line naming the
@@ -545,15 +650,23 @@ or asks a useless question, change it.
 **Name a measure for what it counts.** A count of wrong outcomes is "Orders confirmed with an unknown item", never
 "Stock confirmed rightly": a reader takes a rising count of a thing named "rightly" as good news.
 
-**Propose the stage's measures for alerting, and say what each rests on.** An alert goes where the party in
-`expectation_of` would see the stage's expectation broken. Mark each measure you propose for alerting in `alert`,
-as `yes:` and its basis: the expectation it guards, required for the alert's runbook entry. Only a measure of the stage, counted on cases, is proposed. The
-measures, the alerts and the runbook are generated from that column, so they cannot disagree. Whether an alert
-pages a person, opens a ticket or shows on a dashboard is the operators' decision, not the register's.
+**Draft alerts as proposals, and say what each rests on.** Each names the expectation it guards. Whether to alert,
+and on what, at any level (the flow, a stage, a process step or a part), is the team's decision; the register only drafts.
+Mark each measure you propose for alerting in `alert`, as `yes:` and its basis, required for the alert's runbook
+entry, and **name the expectation it guards by id in `expectation`** (Step 3a). `--check` fails on an alerting
+measure whose `expectation` is blank or names an id `expectations.csv` does not hold, at whatever level it is. The
+alert is drafted on every stage its measure reaches: a process step's stage, every stage of a flow, each stage a part
+serves. The runbook generator works a stage's tests for each of them, which fits best a stage's measures counted
+on cases (Step 11). A stage no alert reaches gets no alert page, and its runbook says so; `--check` notes it and
+does not fail. The measures, the alerts and the runbook are generated from that column, so they cannot disagree.
+Whether an alert pages a person, opens a ticket or shows on a dashboard is the operators' decision, not the
+register's.
 
-A stage loses cases in three ways. Consider each, and propose a measure for each that would break the expectation:
+A stage usually loses cases in three ways. Consider each; where one would break the expectation, a measure of it
+is a candidate to propose:
 
-- **Cases wait too long**: the cases in the stage past its promise. Where a move out of a park stops, they pile
+- **Cases wait too long**: the cases in the stage older than they should be (past its time limit, where the code
+  sets one; otherwise past an age the operators set). Where a move out of a park stops, they pile
   up here.
 - **Cases leave wrongly**: cases leaving by an alternative or exception ending the expectation does not want (failed
   back, cancelled because a part failed), or left stranded, counted against the cases that entered. A stage whose
@@ -562,16 +675,17 @@ A stage loses cases in three ways. Consider each, and propose a measure for each
   cases leave by**, by id: the alert's runbook entry works the tests of the state those moves leave from. An ending the party wants
   (their own cancellation, a rule's refusal) is not a loss.
 - **Cases leave with a wrong outcome**: the main ending, reached with the wrong values (a stale read, a wrong
-  decision from a rules engine or a model). The step measures of item 3, "was its outcome right", count it. Propose
-  one for alerting where a record shows the wrong outcome per case.
+  decision from a rules engine or a model). The process step measures of item 3, "was its outcome right", count it. Where a record
+  shows the wrong outcome per case, one may be proposed for alerting.
 
-A measure not proposed for alerting is still read by the runbook's tests. The check warns where the stage's moves
-show a kind of loss no proposed measure counts. Propose one, or say in the basis why not: a warning whose reason the
-basis gives stands, and does not stop the outputs being written. Only errors do.
+A measure not proposed for alerting is still read by the runbook's tests. Where the stage proposes alerts of its own,
+the check warns where its moves show a kind of loss no proposed measure counts. Consider proposing one, or say in the
+basis why not: a warning whose reason the basis gives stands, and does not stop the outputs being written. Only
+errors do.
 
 ## Step 10. Record what a failure costs (*Rules*, Rule 3)
 
-For each lifecycle move whose `if_not` hurts the case, a `step-impact.csv` row on the step it belongs to: the
+For each lifecycle move whose `if_not` hurts the case, a `step-impact.csv` row on the process step it belongs to: the
 category from `method/impact.csv`, the unit counted in cases, and `recovery` copied from the lifecycle. A case
 acknowledged to the party and then lost fits no recovery value: leave `recovery` blank and begin `note` with
 `lost after acknowledgement:` and the evidence. In `case-attributes.csv`, what is at stake in one case:
@@ -579,10 +693,12 @@ acknowledged to the party and then lost fits no recovery value: leave `recovery`
 
 ## Step 11. The failure modes, the alerts and the runbook for a stage (`reference/runbook-model.md`, "How to write one")
 
-For each stage an alert is wanted on. The alerts and the runbook are **generated**, never written: what you write
-is the worksheet they are generated from.
+For each stage. The runbook is written for every stage, and the alert page for every stage an alert reaches, at
+whatever level the alert is drafted (Step 9). The alerts and the runbook are **generated**, never written: what you
+write is the worksheet they are generated from.
 
-1. **The expectation** is the stage's promise (Step 3), and the right outcome of each step that takes a case out of
+1. **The expectations** are the stage's rows in `expectations.csv` (Step 3a), each alert naming the one it guards
+   in `expectation`, with the stage's time limit in the code where the code sets one (Step 3) and the right outcome of each process step that takes a case out of
    the stage. **The alerts** fire on the measures marked in `alert` (Step 9). **The runbook has one short entry per
    alert**, which that alert's runbook link points at, **and one shared section for the stage**: the stage on one
    page, what is at stake, every test written once with the alerts that use it, the causes the alerts share, and
@@ -650,7 +766,7 @@ is the worksheet they are generated from.
    can work. **A mode is a live test only where what it
    does to the case is something a measure the stage proposes for alerting counts.** Otherwise its ending is `not possible`,
    its `failure` begins `not possible here: as a cause of` what the stage's alerts count, and names the measure that
-   does count it (a wrong outcome is counted by its step's measure, Step 9).
+   does count it (a wrong outcome is counted by its process step's measure, Step 9).
 3. **Give each mode a test that tells it apart** from the others a responder meets in the same state: the exact
    query (table and columns as the code defines them), the log text as the code writes it, or the command. On a
    state column, `seen` lists every value the code can leave other than the healthy one. Name the measures it reads,
@@ -692,7 +808,7 @@ is the worksheet they are generated from.
    like fixes and are not as `do not`. **A remedy is written once for every alert whose tests end at it**, so its
    text names no alert and no alert's query: say what to record in words that hold for any of them. It names no
    runbook section either (write `Escalate`; the runbook points it at its escalation section); it may name another
-   remedy (`R..`), and the runbook then writes that one too. A `do not` reaches only the alerts whose tests end at a remedy that uses or names it, so a remedy whose action makes a move that cannot be undone names the `do not` that cautions against that move. Escalation goes to the failing part's owner; a party
+   remedy (`RM..`), and the runbook then writes that one too. A `do not` reaches only the alerts whose tests end at a remedy that uses or names it, so a remedy whose action makes a move that cannot be undone names the `do not` that cautions against that move. Escalation goes to the failing part's owner; a party
    the responder must also tell (the owner of a regulation, say) goes in `also_escalate_to`, never in the action's
    prose.
 5. **Describe one configuration.** A test and a remedy are written for the configuration `about.csv` names. Where the
@@ -719,7 +835,9 @@ python "<skill>/flow_outputs.py" "<your-folder>" <flow> <stage> --out "<your-fol
 It checks first, and writes `ALERT.md` and `RUNBOOK.md` only when the check passes: every hop, need and carrier of
 every move covered; every mode's part in its move's lifecycle row; every test's measures in `measures.csv`; no two
 modes in one state a responder cannot tell apart; a remedy for every restore and every stranded case; exactly the
-measures marked in `alert` proposed for alerting. A failure is fixed in the step that produced it. **Never edit a generated file.**
+measures marked in `alert` proposed for alerting, each naming the expectation it guards, at whatever level it is.
+A stage no alert reaches is noted, not failed: it gets its runbook, which says no alert is proposed for it, and no
+`ALERT.md`. A failure is fixed in the step that produced it. **Never edit a generated file.**
 `ALERT.md` gives each alert its runbook link, to its own entry in `RUNBOOK.md`.
 
 **Where other stages already have a `stage-<id>` folder**, this run can change what they rest on: a shared row, a
@@ -734,7 +852,7 @@ Before drawing, run these against the register. Each one is a rule from above th
   `from_state` is `(none)`.
 - Every stage's `entry` is the previous stage's `exit` or the starting event (stage 1), its `exit` is the next
   stage's `entry` or an ending, and its `source` cites what each cut rests on or is `proposed:`.
-- Every exit of every stage, main and alternative, has a step whose lifecycle `to_state` is that exit.
+- Every exit of every stage, main and alternative, has a process step whose lifecycle `to_state` is that exit.
 - Every element of the measure step's receipt (Step 9) is covered by a candidate in `measures.csv` or gapped in
   `measure-gaps.csv` with its reason and source. `flow_outputs.py --check` prints the receipt's count and an error
   for each element of the run's stage, or of the flow, that is neither. One that belongs only to other stages is a
@@ -742,6 +860,8 @@ Before drawing, run these against the register. Each one is a rule from above th
 - Every test in an alert's entry explains something that alert counts. The check warns where a test's mode leaves
   the case in a way the moves in the alert's `counted_moves` do not count (it `moves on`, and the alert counts cases
   `stranded`): name the measure that does see it in the mode's `measures`, or say in the basis why it stays.
+- Every measure with `alert` set names in `expectation` the expectation it guards, by an id in `expectations.csv`.
+  Every `objective` has its `objective_source`, and none starts `proposed:`.
 - Every `subjects.csv` row of `part_kind` database, cache, message broker, search index, file store, host or
   runtime, or platform service has `band` `technology`.
 - Every component and external dependency has at least one `performs` or `supports` row; every other part named
@@ -762,12 +882,13 @@ it, and either act on it or leave the reason in the row it names.
 **The run ends with `run_status.py`**, and it is done only when that says DONE. DONE needs every output the run
 owes, and every field a view requires (each one marked required in the steps above) answered or gapped, for each
 element of the stages the run owes and for the flow. A gap is a row in `measure-gaps.csv`: the element's id (a
-step id, a part's subject id, a stage id, or an alert measure's handle), the question exactly as `run_status.py`
-names it, which is one of `step: trigger`, `step: timeouts`, `part: operations`, `part: depends on`,
-`stage: other outcomes`, `stage: cannot be undone` or `alert: its own tests`, the `kind` (`does not apply`,
+process step id, a part's subject id, a stage id, an alert measure's handle, or an expectation's id), the question exactly
+as `run_status.py` names it, which is one of `step: trigger`, `step: timeouts`, `part: operations`,
+`part: depends on`, `stage: other outcomes`, `stage: cannot be undone`, `alert: its own tests` or
+`expectation: indicator`, the `kind` (`does not apply`,
 `counted by`, `no record` or `not read`), `why` and `source`. `step: moves` takes a gap too, only of kind
-`no record`, only for a step no part carries, and with a `why` that cites the code read; that gap also stands for the
-step's trigger, what happens if it does not happen and its timeouts, and for the expected outcomes of a stage the step
+`no record`, only for a process step no part carries, and with a `why` that cites the code read; that gap also stands for the
+process step's trigger, what happens if it does not happen and its timeouts, and for the expected outcomes of a stage the process step
 ends. Every other view question is answered, or only counted. A gap of kind `not read` does not pass on a first run. `run_status.py` lists each empty field by
 element: fill it or gap it in the step that writes it, and run it again.
 
@@ -780,13 +901,18 @@ A map is updated, not rebuilt. When a source the register has not read turns up,
 
 1. Add the source to `sources.csv` with the next pass number.
 2. Read it against the lifecycle first: a state or move it shows that the lifecycle lacks is added there, and the
-   stages, steps, parts and measures are re-derived from the changed rows by Steps 3 to 10. Where it names an
-   owner, a responder, a promise or a volume, fill the blank, citing it.
+   stages, process steps, parts and measures are re-derived from the changed rows by Steps 3 to 10. Where it names an
+   owner, a responder, a party, an expectation, an objective or a volume, fill the blank, citing it.
 3. Never delete a row because the new source is silent about it, and never overwrite one source with another.
    Where they disagree, keep the existing row and put both accounts in its citation cell, each with its citation,
    and write the disagreement in this pass's `how-made.csv` `note`: it is a finding for a person to settle.
 4. Cite the new source in every row you add or change, add `how-made.csv` rows for the pass, and check and draw
    again.
+
+**An existing dashboard or alert export.** When the person points at an existing dashboard or alert export, read it
+like any other source. Add a `sources.csv` row saying where it came from (the file or link) and when it was read.
+For each panel or alert: cite it on the measure it shows, propose it as a candidate if the walk missed it, or set it
+aside with a reason.
 
 **An earlier register is not a new source.** A register made by an earlier run or an earlier version of this kit is
 a tool's output: it is never read as a source, never written to, and its rows reach a new register only through the
@@ -807,7 +933,7 @@ register.
 ## What good enough looks like
 
 - The frame is declared, and the flow starts where the case is created.
-- Every stage boundary cites what it rests on, and every stage ends with the step that moves the case out.
-- Every part is tied to a step, and sits at its layer. Every part not tied to one is set aside, in the open.
-- Owners, responders, volumes and stated promises are blank or proposed unless someone stated them. That is a
+- Every stage boundary cites what it rests on, and every stage ends with the process step that moves the case out.
+- Every part is tied to a process step, and sits at its layer. Every part not tied to one is set aside, in the open.
+- Owners, responders and volumes are blank or proposed unless someone stated them, and an objective is blank unless someone stated it. That is a
   finding the views make visible, not a gap in your work.

@@ -1,6 +1,6 @@
 # Fulfilling a customer's order: stage 2 of 4, Accept the order
 
-**How to read it.** Solid arrows between steps follow the case: each is labelled with the state the case is in when the next step starts. Where several arrows leave one step, they are alternatives: one case takes one of them. **Done by** is every part that carries the step out; **needs** is a part it cannot complete without that does not itself carry the step out. Steps are numbered within their stage, the same in every stage file.
+**How to read it.** Solid arrows between process steps follow the case: each is labelled with the state the case is in when the next process step starts. Where several arrows leave one process step, they are alternatives: one case takes one of them. **Done by** is every part that carries the process step out; **needs** is a part it cannot complete without that does not itself carry the process step out. Process steps are numbered within their stage, the same in every stage file.
 
 ```mermaid
 flowchart TD
@@ -19,8 +19,8 @@ flowchart TD
   ST2 -->|then| ST3
   ST4["Stage 4 of 4<br/><b>Deliver the order</b>"]
   ST3 -->|then| ST4
-  P3["Step 2.1: <b>The order is released for stock checking when the grace period ends</b>"]
-  P4["Step 2.2: <b>Stock is confirmed for every item of the order</b>"]
+  P3["Process step 2.1: <b>The order is released for stock checking when the grace period ends</b>"]
+  P4["Process step 2.2: <b>Stock is confirmed for every item of the order</b>"]
   P5["Other outcome: <b>The order is cancelled because an item is out of stock</b>"]
   P6["Expected outcome: <b>Payment is taken for the order</b>"]
   P7["Other outcome: <b>The order is cancelled because payment failed</b>"]
@@ -81,3 +81,5 @@ flowchart TD
   classDef off opacity:0.45
   class ST1,ST3,ST4 off
 ```
+
+<!-- bfo-generated-from {"flow": "F1", "stage": "ST2", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "f3ef7b5dbcfd", "measures": "3c7ec5c71e65", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->

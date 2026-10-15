@@ -2,7 +2,7 @@
 
 ## How far to trust a run
 
-Check the parts: a step's dependency on a database can be left out, or a mobile app drawn as a web front end
+Check the parts: a process step's dependency on a database can be left out, or a mobile app drawn as a web front end
 (the eShop example below still has this one). Check hardest what the code does under failure: what a test would
 show, where a restore leads, and what a log really records. Treat the runbook as a draft for the code owners to correct before anyone
 relies on it.
@@ -33,11 +33,11 @@ part it is several times longer.
 - **M28** is named for orders cancelled because payment failed, but it counts the Payment Processor's publish
   attempts. That line is written even when the publish fails, so it also counts stranded orders.
 - **ClientApp** is drawn as a web front end. It is the mobile app.
-- **FM44 and FM46** (the ordering database or the broker down, in the shared tests) lead to the re-drive R1, which
+- **FM44 and FM46** (the ordering database or the broker down, in the shared tests) lead to the re-drive RM1, which
   cannot run while either is down. FM11 and FM14, the same checks in the `Submitted` branch, lead to the real
-  restores, R5 and R4. When a database reaches its connection limit, FM45 and FM49 say restore while FM13 says
+  restores, RM5 and RM4. When a database reaches its connection limit, FM45 and FM49 say restore while FM13 says
   escalate.
-- **R1** sends orders back to `Submitted`, so the ones already in `StockConfirmed` pass through payment again, with
+- **RM1** sends orders back to `Submitted`, so the ones already in `StockConfirmed` pass through payment again, with
   no guard. It is safe only because payment is simulated, and the runbook does not say so.
 - **Log tests use `az containerapp logs show --tail 300`.** By the time someone is paged, the failure lines may
   have rolled out of those 300. The procedure requires "a search over the alert's window ... never a tail of the
@@ -47,6 +47,11 @@ Failure-mode ids (`FM..`) are the register's; each runbook test names the mode i
 
 ## Open in the kit
 
+- **Building the map copies each stage's runbook and alert pages already in the register folder.** After you change a
+  register, or take up a new kit version, regenerate each stage's outputs before you build the map, or the map shows
+  the old ones: `python <kit>/flow_outputs.py <register folder> <flow id> <stage id> --out <register folder>/stage-<stage id>`
+  for every stage (the same command as the check in USE.md, "Before you take it to anyone", with `--out` in place of
+  `--check`), then `python <kit>/one_canvas.py <register folder> <register folder>/views.html`.
 - An earlier register is reconciled against the code, never built on (SKILL.md Phase 7). `reconcile.py` matches
   rows by what they say, so a row an earlier register worded differently is listed as a candidate or a disagreement
   rather than matched; and it checks that a cited line exists, not that it says what the row claims: the model reads

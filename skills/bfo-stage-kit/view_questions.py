@@ -9,8 +9,8 @@ The contract of a question:
 - answer or gap: answered, or a gap row with its kind.
 - count only: counted, and never refused.
 
-Element ids are those the coverage receipt uses: a step id, a stage id, a flow id, a part's subject id, and for an
-alert the handle of its measure. Usage: python view_questions.py <register folder> [stage id ...]"""
+Element ids are those the coverage receipt uses: a step id, a stage id, a flow id, a part's subject id, for an
+alert the handle of its measure, and for an expectation its id in expectations.csv. Usage: python view_questions.py <register folder> [stage id ...]"""
 import contextlib
 import io
 import pathlib
@@ -39,25 +39,27 @@ CONTRACT = {
     "part: owner": COUNT,  # populated at the right time, never on the design surface
     "part: responder": COUNT,
     # How a case moves through this stage
-    "stage: promise": REQUIRED,
     "stage: a case enters": REQUIRED,
     "stage: expected outcomes": REQUIRED,
     "stage: other outcomes": GAP_OK,
     "stage: cannot be undone": GAP_OK,
     "stage: at stake": REQUIRED,
     "stage: alerts": COUNT,
+    "stage: expected by each party": REQUIRED,  # at least one expectations.csv row of the stage
     # How a case moves end to end
     "flow: one case": REQUIRED,
     "flow: starts": REQUIRED,
     "flow: ends": REQUIRED,
-    "flow: expected by": REQUIRED,
-    "flow: promise": REQUIRED,
+    "flow: serves": REQUIRED,  # the customer, and at least one expectation of the whole flow
     "flow: delivers": REQUIRED,
     "flow: stage runbooks": COUNT,
     # A runbook entry, for each alert drafted in a stage
     "alert: expectation it guards": REQUIRED,
     "alert: contain first": REQUIRED,
     "alert: its own tests": GAP_OK,
+    # Each party's expectation, of a whole flow or of one stage
+    "expectation: satisfied when": REQUIRED,
+    "expectation: indicator": GAP_OK,  # a business health or impact measure naming it, or a gap with its kind
 }
 QUESTIONS = tuple(CONTRACT)
 # A required question one kind of gap may stand for, on one condition: a step no part carries may have no move in
@@ -96,14 +98,37 @@ def gaps(M):
         rows = (M["R"]["measure-gaps"] if "measure-gaps" in M["R"] else  # flow_outputs' model reads the table
                 cv.read_csv(pathlib.Path(p) / "measure-gaps.csv") if p else [])
         for g in rows:
-            q = " ".join((g.get("question") or "").split())
-            kind = " ".join((g.get("kind") or "").split()).lower()
-            el = " ".join((g.get("element") or "").split())
-            if (q in GAPPABLE and kind in KIND_WORDS and (g.get("why") or "").strip() and (g.get("source") or "").strip()
-                    and not refusal(q, kind, g.get("why"), el, M["R"].get("participation", []))):
-                out[(el, q)] = (kind, g["why"].strip())
+            if counts(g, M["R"].get("participation", [])):
+                out[(" ".join(g["element"].split()), " ".join(g["question"].split()))] = (
+                    " ".join(g["kind"].split()).lower(), g["why"].strip())
         M["_view_gaps"] = out
     return M["_view_gaps"]
+
+
+def counts(g, participation):
+    """Whether a measure-gaps.csv row counts as a gap on a view question: a question that takes a gap, a kind of the
+    four, a why and a source, and none of refusal()'s reasons."""
+    q = " ".join((g.get("question") or "").split())
+    kind = " ".join((g.get("kind") or "").split()).lower()
+    el = " ".join((g.get("element") or "").split())
+    return bool(q in GAPPABLE and kind in KIND_WORDS and (g.get("why") or "").strip() and (g.get("source") or "").strip()
+                and not refusal(q, kind, g.get("why"), el, participation))
+
+
+def moves_excuse(step, gap_rows, participation):
+    """Whether flow_outputs.py --check excuses a step with no move in lifecycle.csv. A step no part carries is excused
+    by its `step: moves` gap of kind `no record` whose why cites the code read: returns that row. The gap is judged by
+    counts(), the predicate the count of `step: moves` reads too, so the check and the count agree on every gap. A step
+    whose source begins `reference model` and that no part carries is excused too: returns "reference model", and
+    status() counts its `step: moves` as does not apply. Otherwise None."""
+    g = next((g for g in gap_rows if " ".join((g.get("question") or "").split()) == "step: moves"
+              and " ".join((g.get("element") or "").split()) == step["step"] and counts(g, participation)), None)
+    if g:
+        return g
+    if (step.get("source") or "").lower().startswith("reference model") and not any(
+            p.get("step") == step["step"] for p in participation):
+        return "reference model"
+    return None
 
 
 FROM_MOVES = ("step: trigger", "step: if it does not happen", "step: timeouts")
@@ -255,6 +280,9 @@ def stage_enters(M, stage_id):
         if starts or made:
             out.append("the case starts" + (f": {starts}" if starts else "")
                        + (f", by {'; '.join(cv.step_title(M, x) for x in made)}" if made else ""))
+    if not out:  # no move says how a case enters: the stage's own entry, where the register states one
+        entry = sfv.headline(M, M["stage"][stage_id].get("entry", ""))
+        out += [entry] if entry else []
     return out
 
 
@@ -271,16 +299,24 @@ def stage_undo(M, stage_id):
 
 
 def stage_stake(M, stage_id):
+    """What is at stake for a case in the stage: one line naming the flow's case attributes, and saying the register
+    does not tie them to a stage. case-attributes.csv has no stage or step column (REGISTER.md), so which attributes
+    a stage touches is not in the register, and listing every attribute's stake under every stage would claim it is.
+    [] where the flow has none."""
     flow = M["stage"][stage_id].get("flow", "")
-    return [a.get("what_is_at_stake", "") for a in M["R"].get("case-attributes", [])
-            if a.get("flow") in (flow, "") and a.get("what_is_at_stake")]
+    names = list(dict.fromkeys(a.get("attribute", "").strip() for a in M["R"].get("case-attributes", [])
+                               if a.get("flow") in (flow, "") and a.get("attribute", "").strip()))
+    if not names:
+        return []
+    return ["For the whole flow: " + "; ".join(names) + "."]
 
 
-def promise_said(M, text):
-    """The promise as the cards print it, or "" where the register states none."""
+def bound_said(M, text):
+    """The time limit in the code as the cards print it, or "" where the code sets none (flow_outputs.time_limit).
+    The column is optional, so it is no question of any view: a card prints it only where it is filled."""
+    import flow_outputs as fo
     import stage_flow_views as sfv
-    t = sfv.promise_text(M, text)
-    return "" if t == "none stated" else t
+    return sfv.bound_text(M, text) if fo.time_limit(text) else ""
 
 
 # ---------------------------------------------------------------- one flow
@@ -293,6 +329,22 @@ def flow_row(M, f, col):
 def flow_delivers(M, f):
     caps = {c.get("capability_id"): c.get("name", "") for c in M["R"].get("capabilities", [])}
     return [x for x in (caps.get(c.strip(), "") for c in (f.get("delivers") or "").split(";") if c.strip()) if x]
+
+
+# ---------------------------------------------------------------- one expectation
+
+def expectations(M, flow=None, stage=None):
+    """The expectations.csv rows of a flow (whole-flow ones where stage is ""), or of a stage."""
+    return [e for e in M["R"].get("expectations", [])
+            if (flow is None or e.get("flow") == flow) and (stage is None or (e.get("stage") or "") == stage)]
+
+
+def indicators(M, eid):
+    """The measures that answer whether an expectation is met: at `business health` or `business impact`, of a flow,
+    a stage or a step, whose `expectation` names it. A measure whose `defect` is set counts wrongly, so it does not."""
+    import flow_outputs as fo
+    return [m for m in M["R"].get("measures", []) if m.get("layer") in fo.BUSINESS
+            and eid in cv.ids(m.get("expectation")) and not (m.get("defect") or "").strip()]
 
 
 # ---------------------------------------------------------------- the predicates
@@ -330,22 +382,21 @@ def answered(M, q, el, ctx=None):
     if view == "stage":
         import stage_flow_views as sfv
         return bool({
-            "stage: promise": lambda: promise_said(M, M["stage"][el].get("promise", "")),
             "stage: a case enters": lambda: stage_enters(M, el),
             "stage: expected outcomes": lambda: stage_outcomes(M, el, "Expected outcome"),
             "stage: other outcomes": lambda: stage_outcomes(M, el, "Other outcome"),
             "stage: cannot be undone": lambda: stage_undo(M, el),
             "stage: at stake": lambda: stage_stake(M, el),
             "stage: alerts": lambda: sfv.alerts(M, el),
+            "stage: expected by each party": lambda: expectations(M, stage=el),
         }[q]())
     if view == "flow":
         f = _flow(M, el)
-        cols = {"flow: one case": "case", "flow: starts": "starts_at", "flow: ends": "ends_at",
-                "flow: expected by": "expectation_of"}
+        cols = {"flow: one case": "case", "flow: starts": "starts_at", "flow: ends": "ends_at"}
+        if q == "flow: serves":
+            return bool(flow_row(M, f, "customer")) and bool(expectations(M, flow=el, stage=""))
         if q in cols:
             return bool(flow_row(M, f, cols[q]))
-        if q == "flow: promise":
-            return bool(promise_said(M, f.get("promise", "")))
         if q == "flow: delivers":
             return bool(flow_delivers(M, f))
         if q == "flow: stage runbooks":
@@ -354,12 +405,19 @@ def answered(M, q, el, ctx=None):
     if view == "alert":
         import flow_outputs as fo
         SM, m = ctx
-        if q == "alert: expectation it guards":
-            return bool(fo.basis(m))
+        if q == "alert: expectation it guards":  # read from `expectation`, never from the basis's prose
+            known = {e.get("expectation_id") for e in M["R"].get("expectations", [])}
+            return any(x in known for x in fo.guards(m))
         if q == "alert: contain first":
             return not fo.contain(SM, m).startswith("Its `counted_moves` names no move")
         if q == "alert: its own tests":
             return not fo.no_tests(SM, m, fo.entry_groups(SM, m))
+    if view == "expectation":
+        e = next((x for x in M["R"].get("expectations", []) if x.get("expectation_id") == el), {})
+        if q == "expectation: satisfied when":
+            return bool((e.get("satisfied_when") or "").strip())
+        if q == "expectation: indicator":
+            return bool(indicators(M, el))
     raise KeyError(q)
 
 
@@ -367,6 +425,8 @@ def status(M, q, el, ctx=None):
     """("answered", None), ("gapped", kind) or ("empty", None)."""
     if answered(M, q, el, ctx):
         return ("answered", None)
+    if q == "step: moves" and el in M["step"] and moves_excuse(M["step"][el], [], M["R"]["participation"]):
+        return ("gapped", "does not apply")  # a reference-model step nothing carries, excused as the check excuses it
     g = gap_of(M, q, el) if q in GAPPABLE or q in FROM_MOVES or q == "stage: expected outcomes" else None
     return ("gapped", g[0]) if g else ("empty", None)
 
@@ -424,6 +484,14 @@ def count(reg, owed=None):
             for m in [m for m in SM["alerts"] if m.get("stage") == s["stage"]]:
                 for q in of("alert"):
                     put(q, m.get("handle", ""), (SM, m))
+    for f in M["flows"]:  # each expectation of an owed flow: of the whole flow, or of a stage the run owes
+        owed_here = [st["stage"] for st in f["_stages"] if owed is None or st["stage"] in owed]
+        if not owed_here:
+            continue
+        for e in expectations(M, flow=f["flow_id"]):
+            if not e.get("stage") or e["stage"] in owed_here:
+                for q in of("expectation"):
+                    put(q, e.get("expectation_id", ""))
     return C
 
 

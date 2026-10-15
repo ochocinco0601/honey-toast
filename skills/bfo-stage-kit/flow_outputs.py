@@ -3,18 +3,22 @@
 STRUCTURE.md (the slice as a tree with branches), MEASURES.md (where each measure is counted, by level and layer),
 ALERT.md (the alerts proposed, from the measures marked in `alert`) and RUNBOOK.md (a short entry per proposed alert, which
 its runbook link points at, and one shared section for the stage that writes every test once: one test per failure mode
-in failure-modes.csv). All four share the register's step numbers.
+in failure-modes.csv), with ALERT.html and RUNBOOK.html, the same two as pages. All six share the register's step
+numbers; a stage with no proposed alert gets no ALERT.md or ALERT.html.
 
-Usage: flow_outputs.py <register dir> <flow id> <stage id> --out <dir>      check, then write all four
+Usage: flow_outputs.py <register dir> <flow id> <stage id> --out <dir>      check, then write all six
        flow_outputs.py <register dir> <flow id> <stage id> --check          check only
 
 The check fails the run when a move of the stage has a hop, a carrier or a need with no failure mode, when a failure
 mode names a part its move does not use, when an element the measure step accounts for is neither covered by a
 candidate in measures.csv nor gapped in measure-gaps.csv (`receipt`: an error for the run's stage and the flow, a
 warning for an element only other stages hold), and on the other rules listed
-in `check`. STRUCTURE.md and MEASURES.md are written even when it fails; ALERT.md and RUNBOOK.md are not."""
+in `check`. STRUCTURE.md and MEASURES.md are written even when it fails; the four alert and runbook files are not."""
 import argparse
+import csv
+import hashlib
 import html
+import json
 import pathlib
 import re
 import sys
@@ -22,10 +26,13 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from capability_views import read_csv, ids  # noqa: E402
+import capability_views as cv  # noqa: E402
+import page_style as ps  # noqa: E402
 import view_questions as vq  # noqa: E402
 
 TABLES = ["about", "flows", "capabilities", "stages", "steps", "subjects", "participation", "measures", "lifecycle",
-          "failure-modes", "remedies", "step-impact", "case-attributes", "agent-system", "measure-gaps", "sources"]
+          "failure-modes", "remedies", "step-impact", "case-attributes", "agent-system", "measure-gaps", "sources",
+          "expectations"]
 ENDINGS = {
     "nothing wrong": "Nothing is wrong",
     "expected condition": "Expected condition",
@@ -37,16 +44,25 @@ ENDINGS = {
     "outside": "Outside this runbook",
     "not possible": "Not possible here",
 }
-GAP_KINDS = {  # measure-gaps.csv `kind`, a closed list: the kind is data, never read from the reason's wording
-    "does not apply": "Does not apply",  # ruled out by design, with the reason
-    "counted by": "Counted by",  # folded into another measure, whose id the reason names
-    "no record": "No record to count",  # the code keeps nothing that could count it today
-    "not read": "Not assessed",  # not looked at in this run
-}
+GAP_KINDS = vq.KIND_WORDS  # measure-gaps.csv `kind`, a closed list: the kind is data, never read from the reason's wording
 REMEDY_KINDS = ("restore", "re-drive", "roll back", "none exists", "do not")
 RESTORING = ("restore", "re-drive", "roll back")
 REMEDY_TEXT = ("action", "expected", "if_different", "also_escalate_to")
-RECOVERY = ("moves on", "stranded", "not created", "")
+REMEDY_ID = r"\bRM\d+\b"  # a remedy id; an interaction is R01, a remedy of an earlier release R1 (old_remedy_id_failures)
+
+
+def old_remedy_id_failures(R):
+    """One error per table holding a remedy id written the earlier way (`R1`, now `RM1`), naming the migration."""
+    out = []
+    for table in ("remedies", "failure-modes"):
+        old = list(dict.fromkeys(r["remedy"] for r in R.get(table, []) if re.fullmatch(r"R\d+", r.get("remedy") or "")))
+        if old:
+            out.append(f"{table}.csv: remedy {', '.join(f'{x} is now RM{x[1:]}' for x in old[:3])}"
+                       f"{f' (and {len(old) - 3} more)' if len(old) > 3 else ''} (a register made with an earlier "
+                       "version of this kit): run reconcile.py --migrate on a copy of the register, which renames "
+                       "every remedy id and every reference to one")
+    return out
+RECOVERY = cv.RECOVERY
 THRESHOLD = ("*Operator value, not set here.* For each measure, the value at which the alert fires. Whether it "
              "pages a person, opens a ticket or shows on a dashboard is the operators' decision.")
 LAYERS = ["business health", "business impact", "application", "technology"]
@@ -65,6 +81,55 @@ def load(reg):
     R["impact"] = read_csv(HERE / "method" / "impact.csv") if (HERE / "method" / "impact.csv").exists() else []
     R["_name"] = reg.name
     return R
+
+
+# ---------------------------------------------------------------- freshness
+
+STAMP = re.compile(r"<!-- bfo-generated-from (\{.*?\}) -->")
+
+
+def fingerprint(reg):
+    """{table: digest} of the register tables the outputs are generated from, each read as rows (so a byte-order mark
+    or line endings change nothing), `absent` for a table the register does not have."""
+    out = {}
+    for t in TABLES:
+        p = pathlib.Path(reg) / f"{t}.csv"
+        if not p.is_file():
+            out[t] = "absent"
+            continue
+        with p.open(encoding="utf-8-sig", newline="") as f:
+            rows = [r for r in csv.reader(f) if any(c.strip() for c in r)]
+        out[t] = hashlib.sha256(json.dumps(rows, ensure_ascii=False).encode("utf-8")).hexdigest()[:12]
+    return out
+
+
+def stamp(reg, flow_id, stage_id):
+    """The line each generated output ends with: the flow, the stage and the fingerprint of the register it was
+    generated from. An HTML comment, so neither the markdown nor the page shows it. run_status.py reads it back."""
+    data = {"flow": flow_id, "stage": stage_id, "tables": fingerprint(reg)}
+    return f"\n<!-- bfo-generated-from {json.dumps(data, sort_keys=True)} -->\n"
+
+
+def stamp_of(text):
+    """The stamp an output carries, or None for one written without it (by an earlier kit, or by hand)."""
+    m = STAMP.search(text or "")
+    if not m:
+        return None
+    try:
+        return json.loads(m.group(1))
+    except ValueError:
+        return None
+
+
+def changed_since(tables, reg):
+    """The register tables (`steps.csv`) that differ from a stamp's fingerprint, sorted."""
+    now, then = fingerprint(reg), tables or {}
+    return sorted(f"{t}.csv" for t in set(now) | set(then) if then.get(t) != now.get(t))
+
+
+def regenerate_command(reg, flow_id, stage_id):
+    """The command that writes a stage's outputs again, into the register's stage-<id> folder."""
+    return f"python flow_outputs.py {reg} {flow_id} {stage_id} --out {pathlib.Path(reg) / f'stage-{stage_id}'}"
 
 
 def cell(v):
@@ -147,7 +212,7 @@ def hop_kinds(travels_by, catalogue_kinds):
 
 def step_labels(stages, steps, lifecycle):
     """How every output names a process step, in reading order. A step whose moves stay in its stage is an act,
-    numbered within the stage in register order ("Step 3.1"); a step whose move takes the case out of the stage is
+    numbered within the stage in register order ("Process step 3.1"); a step whose move takes the case out of the stage is
     one of its endings, unnumbered, the main path's first ("Expected outcome", then "Other outcome")."""
     moves = {m.get("move_id"): m for m in lifecycle}
     out = {}
@@ -160,15 +225,15 @@ def step_labels(stages, steps, lifecycle):
         acts = [s["step"] for s in mine if not ends[s["step"]]]
         main = [s["step"] for s in mine if any(m.get("path") == "main" for m in ends[s["step"]])]
         other = [s["step"] for s in mine if ends[s["step"]] and s["step"] not in main]
-        out.update({sid: f'Step {st.get("order")}.{i}' for i, sid in enumerate(acts, 1)})
+        out.update({sid: f'Process step {st.get("order")}.{i}' for i, sid in enumerate(acts, 1)})
         out.update({sid: "Expected outcome" for sid in main})
         out.update({sid: "Other outcome" for sid in other})
     return out
 
 
 def step_title(labels, s):
-    """"Step 3.1: The parcel is delivered", or the register's id where the step has no stage."""
-    return f'{labels.get(s["step"]) or "Step " + s["step"]}: {s.get("name", "")}'
+    """"Process step 3.1: The parcel is delivered", or the register's id where the step has no stage."""
+    return f'{labels.get(s["step"]) or "Process step " + s["step"]}: {s.get("name", "")}'
 
 
 def at_stake(M, i):
@@ -182,18 +247,19 @@ def at_stake(M, i):
 
 def relabel_prose(labels, steps, text):
     """Register prose cites a step by its register id ("as step 9"); a reader sees it by its label instead:
-    "as step 2.4", or 'as the expected outcome "The parcel is delivered"'. The register itself is not rewritten."""
+    "as process step 2.4", or 'as the expected outcome "The parcel is delivered"'. The register itself is not rewritten."""
     names = {s["step"]: s.get("name", "") for s in steps}
 
     def one(m):
-        sid, label = m.group(2), labels.get(m.group(2))
+        sid, label = m.group(3), labels.get(m.group(3))
+        upper = (m.group(1) or m.group(2)) in "PS"
         if not label:
             return m.group(0)
-        if label.startswith("Step "):
-            return m.group(1) + "tep " + label[5:]
+        if label.startswith("Process step "):
+            return ("P" if upper else "p") + "rocess step " + label[len("Process step "):]
         said = f'the {label.lower()} \u201c{names.get(sid, "")}\u201d'
-        return said[0].upper() + said[1:] if m.group(1) == "S" else said
-    return re.sub(r"\b([Ss])tep (\d+)\b(?!\.\d)", one, text)
+        return said[0].upper() + said[1:] if upper else said
+    return re.sub(r"\b(?:([Pp])rocess s|([Ss]))tep (\d+)\b(?!\.\d)", one, text)
 
 
 def build(R, flow_id, stage_id):
@@ -228,6 +294,7 @@ def build(R, flow_id, stage_id):
     M["remedies"] = {r["remedy"]: r for r in R["remedies"]}
     M["measures"] = {m["handle"]: m for m in R["measures"]}
     M["alerts"] = [m for m in R["measures"] if proposed(m)]
+    M["reach"] = {m["handle"]: reach(R, m) for m in M["alerts"]}
     M["parts"] = list(dict.fromkeys(x for s in steps for x in M["performers"][s["step"]] + M["supporters"][s["step"]]))
     return M
 
@@ -243,12 +310,77 @@ def basis(m):
     return re.sub(r"^yes\b\s*:?\s*", "", m.get("alert", "").strip(), flags=re.I)
 
 
+def level(m):
+    """Where a measure sits, read off the register's own columns: its step, its stage, its flow, else the part it is a
+    measure of. An alert is drafted at whatever level its measure is on; the kit presumes none."""
+    for col in ("step", "stage", "flow"):
+        if norm(m.get(col)):
+            return col
+    return "part"
+
+
+def reach(R, m):
+    """[(stage id, [step ids])] a measure reaches, in the flow's order: a step's own stage and step; a stage itself;
+    every stage of a flow; and for a part, each step its participation.csv rows put it on, narrowed to the operations
+    its `operation` names where any row writes one of them (a part's measure is held once and reaches every stage
+    it serves)."""
+    stages = sorted(R["stages"], key=lambda s: (s.get("flow", ""), int(s["order"]) if s.get("order", "").isdigit() else 0))
+    of = {s["step"]: s.get("stage", "") for s in R["steps"]}
+    lv = level(m)
+    if lv == "step":
+        st = of.get(norm(m["step"])) or norm(m.get("stage"))
+        return [(st, [norm(m["step"])])] if st else []
+    if lv == "stage":
+        return [(norm(m["stage"]), [])]
+    if lv == "flow":
+        return [(s["stage"], []) for s in stages if s.get("flow") == norm(m["flow"])]
+    rows = [p for p in R["participation"] if p.get("subject_id") == m.get("subject_id")]
+    ops = set(listed(m.get("operation")))
+    rows = [p for p in rows if ops & set(listed(p.get("operation")))] or rows
+    steps = list(dict.fromkeys(p["step"] for p in rows if of.get(p["step"])))
+    order = [s["step"] for s in R["steps"]]
+    return [(s["stage"], sorted((x for x in steps if of[x] == s["stage"]), key=order.index))
+            for s in stages if any(of[x] == s["stage"] for x in steps)]
+
+
+def placed(M, m):
+    """Where an alert is drafted, in words: its level and every stage and step it reaches."""
+    st = {s["stage"]: s for s in M["R"]["stages"]}
+    steps = {s["step"]: s for s in M["R"]["steps"]}
+
+    def stage_said(sid, xs):
+        s = st.get(sid, {})
+        return (f"stage {s.get('order', '?')} {s.get('name', sid)}" +
+                (f" ({'; '.join(step_title(M['labels'], steps[x]) for x in xs if x in steps)})" if xs else ""))
+    reached = "; ".join(stage_said(sid, xs) for sid, xs in M["reach"].get(m["handle"], [])) or "no stage of the register"
+    lv = level(m)
+    if lv == "stage":
+        return "On the stage: " + reached
+    if lv == "step":
+        return "On a process step: " + reached
+    if lv == "flow":
+        f = next((x for x in M["R"]["flows"] if x["flow_id"] == norm(m["flow"])), {})
+        return f"On the flow {f.get('name', m['flow'])}, so it reaches every stage: {reached}"
+    return f"On the part {name(M, m.get('subject_id', ''))}, so it reaches every stage and process step it serves: {reached}"
+
+
 def grouped(items, key):
     """(key, items) pairs in first-seen order, so text shared by several moves is written once."""
     out = {}
     for x in items:
         out.setdefault(key(x), []).append(x)
     return list(out.items())
+
+
+def step_timings(M):
+    """Each timing the stage's moves record, led by the process steps whose moves it times: "Process step 2.1: The stock
+    is checked — 10 seconds of simulated work…". A timing on no step of the stage stands alone."""
+    timed = [mv for mv in M["stage_moves"] if M["moves"][mv].get("timing")]
+    out = []
+    for t, g in grouped(timed, lambda mv: M["moves"][mv]["timing"]):
+        on = [step_title(M["labels"], s) for s in M["steps"] if set(g) & set(re.findall(r"\bL\d+\b", s.get("source", "")))]
+        out.append("; ".join(on) + " — " + t if on else t)
+    return out
 
 
 def failed_back(move):
@@ -263,6 +395,35 @@ def counted_moves(m):
     """The moves an alert says it counts, by id, in its `counted_moves` column (FILL-STEPS Step 11). The basis is
     free text: a move id in it is explanation, never read as a move the alert counts."""
     return list(dict.fromkeys(ids(m.get("counted_moves"))))
+
+
+def guards(m):
+    """The expectations a measure is evidence of, by id, from its `expectation` column: on an alert, those it guards.
+    The basis is free text, and an id written there is never read as one."""
+    return list(dict.fromkeys(ids(m.get("expectation"))))
+
+
+def expectation_failures(R, flow_id):
+    """Errors on the register's ties to expectations.csv: an id in `measures.expectation` that is not a row of it, and
+    an `objective` of the flow's expectations that is `proposed:` (an objective is only ever stated, never drafted)
+    or has no `objective_source`."""
+    err = []
+    known = {e.get("expectation_id") for e in R.get("expectations", [])} - {"", None}
+    for m in R["measures"]:
+        unknown = [x for x in guards(m) if x not in known]
+        if unknown:
+            err.append(f"measures.csv {m['handle']}: `expectation` names {', '.join(unknown)}, not an expectation in "
+                       "expectations.csv")
+    for e in R.get("expectations", []):
+        if e.get("flow") != flow_id:
+            continue
+        obj, i = norm(e.get("objective")), e.get("expectation_id", "?")
+        if obj.lower().startswith("proposed:"):
+            err.append(f"expectations.csv {i}: objective {obj!r} is proposed; an objective is only what a document "
+                       "or a person states, so leave it blank where none is stated")
+        elif obj and not norm(e.get("objective_source")):
+            err.append(f"expectations.csv {i}: objective is set with no objective_source: cite where it is stated")
+    return err
 
 
 def exits_of(M, m):
@@ -358,15 +519,29 @@ def kind(sc):
 # ---------------------------------------------------------------- the coverage receipt
 
 BUSINESS = ("business health", "business impact")
-PROMISE_FORMS = ("cycle time", "completion rate")
-# a stage's four candidates (FILL-STEPS Step 9, item 2): the question, the layers and the forms that may answer it
+TIME_LIMIT_FORMS = ("cycle time", "completion rate")
+# a stage's candidates (FILL-STEPS Step 9, item 2): the question, the layers and the forms that may answer it. The
+# last, and the flow's own `the time limit`, are asked only of an element whose code sets a time limit (time_limit).
 STAGE_ASKS = {
     "in the stage": (("business health",), ("backlog",)),
     "oldest's age": (("business health",), ("backlog",)),
-    "time through": (("business health",), PROMISE_FORMS),
-    "past the promise": (BUSINESS, ("backlog",)),
+    "time through": (("business health",), TIME_LIMIT_FORMS),
+    "past the time limit": (BUSINESS, ("backlog",)),
 }
 STAGE_QUESTIONS = tuple(STAGE_ASKS)
+TIME_LIMIT_QUESTIONS = ("the time limit", "past the time limit")
+
+
+def time_limit(text):
+    """A `bound_in_code` cell as written where it names a time limit the code sets, else "". The column is optional:
+    few applications set their own timer, deadline or overdue rule. A cell that is empty, or that reads as none (it
+    opens `none`, after an optional `none stated;` and an optional `proposed:`), names none. An earlier register's
+    `none stated;` lead says only that no source states a limit; what follows it is read for the code's own."""
+    t = (text or "").strip()
+    body = re.sub(r"^(?:none stated\s*;\s*)?(?:proposed\s*:\s*)?", "", t, flags=re.I)
+    return "" if not body or re.match(r"none\b", body, re.I) else t
+
+
 STEP_QUESTIONS = ("did it happen", "was its outcome right")
 # the run grain of an agent: the OpenTelemetry GenAI run and tool metrics, and a fallback to a person
 RUN_QUESTIONS = ("run duration", "failed tool calls", "tokens", "refusals", "fallbacks to a person")
@@ -472,8 +647,9 @@ def receipt(R, flow_id):
     """The coverage receipt of one flow (FILL-STEPS Step 9), recomputed from the register: every element of every
     start-set with the question it is asked, and whether a candidate in measures.csv answers it.
 
-    flow: its promise, by a business health measure of the flow, counted on cases, of form cycle time or completion
-    rate. stage: its four candidates (STAGE_ASKS), each by a measure of the stage, counted on cases, at the layer and
+    flow: its time limit, where its code sets one (time_limit), by a business health measure of the flow, counted on
+    cases, of form cycle time or completion rate. stage: its candidates (STAGE_ASKS; past the time limit only where its
+    code sets one), each by a measure of the stage, counted on cases, at the layer and
     form the question allows, marked for it in `receipt_question`. step that matters (a stage's exit, the flow's first
     step, a step with a step-impact row, a step an agent serves): did it happen, and was its outcome right, each by a
     business measure of the step marked for it in `receipt_question`. operation: an application measure of its
@@ -503,10 +679,11 @@ def receipt(R, flow_id):
 
     steps = [s for s in R["steps"] if s["stage"] in {st["stage"] for st in stages}]
     own_cases = {s.get("business_subject") for s in steps}  # a case measure naming no flow counts only the flows of its case
-    add(flow_id, "the promise", f"flow: {flow['name']}",
-        any(on_cases(m) and not m.get("step") and not m.get("stage")
-            and (m.get("flow") == flow_id or (not m.get("flow") and m.get("subject_id") in own_cases))
-            and m.get("layer") == "business health" and m.get("form") in PROMISE_FORMS for m in ms), [])
+    if time_limit(flow.get("bound_in_code")):
+        add(flow_id, "the time limit", f"flow: {flow['name']}",
+            any(on_cases(m) and not m.get("step") and not m.get("stage")
+                and (m.get("flow") == flow_id or (not m.get("flow") and m.get("subject_id") in own_cases))
+                and m.get("layer") == "business health" and m.get("form") in TIME_LIMIT_FORMS for m in ms), [])
     step_ids = [s["step"] for s in steps]
     rows = [p for p in R["participation"] if p["step"] in step_ids]  # every component, whatever its involvement
     agents = agent_rows(R, flow_id)
@@ -523,6 +700,8 @@ def receipt(R, flow_id):
         sid = st["stage"]
         mine = [m for m in ms if m.get("stage") == sid and not m.get("step") and on_cases(m)]
         for q, (layers, forms) in STAGE_ASKS.items():
+            if q in TIME_LIMIT_QUESTIONS and not time_limit(st.get("bound_in_code")):
+                continue
             add(sid, q, f"stage: {st['name']}", any(m.get("layer") in layers and m.get("form") in forms
                                                      and q in listed(m.get("receipt_question")) for m in mine), [sid])
         M = build(R, flow_id, sid)
@@ -611,13 +790,19 @@ def gap_rows(R, rec):
     why, where from, and which of GAP_KINDS it is; a `counted by` gap names, by id, the measure that counts it."""
     err, warn, gapped = [], [], {}
     asked = {(r["element"], r["question"]): r for r in rec}
-    known = set(("the promise",) + STAGE_QUESTIONS + STEP_QUESTIONS + RUN_QUESTIONS + ("application", "technology")) | {
+    known = set(("the time limit",) + STAGE_QUESTIONS + STEP_QUESTIONS + RUN_QUESTIONS + ("application", "technology")) | {
         q["agent_question"] for q in R["agent-questions"]}
     handles = {m.get("handle") for m in R["measures"]} - {"", None}
     kinds = ", ".join(f"`{k}`" for k in GAP_KINDS)
+    no_limit = {r.get("flow_id") or r.get("stage") for r in R["flows"] + R["stages"]
+                if not time_limit(r.get("bound_in_code"))}
     for g in R["measure-gaps"]:
         key = (norm(g.get("element")), norm(g.get("question")))
         label = f"measure-gaps.csv {key[0]}, {key[1]}"
+        if key[1] in TIME_LIMIT_QUESTIONS and key[0] in no_limit:
+            warn.append(f"{label}: the code sets no time limit for {key[0]}, so the receipt does not ask this; the row "
+                        "can be removed")
+            continue
         if key[1] in vq.QUESTIONS and key[1] not in vq.GAPPABLE:
             err.append(f"{label}: {key[1]!r} is a view question that is {vq.CONTRACT[key[1]]}, so it takes no gap; "
                        f"the view questions that do: {', '.join(vq.GAPPABLE)}")
@@ -728,10 +913,11 @@ def check(M):
     for s in M["steps"]:
         if not M["step_moves"][s["step"]]:
             msg = f"steps.csv step {s['step']}: its source names no lifecycle row (L..)"
-            if s.get("source", "").lower().startswith("reference model"):
+            if vq.moves_excuse(s, R["measure-gaps"], R["participation"]):  # the one rule, as `step: moves` counts
                 warn.append(msg + ", so it is drawn not assessed")
             else:
-                err.append(msg + "; only a reference-model step nothing carries may have none")
+                err.append(msg + "; only a step no part carries may have none: one the reference model adds, or one "
+                           "whose `step: moves` gap of kind `no record` cites the code read")
     for mv in moves:
         if mv not in sm and state(moves[mv]["from_state"]) in M["branch_states"]:
             err.append(f"lifecycle {mv} leaves {state(moves[mv]['from_state'])}, a state of {M['stage']['stage']}, and no step names it")
@@ -755,6 +941,14 @@ def check(M):
                                for mv in mvs for x in (to, M["subj"].get(to, {}).get("part_of"))):
                 warn.append(f"subjects.csv {r['subject_id']}: step_hint {h} names a step none of whose lifecycle moves "
                             f"needs {to} ({name(M, to)}): add it to that move's needs, or correct the step_hint")
+    rel = [r for r in R["subjects"] if r.get("kind") == "relationship" and r.get("to_id")]
+    for s in M["steps"]:
+        for d in dict.fromkeys(d for mv in M["step_moves"][s["step"]] for d in M["needs"][mv]):
+            if not any(s["step"] in ids(r.get("step_hint")) and d in (r["to_id"], M["subj"].get(r["to_id"], {}).get("part_of"))
+                       for r in rel):
+                warn.append(f"step {s['step']}: its lifecycle needs {d} ({name(M, d)}), and no interaction on that step "
+                            f"reaches it, so the map draws no caller: list the step on the subjects.csv interaction "
+                            f"that calls it, or correct the needs")
     reached = donts_of(M, R["failure-modes"])
     for rid, rem in M["remedies"].items():
         if rem.get("kind") == "do not" and rid not in reached:
@@ -823,6 +1017,7 @@ def check(M):
                        "count in counted_how")
         err += watched_failures(m)
     handles = {m["handle"] for m in M["alerts"]}
+    err += old_remedy_id_failures(R)
     for rid, rem in M["remedies"].items():
         if rem.get("kind") not in REMEDY_KINDS:
             err.append(f"remedies.csv {rid}: kind {rem.get('kind')!r} is not one of {', '.join(REMEDY_KINDS)}")
@@ -874,19 +1069,34 @@ def check(M):
                            f"{b} branch, so a responder cannot tell them apart")
             seen.setdefault(key, r["mode_id"])
     sid = M["stage"]["stage"]
-    for m in M["alerts"]:
-        if m.get("stage") != sid or m.get("counted_on") != "cases":
-            if m.get("stage") and m.get("stage") != sid and m.get("counted_on") == "cases":
-                continue
-            err.append(f"measures.csv {m['handle']}: marked in alert, but only a measure of a stage counted on cases is proposed "
-                       "for alerting")
-    if not [m for m in M["alerts"] if m.get("stage") == sid]:
-        err.append(f"measures.csv: no measure of stage {sid} is proposed for alerting (`alert`), so there is no alert to write")
-    mine = [m for m in M["alerts"] if m.get("stage") == sid]
-    for m in mine:
+    # Which measures alert, and at which level, is the register's to say: an alert is drafted on every stage its
+    # measure reaches (`reach`). Every drafted alert, at any level, meets the basis and expectation checks: those this
+    # stage's outputs hold, and those that reach no stage at all, which no stage's outputs would hold.
+    here = stage_alerts(M)
+    drafted = here + [m for m in M["alerts"] if not M["reach"].get(m["handle"])]
+    for m in drafted:
+        if level(m) != "stage" or m.get("counted_on") != "cases":
+            where = M["reach"].get(m["handle"])
+            warn.append(f"note: measures.csv {m['handle']}: proposed for alerting on its {level(m)}, counted on "
+                        f"{m.get('counted_on') or 'nothing stated'}: " +
+                        ("drafted on every stage it reaches (" + ", ".join(s for s, _ in where) + "), and each stage's "
+                         "runbook works its own tests for it" if where else
+                         "it reaches no stage of the register, so no alert page or runbook entry holds it"))
+    if not here:
+        warn.append(f"note: no alert is proposed on stage {sid}, its steps, the parts they use or its flow, so no ALERT "
+                    "page is written for it and its runbook says so. Whether to alert, and on what, is the team's "
+                    "decision")
+    for m in drafted:
         if not basis(m):
             warn.append(f"measures.csv {m['handle']}: proposed for alerting with no basis: write `yes:` and the "
                         "expectation the alert guards and why it is proposed")
+        if not guards(m):
+            err.append(f"measures.csv {m['handle']}: proposed for alerting, and its `expectation` is empty: name, by id "
+                       "and separated by `;`, the expectations.csv rows (e..) the alert guards. A register made with an "
+                       "earlier version of this kit has no such column or table: add expectations.csv and the column, "
+                       "and fill them from the expectation the basis names")
+    # the stage's own counts of cases: the moves they count, and what they cannot see
+    mine = [m for m in M["alerts"] if m.get("stage") == sid and m.get("counted_on") == "cases"]
     stands = ("A warning whose reason the basis gives stands, and does not stop the outputs being written")
     for m in mine:
         named = counted_moves(m)
@@ -917,7 +1127,7 @@ def check(M):
     waits_only = mine and all(m.get("form") in WAITING for m in mine)
     if parked and mine and not any(m.get("form") in WAITING for m in mine):
         warn.append(f"stage {sid}: cases wait in it ({', '.join(parked)} leave a park), and no measure proposed for "
-                    "alerting counts cases waiting past the promise. If cases waiting too long breaks the "
+                    "alerting counts cases waiting too long. If cases waiting too long breaks the "
                     "expectation, propose one. "
                     + stands)
     if not parked and waits_only:
@@ -933,7 +1143,9 @@ def check(M):
                     "waiting. If cases leaving that way breaks the expectation, propose a measure of them. An "
                     "ending the party wants (their own cancellation, a rule's refusal) needs no alert. " + stands)
     _, _, r_err, r_warn = receipt_failures(R, M["flow"]["flow_id"], M["stage"]["stage"])
-    return err + r_err, warn + r_warn + citation_failures(R)
+    bounds = cv.bound_failures({"flows": [M["flow"]], "stages": [M["stage"]]})
+    return (err + bounds + expectation_failures(R, M["flow"]["flow_id"]) + r_err,
+            warn + r_warn + citation_failures(R))
 
 
 # ---------------------------------------------------------------- STRUCTURE.md
@@ -946,6 +1158,27 @@ def shown(st):
     if st == "(none)":
         return "the case is created"
     return st.removeprefix("implicit:").strip() + " (not recorded)" if st.startswith("implicit:") else st
+
+
+def said(st):
+    """A state as the runbook and the alerts name it: in the words the stage cards use (`state_name`), "the case is
+    created" for a case not yet in one, and "(not recorded)" after a state the code does not record."""
+    import stage_flow_views as sfv  # state_name lives with the cards; imported here, as it imports this module
+    if st == "(none)":
+        return "the case is created"
+    if st.startswith("implicit:"):
+        return sfv.state_name(st.removeprefix("implicit:").strip()) + " (not recorded)"
+    return sfv.state_name(st)
+
+
+def to_said(st):
+    """A state a move leads into, as said: a move into no state leaves the case in none."""
+    return "no state" if st == "(none)" else said(st)
+
+
+def once(items):
+    """A list as the reader sees it: a line several register rows write alike (moves that share an outcome) once."""
+    return list(dict.fromkeys(items))
 
 
 def edge_label(M, step, st, first=False, out=False):
@@ -974,7 +1207,7 @@ def structure(M):
     sid = stage["stage"]
     for s in M["steps"]:
         na = "" if M["step_moves"][s["step"]] else "<br/>not assessed: no lifecycle row carries it"
-        t.append(f'  P{s["step"]}["{M["labels"].get(s["step"]) or "Step " + s["step"]}: <b>{q(s["name"])}</b>{na}"]')
+        t.append(f'  P{s["step"]}["{M["labels"].get(s["step"]) or "Process step " + s["step"]}: <b>{q(s["name"])}</b>{na}"]')
     for e in M["entries"]:
         for s in M["steps"]:
             if e in from_states(M, s["step"]):
@@ -1004,10 +1237,10 @@ def structure(M):
     others = [s["stage"] for s in stages if s["stage"] != sid]
     if others:
         t.append("  class " + ",".join(others) + " off")
-    key = ("**How to read it.** Solid arrows between steps follow the case: each is labelled with the state the case is "
-           "in when the next step starts. Where several arrows leave one step, they are alternatives: one case takes one "
-           "of them. **Done by** is every part that carries the step out; **needs** is a part it cannot complete without "
-           "that does not itself carry the step out. Steps are numbered within their stage, the same in every stage file.")
+    key = ("**How to read it.** Solid arrows between process steps follow the case: each is labelled with the state the case is "
+           "in when the next process step starts. Where several arrows leave one process step, they are alternatives: one case takes one "
+           "of them. **Done by** is every part that carries the process step out; **needs** is a part it cannot complete without "
+           "that does not itself carry the process step out. Process steps are numbered within their stage, the same in every stage file.")
     side = [s["step"] for s in M["steps"] if M["step_moves"][s["step"]]
             and all(side_move(M["moves"][mv]) for mv in M["step_moves"][s["step"]])]
     if side:
@@ -1020,8 +1253,8 @@ def structure(M):
 
 # ---------------------------------------------------------------- MEASURES.md
 
-def mlabel(m, sid):
-    mark = " **proposed alert**" if proposed(m) and m.get("stage") == sid else ""
+def mlabel(m, paging):
+    mark = " **proposed alert**" if m["handle"] in paging else ""
     return f'{m["handle"]} {m["measure"]} ({"exists" if m.get("exists") == "yes" else "proposed"}){mark}'
 
 
@@ -1045,8 +1278,9 @@ def measures(M):
     layers = LAYERS + (["agentic"] if agentic else [])
     head_cells = HEAD + (["Agentic<br>did the agent judge right?"] if agentic else [])
     md = ["| | " + " | ".join(head_cells) + " |", "|---|" + "---|" * len(head_cells)]
+    marked = {m["handle"] for m in stage_alerts(M)}
     for label, ms in rows:
-        md.append("| " + label + " | " + " | ".join("<br>".join(mlabel(m, sid) for m in ms if m["layer"] == lay) or "none"
+        md.append("| " + label + " | " + " | ".join("<br>".join(mlabel(m, marked) for m in ms if m["layer"] == lay) or "none"
                                                      for lay in layers) + " |")
     how = ["| Measure | Answers | Kind | Counted on | Counted how | Exists today |", "|---|---|---|---|---|---|"]
     for _, ms in rows:
@@ -1055,15 +1289,23 @@ def measures(M):
                        f'{cell(kind_of(R, m))} | {m.get("counted_on", "")} | '
                        f'{m.get("counted_how", "")} | '
                        f'{exists_today(m, "yes: ")} |')
-    paging = [m["handle"] for m in M["alerts"] if m.get("stage") == sid]
+    paging = [m["handle"] for m in stage_alerts(M)]
+    shown_ = {m["handle"] for _, ms in rows for m in ms}
+    limit = time_limit(stage.get("bound_in_code"))
     head = [f"# {M['flow']['name']}: stage {stage['order']} of {len(M['stages'])}, {stage['name']}: where each measure is counted", "",
-            f"**Expected of the stage:** {stage.get('promise', '').removeprefix('proposed: ')}. The time limit is the operators' to set.", "",
-            f"**Proposed for alerting:** {', '.join(paging) or 'nothing'}, the measures marked **proposed alert** below. "
-            f"The alert{'s are' if len(paging) > 1 else ' is'} in [ALERT.md](ALERT.md); when "
-            f"{'one' if len(paging) > 1 else 'it'} fires, follow its own entry in RUNBOOK.md (" +
-            ", ".join(f"[{h}]({entry_link(M['measures'][h])})" for h in paging) + "). Every other measure is "
-            "read by the runbook's tests where ALERT.md lists it as a companion measure.", "",
-            "Steps are numbered within their stage, the same in every stage file. A step's row holds the measures counted on the case at that step; each "
+            *([f"**Expected of the stage:** {limit.removeprefix('proposed: ')}. The time limit is the operators' to set.", ""]
+              if limit else []),
+            (f"**Proposed for alerting:** " + ", ".join(
+                h + ("" if h in shown_ else f" (on the {level(M['measures'][h])})") for h in paging) +
+             (", the measures marked **proposed alert** below. " if set(paging) <= shown_ else
+              ", marked **proposed alert** below where the table holds it. ") +
+             f"The alert{'s are' if len(paging) > 1 else ' is'} in [ALERT.md](ALERT.md); when "
+             f"{'one' if len(paging) > 1 else 'it'} fires, follow its own entry in RUNBOOK.md (" +
+             ", ".join(f"[{h}]({entry_link(M['measures'][h])})" for h in paging) + "). Every other measure is "
+             "read by the runbook's tests where ALERT.md lists it as a companion measure." if paging else
+             "**Proposed for alerting:** nothing. No alert is proposed on this stage, its process steps, the parts they use or "
+             "the flow, so there is no alert page for it. Whether to alert, and on what, is the team's decision."), "",
+            "Process steps are numbered within their stage, the same in every stage file. A process step's row holds the measures counted on the case at that process step; each "
             "component's row holds its own.", ""]
     return "\n".join(head) + "\n" + "\n".join(md) + "\n\n## How each measure is counted\n\n" + "\n".join(how) + "\n"
 
@@ -1074,18 +1316,21 @@ def alert_grouping(M, m, lead=True):
     """Which cases an alert's runbook entry works, and by what it groups them."""
     moves = M["moves"]
     lead = f"**{m['handle']}** " if lead else ""
+    if m.get("counted_on") != "cases":
+        return lead + (f"None: it is counted on {m.get('counted_on') or 'what it counts'}, not cases, so its runbook "
+                       "entry works every state's tests of this stage.")
     if m.get("form") not in WAITING:
         ex = exits_of(M, m)
         kinds = {failed_back(moves[mv]) for mv in ex}
         how = ("where the case failed back" if kinds == {True} else "the case left by" if kinds == {False}
                else "where the case failed back or left")
         return lead + ((f"By the move {how}: " + "; ".join(
-            f"{', '.join(g)} from `{shown(b)}`" for b, g in grouped(ex, lambda mv: state(moves[mv]["from_state"]))) +
+            f"{', '.join(g)} from {said(b)}" for b, g in grouped(ex, lambda mv: state(moves[mv]["from_state"]))) +
             ". Its runbook entry works that state's tests.") if ex else
             "None: its `counted_moves` names no move the cases leave by, so its runbook entry works every state's tests.")
-    return lead + (("By the state the case is in: " + ", ".join(f"`{shown(b)}`" for b in M["branch_states"]) +
+    return lead + (("By the state the case is in: " + ", ".join(said(b) for b in M["branch_states"]) +
                     ". Its runbook entry groups the cases by state and works each state's tests.") if recorded(M) else
-                   ("None. The states of this stage (" + ", ".join(f"`{shown(b)}`" for b in M["branch_states"]) +
+                   ("None. The states of this stage (" + ", ".join(said(b) for b in M["branch_states"]) +
                     ") are not recorded, so cases cannot be grouped by state; its runbook entry works every "
                     "state's tests in order."))
 
@@ -1096,25 +1341,47 @@ def not_emitted(m):
         "This measure is not emitted yet; deployed as written, the alert fires on No data until it is.")
 
 
+NO_DATA_WHAT = ("If it shows No data rather than a count, that is why: it counts no case, so there is nothing to work "
+                "here; note it for the hand-over and close.")
+
+
 def and_not_emitted(text, m):
     """An alert's basis, then the not-emitted line as its own sentence where it applies."""
     line = not_emitted(m)
-    return text + (("" if text.rstrip().endswith((".", "!", "?")) else ".") + " " + line if line else "")
+    return text + (("" if re.search(r"(?:[.!?]|</\w+>)\s*$", text) else ".") + " " + line if line else "")  # HTML ends a block
+
+
+def elsewhere(paging):
+    """Whether any of a stage's alerts is on another level than the stage: then each says where it is placed."""
+    return any(level(m) != "stage" for m in paging)
+
+
+def symptom(paging):
+    """What each alert fires on: cases, or the count of a part, a step or the flow it is a measure of."""
+    if all(m.get("counted_on") == "cases" for m in paging):
+        return ("It fires on what happens to cases, not on any component's errors. Telling causes apart is the "
+                "runbook's job.")
+    return "<br>".join(f"**{m['handle']}** fires on " + (
+        "what happens to cases" if m.get("counted_on") == "cases" else
+        f"its {level(m)}'s count of {m.get('counted_on') or 'what it counts'}, which is not a count of cases") +
+        "." for m in paging) + "<br>Telling causes apart is the runbook's job."
 
 
 def alert(M):
     stage, sid, moves = M["stage"], M["stage"]["stage"], M["moves"]
-    paging = [m for m in M["alerts"] if m.get("stage") == sid]
+    paging = stage_alerts(M)
     stranded = [mv for mv in M["stage_moves"] if moves[mv].get("recovery") == "stranded"]
     timings = [f"{', '.join(g)}: {t}" for t, g in grouped([mv for mv in M["stage_moves"] if moves[mv].get("timing")],
                                                           lambda mv: moves[mv]["timing"])]
-    waiting = [m for m in paging if m.get("form") in WAITING]
+    waiting = [m for m in paging if m.get("form") in WAITING and m.get("counted_on") == "cases"]
     rows = [("The question it answers", "<br>".join(f"**{m['handle']}** {m.get('question_it_answers', '')}" for m in paging)),
             ("What it counts", "<br>".join(f"**{m['handle']}** {m['measure']}: {m.get('counted_how', '')} "
                                            f"(counted on {m.get('counted_on')})" for m in paging)),
             ("Why it is proposed", "<br>".join(
                 f"**{m['handle']}** " + and_not_emitted(basis(m) or "not stated in the register (`measures.csv` → `alert`)", m)
                 for m in paging))]
+    if elsewhere(paging):
+        rows.insert(0, ("Where it is placed", "<br>".join(f"**{m['handle']}** {placed(M, m)}" for m in paging)))
     if stranded:
         rows.append(("Cases stranded", "A case is stranded, with nothing in the application to move it on, when one of "
                                        "these moves does not happen: " + "; ".join(
@@ -1130,24 +1397,25 @@ def alert(M):
                          "A count fails when what it is read from is down, and then cases go wrong unseen. What it "
                          "counts says where each is read.")]
     if waiting:
-        rows.append(("Age bound", f"*Operator value.* For {', '.join(m['handle'] for m in waiting)}, the stage's promise: "
-                                  f"{stage.get('promise', '')}"))
+        limit = time_limit(stage.get("bound_in_code"))
+        rows.append(("Time limit", f"*Operator value.* For {', '.join(m['handle'] for m in waiting)}, how old a waiting "
+                                  "case may be is the operators' value"
+                                  + (f"; the stage's time limit in the code: {limit}" if limit else ".")))
     rows += [("Window", "*Operator value, not set here.* How long the condition must hold before the alert fires." +
               (" What the design assumes about time: " + "; ".join(timings) if timings else "")),
-             ("Symptom, not cause", "It fires on what happens to cases, not on any component's errors. Telling causes "
-                                    "apart is the runbook's job."),
+             ("Symptom, not cause", symptom(paging)),
              ("Exists today", "; ".join(f"{m['handle']}: {exists_today(m, 'yes, ')}" for m in paging))]
     used = list(dict.fromkeys(h for r in M["fm"] if r.get("ending") != "not possible" for h in ids(r["measures"])))
     out = [f"# Proposed alert{'s' if len(paging) > 1 else ''} for \"{stage['name']}\": "
            + "; ".join(f"{m['handle']} {m['measure']}" for m in paging), "",
-           f"**Stage {stage['order']} of {len(M['stages'])}:** {stage['name']}, in flow {M['flow']['name']}. Its steps: "
+           f"**Stage {stage['order']} of {len(M['stages'])}:** {stage['name']}, in flow {M['flow']['name']}. Its process steps: "
            f"{'; '.join(step_title(M['labels'], s) for s in M['steps'])}. " +
            ("Each measure below is its own alert; whichever fires, follow its own entry in [RUNBOOK.md](RUNBOOK.md)"
             if len(paging) > 1 else "When it fires, follow its entry in [RUNBOOK.md](RUNBOOK.md)") +
            " (the runbook link below).", "",
            "| | |", "|---|---|"] + [f"| **{k}** | {v} |" for k, v in rows]
     out += ["", "## Companion measures", "", "Read by the runbook's tests, not proposed for alerting:", ""]
-    out += [f"- {h} {M['measures'][h]['measure']}" for h in used if h in M["measures"] and h not in [m["handle"] for m in paging]]
+    out += once(f"- {h} {M['measures'][h]['measure']}" for h in used if h in M["measures"] and h not in [m["handle"] for m in paging])
     return "\n".join(out) + "\n"
 
 
@@ -1183,7 +1451,10 @@ def ref(key, text=None):
 
 
 def stage_alerts(M):
-    return [m for m in M["alerts"] if m.get("stage") == M["stage"]["stage"]]
+    """The alerts this stage's outputs hold: every proposed alert whose measure reaches the stage, at whatever level
+    the register puts it (the stage, one of its steps, a part its steps use, or its flow)."""
+    sid = M["stage"]["stage"]
+    return [m for m in M["alerts"] if any(st == sid for st, _ in M["reach"].get(m["handle"], []))]
 
 
 def entry_heading(m):
@@ -1299,7 +1570,7 @@ def entry_groups(M, m):
     gone = m.get("form") not in WAITING
     for b in states:
         mvs = [mv for mv in M["stage_moves"] if state(M["moves"][mv]["from_state"]) == b]
-        groups.append((f"Cases in `{shown(b)}`{', or that left the stage from it' if gone else ''}: the move out did "
+        groups.append((f"Cases in {said(b)}{', or that left the stage from it' if gone else ''}: the move out did "
                        f"not happen{' as it should' if gone else ''} ("
                        + "; ".join(mv + " " + move_name(M, mv) for mv in mvs) + ")",
                        sorted([r for r in rows if b in branch_of(M, r) and r not in sh], key=key), b))
@@ -1381,7 +1652,7 @@ def owner_of(M, sid):
 
 def plain(text):
     """Register text with its citations (the parentheses) taken out, for a line a responder reads in passing."""
-    return re.sub(r"\s+([;,.:])", r"\1", norm(strip_parens(text)))
+    return re.sub(r"\s+([;,:]|\.(?!\w))", r"\1", norm(strip_parens(text)))  # ".NET" keeps the space before it
 
 
 def escalate_to(M, sid):
@@ -1396,7 +1667,7 @@ def written_remedies(M):
     `do not` remedies are listed apart."""
     out = [x for x in dict.fromkeys(r["remedy"] for r in M["fm"] if r.get("remedy")) if x in M["remedies"]]
     for rid in out:  # grows while it is walked: a remedy named by one just added is added after it
-        for x in re.findall(r"\bR\d+\b", " ".join(M["remedies"][rid].get(c) or "" for c in REMEDY_TEXT)):
+        for x in re.findall(REMEDY_ID, " ".join(M["remedies"][rid].get(c) or "" for c in REMEDY_TEXT)):
             if x in M["remedies"] and x not in out and M["remedies"][x].get("kind") != "do not":
                 out.append(x)
     return out
@@ -1408,7 +1679,7 @@ def donts_of(M, modes):
     lead to it."""
     out = [x for x in dict.fromkeys(r.get("remedy") for r in modes) if x in M["remedies"]]
     for rid in out:  # grows while it is walked
-        for x in re.findall(r"\bR\d+\b", " ".join(M["remedies"][rid].get(c) or "" for c in REMEDY_TEXT)):
+        for x in re.findall(REMEDY_ID, " ".join(M["remedies"][rid].get(c) or "" for c in REMEDY_TEXT)):
             if x in M["remedies"] and x not in out:
                 out.append(x)
     return [x for x in out if M["remedies"][x].get("kind") == "do not"]
@@ -1486,16 +1757,16 @@ def window(M, m):
     """(its cases, its window) for one alert's entry."""
     moves, h = M["moves"], m["handle"]
     if m.get("form") in WAITING:
-        return (f"those held in the stage past the bound (the age bound in [ALERT.md](ALERT.md)). A case not past the "
-                f"bound is not one of {h}'s.",
+        return (f"those held in the stage past the time limit (the time limit in [ALERT.md](ALERT.md)). A case not past the "
+                f"time limit is not one of {h}'s.",
                 "from when the oldest of its cases entered the stage, to now. The alert fires only once a case has "
-                "waited past the bound, so its cause can be as old as that: never read a test over only the time "
+                "waited past the time limit, so its cause can be as old as that: never read a test over only the time "
                 "since the count began rising.")
     ex = exits_of(M, m)
     if not ex:
         return ("those it counts leaving the stage. Its `counted_moves` names no move they leave by, so its tests are every "
                 "state's.", "from when the earliest of its cases entered the stage, to now.")
-    return ("those that left by " + "; ".join(f"{', '.join(g)} from `{shown(b)}`" for b, g in
+    return ("those that left by " + "; ".join(f"{', '.join(g)} from {said(b)}" for b, g in
                                               grouped(ex, lambda mv: state(moves[mv]["from_state"])))
             + f" in the alert's window. A case still in the stage is not one of {h}'s.",
             "from when the earliest of its cases entered the stage, to now: what sent a case out wrongly can come "
@@ -1521,7 +1792,7 @@ def contain(M, m, donts=True):
     back = [mv for mv in ex if failed_back(moves[mv])]
     alt = [mv for mv in ex if mv not in main and mv not in back]
     if main:
-        to = ", ".join(f"`{shown(s)}`" for s in dict.fromkeys(state(moves[mv]["to_state"]) for mv in main))
+        to = ", ".join(said(s) for s in dict.fromkeys(state(moves[mv]["to_state"]) for mv in main))
         out.append(f"Hold each case {h} lists where it is now ({to}): move none of them on until the failing part's "
                    "owner has ruled. It left by the stage's main ending with a wrong outcome, and every later move "
                    "carries that outcome on.")
@@ -1571,7 +1842,7 @@ def entry(M, m, num):
     out = [f"## {entry_heading(m)}", "", "### What fired", "",
            f"**{h} {m['measure']}** is above the operators' threshold for longer than their window "
            "([ALERT.md](ALERT.md)).", "",
-           "**The expectation it guards:** " + (basis(m) or "not stated in the register (`measures.csv` → `alert`)"),
+           "**The expectation it guards:** " + re.sub(r"(?<![.!?])\s*$", ".", basis(m) or "not stated in the register (`measures.csv` → `alert`)", count=1),
            ""] + ([not_emitted(m), ""] if not_emitted(m) else [])
     lines = leaving_lines(M, m) if m.get("form") not in WAITING else []
     out += (lines + [""] if lines else [])
@@ -1603,7 +1874,7 @@ def entry(M, m, num):
             "- anything else (an unclear answer, a step you cannot run): note it for the hand-over and go on.", ""]
     states = entry_states(M, m)
     if len(states) > 1:
-        names = ", ".join(f"`{shown(b)}`" for b in states)
+        names = ", ".join(said(b) for b in states)
         out += [(f"Group its cases by the state they are in ({names}) and work each group below that has cases, the "
                  "largest group first." if recorded(M) else
                  f"The states of this stage ({names}) are not recorded, so its cases cannot be grouped by state: work "
@@ -1629,7 +1900,7 @@ def entry(M, m, num):
             continue
         k += 1
         last = g == len(groups) - 1
-        out.append(f"{k}. None of these explains the cases left" + (f" in `{shown(b)}`" if b else "") +
+        out.append(f"{k}. None of these explains the cases left" + (f" in {said(b)}" if b else "") +
                    f": **Outside this runbook** ({ref('outside')})" +
                    ("." if last else "; go on with the next group that still has cases."))
         out.append("")
@@ -1643,6 +1914,15 @@ def restore_close(M):
             "Each test above says where its ending goes; escalation goes to the owner of the failing part.", ""]
 
 
+def approval_text(M, rid):
+    """Whose approval a remedy needs, in words that need no owner on record: the team that owns each part whose
+    failure modes use it."""
+    parts = list(dict.fromkeys(p for r in M["fm"] if r.get("remedy") == rid for p in parts_of(r) if p))
+    said = [name(M, p) for p in parts]
+    names = " or ".join(said) if 0 < len(said) <= 2 else "the part it changes"  # a long list of teams is noise to a responder
+    return f"Needs approval from the team that owns {names} (not recorded yet)."
+
+
 def runbook(M):
     R, stage, sid, moves = M["R"], M["stage"], M["stage"]["stage"], M["moves"]
     about = R["about"][0] if R["about"] else {}
@@ -1651,11 +1931,15 @@ def runbook(M):
     tid = {r["mode_id"]: t for t, r in num.items() if r}
     shared_head = f"Shared section: {stage['name']}"
     out = [f"# Runbook for \"{stage['name']}\"", "",
-           "One entry per proposed alert, then the stage's shared section. Each alert's runbook link "
-           "([ALERT.md](ALERT.md)) points at its own entry. The shared section holds what the alerts have in common "
-           "and writes every test once; an entry names the tests it runs, bounded to its own cases and window. "
+           ("One entry per proposed alert, then the stage's shared section. Each alert's runbook link "
+            "([ALERT.md](ALERT.md)) points at its own entry. The shared section holds what the alerts have in common "
+            "and writes every test once; an entry names the tests it runs, bounded to its own cases and window. "
+            if alerts else
+            "No alert is proposed for this stage in the register: not on the stage, its process steps, the parts they use or "
+            "the flow. So this runbook has no alert entries and there is no alert page. Whether to alert, and on what, "
+            "is the team's decision. The stage's shared section below still writes every test once. ") +
            "Generated from the register by `flow_outputs.py`: each test after the opening checks is a row of "
-           "`failure-modes.csv`. State: draft, never rehearsed. Steps are numbered within their stage, the same in every stage file.", ""]
+           "`failure-modes.csv`. State: draft, never rehearsed. Process steps are numbered within their stage, the same in every stage file.", ""]
     out += [f"- [{entry_heading(m)}](#{slug(entry_heading(m))})" for m in alerts]
     out += [f"- [{shared_head}](#{slug(shared_head)})", ""]
     for m in alerts:
@@ -1667,18 +1951,19 @@ def runbook(M):
             f"Flow **{M['flow']['name']}**, one case: {strip_parens(M['flow']['case']).split(':')[0].strip()}. Stage "
             f"{stage['order']} of {len(M['stages'])}, **{stage['name']}**. [STRUCTURE.md](STRUCTURE.md) draws the same "
             "steps and [MEASURES.md](MEASURES.md) measures them.", "",
-            "| Step | Right outcome | From → to | Path | Done by | Needs |", "|---|---|---|---|---|---|"]
+            "| Process step | Right outcome | From → to | Path | Done by | Needs |", "|---|---|---|---|---|---|"]
     for s in M["steps"]:
         mvs = M["step_moves"][s["step"]]
-        ft = "; ".join(f"{state(moves[x]['from_state'])} → {state(moves[x]['to_state'])}" for x in mvs)
+        ft = "; ".join(once(f"{said(state(moves[x]['from_state']))} → {to_said(state(moves[x]['to_state']))}" for x in mvs))
         out.append(f"| {step_title(M['labels'], s)} | {outcome(s)} | {ft} | "
                    f"{', '.join(dict.fromkeys(moves[x]['path'] for x in mvs))} | "
                    f"{', '.join(name(M, c) for c in M['performers'][s['step']])} | "
                    f"{', '.join(name(M, c) for c in M['supporters'][s['step']]) or '—'} |")
     last = [s for s in M["steps"] if to_states(M, s["step"]) & set(M["exits"])]
-    out += ["", f"**Expected of the stage.** A case that enters it leaves within the promise ({stage.get('promise', '')}), "
-                "in one of these ways:", ""]
-    out += [f"- {step_title(M['labels'], s)}: {outcome(s)}" for s in last]
+    limit = time_limit(stage.get("bound_in_code"))
+    out += ["", "**Expected of the stage.** A case that enters it leaves"
+            + (f" within the time limit ({limit})," if limit else "") + " in one of these ways:", ""]
+    out += once(f"- {step_title(M['labels'], s)}: {outcome(s)}" for s in last)
     stranded = [mv for mv in M["stage_moves"] if moves[mv].get("recovery") == "stranded"]
     if stranded:
         out += ["", "**Cases stranded.** When " + ", ".join(stranded) +
@@ -1687,16 +1972,15 @@ def runbook(M):
 
     # S2 what is at stake
     out += [head('stake'), ""]
-    for a in R["case-attributes"]:
-        if a.get("flow") == M["flow"]["flow_id"]:
-            out.append(f"- **{a['attribute']}**: {a['what_is_at_stake']}")
-    for mv in M["stage_moves"]:
-        if moves[mv].get("irreversible") == "yes":
-            out.append(f"- **Irreversible:** {move_name(M, mv)} ({mv}) cannot be undone.")
+    stake = [f"- **{a['attribute']}**: {a['what_is_at_stake']}" for a in R["case-attributes"]
+             if a.get("flow") == M["flow"]["flow_id"]]
+    stake += [f"- **Irreversible:** {mn} ({', '.join(g)}) cannot be undone." for mn, g in
+              grouped([mv for mv in M["stage_moves"] if moves[mv].get("irreversible") == "yes"],
+                      lambda mv: move_name(M, mv))]
     step_ids = [s["step"] for s in M["steps"]]
-    for i in R["step-impact"]:
-        if i["step"] in step_ids:
-            out.append(f"- {at_stake(M, i)}: counted in {i.get('unit', '')}. {i.get('note', '')}".rstrip(". ") + ".")
+    stake += [f"- {at_stake(M, i)}: counted in {i.get('unit', '')}. {i.get('note', '')}".rstrip(". ") + "."
+              for i in R["step-impact"] if i["step"] in step_ids]
+    out += once(stake)
     out += ["- **Declare an incident** when the impact threshold in the severity definition is crossed: an operator value, "
             "linked here.", ""]
 
@@ -1715,7 +1999,7 @@ def runbook(M):
 
     # S4 every test, once
     every = ", ".join(name(M, c) for c in M["parts"] if M["subj"][c].get("part_kind") != "person")
-    timing = "; ".join(dict.fromkeys(moves[mv]["timing"] for mv in M["stage_moves"] if moves[mv].get("timing")))
+    timing = "; ".join(step_timings(M))
     waits = any(m.get("form") in WAITING for m in alerts)
     out += [head('tests'), "",
             "Each test is written here once. An alert's entry says which it runs, in what order, over which window "
@@ -1734,7 +2018,7 @@ def runbook(M):
          f"Roll it back through the change-approval path, or escalate to the owner of the part that changed "
          f"({sec('escalate')}); then re-run T4"),
         ("Is the count of the alert that fired falling within one window" +
-         (" (for a count of cases waiting, with the oldest only just past the bound)" if waits else "") + "?",
+         (" (for a count of cases waiting, with the oldest only just past the time limit)" if waits else "") + "?",
          ", ".join(m["handle"] for m in alerts), "Not falling", "Falling within one window",
          "**Self-healed** (mark *threshold or duration wrong*), for an alert that counts cases waiting. For one that "
          "counts cases that already left wrongly, falling means only that no new cases are arriving: go on and work "
@@ -1758,7 +2042,9 @@ def runbook(M):
 
     # S5 causes the alerts share
     out += [head('shared'), ""]
-    if len(alerts) < 2:
+    if not alerts:
+        out += ["No alert is proposed for this stage, so no cause is shared between alerts.", ""]
+    elif len(alerts) < 2:
         out += ["One alert is proposed for this stage, so no cause is shared between alerts.", ""]
     else:
         own = users(M, linked=False)
@@ -1801,10 +2087,10 @@ def runbook(M):
         exp += "".join(f" Also escalate to {party_text(M, p)} ({sec('escalate')})." for p, rs in also.items() if rid in rs)
         out.append(f"| {rid} | {rem['kind']} | {point_escalation(rem['action'])} | {exp} | "
                    f"{point_escalation(rem.get('if_different', '') or 'Escalate')} | "
-                   f"{'needs approval: change-approval path' if rem.get('needs_approval') == 'yes' else '—'} |".replace("\n", " "))
+                   f"{approval_text(M, rid) if rem.get('needs_approval') == 'yes' else '—'} |".replace("\n", " "))
     donts = [M["remedies"][x] for x in donts_of(M, M["fm"])]
     if donts:
-        out += ["", "**What not to do.**", ""] + [f"- {rem['remedy']}: {point_escalation(rem['action'])}" for rem in donts]
+        out += ["", "**What not to do.**", ""] + once(f"- {rem['remedy']}: {point_escalation(rem['action'])}" for rem in donts)
     out.append("")
 
     # S7 close
@@ -1905,7 +2191,7 @@ QUESTIONS = {
     ("needs", "full or out of capacity"): "Is {p} full or out of capacity?",
     ("needs", "answers stale or wrong"): "Is {p} answering with stale or wrong data?",
 }
-ID = r"\b(?:FM|ST|L|R|M|S|F)\d+\b"
+ID = r"\b(?:FM|ST|RM|L|R|M|S|F)\d+\b"
 IDS = re.compile(rf"{ID}(?:(?:,\s*|;\s*|\s+and\s+|\s+or\s+|\s*,\s*and\s+){ID})*")
 CITE = re.compile(r"\s*\((?=[^()]*(?:\w/\w|\.(?:py|ya?ml|tsx?|json|md|cs|java|go|sql)\b|:\d))[^()]*\)")
 
@@ -1916,12 +2202,36 @@ def is_up(r):
 
 def question(M, r):
     p = part_names(M, r)
-    q = QUESTIONS.get((r["hop"], r["mode"]), "{p}: " + r["mode"] + "?").format(p=p)
+    q = QUESTIONS.get((r["hop"], r["mode"]), "{p}: " + r["mode"] + "?")
+    if len(parts_of(r)) > 1:  # a check on several parts asks of them all: "Are A and B down", "on their queues"
+        q = re.sub(r"\bits queue\b", "their queues", re.sub(r"^Is \{p\}(?!')", "Are {p}", q))
+        q = q.replace(" it reads", " they read").replace(" its ", " their ")
+    q = q.format(p=p)
     return re.sub(r"\ba ([AEIOUaeiou])", r"an \1", q)
 
 
 def remedy_number(M):
-    return {rid: n for n, rid in enumerate(written_remedies(M), 1)}
+    """{remedy id: its number} for the remedies the runbook writes, in number order. A remedy keeps its register
+    number on every page: RM6 is remedy 6 wherever it appears."""
+    num = {rid: int(rid[2:]) if re.fullmatch(r"RM\d+", rid) else rid for rid in written_remedies(M)}
+    return dict(sorted(num.items(), key=lambda kv: (0, kv[1]) if isinstance(kv[1], int) else (1, 0)))
+
+
+REMEDY_CITED = re.compile(r"(?<![\w>])(?:([Rr])estore action|([Rr])emedy) (\d+)\b(?![^<]*</code>)")
+
+
+def remedy_words(text):
+    """Register prose naming a remedy by number ("restore action 4", from earlier releases, or "remedy 4") reads
+    "remedy 4": the number is the remedy's register number."""
+    return REMEDY_CITED.sub(lambda mo: ("R" if (mo.group(1) or mo.group(2)) == "R" else "r") + f"emedy {mo.group(3)}",
+                            text)
+
+
+def link_remedies(M, text):
+    """Each "remedy n" in a restore card's text, a link to remedy n's card where the runbook writes it."""
+    byn = {n: rid for rid, n in remedy_number(M).items()}
+    return REMEDY_CITED.sub(lambda mo: (f'<a href="#restore-{esc(byn[int(mo.group(3))])}">{remedy_words(mo.group(0))}</a>'
+                                        if int(mo.group(3)) in byn else remedy_words(mo.group(0))), text)
 
 
 def id_name(M, x):
@@ -1935,8 +2245,8 @@ def id_name(M, x):
         return f"“{move_name(M, x)}”"
     if x in M["remedies"]:
         n = remedy_number(M).get(x)
-        return f"restore action {n}" if n else ("what not to do" if M["remedies"][x].get("kind") == "do not"
-                                                else "a restore action")
+        return f"remedy {n}" if n else ("what not to do" if M["remedies"][x].get("kind") == "do not"
+                                        else "a remedy")
     if x in M["measures"]:
         return f"“{M['measures'][x]['measure']}”"
     if x in M["subj"]:
@@ -1967,18 +2277,64 @@ def unid(M, text):
         names = list(dict.fromkeys(n for n in (id_name(M, x) for x in re.findall(ID, mo.group(0))) if n))
         return (", ".join(names[:-1]) + " and " + names[-1]) if len(names) > 1 else "".join(names)
     t = IDS.sub(run, t)
-    return re.sub(r"(?<![\w)])\(\s*\)", "", re.sub(r"\s+([;,.:)])", r"\1", re.sub(r"  +", " ", t))).strip()  # now() stays
+    return re.sub(r"(?<![\w)])\(\s*\)", "", re.sub(r"\s+([;,:)]|\.(?!\w))", r"\1", re.sub(r"  +", " ", t))).strip()  # now() stays
+
+
+def states_said(M, text):
+    """Register prose with each lifecycle state named as the cards name it (`state_name`: AwaitingValidation reads
+    "Awaiting validation"). A value in quotes or in a code span is a literal, as the database or a command holds it,
+    and stays as written."""
+    import stage_flow_views as sfv  # state_name lives with the cards; imported here, as it imports this module
+    names = {s: sfv.state_name(s) for s in {state(v.get(k)) for v in M["moves"].values()
+                                            for k in ("from_state", "to_state")} - {"(none)"}}
+    names = {s: n for s, n in names.items() if n != s and not s.startswith("implicit:")}
+    if not names:
+        return text
+    word = re.compile(r"(?<![\w'\"`])(" + "|".join(re.escape(s) for s in sorted(names, key=len, reverse=True)) +
+                      r")(?![\w'\"`])")
+    return "".join(piece if piece.startswith("`") else word.sub(lambda mo: names[mo.group(1)], piece)
+                   for piece in re.split(r"(`[^`]*`)", text))
 
 
 def say(M, text):
-    """Register or generated prose as HTML: ids named, citations out, escaped, its markdown made HTML."""
-    t = html.escape(unid(M, unpipe(text)), quote=False)
+    """Register or generated prose as HTML: ids named, citations out, states named, escaped, its markdown made HTML."""
+    t = html.escape(states_said(M, remedy_words(unid(M, unpipe(text)))), quote=False)
     t = re.sub(r"\[ALERT\.md\]\(ALERT\.md\)", '<a href="ALERT.html">the alerts page</a>', t)
     t = re.sub(r"\[RUNBOOK\.md\]\(RUNBOOK\.md\)", '<a href="RUNBOOK.html">the runbook</a>', t)
     t = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", t)
     t = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", t)
     t = re.sub(r"(?<![\w*])\*([^*]+)\*(?![\w*])", r"<i>\1</i>", t)
     return re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
+
+
+def given_names(M):
+    """The names the register gives (each part, step, stage, flow and the system), which read as names, never code."""
+    if "_given" not in M:
+        R = M["R"]
+        rows = [M["subj"].values(), R.get("steps", []), R.get("stages", []), R.get("flows", []), R.get("about", [])]
+        M["_given"] = {(r.get(k) or "").strip() for rs in rows for r in rs for k in ("name", "system")} - {""}
+    return M["_given"]
+
+
+_KEEP = re.compile(r"(<(code|pre|a)\b[^>]*>.*?</\2>|<[^>]+>)", re.S)
+
+
+def code_face(M, html_text):
+    """Page HTML with each code term in its text (outside tags, code, commands and links) set in the shared code face,
+    as on the cards (page_style.marked): page_html runs it over a whole page."""
+    out = []
+    for i, piece in enumerate(_KEEP.split(html_text)):
+        if i % 3 == 0:  # text between tags: already escaped, so marked on its unescaped words
+            out.append(ps.marked(html.unescape(piece), given_names(M)).replace("&#x27;", "'").replace("&quot;", '"')
+                       if piece else "")
+        elif i % 3 == 1:
+            out.append(piece)
+    return "".join(out)
+
+
+def say_prose(M, text):
+    """A long register field broken up as a card's is (page_style.prose), each piece read by `say`."""
+    return ps.prose(unpipe(text), given_names(M), inline=lambda t: say(M, t))
 
 
 def cap(text):
@@ -2066,19 +2422,30 @@ def cut_top(t, top, pattern):
     return out + [(sep, t[last:])]
 
 
-def code_start(M, piece, after_code):
+SHELL_LOOP = re.compile(r"\b(?:for|while|until)\s+.*?;\s*do\b.*?;\s*done\b")
+SQL_OPENING = re.compile(r"(?:SELECT|WITH|SHOW|UPDATE|INSERT|DELETE|EXPLAIN)\b")
+
+
+def code_start(M, piece, after_code, first=False):
     """Where a command starts in one piece of a field: a program the register's commands start with, at the start
     of the piece or after a top-level comma or colon; or a statement in capitals (SELECT) after a top-level colon,
-    or at the start of a piece that follows a command. None for a piece that is prose."""
+    or at the start of a piece that follows a command; or, after a top-level "run", a program, a shell loop, or a
+    word with a flag straight after it (run psql -U ...). A field's first piece may open on a SQL statement. None for
+    a piece that is prose."""
     top = top_level(piece)
     if top is None:
         return None
-    for mo in re.finditer(r"(?:^|(?<=[,:]\s))([A-Za-z][\w.-]*)\b", piece):
+    for mo in re.finditer(r"(?:^|(?<=[,:]\s)|(?<=\brun\s))([A-Za-z][\w.-]*)\b", piece):
         p, w = mo.start(1), mo.group(1)
         if not top[p]:
             continue
         colon = piece[:p].rstrip().endswith(":")
+        run = piece[:p].endswith("run ")
         if w in programs(M) or (re.fullmatch(r"[A-Z]{2,}", w) and (colon or (p == 0 and after_code))):
+            return p
+        if p == 0 and first and SQL_OPENING.match(piece):
+            return p
+        if run and (SHELL_LOOP.match(piece, p) or re.match(r"[a-z][\w.-]*\s+--?[A-Za-z]", piece[p:])):
             return p
     return None
 
@@ -2117,35 +2484,44 @@ def how_parts(M, text):
     if top is None:
         return None
     out, after_code = [], False
+    # a shell loop (for ...; do ...; done) is one command: its semicolons cut nothing
+    for mo in SHELL_LOOP.finditer(t):
+        top[mo.start():mo.end()] = [False if c == ";" else x for c, x in zip(mo.group(0), top[mo.start():mo.end()])]
     # a command ends at a top-level ";", a bare "and", ", then", or a sentence that starts after a closing quote or
     # a full stop
-    pieces = cut_top(t, top, r";\s*|\s+and\s+|,\s+then\s+|(?<=[\"'])\s+(?=[A-Z][a-z]+\s+[a-z])|"
+    pieces = cut_top(t, top, r";\s*|\s+and\s+|,\s+then:?\s+|(?<=[\"'])\s+(?=[A-Z][a-z]+\s+[a-z])|"
                              r"\.\s+(?=[A-Z][a-z]+\s+[a-z])")
     for n, (sep, piece) in enumerate(pieces):
         whole = piece.strip()
         body = re.sub(r"^(?:and|then)\s+", "", whole)
-        p = code_start(M, body, after_code)
+        p = code_start(M, body, after_code, first=n == 0)
         if p is None:
             # a new sentence after a command drops the separator and a bare "and" before it
             out.append(("prose", re.sub(r"^and\s+", "", whole) if after_code else sep + piece))
             after_code = False
             continue
         lead = whole[:len(whole) - len(body) + p]
+        if after_code and re.search(r"\bthen\b", sep + whole[:len(whole) - len(body)]):
+            out.append(("prose", "then:"))  # the order between two commands is said, not dropped
         lead = re.sub(r"^(?:and|then)\s+", "", lead) if after_code else sep + lead
         if lead.strip():
             out.append(("prose", lead))
         code, notes = trailing_notes(body[p:].strip())
-        if top_level(code) is None or not code:
+        if top_level(code) is None and not SHELL_LOOP.match(code) or not code:
             return None
-        if code.split()[0] in programs(M):
-            code = code.rstrip(";").rstrip()
-        elif n + 1 < len(pieces) and pieces[n + 1][0].startswith(";") and not notes:
-            code += ";"  # a statement (SQL) keeps the semicolon that ends it
+        if code.split()[0] in programs(M) or SHELL_LOOP.match(code) or not re.match(r"[A-Z]{2,}\b", code):
+            code = code.rstrip(";,").rstrip()
+        elif not code.endswith(";"):
+            code += ";"  # a statement (SQL) ends with its semicolon, so it runs as pasted at its prompt
         out.append(("code", code))
         out += [("note", n) for n in notes]
         after_code = True
     if not any(k == "code" for k, _ in out):
         return None
+    # a statement that opens the field, then the shell it runs in: the shell is said first, as it is done first
+    if out[0][0] == "code" and re.match(r"[A-Z]{2,}\b", out[0][1]) and len(out) >= 3 and out[-1][0] == "code" \
+            and out[-2][0] == "prose" and not re.match(r"[A-Z]{2,}\b", out[-1][1]):
+        out = out[-2:] + out[:-2]
     merged = []
     for k, x in out:
         if k == "prose" and merged and merged[-1][0] == "prose":
@@ -2158,7 +2534,7 @@ def how_parts(M, text):
 def prose_html(M, text):
     """One prose piece of a command field as a sentence: a command written in parentheses inside it is set as code."""
     t = re.sub(r"^[\s;,]+", "", text).rstrip()
-    lead = t.endswith((":", ","))  # it leads into the command after it
+    lead = t.endswith((":", ",")) or re.search(r"\brun$", t)  # it leads into the command after it
     t = re.sub(r"[\s;,:]+$", "", t)
     if not t:
         return ""
@@ -2212,6 +2588,11 @@ def how_block(M, text, prose_ok=False):
         t = unpipe(text).strip()
         if prose_ok and t and not re.search(r"\||\s--?[A-Za-z]|=|<\w", t):
             return f"<p>{cap(say(M, keep_claims(t)))}</p>"
+        # an instruction that holds its command in parentheses: the sentence as prose, the command in it set as code,
+        # never the sentence inside a block that a reader would paste
+        if any(x.split()[:1] and x.split()[0] in programs(M) for x in re.findall(r"\(([^()]+)", t)) \
+                and t.split()[0] not in programs(M):
+            return prose_html(M, t)
         return how_block_whole(M, text)
     out = []
     for k, x in parts:
@@ -2228,68 +2609,62 @@ def how_block(M, text, prose_ok=False):
     return "".join(out)
 
 
-CSS = """
-:root{--bg:#f6f7f5;--surf:#fff;--fg:#1d2420;--muted:#5d6862;--line:#c5cdc8;--bar:#e3e8e4;--lit:#1f6e8c;
---ok:#2f7d4f;--bad:#b4561f;color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1e1c;--surf:#232725;--fg:#e4e9e5;
---muted:#9aa59f;--line:#4b544f;--bar:#2e3330;--lit:#6cc0de;--ok:#6fc28f;--bad:#e08a52;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#1b1e1c;--surf:#232725;--fg:#e4e9e5;--muted:#9aa59f;--line:#4b544f;--bar:#2e3330;
---lit:#6cc0de;--ok:#6fc28f;--bad:#e08a52;color-scheme:dark}
+CSS = ps.CSS + """
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{line-height:1.55}
 main{max-width:76rem;margin:0 auto;padding:24px 16px 64px;display:grid;gap:24px}
-a{color:var(--lit)}
-h1{font:600 1.6rem/1.25 Georgia,serif;margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-h2{font:600 1.3rem/1.3 Georgia,serif;margin:0}
-h3{font-size:1rem;margin:0}
+a{color:var(--m-acc)}
+h1{margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 p{margin:0 0 6px;max-width:68rem}
-.doc{background:var(--surf);border:1px solid var(--line);border-radius:6px;padding:18px 20px;display:grid;gap:12px;
+.doc{background:var(--m-col);border:1px solid var(--m-line);border-radius:6px;padding:18px 20px;display:grid;gap:12px;
 min-width:0}
-.trail{color:var(--lit);font-size:13px}
-.lbl{font:500 .72rem/1.4 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.trail{color:var(--m-acc);font-size:13px}
+.lbl{font:500 13px/1.4 var(--m-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--m-ink2)}
 .landing{display:grid;grid-template-columns:1fr 1fr;gap:24px}
 @media (max-width:760px){.landing{grid-template-columns:1fr}}
 .col{display:grid;gap:8px;align-content:start;min-width:0}
-.card{border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:grid;gap:2px;text-decoration:none;
-color:var(--fg)}
-a.card b{color:var(--lit)}
-.card.gap{border-color:var(--bad)}.card.gap b{color:var(--bad)}
-.sub{color:var(--muted);font-size:13px}
-.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:10px;border:1px solid var(--line);
-text-decoration:none;color:var(--fg)}
-.chip.ok{border-color:var(--ok);color:var(--ok)}.chip.bad{border-color:var(--bad);color:var(--bad)}
-.chip.warn{color:var(--muted)}
-.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px;color:var(--muted)}
-.meta b{color:var(--fg)}
-.now{border:2px solid var(--fg);border-radius:6px;padding:10px 14px}
+.card{border:1px solid var(--m-line);border-radius:6px;padding:10px 12px;display:grid;gap:2px;text-decoration:none;
+color:var(--m-ink)}
+a.card b{color:var(--m-acc)}
+.card.gap{border-color:var(--m-bad)}.card.gap b{color:var(--m-bad)}
+.sub{color:var(--m-ink2);font-size:13px}
+.chip{display:inline-block;font-size:13px;padding:1px 8px;border-radius:10px;border:1px solid var(--m-line);
+text-decoration:none;color:var(--m-ink)}
+.chip.ok{border-color:var(--m-ok);color:var(--m-ok)}.chip.bad{border-color:var(--m-bad);color:var(--m-bad)}
+.chip.warn{color:var(--m-ink2)}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px;color:var(--m-ink2)}
+.meta b{color:var(--m-ink)}
+.now{border:2px solid var(--m-ink);border-radius:6px;padding:10px 14px}
 .now ol{margin:6px 0 0;padding-left:1.3em;display:grid;gap:6px}
 .sec{font-weight:600;margin-top:6px}
-.hint{font-weight:400;color:var(--muted);font-size:13px}
+.hint{font-weight:400;color:var(--m-ink2);font-size:13px}
 .tw{overflow-x:auto}
 table{border-collapse:collapse;width:100%}
-td,th{border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
-th{font:500 .72rem/1.4 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-table.chk td:first-child{width:2em;color:var(--muted);font-variant-numeric:tabular-nums}
+td,th{border-bottom:1px solid var(--m-line);padding:6px 8px;vertical-align:top;text-align:left}
+th{font:500 13px/1.4 var(--m-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--m-ink2)}
+table.chk td:first-child{width:2em;color:var(--m-ink2);font-variant-numeric:tabular-nums}
 table.chk td:nth-child(3){width:30%}
 @media (max-width:600px){table.chk tr{display:grid;grid-template-columns:2em 1fr}
-table.chk td{border:0}table.chk tr{border-bottom:1px solid var(--line)}
+table.chk td{border:0}table.chk tr{border-bottom:1px solid var(--m-line)}
 table.chk td:nth-child(3){grid-column:2;width:auto;padding-top:0}}
-tr.grp td{font:500 .72rem/1.4 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;
-color:var(--muted);padding-top:12px}
-details{border-bottom:1px solid var(--line);padding:6px 0}
+tr.grp td{font:500 13px/1.4 var(--m-mono);letter-spacing:.06em;text-transform:uppercase;
+color:var(--m-ink2);padding-top:12px}
+details{border-bottom:1px solid var(--m-line);padding:6px 0}
 details>summary{cursor:pointer}
 details.how{border:0;padding:2px 0}
-details.how>summary{color:var(--lit);font-size:13px}
-.box{margin-top:6px;display:grid;gap:6px;padding:8px 10px;border-left:3px solid var(--line)}
-pre{margin:0;padding:8px 10px;background:var(--bar);border-radius:4px;white-space:pre-wrap;word-break:break-word;
-font:12.5px/1.45 ui-monospace,Consolas,monospace}
-code{font-family:ui-monospace,Consolas,monospace;font-size:.92em}
+details.how>summary{color:var(--m-acc);font-size:13px}
+.box{margin-top:6px;display:grid;gap:6px;padding:8px 10px;border-left:3px solid var(--m-line)}
+pre{margin:0;padding:8px 10px;background:var(--m-page);border-radius:4px;white-space:pre-wrap;word-break:break-word;
+font:13px/1.45 var(--m-mono)}
 .row2{display:flex;flex-wrap:wrap;gap:4px 22px;font-size:14px}
-.small{font-size:13px;color:var(--muted)}
-.done{font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.small{font-size:13px;color:var(--m-ink2)}
+.done{font-size:13px;color:var(--m-ink2);display:flex;gap:14px;flex-wrap:wrap}
 ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
 .ref{display:grid;gap:12px}
 :target{scroll-margin-top:12px}
+main.frame.rbpage section.doc:first-of-type{padding-top:8px}
+main.frame.rbpage p.untested{margin:2px 0 10px;font:600 15px var(--m-sans);color:var(--m-bad)}
+main.frame.rbpage .landing .lbl{font:600 15px var(--m-sans);letter-spacing:0;text-transform:none;color:var(--m-ink)}
 """
 OPEN_TARGET = ("<script>(function(){function go(){try{var h=decodeURIComponent(location.hash.slice(1));"
                "var e=h&&document.getElementById(h);for(var p=e;p;p=p.parentElement){if(p.tagName==='DETAILS')"
@@ -2298,14 +2673,45 @@ OPEN_TARGET = ("<script>(function(){function go(){try{var h=decodeURIComponent(l
                "window.addEventListener('load',go);})();</script>")
 
 
-def page_html(M, title, body):
+def page_html(M, title, body, main_class=""):
     reg, out = M.get("register", "<register>"), M.get("out", "<dir>")
+    main = f'<main class="{main_class}">' if main_class else "<main>"
     return ("<!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.\n"
             f"     Source: {reg}\n     Builder: flow_outputs.py\n"
             f"     Build: python -I flow_outputs.py {reg} {M['flow']['flow_id']} {M['stage']['stage']} --out {out}\n-->\n"
             f'<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)}</title>'
-            f"<style>{CSS}</style></head><body><main>\n{body}\n</main>{OPEN_TARGET}</body></html>\n")
+            f"<style>{CSS}</style></head><body>{main}\n{code_face(M, body)}\n</main>{OPEN_TARGET}</body></html>\n")
+
+
+# The runbook page sits in the frame the flow, stage and step pages wear (page_style.frame_head): its trail opens the
+# map, the flow's page and the stage's page, which one_canvas.py writes at these paths beside it.
+MAP_FILE = "views.html"  # the map, in the register folder (run_status.MAP_FILES)
+STAGE_FILE = "STAGE.html"  # the stage's own page, beside RUNBOOK.html (one_canvas.STAGE_FILE)
+UNTESTED = "No test of this runbook is on record."
+
+
+def flow_words(M):
+    """The flow's page by its title, "Flow: ...", as flow_page.title names it."""
+    return f'Flow: {M["flow"]["name"]}'
+
+
+def stage_words(M):
+    return f'Stage {M["stage"]["order"]}: {M["stage"]["name"]}'
+
+
+def runbook_title(M):
+    return f'Stage {M["stage"]["order"]} runbook: {M["stage"]["name"]}'
+
+
+def tested(M):
+    """Whether the register records a test of this runbook. It has no place to record one yet, so never."""
+    return False
+
+
+def untested_line(M):
+    """The runbook's untested state, said where a responder lands: under the title and atop each alert's entry."""
+    return "" if tested(M) else f'<p class="untested">{UNTESTED}</p>'
 
 
 def chip(M, r, ret=""):
@@ -2314,10 +2720,10 @@ def chip(M, r, ret=""):
     what to record and whom else to tell before escalating."""
     e, rn = r["ending"], remedy_number(M)
     if e == "restore" and r.get("remedy") in rn:
-        return (f'<a class="chip ok" href="#restore-{esc(r["remedy"])}">Yes → Restore: action '
+        return (f'<a class="chip ok" href="#restore-{esc(r["remedy"])}">Yes → Restore: remedy '
                 f'{rn[r["remedy"]]}</a>')
     if e in ("cannot restore", "outside") and r.get("remedy") in rn:
-        return (f'<a class="chip bad" href="#restore-{esc(r["remedy"])}">Yes → Can’t restore here: action '
+        return (f'<a class="chip bad" href="#restore-{esc(r["remedy"])}">Yes → Can’t restore here: remedy '
                 f'{rn[r["remedy"]]}, then escalate to the owner of {esc(escalated_part(M, r))}</a>')
     if e in ("restore", "cannot restore", "outside"):
         return (f'<a class="chip bad" href="#escalate">Yes → Can’t restore here: escalate to the owner '
@@ -2325,15 +2731,14 @@ def chip(M, r, ret=""):
     return f'<span class="chip">Yes → {esc(ENDINGS[e])}</span>'
 
 
-def entry_anchor(M, m, mode_id):
-    """The row of one alert's entry a responder reaches a check from: the check's own row, else the row whose "also
-    check" sends them to it. None where the entry neither works nor links it."""
+def entry_anchors(M, m, mode_id):
+    """The rows of one alert's entry a responder reaches a check from: the check's own row, else every row whose "also
+    check" sends them to it. Empty where the entry neither works nor links it."""
     own = [r["mode_id"] for _, rows, _ in entry_groups(M, m) for r in rows]
     if mode_id in own:
-        return f'{m["handle"]}-{mode_id}'
+        return [f'{m["handle"]}-{mode_id}']
     lk = entry_links(M, m)
-    src = next((x for x in dict.fromkeys(own) if mode_id in lk.get(x, {})), None)
-    return f'{m["handle"]}-{src}' if src else None
+    return [f'{m["handle"]}-{x}' for x in dict.fromkeys(own) if mode_id in lk.get(x, {})]
 
 
 def back_links(M, mode_ids):
@@ -2342,7 +2747,7 @@ def back_links(M, mode_ids):
     rows = {r["mode_id"]: r for r in live(M)}
     out = []
     for m in stage_alerts(M):
-        anchors = list(dict.fromkeys(a for a in (entry_anchor(M, m, y) for y in mode_ids) if a))
+        anchors = list(dict.fromkeys(a for y in mode_ids for a in entry_anchors(M, m, y)))
         for a in anchors:
             mode = a[len(m["handle"]) + 1:]
             what = f": {question(M, rows[mode])}" if len(anchors) > 1 and mode in rows else ""
@@ -2416,6 +2821,19 @@ def span_form(M, m):
             "take only one of them")
 
 
+def tail_form(M, m):
+    """Where a check of the entry reads only the last lines of a log (`--tail`), what a "not found" in them is worth:
+    nothing, unless they reach back to the look-back time. Empty where no check does."""
+    lk = entry_links(M, m)
+    rows = [r for _, rs, _ in entry_groups(M, m) for r in rs] + [r for r in live(M)
+                                                               if any(r["mode_id"] in v for v in lk.values())]
+    if not any(re.search(r"--tail\b", unpipe(r.get("test"))) for r in rows):
+        return ""
+    return (" Where a command reads only the last lines of a log (<code>--tail</code>), a line not found there rules "
+            "its cause out only if the oldest line returned is older than the look-back time; if it is not, note the "
+            "check for the hand-over as not fully run, and go on.")
+
+
 def entry_html(M, m):
     h = m["handle"]
     lk = entry_links(M, m)
@@ -2427,14 +2845,14 @@ def entry_html(M, m):
     win = re.sub(r"^from\s+", "", win)
     groups = entry_groups(M, m)
     parts = ", ".join(name(M, c) for c in M["parts"] if M["subj"][c].get("part_kind") != "person")
-    timing = say(M, "; ".join(dict.fromkeys(M["moves"][mv]["timing"] for mv in M["stage_moves"]
-                                            if M["moves"][mv].get("timing"))) or "the register states none")
+    timing = say(M, "; ".join(step_timings(M))) or "the register states none"
     donts = [M["remedies"][x] for x in entry_donts(M, m)]
     out = [f'<section class="doc" id="alert-{esc(h)}">',
-           f'<div class="trail"><a href="#top">Runbook: {esc(M["stage"]["name"])}</a> › Alert</div>',
-           f"<h2>{esc(m['measure'])}</h2>",
-           f"<p>{cap(say(M, basis(m))) or 'The register states no basis for this alert.'}</p>",
-           *([f"<p>{esc(not_emitted(m))}</p>"] if not_emitted(m) else []),
+           f'<div class="trail"><a href="#top">{esc(runbook_title(M))}</a> › Alert</div>',
+           f"<h2>{esc(m['measure'])}</h2>" + untested_line(M),
+           (lambda b: b if b.startswith("<div") else f"<p>{b}</p>")(say_prose(M, cap(basis(m))) if basis(m) else
+                                                                    "The register states no basis for this alert."),
+           *([f"<p>{esc(not_emitted(m))} {NO_DATA_WHAT}</p>"] if not_emitted(m) else []),
            '<p class="small">It has been above the operators’ threshold for longer than their window '
            f'(<a href="ALERT.html#alert-{esc(h)}">the alert</a>).</p>',
            f'<div class="meta"><span><b>Its cases</b> {say(M, cases)}</span></div>',
@@ -2442,7 +2860,7 @@ def entry_html(M, m):
            '<div class="now"><div class="lbl">Do now</div><ol>',
            "<li><b>List its cases and set the look-back.</b> Every check below runs on these cases, over that time. "
            + ('List them with the alert’s own count:<details class="how" open><summary>How</summary>'
-              f'{how_block(M, m["counted_how"])}</details>' if m.get("counted_how") else
+              f'{count_block(M, m["counted_how"])}</details>' if m.get("counted_how") else
               "The register says nothing about how the alert counts them.") + "</li>",
            f"<li><b>Contain.</b> {say(M, own(contain(M, m, donts=False)))}</li>",
            ("".join('<li class="dont">' + re.sub(r"^(Do not|Never)\b", r"<b>\1</b>", say(M, rem["action"]))
@@ -2453,7 +2871,7 @@ def entry_html(M, m):
            '<div class="sec">Check first</div><table class="chk">']
     for n, (q, end, how) in enumerate(OPENING, 1):
         how = how.format(parts=esc(parts), timing=timing,
-                         waits=" (for a count of cases waiting, with the oldest only just past the bound)"
+                         waits=" (for a count of cases waiting, with the oldest only just past the time limit)"
                          if m.get("form") in WAITING else "",
                          recover="it is recovering if the count falls within one window: confirm it is back under its "
                                  "threshold, then close." if m.get("form") in WAITING else
@@ -2476,10 +2894,11 @@ def entry_html(M, m):
                 "hand-over; where those endings differ, escalate rather than restore. A result you "
                 "cannot read, or a check you cannot run: note it for the hand-over and go on. Where a command asks for "
                 f"a time span in angle brackets, give it the look-back above{span_form(M, m)}; where it asks for case "
-                "ids in angle brackets, give it the ids of the cases you are working.</span></div>",
+                "ids in angle brackets, give it the ids of the cases you are working." + tail_form(M, m) +
+                "</span></div>",
                 '<table class="chk">']
         if len(entry_states(M, m)) > 1:
-            names = ", ".join(f"<code>{esc(shown(b))}</code>" for b in entry_states(M, m))
+            names = ", ".join(esc(said(b)) for b in entry_states(M, m))
             out.append(f'<tr><td></td><td colspan="2">' + (
                 f"Group its cases by the state they are in ({names}) and work each group below that has cases, the "
                 "largest first." if recorded(M) else
@@ -2493,7 +2912,7 @@ def entry_html(M, m):
                     "Shared dependencies: several parts of the stage need them, or they hold cases in several states at "
                     "once" if gh.startswith("Shared dependencies") else esc(gh)) + "</td></tr>")
             elif gh:
-                out.append(f'<tr class="grp"><td></td><td colspan="2">Cases in {esc(shown(b))}'
+                out.append(f'<tr class="grp"><td></td><td colspan="2">Cases in {esc(said(b))}'
                            f'{", or that left the stage from it" if gone else ""}</td></tr>')
             sub = None
             for r in rows:
@@ -2517,7 +2936,7 @@ def entry_html(M, m):
                 continue
             last = g == len(groups) - 1
             out.append(f'<tr><td></td><td><b>None of these explains the cases left'
-                       f'{" in " + esc(shown(b)) if b else ""}.</b></td><td><a class="chip" href="#none">Escalate with '
+                       f'{" in " + esc(said(b)) if b else ""}.</b></td><td><a class="chip" href="#none">Escalate with '
                        f"what you have</a>{'' if last else ' and go on with the next group'}</td></tr>")
         out.append("</table>")
     out += ['<div class="done">When it is restored or handed over: <a href="#close">Close ›</a> '
@@ -2539,10 +2958,11 @@ def runbook_html(M):
     also = also_escalated(M, list(rnum) + donts_of(M, M["fm"]))
     failing = list(dict.fromkeys(list(M["parts"]) + [x for r in live(M) for x in parts_of(r)] + [p for p in also if p in M["subj"]]))
     gaps = [c for c in failing if not owner_of(M, c)]
-    out = [f'<section class="doc" id="top"><div class="trail">{esc(M["flow"]["name"])} › Stage '
-           f'{esc(stage["order"])}: {esc(stage["name"])}</div>',
-           f'<h1>Runbook: {esc(stage["name"])} <span class="chip warn">draft, generated from the register</span></h1>',
-           '<div class="landing"><div class="col"><div class="lbl">An alert sent you here? Go to its entry.</div>']
+    words = stage_words(M)
+    out = ['<section class="doc" id="top">' +
+           ps.frame_head([(ps.MAP, f"../{MAP_FILE}"), (flow_words(M), f'../flow-{M["flow"]["flow_id"]}/FLOW.html'),
+                          (words, STAGE_FILE)], runbook_title(M)) + untested_line(M),
+           '<div class="landing"><div class="col"><div class="lbl">Its alerts</div>']
     out += [f'<a class="card" href="#alert-{esc(m["handle"])}"><b>{esc(m["measure"])}</b>'
             f'<span class="sub">{say(M, m.get("question_it_answers"))}</span></a>' for m in alerts]
     if not alerts:
@@ -2550,36 +2970,41 @@ def runbook_html(M):
     if gaps:
         out.append('<a class="card gap" href="#escalate"><b>Escalation has gaps.</b><span class="sub">No owner is '
                    "named yet for: " + esc(", ".join(name(M, c) for c in gaps)) + "</span></a>")
-    out += ['</div><div class="col"><div class="lbl">New to this stage?</div>',
-            '<details id="stage"><summary>The stage on one page <span class="sub">how a case moves through it, its '
-            "outcomes, what is at stake</span></summary>"]
-    # the stage on one page
-    out.append(f'<p class="small">{say(M, about.get("what_it_is", ""))}</p>' if about.get("what_it_is") else "")
-    out += ['<div class="tw"><table><tr><th>Step</th><th>Right outcome</th><th>From → to</th><th>Done by</th>'
-            "<th>Needs</th></tr>"]
-    for s in M["steps"]:
-        mvs = M["step_moves"][s["step"]]
-        ft = "; ".join(f"{state(moves[x]['from_state'])} → {state(moves[x]['to_state'])}" for x in mvs)
-        out.append(f"<tr><td>{esc(step_title(M['labels'], s))}</td><td>{say(M, outcome(s))}</td><td>{esc(ft)}</td>"
-                   f"<td>{esc(', '.join(name(M, c) for c in M['performers'][s['step']]))}</td>"
-                   f"<td>{esc(', '.join(name(M, c) for c in M['supporters'][s['step']]) or '—')}</td></tr>")
-    out.append("</table></div>")
-    last = [s for s in M["steps"] if to_states(M, s["step"]) & set(M["exits"])]
-    out.append(f"<p><b>Expected of the stage.</b> A case that enters it leaves within the promise "
-               f"({say(M, stage.get('promise', '')) or 'the register states none'}), in one of these ways:</p><ul>")
-    out += [f"<li>{esc(step_title(M['labels'], s))}: {say(M, outcome(s))}</li>" for s in last] + ["</ul>"]
+    # the stage is its own page: one link to it, never a copy of it here
+    out += ['</div><div class="col"><div class="lbl">The stage</div>',
+            f'<a class="card" href="{STAGE_FILE}"><b>{esc(words)}</b><span class="sub">its process steps, outcomes and '
+            "measures</span></a>"]
+    # what is at stake, for the call to declare an incident: written in the escalation fold, where that call is made
     stake = [f"<li><b>{esc(a['attribute'])}</b>: {say(M, a['what_is_at_stake'])}</li>"
              for a in R["case-attributes"] if a.get("flow") == M["flow"]["flow_id"]]
     stake += [f"<li><b>Cannot be undone:</b> {say(M, move_name(M, mv))}</li>"
               for mv in M["stage_moves"] if moves[mv].get("irreversible") == "yes"]
     sids = [s["step"] for s in M["steps"]]
     stake += [f"<li>{esc(at_stake(M, i))}: counted "
-              f"in {esc(i.get('unit', ''))}. {say(M, i.get('note', ''))}</li>" for i in R["step-impact"] if i["step"] in sids]
-    out += ["<p><b>What is at stake.</b></p>", "<ul>" + "".join(stake) + "</ul>" if stake else
-            "<p>The register states nothing at stake for this stage.</p>", "</details>"]
-    out += ['<div class="lbl" style="margin-top:14px">Reference, used by every entry</div>']
+              f"in {say(M, i.get('unit', ''))}. {say(M, i.get('note', ''))}</li>" for i in R["step-impact"] if i["step"] in sids]
+    stake = once(stake)
+    stake_html = ("<p><b>What is at stake.</b></p>" + ("<ul>" + "".join(stake) + "</ul>" if stake else
+                  "<p>The register states nothing at stake for this stage.</p>"))
+    out += ['<div class="lbl" style="margin-top:14px">Shared by every alert</div>']
+    # before you start: first, as its name says
+    used = list(dict.fromkeys(x for r in live(M) for x in ids(r["measures"])))
+    by_part = {}
+    for x in used:
+        if x in M["measures"]:
+            by_part.setdefault(M["measures"][x]["subject_id"], [])
+            by_part[M["measures"][x]["subject_id"]] = once(by_part[M["measures"][x]["subject_id"]] +
+                                                           [M["measures"][x]["measure"]])
+    apps = [c for c in M["parts"] if M["subj"][c].get("band") == "application" and M["subj"][c].get("level") == "component"]
+    out += ['<details id="access"><summary>Before you start: the access you need</summary>',
+            "<p>You need to be able to read each of these. A check you cannot run is a gap in this runbook: note it.</p>"
+            "<ul>"]
+    out += once(f"<li><b>{esc(name(M, p))}</b>: {esc('; '.join(ms))}</li>" for p, ms in by_part.items())
+    if apps:
+        out.append(f"<li><b>Deployment, configuration and restart history</b> for "
+                   f"{esc(', '.join(name(M, c) for c in apps))}.</li>")
+    out += ["</ul></details>"]
     # every check, written once
-    out.append('<details id="checks"><summary>Every check, written once</summary><div class="ref">')
+    out.append('<details id="checks"><summary>Every check</summary><div class="ref">')
     ent = {m["handle"]: m for m in alerts}
     for t, r in num.items():
         if not r:
@@ -2599,16 +3024,14 @@ def runbook_html(M):
     ruled = [r for r in M["fm"] if r.get("ending") == "not possible"]
     if ruled:
         out.append('<details class="how"><summary>Causes the design rules out, so no check is needed</summary><ul>')
-        out += [f"<li>{esc(part_names(M, r))}, {esc(r['mode'])}: "
-                f"{say(M, r['failure'].removeprefix('not possible here:').strip())}</li>" for r in ruled]
+        out += once(f"<li>{esc(part_names(M, r))}, {esc(r['mode'])}: "
+                    f"{say(M, r['failure'].removeprefix('not possible here:').strip())}</li>" for r in ruled)
         out.append("</ul></details>")
     out.append("</div></details>")
     # restore
-    out.append('<details id="restore"><summary>Restore <span class="sub">one card per action; each returns you to '
-               "your entry</span></summary><div class=\"ref\">")
+    out.append('<details id="restore"><summary>Restore</summary><div class="ref">')
     out.append("<p>After any action that restores: go back to the entry of the alert that fired and run its checks "
                "again for every case still affected, since a restore can leave cases in other states.</p>")
-    byn = {n: rid for rid, n in rnum.items()}
     for rid, n in rnum.items():
         rem = M["remedies"][rid]
         exp = say(M, rem.get("expected", ""))
@@ -2619,30 +3042,27 @@ def runbook_html(M):
         more = "".join(f"<p>Also escalate to {esc(party_text(M, p))}.</p>" for p, rs in also.items() if rid in rs)
         back = back_links(M, [r["mode_id"] for r in live(M) if r.get("remedy") == rid])
         back = " ".join(x for x in [back] + [
-            f'<a href="#restore-{esc(o)}">‹ Back to Action {k}</a>' for o, k in rnum.items()
+            f'<a href="#restore-{esc(o)}">‹ Back to remedy {k}</a>' for o, k in rnum.items()
             if o != rid and re.search(rf"\b{re.escape(rid)}\b", unpipe(M["remedies"][o].get("if_different", "")))] if x)
         more += f'<div class="row2">{back}</div>' if back else ""
-        card = (f'<div class="card" id="restore-{esc(rid)}"><h3>Action {n}: {esc(rem["kind"])}</h3>'
-                + ("<p><b>Needs approval before it is run.</b></p>" if rem.get("needs_approval") == "yes" else "")
-                + how_block(M, rem.get("action"), prose_ok=True) +
-                f'<div class="row2"><span><b>Expected</b> {exp}</span></div>'
-                f'<div class="row2"><span><b>If different</b> '
-                f'{say(M, rem.get("if_different")) or "escalate to the owner of the failing part."}</span></div>'
-                f"{more}</div>")
-        # a restore action this one sends the responder on to is a link to its card
-        out.append(re.sub(r"(?<![\w>])restore action (\d+)\b(?![^<]*</code>)",
-                          lambda mo: (f'<a href="#restore-{esc(byn[int(mo.group(1))])}">{mo.group(0)}</a>'
-                                      if int(mo.group(1)) in byn else mo.group(0)), card))
+        # a remedy this one sends the responder on to is a link to its card
+        body = link_remedies(M, (f"<p><b>{esc(approval_text(M, rid))}</b></p>" if rem.get("needs_approval") == "yes"
+                                 else "") + how_block(M, rem.get("action"), prose_ok=True) +
+                             f'<div class="row2"><span><b>Expected</b> {exp}</span></div>'
+                             f'<div class="row2"><span><b>If different</b> '
+                             f'{say(M, rem.get("if_different")) or "escalate to the owner of the failing part."}'
+                             "</span></div>")
+        out.append(f'<div class="card" id="restore-{esc(rid)}"><h3>Remedy {n}: {esc(rem["kind"])}</h3>{body}{more}</div>')
     if not rnum:
-        out.append("<p>The register holds no restore action for this stage's checks.</p>")
+        out.append("<p>The register holds no remedy for this stage's checks.</p>")
     donts = [M["remedies"][x] for x in donts_of(M, M["fm"])]
     if donts:
-        out += ["<p><b>What not to do.</b></p><ul>"] + [f"<li>{say(M, rem['action'])}</li>" for rem in donts] + ["</ul>"]
+        out += ["<p><b>What not to do.</b></p><ul>"] + once(f"<li>{say(M, rem['action'])}</li>" for rem in donts) + ["</ul>"]
     out.append("</div></details>")
     # escalate or declare
     out += ['<details id="escalate"><summary>Escalate or declare an incident</summary><div class="ref">',
-            "<p><b>Escalate</b> to the owner of the failing part when a check’s ending says to, when a restore "
-            "action does not give its expected result, or when an action needs approval.</p>",
+            "<p><b>Escalate</b> to the owner of the failing part when a check’s ending says to, when a remedy "
+            "does not give its expected result, or when one needs approval.</p>",
             '<div class="tw"><table><tr><th>Part</th><th>Owner</th><th>As of</th><th>Responder</th>'
             "<th>Checks that end in escalation to it</th></tr>"]
     for c in failing:
@@ -2654,11 +3074,11 @@ def runbook_html(M):
     for p, rs in also.items():
         if p not in M["subj"]:
             out.append(f"<tr><td>{esc(party_label(M, p))}</td><td>none named yet</td><td>—</td><td>none named yet</td>"
-                       f"<td>— (a restore action escalates to it)</td></tr>")
+                       f"<td>— (a remedy escalates to it)</td></tr>")
     out += ["</table></div>",
             "<p><b>Declare an incident</b> when the operators’ severity definition says to: the register holds "
-            "no trigger for it. What is at stake here, for that call, is under <a href=\"#stage\">The stage on one "
-            "page</a>. Keep working the entry while it is declared.</p>",
+            "no trigger for it. Keep working the entry while it is declared. For that call, what is at stake here is "
+            f'below; the stage itself is <a href="{STAGE_FILE}">{esc(words)}</a>.</p>', stake_html,
             '<p id="handover"><b>What to hand over:</b> the alert and what it guards (its entry); ' +
             ("the affected case ids by state" if recorded(M) else
              "the counts the measures showed (no record of this stage holds case ids)") +
@@ -2680,27 +3100,12 @@ def runbook_html(M):
             'explained: <a href="#escalate">escalate</a> them with what you have, and note the gap in this runbook '
             "(a cause it does not cover, or a check that could not be run). Then go on with the next group of cases "
             "that still has some: an unexplained group does not end the walk for the others.</p></details>"]
-    # before you start
-    used = list(dict.fromkeys(x for r in live(M) for x in ids(r["measures"])))
-    by_part = {}
-    for x in used:
-        if x in M["measures"]:
-            by_part.setdefault(M["measures"][x]["subject_id"], []).append(M["measures"][x]["measure"])
-    apps = [c for c in M["parts"] if M["subj"][c].get("band") == "application" and M["subj"][c].get("level") == "component"]
-    out += ['<details id="access"><summary>Before you start: the access you need</summary>',
-            "<p>You need to be able to read each of these. A check you cannot run is a gap in this runbook: note it.</p>"
-            "<ul>"]
-    out += [f"<li><b>{esc(name(M, p))}</b>: {esc('; '.join(ms))}</li>" for p, ms in by_part.items()]
-    if apps:
-        out.append(f"<li><b>Deployment, configuration and restart history</b> for "
-                   f"{esc(', '.join(name(M, c) for c in apps))}.</li>")
-    out += ["</ul></details>"]
     # about
-    out += ['<details id="about"><summary>About this runbook <span class="sub">who keeps it, when it was last '
-            "tested, its register ids</span></summary>",
+    out += ['<details id="about"><summary>About this runbook <span class="sub">where it comes from, its register ids'
+            "</span></summary>",
             f"<p>Generated from the register{' as of ' + esc(about['as_of']) if about.get('as_of') else ''}. "
-            "The register names no keeper for it and records no test of it. To change it, change the register and "
-            "generate it again; never edit this file.</p>",
+            + ("The register records no test of it. " if not tested(M) else "") +
+            "To change it, change the register and generate it again; never edit this file.</p>",
             '<div class="tw"><table><tr><th>Check</th><th>Failure mode</th><th>Lifecycle rows</th><th>Part</th>'
             "<th>Source</th></tr>"]
     for t, r in num.items():
@@ -2708,20 +3113,21 @@ def runbook_html(M):
             out.append(f"<tr><td>{esc(question(M, r))}</td><td>{esc(r['mode_id'])} {esc(r['hop'])}: {esc(r['mode'])}"
                        f"</td><td>{esc(', '.join(ids(r['moves'])))}</td><td>{esc(r['part'])}</td>"
                        f"<td>{esc(r.get('source', ''))}</td></tr>")
-    out += ["</table></div>", "<ul>"] + [f"<li>Action {n}: {esc(rid)}</li>" for rid, n in rnum.items()]
-    out += ["</ul></details></div></div></section>"]
+    out += ["</table></div>"] + (["<p>Remedy <i>n</i> is the register's RM<i>n</i> (<code>remedies.csv</code>).</p>"]
+                                 if rnum else [])
+    out += ["</details></div></div></section>"]
     for m in alerts:
         out += entry_html(M, m)
-    return page_html(M, f"Runbook: {stage['name']}", "\n".join(x for x in out if x))
+    return page_html(M, runbook_title(M), "\n".join(x for x in out if x), "frame rbpage")
 
 
 def alert_html(M):
     stage, sid = M["stage"], M["stage"]["stage"]
-    paging = [m for m in M["alerts"] if m.get("stage") == sid]
-    timings = "; ".join(dict.fromkeys(M["moves"][mv]["timing"] for mv in M["stage_moves"]
-                                      if M["moves"][mv].get("timing")))
-    out = [f'<section class="doc"><div class="trail">{esc(M["flow"]["name"])} › Stage {esc(stage["order"])}: '
-           f'{esc(stage["name"])}</div><h1>Alerts proposed: {esc(stage["name"])}</h1>',
+    paging = stage_alerts(M)
+    timings = "; ".join(step_timings(M))
+    out = ['<section class="doc">' + ps.frame_head(  # the runbook page's frame, with the runbook as the last step
+               [(ps.MAP, f"../{MAP_FILE}"), (flow_words(M), f'../flow-{M["flow"]["flow_id"]}/FLOW.html'),
+                (stage_words(M), STAGE_FILE), ("Runbook", "RUNBOOK.html")], f"Alerts proposed: {stage['name']}"),
            "<p>Each is its own alert. When one fires, follow its own entry in "
            '<a href="RUNBOOK.html">the runbook</a>. Thresholds, windows and whether an alert pages a person are the '
            "operators’ values, not set here.</p></section>"]
@@ -2729,22 +3135,26 @@ def alert_html(M):
         out.append('<section class="doc"><p>No alert is proposed for this stage in the register.</p></section>')
     for m in paging:
         h = m["handle"]
-        rows = [("The question it answers", say(M, m.get("question_it_answers"))),
+        rows = ([("Where it is placed", say(M, placed(M, m)))] if elsewhere(paging) else []) + [
+                ("The question it answers", say(M, m.get("question_it_answers"))),
                 ("What it counts", count_block(M, m.get("counted_how")) +
                  f'<p class="small">Counted on {esc(m.get("counted_on"))}.</p>'),
-                ("Why it is proposed", and_not_emitted(say(M, basis(m)) or "the register states no basis for it", m)),
-                ("Which cases its entry works", say(M, alert_grouping(M, m, False))),
+                ("Why it is proposed", and_not_emitted(say_prose(M, basis(m)) or "the register states no basis for it", m)),
+                ("Which cases its entry works", say_prose(M, alert_grouping(M, m, False))),
                 ("Threshold", say(M, THRESHOLD)),
                 ("Window", "<i>Operator value, not set here.</i> How long the condition must hold before it fires."
                  + (f" What the design assumes about time: {say(M, timings)}." if timings else ""))]
-        if m.get("form") in WAITING:
-            rows.append(("Age bound", f"<i>Operator value.</i> The stage’s promise: "
-                                      f"{say(M, stage.get('promise', ''))}"))
+        if m.get("form") in WAITING and m.get("counted_on") == "cases":
+            limit = time_limit(stage.get("bound_in_code"))
+            rows.append(("Time limit", "<i>Operator value.</i> How old a waiting case may be is the operators’ value"
+                                      + (f"; the stage’s time limit in the code: {say(M, limit)}" if limit else ".")))
         rows += [("No data", "It also fires when its measure cannot be counted for longer than the window. A count "
                              "that finds no events in a window is zero, not missing data. A count fails when what it is "
                              "read from is down; What it counts says where that is."),
                  ("Symptom, not cause", "It fires on what happens to cases, not on any component’s errors. "
-                                        "Telling causes apart is the runbook’s job."),
+                                        "Telling causes apart is the runbook’s job." if m.get("counted_on") == "cases"
+                  else f"It fires on its {esc(level(m))}’s count of {esc(m.get('counted_on') or 'what it counts')}, "
+                       "which is not a count of cases. Telling causes apart is the runbook’s job."),
                  ("Exists today", "yes" + (f", but misleading: {say(M, m['defect'])}" if m.get("defect") else "")
                   if m.get("exists") == "yes" else "no, proposed")]
         out += [f'<section class="doc" id="alert-{esc(h)}"><h2>{esc(m["measure"])}</h2>',
@@ -2756,8 +3166,8 @@ def alert_html(M):
     used = list(dict.fromkeys(x for r in live(M) for x in ids(r["measures"])))
     comp = [M["measures"][x]["measure"] for x in used if x in M["measures"] and x not in [m["handle"] for m in paging]]
     out += ['<section class="doc"><h2>Companion measures</h2><p>Read by the runbook’s checks, not proposed for '
-            "alerting:</p><ul>"] + [f"<li>{esc(x)}</li>" for x in comp] + ["</ul></section>"]
-    return page_html(M, f"Alerts: {stage['name']}", "\n".join(out))
+            "alerting:</p><ul>"] + once(f"<li>{esc(x)}</li>" for x in comp) + ["</ul></section>"]
+    return page_html(M, f"Alerts: {stage['name']}", "\n".join(out), "frame rbpage")
 
 
 WRITERS = {name: (lambda fn: lambda M: relabel_prose(M["labels"], M["R"]["steps"], fn(M)))(fn) for name, fn in
@@ -2786,7 +3196,7 @@ def main(argv=None):
     M.update(register=a.register, out=a.out or "<dir>")
     err, warn = check(M)
     for w in warn:
-        print("warning:", w)
+        print(w if w.startswith("note: ") else "warning: " + w)
     for e in err:
         print("ERROR:", e)
     rec, gapped, r_err, r_warn = receipt_failures(M["R"], a.flow, a.stage)
@@ -2797,12 +3207,17 @@ def main(argv=None):
     if not [m for m in R["lifecycle"] if m.get("flow", a.flow) in (a.flow, "")]:
         print(f"receipt for {a.flow}: its step set is partial: with no lifecycle rows, no stage's exit and not the "
               f"flow's first step are in it")
-    print(f"{len(err)} errors, {len(warn)} warnings")
+    notes = sum(w.startswith("note: ") for w in warn)
+    print(f"{len(err)} errors, {len(warn) - notes} warnings" + (f", {notes} note{'s' * (notes > 1)}" if notes else ""))
     if a.out:
         out = pathlib.Path(a.out)
         out.mkdir(parents=True, exist_ok=True)
+        alerting = bool(stage_alerts(M))
         for fname in ("STRUCTURE.md", "MEASURES.md") + (() if err else ("ALERT.md", "RUNBOOK.md", "ALERT.html", "RUNBOOK.html")):
-            (out / fname).write_text(WRITERS[fname](M), encoding="utf-8")
+            if fname.startswith("ALERT.") and not alerting:  # no alert, no alert page: one left by an earlier run goes
+                (out / fname).unlink(missing_ok=True)
+                continue
+            (out / fname).write_text(WRITERS[fname](M) + stamp(a.register, a.flow, a.stage), encoding="utf-8")
             print("wrote", out / fname)
     return 1 if err else 0
 
