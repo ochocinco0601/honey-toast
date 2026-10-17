@@ -1,0 +1,62 @@
+{
+ "title": "Example explainer",
+ "name": "example-overview",
+ "about": "It shows the shape of a piece: an opening, a before and after in one frame, and a close on the first thing to do.",
+ "brief": {
+  "purpose": "the purpose file this piece follows, e.g. purpose-teach-a-tool.md",
+  "fix": "The outcome of stage 2 (explainer; explainer and a job aid), its reason, and anything routed to the subject's owner and where.",
+  "viewer": "Who watches, what they already have or know, what they are in the middle of when they need this, and every stated assumption.",
+  "scope": "Where the viewer starts and where the piece stops; what is left out on purpose and where each thing left out is covered.",
+  "where_it_plays": "The form (page, video file, both), sound, and the place viewers will find it.",
+  "must": "Anything it must say or must not show; UNCONFIRMED where it is still a guess.",
+  "source": "What the piece was made from, and its version (a commit, a version line, a date on the page).",
+  "problem": "Purpose line: replace with the purpose file's own lines (problem, action, ...).",
+  "action": "Purpose line: a verb the viewer performs after watching."
+ },
+ "voice": "af_heart",
+ "speed": 1.0,
+ "scenes": [
+  {
+   "id": "open",
+   "idea": "Names the subject and says what the viewer will be able to do after watching.",
+   "lines": [
+    {
+     "say": "This opening line names the subject, and says what the viewer will be able to do in their own work after watching.",
+     "caption": "This opening line names the subject, and says what the viewer will be able to do in their own work after watching.",
+     "stage": "Title card: the subject's name, a rule, An overview."
+    }
+   ]
+  },
+  {
+   "id": "compare",
+   "idea": "The problem and the fix, shown in one frame so they are compared in place.",
+   "lines": [
+    {
+     "say": "Show the problem first, in the frame the fix will use.",
+     "caption": "Show the problem first, in the frame the fix will use.",
+     "stage": "One box, labelled Before, with a drawn cross.",
+     "pause": 2.4
+    },
+    {
+     "say": "Then show the fix in that same frame, so the eye compares in place instead of from memory.",
+     "caption": "Then show the fix in that same frame, so the eye compares in place instead of from memory.",
+     "stage": "The same box, now After, with a drawn tick; Before fades out."
+    }
+   ]
+  },
+  {
+   "id": "start",
+   "idea": "The first act: what the viewer does next, by its real name.",
+   "lines": [
+    {
+     "say": "End on the first thing the viewer does next, by its real name.",
+     "caption": "End on the first thing the viewer does next, by its real name.",
+     "stage": "Start here, above one highlighted chip."
+    }
+   ]
+  }
+ ],
+ "head": 1.3,
+ "gap": 0.4,
+ "tail": 1.3
+}

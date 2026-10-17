@@ -1,0 +1,22 @@
+{
+ "title": "Example Explainer: script and pictures",
+ "heading": "A short explainer of your subject",
+ "lede": "Every word the narrator will say, beside a still of each scene once its picture has finished building. Next comes the playable piece (Stop 3).",
+ "changed": "the plan from Stop 1 is now written as spoken lines, about two minutes long, and drawn.",
+ "ask": "Do the words and the pictures say it right? Is there a line or a picture you would change?",
+ "intro": "Beside each picture are the words the narrator speaks over it. Each picture shows its scene once it has finished building. Select a picture to enlarge it, and select it again to shrink it. On a phone, an enlarged picture scrolls sideways.",
+ "guesses_ask": "Still guessing from Stop 1. Are these right?",
+ "guesses": [
+  {"term": "Where viewers find it", "guess": "each still-unconfirmed answer, as a guess they can correct"}
+ ],
+ "replies": [
+  "\"Go on\": I record the narration, animate the scenes to it, and bring you the playable piece (Stop 3).",
+  "Change the wording of any line, or any picture.",
+  "Correct any guess above."
+ ],
+ "scenes": {
+  "open": {"title": "What this is", "alt": {"1-open": "Title card: Your subject, An overview."}},
+  "compare": {"title": "Before and after", "alt": {"2-compare": "One frame, labelled After, with a drawn tick; the Before version faded out of the same frame."}, "note": "Before and After share one frame, so the viewer compares in place."},
+  "start": {"title": "Where to start", "alt": {"3-start": "Start here, above a highlighted chip: The first step."}}
+ }
+}

@@ -1,0 +1,17 @@
+{
+ "cut": "Rough cut",
+ "changed": "What changed since the person last looked, in one or two sentences, including whether each of their last notes landed and where.",
+ "ask": "Watch the page version above with sound. Did your last notes land? Then anything that does not land, or anything to cut.",
+ "video_text": "The same piece as a file, for anywhere a file has to be sent. Its captions are a track the player can turn on; the page version above also has scene steps and a transcript.",
+ "poster": "stills/1-open.png",
+ "delivery_ask": "Where should the final version go?",
+ "delivery_text": "Where it is placed does not change the piece. Once you approve it, tell me where the page version and the video file should go, and I put them there or hand you exactly what to place.",
+ "guesses": [
+  {"term": "Anything it must say, or must not show", "guess": "nothing beyond your notes so far."}
+ ],
+ "replies": [
+  "\"Approved\": this is the final cut, and where it should go.",
+  "A scene or a moment that does not land, a timing that feels wrong, or something to cut, in either version.",
+  "Correct the guess about what it must not show."
+ ]
+}

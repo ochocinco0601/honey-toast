@@ -1,0 +1,5 @@
+media/
+audio/*.wav
+audio/.work/
+__pycache__/
+package/

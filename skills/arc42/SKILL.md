@@ -303,5 +303,4 @@ Present to the user:
 
 | Skill | Relationship |
 | :---- | :----------- |
-| `/systems-analysis` | **Complementary analysis.** Its structural output feeds arc42 chapters 3, 5, 6, 7. |
 | `/artifact-review` | **Quality assurance.** Can evaluate arc42 output using documentation and comprehension lenses. |

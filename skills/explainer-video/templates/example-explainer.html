@@ -1,0 +1,981 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Example Explainer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* Layout: a one-line title, then a 16:9 stage over a console of caption + transport, with the
+   transcript docked beside it; standfirst and note beneath. Fonts are the system's own: nothing is fetched. */
+:root {
+  --sans: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --serif: Georgia, serif;
+
+  --bg: #EEEDE8;
+  --surface: #FBFAF7;
+  --paper: #FBFAF7;
+  --ink: #14171C;
+  --muted: #5F646B;
+  --line: #CBCED2;
+  --accent: #1F6F78;
+  --accent-soft: #DCEDEE;
+  --caution: #8A5F08;
+  --caution-ui: #C8900F;
+  --good: #2E7D55;
+  --bad: #B33A2E;
+
+  --console-bg: #1B1E23;
+  --console-fg: #F2F1ED;
+  --console-dim: #9BA1A8;
+  --console-line: #3A3F46;
+  --track-rest: #666C75;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1014;
+    --surface: #171A1F;
+    --paper: #1B1F25;
+    --ink: #ECEEF1;
+    --muted: #99A0A8;
+    --line: #353B43;
+    --accent: #6FC3CB;
+    --accent-soft: #1D3436;
+    --caution: #DFA62E;
+    --caution-ui: #DFA62E;
+    --good: #5FBF8C;
+    --bad: #E0847A;
+    --console-bg: #111418;
+    --console-fg: #ECEEF1;
+    --console-dim: #8F969E;
+    --console-line: #2B3037;
+    --track-rest: #5E646C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1014;
+  --surface: #171A1F;
+  --paper: #1B1F25;
+  --ink: #ECEEF1;
+  --muted: #99A0A8;
+  --line: #353B43;
+  --accent: #6FC3CB;
+  --accent-soft: #1D3436;
+  --caution: #DFA62E;
+  --caution-ui: #DFA62E;
+  --good: #5FBF8C;
+  --bad: #E0847A;
+  --console-bg: #111418;
+  --console-fg: #ECEEF1;
+  --console-dim: #8F969E;
+  --console-line: #2B3037;
+  --track-rest: #5E646C;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  margin: 0;
+  padding-inline: 16px;
+  padding-block: 12px 56px;
+}
+* { box-sizing: border-box; }
+.wrap { max-width: 1480px; margin: 0 auto; }
+/* Reading text keeps a reading measure; only the player and its transcript use the full width. */
+.wrap > *:not(.theater) { max-width: 68rem; margin-inline: auto; }
+
+/* The theater: a one-line title, then the player with the transcript docked to its right on a wide
+   window (the video-learning player arrangement) or stacked beneath it on a narrow one.
+   The script sets --pw (player width) and --sw (transcript width) from the measured window. */
+.theater {
+  display: grid; justify-content: center; gap: 10px 16px;
+  grid-template-columns: var(--pw, minmax(0, 1fr));
+}
+@media (min-width: 960px) {
+  .theater { grid-template-columns: var(--pw, minmax(0, 1fr)) var(--sw, 360px); }
+}
+.head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; min-width: 0; }
+.eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted); margin: 0;
+}
+h1 {
+  font-family: var(--serif); font-weight: 500;
+  font-size: 21px; line-height: 1.25; margin: 0;
+}
+.head .stopk { margin-left: auto; }
+.standfirst {
+  color: var(--muted); font-size: 15px; line-height: 1.55;
+  margin: 22px auto 0;
+}
+
+.player { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); min-width: 0; }
+.stage {
+  position: relative; aspect-ratio: 16 / 9; max-width: 100%;
+  background: var(--paper); border-bottom: 1px solid var(--line);
+}
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage svg text { font-family: var(--sans); }
+.stage svg text.mono { font-family: var(--mono); }
+.stage svg text.serif { font-family: var(--serif); }
+
+.poster { position: absolute; inset: 0; display: block; border: 0; background: transparent; cursor: pointer; padding: 0; }
+/* `display` on the class outranks the browser's own rule for [hidden], so without this the poster
+   never leaves and its full-bleed button swallows every click on the stage. */
+.poster[hidden] { display: none; }
+/* The stage rule positions every svg inside .stage absolutely; the pill's icon is not the stage. */
+.poster span svg { position: static; inset: auto; width: 13px; height: 13px; }
+.poster span {
+  position: absolute; left: 50%; top: 79%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 9px; white-space: nowrap;
+  background: var(--console-bg); color: var(--console-fg);
+  font-size: 14px; font-weight: 600; padding: 11px 20px 11px 17px;
+  border-radius: 999px; box-shadow: 0 2px 14px rgb(0 0 0 / .22);
+}
+
+.console { background: var(--console-bg); color: var(--console-fg); }
+.caption { display: flex; gap: 13px; padding: 15px 18px; min-height: 118px; align-items: flex-start; overflow-y: auto; }
+.caption .rule { flex: 0 0 3px; align-self: stretch; background: var(--caution-ui); border-radius: 2px; }
+.caption p {
+  font-family: var(--serif); font-size: clamp(16px, 2.4vw, 19px);
+  line-height: 1.45; margin: 0; min-width: 0; text-wrap: pretty;
+}
+.caption[hidden] { display: none !important; }
+
+.transport {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 12px 11px; border-top: 1px solid var(--console-line); flex-wrap: wrap;
+}
+.transport button {
+  background: transparent; border: 1px solid transparent; color: var(--console-fg);
+  border-radius: 6px; cursor: pointer; display: grid; place-items: center;
+  width: 30px; height: 30px; padding: 0; flex: none;
+}
+.transport button:hover { background: rgb(255 255 255 / .09); }
+.transport button:focus-visible, .poster:focus-visible span,
+.tab:focus-visible, .jump:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; }
+.transport button[aria-pressed="false"] { color: var(--console-dim); }
+.transport button.play {
+  background: var(--console-fg); color: var(--console-bg);
+  width: 34px; height: 34px; border-radius: 7px;
+}
+.transport button.wide {
+  width: auto; min-width: 34px; height: 30px; padding: 0 8px;
+  font-size: 11px; font-weight: 700; font-family: var(--mono); letter-spacing: .03em;
+}
+.transport svg { width: 15px; height: 15px; fill: currentColor; }
+
+.track { position: relative; flex: 1 1 150px; min-width: 90px; height: 30px; display: flex; align-items: center; }
+.track input { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; margin: 0; height: 30px; position: relative; z-index: 2; }
+/* The track fills up to the thumb, so progress is the bar and not just the dot's position.
+   The fill steps with the thumb at each scene boundary rather than running continuously. The
+   filled part and the unplayed groove both keep 3:1 contrast against the console. */
+.track input {
+  --fill: 0%;
+  --played: linear-gradient(to right, var(--console-fg) var(--fill), var(--track-rest) var(--fill));
+}
+.track input::-webkit-slider-runnable-track { height: 4px; background: var(--played); border-radius: 2px; }
+.track input::-moz-range-track { height: 4px; background: var(--played); border-radius: 2px; }
+.track input::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: var(--console-fg); border: 0; margin-top: -3.5px; }
+.track input::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: var(--console-fg); border: 0; }
+.track input:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 1px; border-radius: 4px; }
+.ticks { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.ticks i { position: absolute; top: 50%; width: 1px; height: 9px; margin-top: -4.5px; background: var(--console-dim); }
+.readout { font-family: var(--mono); font-size: 11px; color: var(--console-dim); white-space: nowrap; font-variant-numeric: tabular-nums; flex: none; }
+
+/* The transcript column. On a wide window its contents are taken out of flow, so the grid row is
+   exactly as tall as the player and the column scrolls inside that height. */
+.side {
+  position: relative; min-width: 0; min-height: 0;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+}
+.side-in { position: absolute; inset: 0; display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; }
+@media (max-width: 1099.98px) {
+  .side-in { position: static; }
+  .tpanel { max-height: 24rem; }
+}
+.panelhead {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: none;
+  padding: 9px 10px 9px 14px; border-bottom: 1px solid var(--line);
+}
+.panelhead h2 { font-size: 13px; font-weight: 600; margin: 0; }
+.panelhead .len { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.tabs { margin-left: auto; display: flex; gap: 2px; background: var(--bg); border-radius: 7px; padding: 2px; }
+.tab {
+  border: 0; background: transparent; cursor: pointer; font: inherit;
+  font-size: 12px; font-weight: 600; color: var(--muted); padding: 5px 11px; border-radius: 5px;
+}
+.tab[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.tpanel {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 6px 10px;
+}
+.tpanel:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: -2px; }
+#p-summary { padding: 12px 14px 14px; }
+.summary { font-size: 14.5px; line-height: 1.6; margin: 0; }
+
+ol.transcript, ol.lines { list-style: none; margin: 0; padding: 0; }
+ol.lines { display: grid; gap: 1px; }
+.scn-h {
+  position: sticky; top: 0; z-index: 1; background: var(--surface);
+  margin: 0; padding: 10px 9px 5px;
+  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+}
+.scn-h span { font-family: var(--mono); font-weight: 400; letter-spacing: 0; margin-left: 6px; }
+.jump {
+  display: grid; grid-template-columns: 36px 1fr; gap: 10px; width: 100%;
+  text-align: left; border: 0; background: transparent; font: inherit;
+  cursor: pointer; padding: 6px 9px; border-radius: 6px; color: var(--ink);
+}
+.jump:hover { background: var(--bg); }
+.jump:focus-visible { outline-offset: -2px; }
+.jump[data-on="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--caution-ui); }
+.jump .tc { font-family: var(--mono); font-size: 11px; color: var(--muted); padding-top: 3px; font-variant-numeric: tabular-nums; }
+.jump[data-on="true"] .tc { color: var(--ink); }
+.jump[data-on="true"] .line { font-weight: 500; }
+.jump .line { font-size: 14px; line-height: 1.5; min-width: 0; }
+
+.note { margin: 20px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+.note code { font-family: var(--mono); font-size: .92em; color: var(--ink); }
+.note b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 700px) { .caption { min-height: 150px; } }
+@media (max-width: 460px) { .caption { min-height: 176px; } .readout { font-size: 10px; } }
+</style>
+
+<div class="wrap">
+ <div class="theater">
+  <div class="head">
+    <p class="eyebrow">Explainer</p>
+    <h1>Your subject</h1>
+  </div>
+
+  <div class="player">
+    <div class="stage">
+      <svg id="stage" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Animated explainer of your subject. The narration is written out in the transcript."></svg>
+      <button class="poster" id="poster" type="button" aria-label="Play the explainer">
+        <span><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>Play explainer</span>
+      </button>
+    </div>
+
+    <div class="console">
+      <div class="caption" id="caption">
+        <div class="rule"></div>
+        <p id="captiontext"></p>
+      </div>
+      <div class="transport">
+        <button class="play" id="playbtn" type="button" aria-label="Play">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>
+        </button>
+        <button id="replay" type="button" aria-label="Replay from the start">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.6V0L4.4 3 8 6V3.6a4.4 4.4 0 1 1-4.4 4.4h-1A5.4 5.4 0 1 0 8 2.6z"/></svg>
+        </button>
+        <button id="prev" type="button" aria-label="Previous scene">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 2.5v11L4 8z"/></svg>
+        </button>
+        <div class="track">
+          <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Scene">
+          <div class="ticks" id="ticks"></div>
+        </div>
+        <button id="next" type="button" aria-label="Next scene">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 2.5v11L12 8z"/></svg>
+        </button>
+        <button id="sound" type="button" aria-label="Narration sound, on"></button>
+        <button class="wide" id="cc" type="button" aria-label="Captions, on" aria-pressed="true">CC</button>
+        <button class="wide" id="speed" type="button" aria-label="Playback speed, 1x">1x</button>
+        <span class="readout" id="readout"></span>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side" aria-label="Transcript">
+   <div class="side-in">
+    <div class="panelhead">
+      <span class="len" id="len" aria-label="Running time"></span>
+      <div class="tabs" role="tablist">
+        <button class="tab" id="tab-transcript" type="button" role="tab" aria-selected="true" aria-controls="p-transcript">Transcript</button>
+        <button class="tab" id="tab-summary" type="button" role="tab" aria-selected="false" aria-controls="p-summary" tabindex="-1">Summary</button>
+      </div>
+    </div>
+    <div class="tpanel" id="p-transcript" role="tabpanel" aria-labelledby="tab-transcript">
+      <ol class="transcript" id="transcript"></ol>
+    </div>
+    <div class="tpanel" id="p-summary" role="tabpanel" aria-labelledby="tab-summary" tabindex="0" hidden>
+      <p class="summary">This example has three scenes: an opening that names the subject and what the viewer will be able to do, a before and after shown in one frame, and a close on the first thing to do. A real piece puts its own summary here, or the job aid's text when there is one.</p>
+    </div>
+   </div>
+  </aside>
+ </div>
+
+  <p class="standfirst">An example of the explainer page: replace this line with what the piece is and who it is for.</p>
+
+  <p class="note">The progress bar reports the <b>scene</b>: it holds while a scene plays and steps at the boundary. <b>Sound is optional</b>: turned off, the captions carry the narration, and the piece stops when each scene has finished drawing until you press play.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var INK = "var(--ink)", MUTED = "var(--muted)", ACCENT = "var(--accent)",
+      CAUTION = "var(--caution)", GOOD = "var(--good)", BAD = "var(--bad)",
+      LINE = "var(--line)", PAPER = "var(--paper)";
+
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  /* Shorter than the pause it runs inside, so the picture settles before the voice resumes. */
+  var RAMP = reduce ? 0.12 : 0.25;
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function attrs(o) {
+    var out = "";
+    for (var k in o) if (o[k] !== undefined && o[k] !== null) out += " " + k + '="' + o[k] + '"';
+    return out;
+  }
+  function txt(x, y, s, o) {
+    o = o || {};
+    return "<text" + attrs({ x: x, y: y, fill: o.fill || INK, "font-size": o.size || 24,
+      "font-weight": o.weight || 400, "text-anchor": o.anchor || "start",
+      "letter-spacing": o.ls, "class": o.cls }) + ">" + (o.raw ? s : esc(s)) + "</text>";
+  }
+  function tspan(s, fill, weight) {
+    return "<tspan" + attrs({ fill: fill, "font-weight": weight }) + ">" + esc(s) + "</tspan>";
+  }
+  function box(x, y, w, h, o) {
+    o = o || {};
+    return "<rect" + attrs({ x: x, y: y, width: w, height: h, rx: o.r === undefined ? 8 : o.r,
+      fill: o.fill || "none", stroke: o.stroke || LINE, "stroke-width": o.sw || 1.6 }) + "/>";
+  }
+  function line(x1, y1, x2, y2, o) {
+    o = o || {};
+    return "<line" + attrs({ x1: x1, y1: y1, x2: x2, y2: y2, stroke: o.stroke || LINE,
+      "stroke-width": o.sw || 2, "stroke-linecap": "round" }) + "/>";
+  }
+  function circle(cx, cy, r, o) {
+    o = o || {};
+    return "<circle" + attrs({ cx: cx, cy: cy, r: r, fill: o.fill || "none",
+      stroke: o.stroke, "stroke-width": o.sw || 1.6 }) + "/>";
+  }
+  function path(d, o) {
+    o = o || {};
+    return "<path" + attrs({ d: d, fill: o.fill || "none", stroke: o.stroke,
+      "stroke-width": o.sw || 2, "stroke-linejoin": "round", "stroke-linecap": "round" }) + "/>";
+  }
+  /* Right and wrong are drawn, never typed: no font on any machine has to carry them. */
+  function tick(x, y, color) {
+    return path("M" + x + "," + (y - 5) + " L" + (x + 7) + "," + (y + 2) + " L" + (x + 19) + "," + (y - 14),
+      { stroke: color, sw: 3.4 });
+  }
+  function cross(x, y, color) {
+    return path("M" + x + "," + (y - 13) + " L" + (x + 14) + "," + (y + 1) +
+      " M" + (x + 14) + "," + (y - 13) + " L" + x + "," + (y + 1), { stroke: color, sw: 3.4 });
+  }
+  function person(cx, cy, fill) {
+    return circle(cx, cy - 14, 9, { fill: fill }) +
+      path("M" + (cx - 13) + "," + (cy + 8) + " a13,13 0 0 1 26,0 z", { fill: fill });
+  }
+
+  /* Measured from the clips by build_audio.py (timing.json): each scene's length, where every
+     spoken line's speech begins, and how much silence sits in front of it. Two tiers: 0.4s
+     between sentences that share a picture, 2.4s where the picture turns. A beat reaches back
+     into its own line's silence, by as much as that silence allows, so the picture is complete
+     before the voice arrives. */
+  var MAX_LEAD = 1.2;
+  var TIMING = {  /* written by build_audio.py from narration.json; do not hand-edit */
+    "open": { dur: 9.0, starts: [1.3], pre: [1.3] },
+    "compare": { dur: 12.0, starts: [1.3, 6.0], pre: [1.3, 2.4] },
+    "start": { dur: 6.5, starts: [1.3], pre: [1.3] }
+  };
+
+  var ANIM = reduce
+    ? { fade: [0, 0], up: [0, 0], right: [0, 0], left: [0, 0] }
+    : { fade: [0, 0], up: [0, 16], right: [-16, 0], left: [16, 0] };
+
+  var S = [];
+  var AMBER = "var(--caution)", SOFT = "var(--accent-soft)";
+
+  function chip(x, y, w, label, o) {
+    o = o || {};
+    var color = o.color || ACCENT;
+    return box(x, y, w, o.h || 46, { fill: o.outline ? PAPER : SOFT, stroke: color, sw: 2.2, r: 8 }) +
+      txt(x + 18, y + (o.h || 46) / 2 + 7, label, { size: o.size || 19, fill: color, weight: 700 });
+  }
+  function arrowHead(x, y, dir, color) {
+    var d = dir === "left" ? "M" + x + "," + y + " l14,-8 l0,16 z" : "M" + x + "," + y + " l-14,-8 l0,16 z";
+    return path(d, { fill: color, stroke: color, sw: 1 });
+  }
+
+  /* One S.push per scene, each with its id, its lines (say and caption exactly as in
+     narration.json, which build_audio.py checks) and its beats. A beat's fields:
+       line      the line it lands before, in that line's silence (write it as a literal number)
+       plus      optional: seconds into that line instead, for a picture of one phrase
+       outLine   optional: the line before which it fades out; outPlus as plus
+       anim      fade, up, right or left
+       held      what the previous scene left on screen, shown at once without a fade
+       linear    a crossfading pair ramps linearly, so the two opacities sum to one
+       svg       the markup it draws, on a 960 by 540 stage
+     check_timing.py reads the literal line and plus values out of this file. */
+
+  /* 1. open --------------------------------------------------------- */
+  S.push({
+    id: "open",
+    lines: [
+      { say: "This opening line names the subject, and says what the viewer will be able to do in their own work after watching.", caption: "This opening line names the subject, and says what the viewer will be able to do in their own work after watching." }
+    ],
+    beats: [
+      { line: 0, anim: "up", svg:
+          txt(480, 250, "Your subject", { size: 44, weight: 700, anchor: "middle" }) +
+          line(330, 286, 630, 286, { stroke: ACCENT, sw: 3 }) +
+          txt(480, 330, "An overview", { size: 26, fill: ACCENT, anchor: "middle" }) }
+    ]
+  });
+
+  /* 2. compare: one frame, the before fading out as the after fades in -- */
+  var FRAME = box(260, 110, 440, 320, { fill: PAPER, stroke: LINE, sw: 1.6, r: 10 });
+  function bars(color) {
+    return '<rect x="300" y="250" width="300" height="10" fill="' + color + '"/>' +
+      '<rect x="300" y="280" width="250" height="10" fill="' + color + '"/>' +
+      '<rect x="300" y="310" width="330" height="10" fill="' + color + '"/>' +
+      '<rect x="300" y="340" width="200" height="10" fill="' + color + '"/>';
+  }
+
+  S.push({
+    id: "compare",
+    lines: [
+      { say: "Show the problem first, in the frame the fix will use.", caption: "Show the problem first, in the frame the fix will use.", pause: 2.4 },
+      { say: "Then show the fix in that same frame, so the eye compares in place instead of from memory.", caption: "Then show the fix in that same frame, so the eye compares in place instead of from memory." }
+    ],
+    beats: [
+      { line: 0, anim: "fade", svg: FRAME },
+      { line: 0, outLine: 1, linear: true, anim: "fade", svg:
+          txt(300, 190, "Before", { size: 30, weight: 700, fill: BAD }) + cross(640, 186, BAD) + bars(LINE) },
+      { line: 1, linear: true, anim: "fade", svg:
+          txt(300, 190, "After", { size: 30, weight: 700, fill: GOOD }) + tick(636, 186, GOOD) + bars(SOFT) },
+      { line: 1, plus: 1.5, anim: "fade", svg: box(622, 158, 48, 44, { stroke: ACCENT, sw: 2.4, r: 6 }) }
+    ]
+  });
+
+  /* 3. start -------------------------------------------------------- */
+  S.push({
+    id: "start",
+    lines: [
+      { say: "End on the first thing the viewer does next, by its real name.", caption: "End on the first thing the viewer does next, by its real name." }
+    ],
+    beats: [
+      { line: 0, anim: "right", svg:
+          txt(325, 234, "Start here", { size: 19, fill: AMBER, weight: 700 }) +
+          chip(325, 250, 310, "The first step", { h: 58, size: 24 }) }
+    ]
+  });
+
+  /* --- timeline --------------------------------------------------- */
+  /* Reach back into the silence in front of a line, stopping 0.05s short of its start so the
+     beat never fires on the previous line's last syllable. A short gap gives a short lead;
+     what makes the picture settled before the voice is RAMP being shorter than the silence. */
+  function lead(tm, n) {
+    return Math.max(0, tm.starts[n] - Math.min(MAX_LEAD, Math.max(0, tm.pre[n] - 0.05)));
+  }
+
+  var sound = true, audioOK = true;
+
+  /* The silence before each line exists so a picture can land and be still BEFORE the voice
+     explains it. With the sound off there is no voice, so that silence is blank screen waiting
+     for a recording nobody is playing. So muted is a different timeline: the gaps cap at
+     SILENT_CAP, which keeps a beat between pictures without pretending to be speech. The lines
+     keep their measured length, because reading and speaking a sentence take about the same
+     time and a reading model would be a guess. */
+  var SILENT_CAP = 0.8;
+
+  function silentTiming(tm) {
+    var pre = tm.pre.map(function (x) { return Math.min(x, SILENT_CAP); });
+    var st = [pre[0]];
+    for (var i = 1; i < tm.starts.length; i++) {
+      var spoken = tm.starts[i] - tm.starts[i - 1] - tm.pre[i];
+      st.push(st[i - 1] + spoken + pre[i]);
+    }
+    var last = tm.starts.length - 1;
+    return { dur: st[last] + (tm.dur - tm.starts[last]), starts: st, pre: pre };
+  }
+
+  var starts = [], total = 0;
+
+  function buildTimeline() {
+    starts = [];
+    total = 0;
+    for (var s = 0; s < S.length; s++) {
+      var sc = S[s];
+      var tm = useSound() ? TIMING[sc.id] : silentTiming(TIMING[sc.id]);
+      sc.dur = tm.dur;
+      sc.tm = tm;
+      sc.lineStarts = tm.starts;
+      sc.caption = sc.lines.map(function (l) { return l.caption; }).join(" ");
+      var settled = 0;
+      for (var bi = 0; bi < sc.beats.length; bi++) {
+        var bt = sc.beats[bi];
+        /* No `plus`: land in the silence before the line, taking as much of it as there is.
+           With `plus`: land inside the line, deliberately, because the thing being illustrated
+           is a phrase and not the whole line. */
+        bt.at = bt.plus === undefined ? lead(tm, bt.line) : tm.starts[bt.line] + bt.plus;
+        if (bt.outLine !== undefined) bt.out = bt.outPlus === undefined ? lead(tm, bt.outLine) : tm.starts[bt.outLine] + bt.outPlus;
+        if (!bt.held && bt.at > settled) settled = bt.at;
+        if (bt.out !== undefined && bt.out > settled) settled = bt.out;
+      }
+      /* Where the scene is finished drawing. Jumping lands here, not at the first frame. */
+      sc.settled = Math.min(settled + RAMP, sc.dur);
+      starts.push(total);
+      total += sc.dur;
+    }
+  }
+  buildTimeline();
+
+  var stage = document.getElementById("stage");
+  var markup = '<rect x="0" y="0" width="960" height="540" fill="' + PAPER + '"/>';
+  for (var sm = 0; sm < S.length; sm++) {
+    markup += '<g class="scene">';
+    for (var bm = 0; bm < S[sm].beats.length; bm++) {
+      var bt2 = S[sm].beats[bm];
+      markup += '<g class="beat" data-at="' + bt2.at + '" data-anim="' + bt2.anim + '"' +
+        (bt2.out === undefined ? "" : ' data-out="' + bt2.out + '"') +
+        (bt2.linear ? ' data-linear=""' : "") + ">" + bt2.svg + "</g>";
+    }
+    markup += "</g>";
+  }
+  stage.innerHTML = markup;
+
+  var sceneEls = stage.querySelectorAll(".scene"), beatEls = [];
+  for (var k = 0; k < sceneEls.length; k++) beatEls.push(sceneEls[k].querySelectorAll(".beat"));
+
+  /* --- audio: one clip per scene ---------------------------------- */
+  var clips = [];
+  for (var c = 0; c < S.length; c++) {
+    var clip = new Audio("audio/" + S[c].id + ".mp3");
+    clip.preload = "metadata";
+    clip.addEventListener("error", onAudioLost);
+    clips.push(clip);
+  }
+
+  /* --- state ------------------------------------------------------ */
+  var compact = false;
+  var t = 0, playing = false, speed = 1, started = false,
+      last = 0, cur = 0, looping = false, seekUntil = 0;
+  var SPEEDS = [0.75, 1, 1.25, 1.5];
+
+  var captionEl = document.getElementById("caption"),
+      captionText = document.getElementById("captiontext"),
+      readout = document.getElementById("readout"),
+      scrub = document.getElementById("scrub"),
+      playbtn = document.getElementById("playbtn"),
+      poster = document.getElementById("poster"),
+      soundBtn = document.getElementById("sound");
+
+  var SPEAKER = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zm2.6 2.2-.9 1.3a3.6 3.6 0 0 1 0 5.8l.9 1.3a5.2 5.2 0 0 0 0-8.4z"/></svg>';
+  var MUTED_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zM10.3 5.7l1.5 1.5 1.5-1.5 1 1-1.5 1.5 1.5 1.5-1 1-1.5-1.5-1.5 1.5-1-1L10.8 8.2 9.3 6.7z"/></svg>';
+
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function mmss(x) {
+    var m = Math.floor(x / 60), ss = Math.floor(x % 60);
+    return m + ":" + (ss < 10 ? "0" : "") + ss;
+  }
+  function sceneAt(time) {
+    for (var i = S.length - 1; i >= 0; i--) if (time >= starts[i]) return i;
+    return 0;
+  }
+  function useSound() { return sound && audioOK; }
+
+  function reflectSound() {
+    var on = useSound();
+    soundBtn.innerHTML = on ? SPEAKER : MUTED_ICON;
+    soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    soundBtn.setAttribute("aria-label", on ? "Narration sound, on"
+      : audioOK ? "Narration sound, off" : "Narration sound, unavailable");
+  }
+
+  function paint(posterMode) {
+    var now = sceneAt(t);
+    for (var i = 0; i < S.length; i++) {
+      var on = i === now;
+      sceneEls[i].style.display = on ? "" : "none";
+      if (!on) continue;
+      var local = t - starts[i];
+      for (var j = 0; j < beatEls[i].length; j++) {
+        var g = beatEls[i][j];
+        var beat = S[i].beats[j];
+        /* What the previous scene left on screen: shown at once, never re-faded. */
+        if (beat.held) { g.style.opacity = 1; g.style.transform = ""; continue; }
+        /* A crossfading pair ramps linearly, so the two opacities sum to one and the
+           outgoing copy is never legible underneath the incoming one. */
+        var lin = beat.linear;
+        var pin = posterMode ? 1 : clamp((local - beat.at) / RAMP, 0, 1);
+        var e = lin ? pin : 1 - Math.pow(1 - pin, 3);
+        if (beat.out !== undefined && !posterMode) {
+          var pout = clamp((local - beat.out) / RAMP, 0, 1);
+          e = e * (1 - (lin ? pout : 1 - Math.pow(1 - pout, 3)));
+        }
+        var off = ANIM[beat.anim] || ANIM.fade;
+        g.style.opacity = e;
+        g.style.transform = "translate(" + (off[0] * (1 - e)).toFixed(2) + "px," + (off[1] * (1 - e)).toFixed(2) + "px)";
+      }
+    }
+    /* One line at a time, so a long scene's caption never outgrows its box. */
+    var ln = 0, localT = t - starts[now];
+    for (var li = 0; li < S[now].lines.length; li++) if (localT >= S[now].lineStarts[li] - 0.3) ln = li;
+    /* Muted, a scene stops once drawn and is read, not heard, so it shows every line. */
+    captionText.textContent = useSound() ? S[now].lines[ln].caption : S[now].caption;
+    /* The thumb reports the scene, not the second: it holds at the scene's own position and
+       steps at the boundary, which answers "where am I in the sequence". The clock keeps
+       running, because with both frozen a viewer with the sound off has no sign at all that
+       anything is happening, and a stopped thumb at the end reads as a broken player. */
+    paintReadout();
+    scrub.value = t >= total ? 1000 : Math.round((starts[now] / total) * 1000);
+    /* A range input insets the thumb so it stays inside the track, so the thumb's centre is
+       at 5.5px + p(W - 11px), not at pW. Putting the gradient stop in the thumb's coordinate
+       space welds the fill's edge to the dot exactly, instead of within its radius. */
+    scrub.style.setProperty("--fill",
+      "calc(5.5px + " + (scrub.value / 1000) + " * (100% - 11px))");
+    scrub.setAttribute("aria-valuetext", "Scene " + (now + 1) + ", " + mmss(t));
+    markLine(now, ln);
+  }
+
+  /* A narrow player shortens the readout so the control bar stays on one row. */
+  function paintReadout() {
+    var now = sceneAt(t);
+    readout.textContent = (compact ? (now + 1) + "/" + S.length : "Scene " + (now + 1) + " of " + S.length) + " " +
+      String.fromCharCode(183) + " " + mmss(t) + " / " + mmss(total);
+  }
+
+  function stopClips() { for (var i = 0; i < clips.length; i++) clips[i].pause(); }
+
+  function syncClip() {
+    if (!useSound()) { stopClips(); return; }
+    for (var i = 0; i < clips.length; i++) if (i !== cur) clips[i].pause();
+    var clip = clips[cur];
+    clip.playbackRate = speed;
+    var want = clamp(t - starts[cur], 0, S[cur].dur);
+    if (Math.abs(clip.currentTime - want) > 0.25) {
+      try { clip.currentTime = want; seekUntil = performance.now() + 220; } catch (e) {}
+    }
+    if (playing && clip.paused) {
+      var pr = clip.play();
+      if (pr && pr.catch) pr.catch(onAudioLost);
+    }
+    if (!playing && !clip.paused) clip.pause();
+  }
+
+  function setPlaying(on) {
+    playing = on;
+    playbtn.setAttribute("aria-label", on ? "Pause" : "Play");
+    playbtn.innerHTML = on
+      ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 1.5h3.5v13H3.5zm5.5 0h3.5v13H9z"/></svg>'
+      : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>';
+    syncClip();
+    if (on && !looping) { looping = true; last = 0; requestAnimationFrame(step); }
+  }
+
+  function step(now) {
+    if (!playing) { looping = false; return; }
+    if (!last) last = now;
+    var dt = (now - last) / 1000;
+    last = now;
+
+    if (useSound() && !clips[cur].paused && now > seekUntil) {
+      t = starts[cur] + Math.min(clips[cur].currentTime, S[cur].dur);
+    } else {
+      t += dt * speed;
+    }
+
+    if (t >= total - 0.02) { t = total; paint(false); setPlaying(false); looping = false; return; }
+
+    /* Muted, the piece is read rather than heard, so it stops when a scene has finished
+       drawing and the reader goes on when they are ready. The voice carries them across. */
+    if (!useSound() && t >= starts[cur] + S[cur].settled) {
+      t = starts[cur] + S[cur].settled;
+      paint(false);
+      setPlaying(false);
+      looping = false;
+      return;
+    }
+
+    var next = sceneAt(t);
+    if (next !== cur) { cur = next; syncClip(); }
+    paint(false);
+    requestAnimationFrame(step);
+  }
+
+  /* Playing builds a scene; jumping shows it finished. Landing on a scene's first frame means
+     the viewer either sits through the build or arrives at a half-drawn picture, and neither is
+     what someone moving through the piece is asking for. */
+  function goto(time, keepPlaying) {
+    t = clamp(time, 0, total);
+    cur = sceneAt(t);
+    if (!keepPlaying) t = starts[cur] + S[cur].settled;
+    if (!started) { started = true; poster.hidden = true; }
+    paint(false);
+    if (keepPlaying) syncClip(); else setPlaying(false);
+  }
+  function fromTop() {
+    started = true; poster.hidden = true; t = 0; cur = 0; paint(false); setPlaying(true);
+  }
+
+  poster.addEventListener("click", fromTop);
+  document.getElementById("replay").addEventListener("click", fromTop);
+  playbtn.addEventListener("click", function () {
+    if (!started || t >= total) { fromTop(); return; }
+    /* Muted, a finished scene is where play stopped; pressing play goes on to the next one. */
+    if (!playing && !useSound() && cur < S.length - 1 && t >= starts[cur] + S[cur].settled - 0.01) {
+      cur += 1; t = starts[cur]; paint(false);
+    }
+    setPlaying(!playing);
+  });
+  document.getElementById("prev").addEventListener("click", function () {
+    var i = sceneAt(t);
+    /* Mid-play, previous restarts the scene you are in, the way a player does. Paused, where a
+       jump has already put you at the scene's finished picture, it goes back one -- otherwise
+       it lands on the same scene again, because you are never near a scene's start any more. */
+    var replayThisScene = playing && useSound() && t - starts[i] >= 1.2;
+    if (!replayThisScene && i > 0) i--;
+    goto(starts[i], playing && useSound());
+  });
+  document.getElementById("next").addEventListener("click", function () {
+    var i = sceneAt(t);
+    goto(i + 1 < S.length ? starts[i + 1] : total,
+         playing && useSound() && i + 1 < S.length);
+  });
+  scrub.addEventListener("input", function () {
+    var want = sceneAt((scrub.value / 1000) * total);
+    /* Dragging within the scene already playing would re-seek its clip to zero on every
+       pointer event, so only a change of scene moves the clock. */
+    if (want !== sceneAt(t)) goto(starts[want], playing); else paint(false);
+  });
+  /* One arrow press moves the range a fraction of a second, which can never cross a scene, so
+     the arrow keys step scenes instead. */
+  scrub.addEventListener("keydown", function (e) {
+    var dir = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1
+      : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    var i = Math.min(S.length - 1, Math.max(0, sceneAt(t) + dir));
+    goto(starts[i], playing);
+  });
+
+  soundBtn.addEventListener("click", function () {
+    if (!audioOK) return;
+    var at = cur;
+    sound = !sound;
+    reflectSound();
+    buildTimeline();
+    renderChrome();
+    cur = at;
+    t = starts[at] + (sound ? 0 : S[at].settled);   /* the timelines share scenes, not seconds */
+    if (!sound) { stopClips(); last = 0; } else syncClip();
+    fitPlayer();
+    paint(false);
+  });
+  var ccBtn = document.getElementById("cc");
+  ccBtn.addEventListener("click", function () {
+    var on = this.getAttribute("aria-pressed") === "true";
+    this.setAttribute("aria-pressed", on ? "false" : "true");
+    this.setAttribute("aria-label", on ? "Captions, off" : "Captions, on");
+    captionEl.hidden = on;
+  });
+  var speedBtn = document.getElementById("speed");
+  speedBtn.addEventListener("click", function () {
+    speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+    speedBtn.textContent = speed + "x";
+    speedBtn.setAttribute("aria-label", "Playback speed, " + speed + "x");
+    if (useSound()) clips[cur].playbackRate = speed;
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target !== document.body) return;
+    if (e.key === " ") { e.preventDefault(); playbtn.click(); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); document.getElementById("next").click(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); document.getElementById("prev").click(); }
+  });
+
+  var ol = document.getElementById("transcript");
+
+  function renderChrome() {
+    var tickHtml = "";
+    for (var ti = 1; ti < S.length; ti++) {
+      tickHtml += '<i style="left:' + ((starts[ti] / total) * 100).toFixed(2) + '%"></i>';
+    }
+    document.getElementById("ticks").innerHTML = tickHtml;
+    document.getElementById("len").textContent = mmss(total);
+
+    /* One entry per spoken line, grouped under its scene, each stamped with where its speech
+       begins on the current timeline (sound on and sound off have different clocks). */
+    var tr = "";
+    lineEls = [];
+    for (var x = 0; x < S.length; x++) {
+      tr += '<li class="scn"><p class="scn-h">Scene ' + (x + 1) + "<span>" + mmss(starts[x]) + "</span></p><ol class=\"lines\">";
+      for (var y = 0; y < S[x].lines.length; y++) {
+        tr += '<li><button class="jump" type="button" data-s="' + x + '" data-l="' + y + '" data-on="false">' +
+          '<span class="tc">' + mmss(starts[x] + S[x].lineStarts[y]) + "</span>" +
+          '<span class="line">' + esc(S[x].lines[y].caption) + "</span></button></li>";
+      }
+      tr += "</ol></li>";
+    }
+    ol.innerHTML = tr;
+    var btns = ol.querySelectorAll(".jump");
+    for (var b = 0; b < btns.length; b++) {
+      var bs = +btns[b].getAttribute("data-s");
+      (lineEls[bs] = lineEls[bs] || []).push(btns[b]);
+    }
+    onLine = null;
+  }
+
+  /* --- transcript: highlight the line being spoken and keep it in view ------ */
+  var lineEls = [], onLine = null, userScrolledAt = -1e9;
+  var tscroll = document.getElementById("p-transcript");
+  /* Following stops while the viewer scrolls the transcript themselves, and resumes a few
+     seconds later or as soon as they pick a line, as a video site's transcript does. */
+  ["wheel", "touchmove"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function () { userScrolledAt = performance.now(); }, { passive: true });
+  });
+  /* A key or a press on the column itself (its scrollbar), not on one of its lines. */
+  ["keydown", "pointerdown"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function (e) { if (e.target === tscroll) userScrolledAt = performance.now(); });
+  });
+
+  /* Scrolls the column only, by setting its own scrollTop: scrollIntoView would also scroll the
+     page, and any frame the page sits in. */
+  function follow(force) {
+    if (!onLine || tscroll.hidden) return;
+    if (!force && performance.now() - userScrolledAt < 4000) return;
+    var r = onLine.getBoundingClientRect(), sr = tscroll.getBoundingClientRect();
+    if (!sr.height) return;
+    var head = 28;   /* the sticky scene label covers the top of the column */
+    var want = tscroll.scrollTop + (r.top - sr.top) - (sr.height + head - r.height) / 2;
+    want = clamp(want, 0, tscroll.scrollHeight - tscroll.clientHeight);
+    if (Math.abs(want - tscroll.scrollTop) < 2) return;
+    try { tscroll.scrollTo({ top: want, behavior: reduce ? "auto" : "smooth" }); }
+    catch (e) { tscroll.scrollTop = want; }
+  }
+
+  function markLine(s, l) {
+    var el = lineEls[s] && lineEls[s][l];
+    if (!el || el === onLine) return;
+    if (onLine) { onLine.setAttribute("data-on", "false"); onLine.removeAttribute("aria-current"); }
+    onLine = el;
+    el.setAttribute("data-on", "true");
+    el.setAttribute("aria-current", "true");
+    follow(false);
+  }
+
+  /* Picking a line plays from it. A scene's first line plays the scene from its first frame so
+     the picture builds; a later line starts just ahead of its speech, where its caption shows. */
+  function seekLine(s, l) {
+    var sc = S[s];
+    var at = l === 0 ? 0 : Math.max(0, sc.lineStarts[l] - 0.3);
+    t = clamp(starts[s] + at, 0, total);
+    cur = s;
+    if (!started) { started = true; poster.hidden = true; }
+    userScrolledAt = -1e9;
+    /* Muted, a scene stops once drawn; a line after that point is shown, and play goes on. */
+    if (!useSound() && at >= sc.settled) { paint(false); setPlaying(false); return; }
+    paint(false);
+    setPlaying(true);
+  }
+
+  renderChrome();
+  ol.addEventListener("click", function (e) {
+    var btn = e.target.closest(".jump");
+    if (btn) seekLine(+btn.getAttribute("data-s"), +btn.getAttribute("data-l"));
+  });
+
+  var tabS = document.getElementById("tab-summary"), tabT = document.getElementById("tab-transcript");
+  function pick(summary, focus) {
+    tabS.setAttribute("aria-selected", summary ? "true" : "false");
+    tabT.setAttribute("aria-selected", summary ? "false" : "true");
+    tabS.tabIndex = summary ? 0 : -1;
+    tabT.tabIndex = summary ? -1 : 0;
+    document.getElementById("p-summary").hidden = !summary;
+    document.getElementById("p-transcript").hidden = summary;
+    if (focus) (summary ? tabS : tabT).focus();
+    if (!summary) follow(true);
+  }
+  tabS.addEventListener("click", function () { pick(true, false); });
+  tabT.addEventListener("click", function () { pick(false, false); });
+  [tabS, tabT].forEach(function (el) {
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        pick(el === tabT, true);
+      }
+    });
+  });
+
+  /* The whole player -- picture, caption and controls -- must be on screen at once, and on a wide
+     window the transcript beside it. Size it from the space actually left in the window below the
+     player's top edge, not from a CSS guess, so it holds inside any frame. The transcript column
+     takes 30% of the width (320 to 400px) and the picture what is left, never wider than the
+     drawing's own 960px and never narrower than 320px.
+     The caption box is pinned to the height of the longest caption the current mode can show
+     (one line spoken with sound; a whole scene muted), so the controls never move and never
+     drop below the window as the captions change. */
+  var theaterEl = document.querySelector(".theater"), playerEl = document.querySelector(".player"),
+      consoleEl = document.querySelector(".console");
+  var WIDE = window.matchMedia ? window.matchMedia("(min-width: 960px)") : { matches: false };
+
+  function longestCaption() {
+    var best = "";
+    for (var i = 0; i < S.length; i++) {
+      var opts = useSound() ? S[i].lines.map(function (l) { return l.caption; }) : [S[i].caption];
+      for (var j = 0; j < opts.length; j++) if (opts[j].length > best.length) best = opts[j];
+    }
+    return best;
+  }
+
+  function sizeCaption() {
+    var wasHidden = captionEl.hidden, keep = captionText.textContent;
+    captionEl.hidden = false;
+    captionEl.style.height = "";
+    captionText.textContent = longestCaption();
+    /* A whole scene's text, muted on a short window, can outgrow any sensible box: past 30% of
+       the window's height the caption scrolls inside itself instead (the transcript beside it
+       carries the same text). */
+    var h = Math.min(Math.ceil(captionEl.getBoundingClientRect().height),
+                     Math.max(118, Math.round(window.innerHeight * 0.3)));
+    captionText.textContent = keep;
+    captionEl.style.height = h + "px";
+    captionEl.hidden = wasHidden;
+    return h;
+  }
+
+  function fitPlayer() {
+    var avail = theaterEl.clientWidth;
+    var wide = WIDE.matches;
+    var sw = wide ? Math.round(clamp(avail * 0.3, 320, 400)) : 0;
+    var room0 = avail - (wide ? sw + 16 : 0);
+    var w = Math.max(320, Math.min(960, room0));
+    /* Repeated until it settles: the caption's height (and whether the control bar wraps)
+       depends on the width, and the width on them. */
+    theaterEl.style.setProperty("--sw", sw + "px");
+    for (var pass = 0; pass < 4; pass++) {
+      var px = Math.floor(w);
+      theaterEl.style.setProperty("--pw", px + "px");
+      compact = px < 660;
+      paintReadout();
+      var capH = sizeCaption();
+      var chrome = consoleEl.getBoundingClientRect().height + (captionEl.hidden ? capH : 0);
+      var top = playerEl.getBoundingClientRect().top + window.scrollY;
+      /* 2px of player border, 1px of stage rule, 10px clear below. */
+      var room = window.innerHeight - Math.min(top, window.innerHeight * 0.2) - chrome - 13;
+      w = Math.max(320, Math.min(960, room0, room * 16 / 9));
+      if (Math.floor(w) === px) break;
+    }
+    theaterEl.style.setProperty("--pw", Math.floor(w) + "px");
+    sizeCaption();
+    follow(true);
+  }
+  function onAudioLost() { audioOK = false; reflectSound(); fitPlayer(); }
+
+  fitPlayer();
+  window.addEventListener("resize", fitPlayer);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPlayer);
+
+  reflectSound();
+  paint(true);
+})();
+</script>
+</html>

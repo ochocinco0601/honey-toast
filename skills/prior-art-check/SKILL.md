@@ -1,20 +1,51 @@
 ---
 name: prior-art-check
-description: Run a blind, independent prior-art check on a structure this repo built — is it established practice, or did we reinvent (or genuinely invent) it? Use when the user asks whether something is real/established, whether we're reinventing a wheel, whether a structure has prior art, or says a structure feels off in a way that suggests it may already exist in a real discipline. Triggers on "prior-art check", "prior art check this", "is this established", "did we reinvent this", "has this been solved", "does this already exist", "what discipline already does this", "check this against prior art", "is this novel". Also fires when a session is about to claim something is novel, or is about to add an entry to the activated prior-art inventory. This skill owns the whole loop and is the ONE DOOR — the user invokes this and nothing else: it writes the blinded description, dispatches the cold prior-art-checker agent, then on any STRONG/PARTIAL match automatically chains to the apparatus-auditor ("we matched the form — did we adopt the apparatus that makes it work?"), reconciles findings against the environment's activated prior-art inventory behind an encode gate, and briefs the operator in outcome terms. The user never invokes the apparatus audit separately and must never be asked to. Do NOT use this to review whether an artifact serves its reader — that is independent-discipline-reviewer.
+description: Answer "is this established practice, or did we reinvent it?" — at the weight the answer actually warrants. ONE DOOR, TWO FORMS, and the skill picks the form, never the user. **Name it** is the default and most invocations end there: point at where the field already holds it, state the honest delta, move on — inline, no agents, no report files, no gate. A match you can point at is checkable by the reader without you, which is what makes it cheap. **Check it** — the blind pipeline (function-only description, cold prior-art-checker agent, encode gate against the activated prior-art inventory, and on STRONG/PARTIAL an automatic apparatus-auditor chain) — fires on narrow conditions only: you believe a match but can name no source for it; you are about to claim something is NOVEL; or an entry is about to enter the inventory. Novelty always checks, because "I couldn't think of one" and "there isn't one" are indistinguishable from the inside — the one verdict a session can never self-grade. Use when the user asks whether something is real/established, whether we're reinventing a wheel, or says a structure feels off in a way suggesting it may already exist in a real discipline. Triggers on "prior-art check", "prior art check this", "is this established", "did we reinvent this", "has this been solved", "does this already exist", "what discipline already does this", "check this against prior art", "is this novel". The user never invokes the apparatus audit separately and must never be asked to. Do NOT use this to review whether an artifact serves its reader — that is independent-discipline-reviewer.
 ---
 
 # Prior-Art Check
 
-The firing surface for the blind prior-art check. The agent holds the judgment;
-this skill holds the **apparatus** — the blinding discipline going in, and the
-encode gate coming out. Without this skill the agent is a blind reviewer nobody is
-guaranteed to hear.
+The firing surface for prior art at **two weights**. The blind agent holds the
+judgment on the heavy path; this skill holds the **apparatus** — the weight test at
+the front, the blinding discipline going in, and the encode gate coming out. Without
+this skill the agent is a blind reviewer nobody is guaranteed to hear.
 
 **Definition of prior art** → the prior-art definition that ships with this capability.
 Single source. Do not restate it here, and never paraphrase it into a prompt — you hand
 it over whole (Step 3).
 
 ---
+
+## Step 0 — Pick the weight (before anything else)
+
+**Most invocations end here, in the turn, at no cost.** The pipeline is for narrow
+cases. Running it on a question that a citation answers is the failure this step
+exists to stop — ceremony spent where a sentence was owed.
+
+The test is not how big the artifact is or how much the answer matters. It is
+**whether a reader can check the answer without you.**
+
+| What you have | Weight | Why |
+|---|---|---|
+| A match you can **point at** — you can name the practice, its discipline, and roughly where it lives | **Name it.** State the match, the honest delta, move on. No agent, no file, no gate. | The reader verifies it without you. That is what makes it cheap — not that it matters less. |
+| A match you **believe but cannot source** — it feels established; no citation comes | **Check it.** | This is the failure the apparatus exists for: a confident name wearing borrowed authority, accreting where later sessions trust it. |
+| A claim that something is **NOVEL** | **Check it. Always.** | *I couldn't think of one* and *there isn't one* are indistinguishable from the inside. A reader can verify a match; they cannot verify an absence. This is the one verdict a session can never self-grade. |
+| An entry about to enter the **activated prior-art inventory** | **Check it. Always.** | Entries outlive the session that wrote them. |
+
+**The delta is not optional at either weight.** A cheap naming still states what does
+*not* fit. A match without its delta is an over-claim however little it cost.
+
+**Naming is not adopting.** If the answer will sit in a sentence and pick a frame for
+the work in front of you, you are done at *name it*. Step 6's apparatus question is
+about practices we **built on**, not practices we mentioned.
+
+**A named match that later gets built on re-enters at Step 1.** Cheap now does not
+mean cheap forever — the weight is re-tested when the claim's consequence changes,
+not grandfathered by having once been answered.
+
+---
+
+**Steps 1–7 below are the *Check it* path.** If Step 0 said *name it*, you are done.
 
 ## Step 1 — Name what's under check
 
@@ -103,10 +134,15 @@ is a gate nobody is operating.
 
 ## Step 6 — Chain to the apparatus audit (automatic — do not ask)
 
-**On every STRONG or PARTIAL match, dispatch `apparatus-auditor`.** Do not ask
-whether to. Do not wait to be told. The design is explicit: **one door.**
-The operator invokes the check and must never have to remember that a second
-question exists. The chain is the machinery's job, not the operator's memory.
+**On every STRONG or PARTIAL match against a practice this repo BUILT ON, dispatch
+`apparatus-auditor`.** Do not ask whether to. Do not wait to be told. The design is
+explicit: **one door.** The operator invokes the check and must never have to remember
+that a second question exists. The chain is the machinery's job, not the operator's memory.
+
+**Built on means there is apparatus to audit** — a skill, a pipeline, a gate, a process
+someone runs. A practice merely *named in a document* has none, so the audit returns a
+finding about a sentence. That is this step firing on prose, and it spends a second agent
+on nothing.
 
 Pass it: the artifact's function, the matched practice(s), and a report path. **Do
 not pass it your view of whether the environment's apparatus is adequate** — that is the claim it
@@ -119,8 +155,8 @@ practice), and deliberately not blind. It audits against the operating model —
 document states how work moves and what guarantees it — whose core claim holds anywhere:
 *an artifact without its apparatus is a prop.*
 
-**Skip only on an all-NONE result.** Nothing was borrowed, so there is no borrowed
-apparatus to have missed.
+**Skip on an all-NONE result** — nothing was borrowed, so there is no borrowed apparatus
+to have missed — **and skip on matches that are claims rather than builds.**
 
 ## Step 7 — Brief the operator in outcome terms
 
