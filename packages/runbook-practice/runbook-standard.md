@@ -2,11 +2,11 @@
 
 **For:** team leads and readiness reviewers. **Job:** say how good a service's runbooks must be, and score a runbook against that.
 
-It replaces a yes/no "runbook link exists" readiness check (O-BOK IN-08, KA03), under which an escalate-only runbook passes.
+It replaces a yes/no readiness check of whether a runbook link exists (O-BOK IN-08, KA03), under which an escalate-only runbook passes.
 
 ## Runbook state
 
-*[This practice]* Scored against the [runbook model](runbook-model.md). Its anatomy table lists the sections each state requires.
+*[This practice]* Scored against the [runbook model](runbook-model.md). Its anatomy tables (the alert's entry and the shared section) list the parts each state requires.
 
 | State | Name | What the runbook lets the responder do |
 |---|---|---|

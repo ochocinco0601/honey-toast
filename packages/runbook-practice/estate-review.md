@@ -111,7 +111,7 @@ Load must not improve at coverage's expense.
 - The practice would add three things:
   - criticality weighting by service tier (they filtered on alert severity, a different thing)
   - the recall check before lengthening hold durations
-  - outcome records, so "nobody takes action for these alerts" becomes measured precision
+  - outcome records, so "nobody is taking action for these alerts" becomes measured precision
 
 **Limits.** Public sources give runbook text and estate-level noise measurements. None gives per-firing outcome records over time, so routing from outcome patterns is walked against reported patterns, not measured ones.
 
