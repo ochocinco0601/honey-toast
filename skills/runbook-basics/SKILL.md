@@ -38,7 +38,7 @@ runbooks/<system>/
 
 ## The practice it follows
 
-This skill follows the **runbook practice**: its `runbook-model.md` (what a runbook is) and `runbook-standard.md` (states 0 to 4). It ships in the same repository as this skill. Find those files in the workspace and read them before writing. If they cannot be found, tell the person and stop. In outputs, cite them by page name.
+This skill follows the **runbook practice**: its `runbook-model.md` (what a runbook is) and `runbook-standard.md` (states 0 to 4). It ships in the same repository as this skill, in the folder `packages/runbook-practice/`. Find those files in the workspace and read them before writing. If they cannot be found, stop and tell the person: "This skill needs the runbook practice pages. Copy the folder `packages/runbook-practice/` from the repository this skill came from into this workspace, then ask again." In outputs, cite them by page name.
 
 The model's parts are placed by what they do, whatever its section numbering. What one alert needs is on its alert page; what all of a service's alerts share is written once, on the service's pages.
 
@@ -78,7 +78,7 @@ Search the workspace for the material yourself as well. A missing answer becomes
 **3. Write the pages,** service by service, starting with the services most likely to page:
 
 - `overview.md`: everything the form asks, from the sources.
-- `procedures.md`: each check once, with what each result means; each fix (restart, roll back, other responses); the *Do not* line; the extras for its kind.
+- `procedures.md`: each check once, with what each result means; each fix (restart, roll back, other responses); the *Never* list; the extras for its kind.
 - One alert page per live alert, at the highest step its sources support. Step 1 is the floor for every alert. Each check on an alert page names the procedures check it runs, read on the alert's own cases and time window.
 
 Leave each unknown as a visible *not known yet*, with its question in the page's *Not known yet* box, never filled with a plausible guess.
@@ -145,7 +145,7 @@ Make each change with the evidence as its source, and leave every other line as 
 ## Rules
 
 - **Never invent a procedural line.** A command, job name, flag, role, threshold, queue name or escalation target comes from a source that contains it and carries its marker, or it is *not known yet* with its question. A marker pointing at a source that only *implies* the line is invention. An action worked out from reading code (a switch the code reads, an endpoint it exposes) carries `†` and its question until the team confirms it.
-- **Never pass on a sourced step that is unsafe here.** A documented command that destroys data or state in this deployment (a redeploy that wipes a data store, a restart that drops in-flight work) goes in the *Do not* line with why, and never as a fix.
+- **Never pass on a sourced step that is unsafe here.** A documented command that destroys data or state in this deployment (a redeploy that wipes a data store, a restart that drops in-flight work) goes in the *Never* list with why, and never as a fix.
 - **Platform documentation supplies generic commands only.** Cite the documentation page that contains the command, mark the line `†`, and ask in `questions.md` whether the team may run it on this service.
 - **"The process is up" is never enough to close.** Close when the work is done again: a case moves through, a backlog drains, an outcome is correct.
 - **Restart is one response among several.** The others: roll back, fail over, scale out, pause or switch off with a manual fallback, replay, escalate. Write the one the sources support. For an agentic function a restart rarely changes a wrong outcome; pausing it, falling back to the manual step, and rolling back its model, prompt or configuration version usually do.
@@ -161,4 +161,4 @@ Make each change with the evidence as its source, and leave every other line as 
 - **The only documented recovery may be destructive.** Check every sourced fix against the deployment the team runs.
 - **Few or no live alerts** means few alert pages on day one. Problems then arrive as user reports, so the README's *If something is broken* table and `shared/procedures.md` (already known? anyone affected?) are the way in, and *alerts we need* says what to build first.
 - **One codebase, several deployment shapes:** write procedures for the shape the team runs.
-- **Agentic parts are thin in public examples.** Their procedures will rest mostly on the team's own notes and questions until the first iterations.
+- **Agentic parts often have little written down about running them.** Their procedures will rest mostly on the team's own notes and questions until the first iterations.
