@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Create your first custom agent</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+
+:root {
+
+  --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+  --serif: Georgia, "Times New Roman", serif;
+}
+
+:root {
+  --bg: #fbfcfd;
+  --bg2: #f1f4f7;
+  --surface: #ffffff;
+  --ink: #16202c;
+  --ink2: #3e4a58;
+  --ink3: #5a6676;
+  --rule: #e0e5eb;
+  --rule2: #c2cad4;
+  --accent: #1659b7;
+  --accent-soft: #e9f0fa;
+  --accent-ink: #ffffff;
+  --ctl: #7b8594;
+  --mark: #b44900;
+  --mark-ink: #ffffff;
+  --good: #2E7D55;
+  --bad: #B33A2E;
+  --shadow: 0 1px 2px rgb(20 23 28 / .06), 0 8px 28px -12px rgb(20 23 28 / .22);
+  --console-bg: #1B1E23;
+  --console-fg: #F2F1ED;
+  --console-dim: #A3A9B0;
+  --console-line: #33383F;
+  --console-hover: #2A2F36;
+  --track-rest: #666C75;
+  --paper: var(--surface);
+  --muted: var(--ink3);
+  --line: var(--rule2);
+  --line-soft: var(--rule);
+  --hover: var(--bg2);
+  --caution: var(--mark);
+  --caution-ui: var(--mark);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b;
+    --bg2: #161b22;
+    --surface: #1a2029;
+    --ink: #e4e8ee;
+    --ink2: #b3bcc8;
+    --ink3: #8e99a7;
+    --rule: #272e38;
+    --rule2: #3b4451;
+    --accent: #80b3ff;
+    --accent-soft: #18263a;
+    --accent-ink: #0c1320;
+    --ctl: #6c7787;
+    --mark: #f08a3c;
+    --mark-ink: #101010;
+    --good: #5FBF8C;
+    --bad: #E0847A;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 30px -14px rgb(0 0 0 / .7);
+    --console-bg: #111418;
+    --console-fg: #ECEEF1;
+    --console-dim: #9AA1A9;
+    --console-line: #2B3037;
+    --console-hover: #222830;
+    --track-rest: #5E646C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b;
+  --bg2: #161b22;
+  --surface: #1a2029;
+  --ink: #e4e8ee;
+  --ink2: #b3bcc8;
+  --ink3: #8e99a7;
+  --rule: #272e38;
+  --rule2: #3b4451;
+  --accent: #80b3ff;
+  --accent-soft: #18263a;
+  --accent-ink: #0c1320;
+  --ctl: #6c7787;
+  --mark: #f08a3c;
+  --mark-ink: #101010;
+  --good: #5FBF8C;
+  --bad: #E0847A;
+  --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 30px -14px rgb(0 0 0 / .7);
+  --console-bg: #111418;
+  --console-fg: #ECEEF1;
+  --console-dim: #9AA1A9;
+  --console-line: #2B3037;
+  --console-hover: #222830;
+  --track-rest: #5E646C;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 64px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: var(--tw, 1480px); margin: 0 auto; }
+
+.theater {
+  display: grid; justify-content: center; gap: 12px 20px;
+  grid-template-columns: var(--pw, minmax(0, 1fr));
+}
+@media (min-width: 960px) {
+  .theater { grid-template-columns: var(--pw, minmax(0, 1fr)) var(--sw, 360px); }
+}
+.head {
+  grid-column: 1 / -1; min-width: 0;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 18px;
+}
+h1 {
+  font-family: var(--display); font-weight: 650; font-size: 22px; line-height: 1.2;
+  letter-spacing: -.012em; margin: 0; text-wrap: balance;
+}
+.meta {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0;
+  font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.meta span + span::before {
+  content: ""; display: inline-block; width: 3px; height: 3px; border-radius: 50%;
+  background: currentColor; vertical-align: middle; margin: 0 14px 0 0; opacity: .7;
+  position: relative; top: -1px;
+}
+
+.player {
+  min-width: 0; border-radius: 12px; overflow: hidden;
+  background: var(--console-bg); box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+.stage { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: var(--paper); }
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage svg text { font-family: var(--sans); }
+.stage svg text.mono { font-family: var(--mono); }
+.stage svg text.serif { font-family: var(--serif); }
+
+.poster { position: absolute; inset: 0; display: block; border: 0; background: transparent; cursor: pointer; padding: 0; }
+
+.poster[hidden] { display: none; }
+
+.poster span svg { position: static; inset: auto; width: 14px; height: 14px; }
+.poster span {
+  position: absolute; left: 50%; top: 79%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 10px; white-space: nowrap;
+  background: var(--ink); color: var(--paper);
+  font-size: 15px; font-weight: 600; padding: 12px 22px 12px 18px;
+  border-radius: 999px; box-shadow: 0 4px 18px rgb(0 0 0 / .28);
+  transition: transform .15s ease;
+}
+.poster:hover span { transform: translate(-50%, -50%) scale(1.04); }
+
+.console { background: var(--console-bg); color: var(--console-fg); }
+
+.caption {
+  display: flex; gap: 14px; padding: 14px 20px 12px; min-height: 104px;
+  align-items: flex-start; overflow-y: auto;
+}
+.caption .rule { flex: 0 0 3px; align-self: stretch; background: var(--caution-ui); border-radius: 2px; }
+.caption p {
+  font-size: clamp(16px, 1.6vw, 19px); font-weight: 450;
+  line-height: 1.5; margin: 0; min-width: 0; max-width: 62ch; text-wrap: pretty;
+}
+.caption[hidden] { display: none !important; }
+
+.transport {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 10px 10px; border-top: 1px solid var(--console-line); flex-wrap: wrap;
+}
+.transport .grp { display: flex; align-items: center; gap: 2px; flex: none; }
+.transport button {
+  background: transparent; border: 0; color: var(--console-fg);
+  border-radius: 8px; cursor: pointer; display: grid; place-items: center;
+  width: 34px; height: 34px; padding: 0; flex: none;
+}
+.transport button:hover { background: var(--console-hover); }
+.transport button:focus-visible, .poster:focus-visible span,
+.jump:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; }
+.transport button[aria-pressed="false"] { color: var(--console-dim); }
+.transport button.play {
+  background: var(--console-fg); color: var(--console-bg);
+  width: 38px; height: 38px; border-radius: 50%; margin-right: 4px;
+}
+.transport button.play:hover { background: var(--console-fg); opacity: .88; }
+.transport button.wide {
+  width: auto; min-width: 36px; padding: 0 8px;
+  font-size: 12px; font-weight: 700; font-family: var(--sans); letter-spacing: .02em;
+}
+.transport svg { width: 16px; height: 16px; fill: currentColor; }
+
+.track { position: relative; flex: 1 1 140px; min-width: 90px; height: 34px; display: flex; align-items: center; margin: 0 8px; }
+.track input { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; margin: 0; height: 34px; position: relative; z-index: 2; cursor: pointer; }
+
+.track input {
+  --fill: 0%;
+  --played: linear-gradient(to right, var(--console-fg) var(--fill), var(--track-rest) var(--fill));
+}
+.track input::-webkit-slider-runnable-track { height: 5px; background: var(--played); border-radius: 3px; }
+.track input::-moz-range-track { height: 5px; background: var(--played); border-radius: 3px; }
+.track input::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--console-fg); border: 0; margin-top: -4px; box-shadow: 0 0 0 3px var(--console-bg); }
+.track input::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: var(--console-fg); border: 0; box-shadow: 0 0 0 3px var(--console-bg); }
+.track input:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 1px; border-radius: 4px; }
+
+.ticks { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.ticks i { position: absolute; top: 50%; width: 2px; height: 5px; margin: -2.5px 0 0 -1px; background: var(--console-bg); }
+.readout { font-size: 12.5px; color: var(--console-dim); white-space: nowrap; font-variant-numeric: tabular-nums; flex: none; margin-right: 6px; }
+
+.side {
+  position: relative; min-width: 0; min-height: 0;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+}
+.side-in { position: absolute; inset: 0; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; }
+@media (max-width: 959.98px) {
+  .side-in { position: static; }
+  .tpanel { max-height: 22rem; }
+}
+.panelhead {
+  display: flex; align-items: baseline; gap: 10px; flex: none;
+  padding: 13px 16px 11px; border-bottom: 1px solid var(--line-soft);
+}
+.panelhead h2 { font-family: var(--display); font-size: 15px; font-weight: 650; margin: 0; }
+.panelhead .how { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+.tpanel {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 8px 12px; scrollbar-width: thin;
+}
+.tpanel:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: -2px; }
+
+ol.transcript, ol.lines { list-style: none; margin: 0; padding: 0; }
+ol.lines { display: grid; gap: 2px; }
+.scn + .scn { border-top: 1px solid var(--line-soft); margin-top: 6px; }
+.scn-h {
+  position: sticky; top: 0; z-index: 1; background: var(--surface);
+  margin: 0; padding: 12px 10px 6px;
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 12.5px; font-weight: 650; color: var(--ink);
+}
+.scn-h span { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.jump {
+  display: grid; grid-template-columns: 38px 1fr; gap: 10px; width: 100%;
+  text-align: left; border: 0; background: transparent; font: inherit;
+  cursor: pointer; padding: 7px 10px; border-radius: 8px; color: var(--ink);
+}
+
+.jump { scroll-margin-top: 36px; }
+.jump:hover { background: var(--hover); }
+.jump:focus-visible { outline-offset: -2px; }
+.jump[data-on="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--caution-ui); }
+.jump .tc { font-size: 12px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.jump:hover .tc { color: var(--accent); }
+.jump[data-on="true"] .tc { color: var(--ink); font-weight: 600; }
+.jump .line { font-size: 14.5px; line-height: 1.55; min-width: 0; }
+
+.about {
+  max-width: 68rem; margin: 36px 0 0;
+  display: grid; gap: 14px;
+}
+.about h2 { font-family: var(--display); font-size: 23px; font-weight: 650; margin: 0; letter-spacing: -.005em; }
+.standfirst { font-size: 18px; line-height: 1.5; margin: 0; color: var(--ink); }
+.summary { font-size: 16px; line-height: 1.7; margin: 0; color: var(--ink); }
+.summary b, .parts b { font-weight: 650; }
+.parts { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.parts li { font-size: 16px; line-height: 1.6; padding-left: 18px; position: relative; }
+.parts li::before { content: ""; position: absolute; left: 2px; top: .7em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+.using {
+  margin: 14px 0 0; padding: 18px 20px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line-soft);
+  display: grid; gap: 12px;
+}
+.using h3 { font-size: 14px; font-weight: 650; margin: 0; }
+.keys { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 10px 24px; }
+.keys div { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.keys dt { flex: none; }
+.keys dd { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink); min-width: 0; }
+kbd {
+  display: inline-block; min-width: 26px; padding: 2px 7px; text-align: center;
+  font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
+}
+kbd.arrow { font-size: 15px; line-height: 17px; padding: 1px 6px; }
+.note { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.note code { font-family: var(--mono); font-size: .92em; color: var(--ink); }
+.note b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 700px) { .caption { min-height: 132px; } .meta { font-size: 12.5px; } }
+@media (max-width: 460px) {
+  .caption { min-height: 160px; padding: 12px 14px 10px; }
+  .readout { font-size: 11.5px; }
+  h1 { font-size: 19px; }
+  .standfirst { font-size: 17px; }
+}
+@media (hover: none) and (pointer: coarse) { .keys { display: none; } }
+@media (prefers-reduced-motion: reduce) { .poster span { transition: none; } }
+
+.lessonlink { margin: 0 0 8px; font-size: 14px; line-height: 1.4; }
+.lessonlink a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.lessonlink a:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; border-radius: 2px; }
+
+.ticks i.ch { height: 13px; margin-top: -6.5px; width: 3px; margin-left: -1.5px; }
+.scn + .chap { border-top: 1px solid var(--line); margin-top: 6px; }
+.chap-h {
+  margin: 0; padding: 14px 10px 2px;
+  font-family: var(--display); font-size: 13.5px; font-weight: 650; color: var(--accent);
+}
+
+.inkit body { padding-block: 0 16px; }
+.inkit .lessonlink, .inkit .head { display: none; }
+
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<script>if (/[?&]in=kit(&|$)/.test(location.search) && window.parent !== window) document.documentElement.className += " inkit";</script>
+
+<div class="wrap">
+ <nav class="lessonlink" aria-label="This lesson"><a href="../../../agents/create-your-first-custom-agent.html">Written steps: Create your first custom agent <span aria-hidden="true">&rsaquo;</span></a></nav>
+ <div class="theater">
+  <div class="head">
+    <h1>Create your first custom agent</h1>
+    <p class="meta"><span>Video</span><span id="meta-scenes"></span><span id="meta-len"></span></p>
+  </div>
+
+  <div class="player">
+    <div class="stage">
+      <svg id="stage" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Animated video: Create your first custom agent. The narration is written out in the transcript."></svg>
+      <button class="poster" id="poster" type="button" aria-label="Play video">
+        <span><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>Play video</span>
+      </button>
+    </div>
+
+    <div class="console">
+      <div class="caption" id="caption">
+        <div class="rule"></div>
+        <p id="captiontext"></p>
+      </div>
+      <div class="transport">
+        <div class="grp">
+          <button class="play" id="playbtn" type="button" aria-label="Play">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>
+          </button>
+          <button id="prev" type="button" aria-label="Previous scene">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h2v11h-2zM13.5 2.5v11L5.5 8z"/></svg>
+          </button>
+          <button id="next" type="button" aria-label="Next scene">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 2.5h2v11h-2zM2.5 2.5v11L10.5 8z"/></svg>
+          </button>
+        </div>
+        <div class="track">
+          <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Scene">
+          <div class="ticks" id="ticks"></div>
+        </div>
+        <span class="readout" id="readout"></span>
+        <div class="grp">
+          <button id="sound" type="button" aria-label="Narration sound, on"></button>
+          <button class="wide" id="cc" type="button" aria-label="CC, captions on" aria-pressed="true">CC</button>
+          <button class="wide" id="speed" type="button" aria-label="1x, playback speed">1x</button>
+          <button id="replay" type="button" aria-label="Replay from the start">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.6V0L4.4 3 8 6V3.6a4.4 4.4 0 1 1-4.4 4.4h-1A5.4 5.4 0 1 0 8 2.6z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side" aria-labelledby="transcript-h">
+   <div class="side-in">
+    <div class="panelhead">
+      <h2 id="transcript-h">Transcript</h2>
+      <span class="how">Click a line to play from it</span>
+    </div>
+    <div class="tpanel" id="p-transcript" tabindex="0" aria-label="Transcript lines">
+      <ol class="transcript" id="transcript"></ol>
+    </div>
+   </div>
+  </aside>
+ </div>
+
+ <section class="about" aria-labelledby="about-h">
+  <h2 id="about-h">About this video</h2>
+  <p class="standfirst">The unit's steps, narrated: have Copilot create practice procedures and a Procedure reviewer that can only read files, use it to check the procedures, and ask it to change one. Pause where the video says, do the step on your computer, then play on.</p>
+  <p class="summary">This video walks through the unit's five written steps. If your screen doesn't match, the written steps say what to do.</p>
+  <ol class="summary">
+    <li>Have Copilot create practice procedures, and open their folder in VS Code.</li>
+    <li>Have Copilot create the Procedure reviewer, and check its name and tools.</li>
+    <li>Start a new chat, and select the Procedure reviewer.</li>
+    <li>Have the Procedure reviewer check the procedures.</li>
+    <li>Ask it to change a procedure, and see that it can't.</li>
+  </ol>
+
+  <div class="using">
+   <h3>Using the player</h3>
+   <dl class="keys">
+    <div><dt><kbd>Space</kbd></dt><dd>Play or pause</dd></div>
+    <div><dt><kbd class="arrow">&larr;</kbd> <kbd class="arrow">&rarr;</kbd></dt><dd>Go to the previous or next scene</dd></div>
+    <div><dt><kbd>C</kbd></dt><dd>Captions on or off, when you are using the player</dd></div>
+   </dl>
+   <p class="note">The progress bar moves one scene at a time. With the sound off, read the captions; the video stops after each scene until you press play.</p>
+  </div>
+ </section>
+</div>
+<script>
+(function () {
+  "use strict";
+
+  var PAPER = "var(--paper)";
+
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var RAMP = reduce ? 0.12 : 0.25;
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  var MAX_LEAD = 1.2;
+  var TIMING = {
+    "open": { dur: 27.325, starts: [1.3, 7.119, 13.769, 17.796, 21.481], pre: [1.3, 0.4, 0.4, 0.4, 0.4] },
+    "procedures": { dur: 35.075, starts: [1.3, 8.095, 14.255, 18.687, 23.567, 26.975, 31.257], pre: [1.3, 2.4, 0.4, 0.4, 0.4, 0.4, 0.4] },
+    "open-folder": { dur: 36.013, starts: [1.3, 4.004, 7.049, 14.313, 19.769, 25.332, 32.004], pre: [1.3, 0.4, 0.4, 2.4, 0.4, 0.4, 0.4] },
+    "procedures-check": { dur: 20.989, starts: [1.3, 8.692, 16.575], pre: [1.3, 2.4, 2.4] },
+    "reviewer": { dur: 53.832, starts: [1.3, 7.945, 14.105, 21.311, 25.103, 29.727, 32.772, 40.319, 44.852], pre: [1.3, 2.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 2.4] },
+    "reviewer-check": { dur: 25.955, starts: [1.3, 7.455, 11.332, 14.079, 17.529], pre: [1.3, 2.4, 0.4, 0.4, 0.4] },
+    "select": { dur: 20.099, starts: [1.3, 8.905, 12.783], pre: [1.3, 2.4, 0.4] },
+    "select-check": { dur: 11.912, starts: [1.3, 7.647], pre: [1.3, 2.4] },
+    "check": { dur: 14.28, starts: [1.3, 7.22], pre: [1.3, 2.4] },
+    "check-check": { dur: 27.565, starts: [1.3, 6.047, 10.415, 13.225, 17.252, 23.471], pre: [1.3, 2.4, 0.4, 0.4, 0.4, 2.4] },
+    "change": { dur: 19.416, starts: [1.3, 8.18, 14.34], pre: [1.3, 2.4, 0.4] },
+    "change-check": { dur: 17.747, starts: [1.3, 6.047, 12.036, 14.569], pre: [1.3, 2.4, 0.4, 0.4] },
+    "close": { dur: 16.392, starts: [1.3, 5.497, 10.42], pre: [1.3, 0.4, 0.4] }
+  };
+
+  var ANIM = reduce
+    ? { fade: [0, 0], up: [0, 0], right: [0, 0], left: [0, 0] }
+    : { fade: [0, 0], up: [0, 16], right: [-16, 0], left: [16, 0] };
+
+  var S = [{"id":"open","lines":[{"caption":"A reviewer that can only read files can check your documents, and leave every one as written."},{"caption":"In this unit, you have Copilot create practice procedures, and a custom agent called the Procedure reviewer."},{"caption":"You use it to check the procedures, and then ask it to change one."},{"caption":"Start with VS Code open, and the chat set to Agent."},{"caption":"Where the video says pause, stop it, do the step on your computer, and then play on."}],"beats":[{"line":1,"anim":"up","svg":"<rect x=\"150\" y=\"76\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"184\" y=\"119\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Create practice procedures<\/text>"},{"line":1,"plus":3.69,"anim":"up","svg":"<rect x=\"150\" y=\"176\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"184\" y=\"219\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">The Procedure reviewer<\/text>"},{"line":2,"plus":0.69,"anim":"up","svg":"<rect x=\"150\" y=\"276\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"184\" y=\"319\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Check the procedures<\/text>"},{"line":2,"plus":1.98,"anim":"up","svg":"<rect x=\"150\" y=\"376\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"184\" y=\"419\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Ask it to change one<\/text>"}],"title":"What you'll do"},{"id":"procedures","lines":[{"caption":"First, have Copilot create procedures to practice on, in a new folder."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."},{"caption":"It asks for a folder named agents-practice, in your Documents folder."},{"caption":"In it, a procedures folder, with three short, made-up office procedures."},{"caption":"Each has one unclear step, and one step left out."},{"caption":"If a permission request appears, allow it if it matches what you asked."},{"caption":"Gray bars stand for text you don't need to read."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc1\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc1)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"170\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"183\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"212\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 215v5M30.0 217h5\"/><rect class=\"dg-p\" x=\"45\" y=\"206\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 212.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"68\" y=\"221\" style=\"font-size:12px\">Agent<\/text><rect class=\"dg-p\" x=\"122\" y=\"206\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"214\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"2.2\"/><path d=\"M421 223l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(-5.09 50.65) scale(2.1091)\"><clipPath id=\"kc2\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"188\"/><\/clipPath><g clip-path=\"url(#kc2)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"174\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Create a new folder named agents-practice in the folder<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">Windows uses as my Documents folder, which may be under<\/text><text class=\"dg-t\" x=\"29\" y=\"73\">OneDrive. If agents-practice already exists, don't<\/text><text class=\"dg-t\" x=\"29\" y=\"91\">change it; tell me instead. In it, create a folder named<\/text><text class=\"dg-t\" x=\"29\" y=\"109\">procedures with three short, made-up office procedures.<\/text><text class=\"dg-t\" x=\"29\" y=\"127\">Give each procedure numbered steps, with one unclear<\/text><text class=\"dg-t\" x=\"29\" y=\"145\">step and one step left out. Add or change no other file.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"167\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 170v5M30.0 172h5\"/><rect class=\"dg-p\" x=\"45\" y=\"161\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 167.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"68\" y=\"176\" style=\"font-size:12px\">Agent<\/text><rect class=\"dg-p\" x=\"122\" y=\"161\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"169\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"172\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"172\" r=\"2.2\"/><path d=\"M421 178l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":5.09,"outLine":2,"anim":"fade","svg":"<rect x=\"410\" y=\"458\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"410\" y=\"452\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"480\" y=\"498\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"},{"line":2,"plus":1.67,"outLine":2,"outPlus":3.01,"anim":"fade","svg":"<g transform=\"translate(-5.09 50.65) scale(2.1091)\"><clipPath id=\"kc3\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"188\"/><\/clipPath><g clip-path=\"url(#kc3)\"><text class=\"dg-t\" x=\"29\" y=\"37\"><tspan style=\"fill:transparent\">Create a new folder named <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">agents-practice<\/tspan><tspan style=\"fill:transparent\"> in the folder<\/tspan><\/text><\/g><\/g>"},{"line":2,"plus":3.01,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(-5.09 50.65) scale(2.1091)\"><clipPath id=\"kc4\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"188\"/><\/clipPath><g clip-path=\"url(#kc4)\"><text class=\"dg-t\" x=\"29\" y=\"55\"><tspan style=\"fill:transparent\">Windows uses as my <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">Documents<\/tspan><tspan style=\"fill:transparent\"> folder, which may be under<\/tspan><\/text><\/g><\/g>"},{"line":3,"plus":0.87,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(-5.09 50.65) scale(2.1091)\"><clipPath id=\"kc5\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"188\"/><\/clipPath><g clip-path=\"url(#kc5)\"><text class=\"dg-t\" x=\"29\" y=\"91\"><tspan style=\"fill:transparent\">change it; tell me instead. In it, create <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">a folder named<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"109\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">procedures<\/tspan><tspan style=\"fill:transparent\"> with three short, made-up office procedures.<\/tspan><\/text><\/g><\/g>"},{"line":4,"plus":0.25,"outLine":4,"outPlus":1.45,"anim":"fade","svg":"<g transform=\"translate(-5.09 50.65) scale(2.1091)\"><clipPath id=\"kc6\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"188\"/><\/clipPath><g clip-path=\"url(#kc6)\"><text class=\"dg-t\" x=\"29\" y=\"127\"><tspan style=\"fill:transparent\">Give each procedure numbered steps, with <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">one unclear<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><\/g><\/g>"},{"line":4,"plus":1.45,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(-5.09 50.65) scale(2.1091)\"><clipPath id=\"kc7\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"188\"/><\/clipPath><g clip-path=\"url(#kc7)\"><text class=\"dg-t\" x=\"29\" y=\"127\"><tspan style=\"fill:transparent\">Give each procedure numbered steps, with <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">one unclear<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"145\"><tspan style=\"fill:transparent\">step and <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">one step left out<\/tspan><tspan style=\"fill:transparent\">. Add or change no other file.<\/tspan><\/text><\/g><\/g>"},{"line":5,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc8\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc8)\"><rect class=\"dg-w\" x=\"20\" y=\"106\" width=\"420\" height=\"150\" rx=\"7\"/>\n<path class=\"dg-ic\" d=\"M38 128l5 5-5 5M48 140h9\"/>\n<rect class=\"dg-b2\" x=\"66\" y=\"129\" width=\"180\" height=\"9\" rx=\"2\"/>\n<rect class=\"dg-c\" x=\"38\" y=\"156\" width=\"384\" height=\"28\" rx=\"4\"/><rect class=\"dg-b2\" x=\"50\" y=\"166\" width=\"210\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-btn\" x=\"38\" y=\"204\" width=\"88\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"52\" y=\"223\">Allow<\/text>\n<line class=\"dg-btnl\" x1=\"100\" y1=\"208\" x2=\"100\" y2=\"228\"/><path class=\"dg-btnl\" d=\"M107 215l5 5 5-5\" style=\"stroke-width:1.6\"/>\n<rect class=\"dg-p\" x=\"134\" y=\"204\" width=\"58\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"148\" y=\"215\" width=\"29\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":5,"plus":1.14,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc9\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc9)\"><rect class=\"dg-m\" x=\"34\" y=\"200\" width=\"96\" height=\"36\" rx=\"5\"/><\/g><\/g>"}],"title":"Have Copilot create practice procedures"},{"id":"open-folder","lines":[{"caption":"Then open the new folder in VS Code."},{"caption":"Select the File menu, and then Open Folder."},{"caption":"In Documents, select agents-practice, and then select the button Select Folder."},{"caption":"By default, the folder opens in Restricted Mode, with a bar at the top that says so."},{"caption":"On the Restricted Mode bar, select Manage. On the Workspace Trust page, select Trust."},{"caption":"If VS Code instead asks whether you trust the authors, leave the box about the parent folder unticked."},{"caption":"Then select the button Yes, I trust the authors."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(17.65 8) scale(1.9265)\"><clipPath id=\"kc10\"><rect x=\"0\" y=\"0\" width=\"480\" height=\"272\"/><\/clipPath><g clip-path=\"url(#kc10)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"470\" height=\"290\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"468\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"52\" y=\"18\" width=\"24\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"88\" y=\"18\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"152\" y=\"18\" width=\"28\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"192\" y=\"18\" width=\"16\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"220\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"254\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"314\" y=\"18\" width=\"26\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M412 20h9M432 15h9v9h-9zM452 15l9 9M461 15l-9 9\"/><\/g><\/g>"},{"line":1,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(17.65 8) scale(1.9265)\"><clipPath id=\"kc11\"><rect x=\"0\" y=\"0\" width=\"480\" height=\"272\"/><\/clipPath><g clip-path=\"url(#kc11)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"470\" height=\"290\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"468\" height=\"30\" rx=\"7\"/><rect class=\"dg-tn\" x=\"12\" y=\"10\" width=\"34\" height=\"22\" rx=\"4\"/><text class=\"dg-t\" x=\"18\" y=\"26\" style=\"font-size:12px\">File<\/text><rect class=\"dg-b\" x=\"52\" y=\"18\" width=\"24\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"88\" y=\"18\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"152\" y=\"18\" width=\"28\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"192\" y=\"18\" width=\"16\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"220\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"254\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"314\" y=\"18\" width=\"26\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M412 20h9M432 15h9v9h-9zM452 15l9 9M461 15l-9 9\"/><rect class=\"dg-w\" x=\"12\" y=\"34\" width=\"220\" height=\"232\" rx=\"6\"/><rect class=\"dg-b\" x=\"26\" y=\"51\" width=\"96\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"71\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"91\" width=\"120\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"20\" y1=\"108\" x2=\"224\" y2=\"108\"/><rect class=\"dg-b\" x=\"26\" y=\"120\" width=\"84\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"140\" width=\"110\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"16\" y=\"153\" width=\"212\" height=\"20\" rx=\"4\"/><text class=\"dg-t\" x=\"26\" y=\"168\" style=\"font-size:12px\">Open Folder<\/text><rect class=\"dg-b\" x=\"26\" y=\"180\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"200\" width=\"100\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"20\" y1=\"217\" x2=\"224\" y2=\"217\"/><rect class=\"dg-b\" x=\"26\" y=\"229\" width=\"76\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"249\" width=\"118\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":1.63,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(17.65 8) scale(1.9265)\"><clipPath id=\"kc12\"><rect x=\"0\" y=\"0\" width=\"480\" height=\"272\"/><\/clipPath><g clip-path=\"url(#kc12)\"><rect class=\"dg-m\" x=\"16\" y=\"153\" width=\"212\" height=\"20\" rx=\"5\"/><\/g><\/g>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(76.8 18) scale(1.26)\"><clipPath id=\"kc13\"><rect x=\"0\" y=\"0\" width=\"640\" height=\"400\"/><\/clipPath><g clip-path=\"url(#kc13)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"390\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"70\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M610 16l9 9M619 16l-9 9\"/><path class=\"dg-ic\" d=\"M24 51l-5 5 5 5M19 56h12M48 61l5-5-5-5M53 56H41M66 60v-8M62 56l4-4 4 4\"/><rect class=\"dg-w\" x=\"86\" y=\"44\" width=\"380\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"96\" y=\"53\" width=\"130\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"476\" y=\"44\" width=\"150\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"500\" y=\"53\" width=\"80\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"16\" y=\"82\" width=\"54\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"86\" y=\"82\" width=\"60\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"98\" x2=\"634\" y2=\"98\"/><line class=\"dg-l\" x1=\"176\" y1=\"98\" x2=\"176\" y2=\"330\"/><rect class=\"dg-b\" x=\"22\" y=\"110\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"113\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"132\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"135\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"158\" x2=\"166\" y2=\"158\"/><rect class=\"dg-b\" x=\"22\" y=\"162\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"165\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"184\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"187\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"201\" width=\"162\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"206\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"216\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"228\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"231\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"250\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"253\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"272\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"275\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"194\" y=\"112\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"420\" y=\"112\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"186\" y1=\"122\" x2=\"626\" y2=\"122\"/><path class=\"dg-ic\" d=\"M196.0 132.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"135\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"135\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"188\" y=\"150\" width=\"436\" height=\"22\" rx=\"4\"/><path class=\"dg-ic\" d=\"M196.0 156.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"222\" y=\"166\">agents-practice<\/text><rect class=\"dg-b\" x=\"420\" y=\"159\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 180.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"183\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"183\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 204.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"207\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"207\" width=\"92\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"330\" x2=\"634\" y2=\"330\"/><rect class=\"dg-b\" x=\"24\" y=\"351\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"80\" y=\"340\" width=\"300\" height=\"26\" rx=\"4\"/><text class=\"dg-t\" x=\"90\" y=\"358\">agents-practice<\/text><rect class=\"dg-btn\" x=\"400\" y=\"340\" width=\"120\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"414\" y=\"359\">Select Folder<\/text><rect class=\"dg-p\" x=\"530\" y=\"340\" width=\"92\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"550\" y=\"351\" width=\"52\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":2,"outLine":2,"outPlus":0.87,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM80.9 261.5V308.8H302V261.5Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M318 285.1L296 285.1\"/><rect x=\"318\" y=\"243.5\" width=\"414.4\" height=\"83.2\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(306.8 -223.7) scale(2.4)\"><clipPath id=\"ki14\"><rect x=\"8\" y=\"198\" width=\"166\" height=\"28\"/><\/clipPath><g clip-path=\"url(#ki14)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"390\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"70\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M610 16l9 9M619 16l-9 9\"/><path class=\"dg-ic\" d=\"M24 51l-5 5 5 5M19 56h12M48 61l5-5-5-5M53 56H41M66 60v-8M62 56l4-4 4 4\"/><rect class=\"dg-w\" x=\"86\" y=\"44\" width=\"380\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"96\" y=\"53\" width=\"130\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"476\" y=\"44\" width=\"150\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"500\" y=\"53\" width=\"80\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"16\" y=\"82\" width=\"54\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"86\" y=\"82\" width=\"60\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"98\" x2=\"634\" y2=\"98\"/><line class=\"dg-l\" x1=\"176\" y1=\"98\" x2=\"176\" y2=\"330\"/><rect class=\"dg-b\" x=\"22\" y=\"110\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"113\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"132\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"135\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"158\" x2=\"166\" y2=\"158\"/><rect class=\"dg-b\" x=\"22\" y=\"162\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"165\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"184\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"187\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"201\" width=\"162\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"206\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"216\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"228\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"231\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"250\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"253\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"272\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"275\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"194\" y=\"112\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"420\" y=\"112\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"186\" y1=\"122\" x2=\"626\" y2=\"122\"/><path class=\"dg-ic\" d=\"M196.0 132.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"135\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"135\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"188\" y=\"150\" width=\"436\" height=\"22\" rx=\"4\"/><path class=\"dg-ic\" d=\"M196.0 156.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"222\" y=\"166\">agents-practice<\/text><rect class=\"dg-b\" x=\"420\" y=\"159\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 180.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"183\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"183\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 204.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"207\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"207\" width=\"92\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"330\" x2=\"634\" y2=\"330\"/><rect class=\"dg-b\" x=\"24\" y=\"351\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"80\" y=\"340\" width=\"300\" height=\"26\" rx=\"4\"/><text class=\"dg-t\" x=\"90\" y=\"358\">agents-practice<\/text><rect class=\"dg-btn\" x=\"400\" y=\"340\" width=\"120\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"414\" y=\"359\">Select Folder<\/text><rect class=\"dg-p\" x=\"530\" y=\"340\" width=\"92\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"550\" y=\"351\" width=\"52\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":2,"plus":0.87,"outLine":2,"outPlus":0.46,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM305.2 197.2V244.5H576.7V197.2Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M440.9 260.5L440.9 238.5\"/><rect x=\"185.7\" y=\"260.5\" width=\"510.4\" height=\"83.2\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-252.7 -84.3) scale(2.4)\"><clipPath id=\"ki15\"><rect x=\"186\" y=\"147\" width=\"206\" height=\"28\"/><\/clipPath><g clip-path=\"url(#ki15)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"390\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"70\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M610 16l9 9M619 16l-9 9\"/><path class=\"dg-ic\" d=\"M24 51l-5 5 5 5M19 56h12M48 61l5-5-5-5M53 56H41M66 60v-8M62 56l4-4 4 4\"/><rect class=\"dg-w\" x=\"86\" y=\"44\" width=\"380\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"96\" y=\"53\" width=\"130\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"476\" y=\"44\" width=\"150\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"500\" y=\"53\" width=\"80\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"16\" y=\"82\" width=\"54\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"86\" y=\"82\" width=\"60\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"98\" x2=\"634\" y2=\"98\"/><line class=\"dg-l\" x1=\"176\" y1=\"98\" x2=\"176\" y2=\"330\"/><rect class=\"dg-b\" x=\"22\" y=\"110\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"113\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"132\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"135\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"158\" x2=\"166\" y2=\"158\"/><rect class=\"dg-b\" x=\"22\" y=\"162\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"165\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"184\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"187\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"201\" width=\"162\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"206\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"216\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"228\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"231\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"250\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"253\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"272\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"275\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"194\" y=\"112\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"420\" y=\"112\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"186\" y1=\"122\" x2=\"626\" y2=\"122\"/><path class=\"dg-ic\" d=\"M196.0 132.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"135\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"135\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"188\" y=\"150\" width=\"436\" height=\"22\" rx=\"4\"/><path class=\"dg-ic\" d=\"M196.0 156.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"222\" y=\"166\">agents-practice<\/text><rect class=\"dg-b\" x=\"420\" y=\"159\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 180.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"183\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"183\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 204.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"207\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"207\" width=\"92\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"330\" x2=\"634\" y2=\"330\"/><rect class=\"dg-b\" x=\"24\" y=\"351\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"80\" y=\"340\" width=\"300\" height=\"26\" rx=\"4\"/><text class=\"dg-t\" x=\"90\" y=\"358\">agents-practice<\/text><rect class=\"dg-btn\" x=\"400\" y=\"340\" width=\"120\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"414\" y=\"359\">Select Folder<\/text><rect class=\"dg-p\" x=\"530\" y=\"340\" width=\"92\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"550\" y=\"351\" width=\"52\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":2,"plus":0.46,"outLine":3,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM567.2 432.8V495.2H745.6V432.8Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M656.4 416.8L656.4 438.8\"/><rect x=\"490\" y=\"304.8\" width=\"332.8\" height=\"112\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-447.6 -488.8) scale(2.4)\"><clipPath id=\"ki16\"><rect x=\"394\" y=\"334\" width=\"132\" height=\"40\"/><\/clipPath><g clip-path=\"url(#ki16)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"390\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"70\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M610 16l9 9M619 16l-9 9\"/><path class=\"dg-ic\" d=\"M24 51l-5 5 5 5M19 56h12M48 61l5-5-5-5M53 56H41M66 60v-8M62 56l4-4 4 4\"/><rect class=\"dg-w\" x=\"86\" y=\"44\" width=\"380\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"96\" y=\"53\" width=\"130\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"476\" y=\"44\" width=\"150\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"500\" y=\"53\" width=\"80\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"16\" y=\"82\" width=\"54\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"86\" y=\"82\" width=\"60\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"98\" x2=\"634\" y2=\"98\"/><line class=\"dg-l\" x1=\"176\" y1=\"98\" x2=\"176\" y2=\"330\"/><rect class=\"dg-b\" x=\"22\" y=\"110\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"113\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"132\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"135\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"158\" x2=\"166\" y2=\"158\"/><rect class=\"dg-b\" x=\"22\" y=\"162\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"165\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"184\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"187\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"201\" width=\"162\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"206\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"216\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"228\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"231\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"250\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"253\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"272\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"275\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"194\" y=\"112\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"420\" y=\"112\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"186\" y1=\"122\" x2=\"626\" y2=\"122\"/><path class=\"dg-ic\" d=\"M196.0 132.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"135\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"135\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"188\" y=\"150\" width=\"436\" height=\"22\" rx=\"4\"/><path class=\"dg-ic\" d=\"M196.0 156.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"222\" y=\"166\">agents-practice<\/text><rect class=\"dg-b\" x=\"420\" y=\"159\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 180.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"183\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"183\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 204.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"207\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"207\" width=\"92\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"330\" x2=\"634\" y2=\"330\"/><rect class=\"dg-b\" x=\"24\" y=\"351\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"80\" y=\"340\" width=\"300\" height=\"26\" rx=\"4\"/><text class=\"dg-t\" x=\"90\" y=\"358\">agents-practice<\/text><rect class=\"dg-btn\" x=\"400\" y=\"340\" width=\"120\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"414\" y=\"359\">Select Folder<\/text><rect class=\"dg-p\" x=\"530\" y=\"340\" width=\"92\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"550\" y=\"351\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-m\" x=\"397\" y=\"337\" width=\"126\" height=\"34\" rx=\"5\"/><\/g><\/g>"},{"line":3,"outLine":4,"outPlus":2.97,"anim":"fade","svg":"<g transform=\"translate(7.25 182.2) scale(1.3507)\"><clipPath id=\"kc17\"><rect x=\"5\" y=\"5\" width=\"690\" height=\"120\"/><\/clipPath><g clip-path=\"url(#kc17)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"200\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"20\" y=\"19\" width=\"257\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"6\" y=\"36\" width=\"688\" height=\"28\" rx=\"0\"/><path class=\"dg-ic\" d=\"M22 41l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10v-5z\"/><text class=\"dg-t\" x=\"38\" y=\"55\" style=\"font-size:12px\">Restricted Mode<\/text><rect class=\"dg-b\" x=\"140\" y=\"49\" width=\"340\" height=\"6\" rx=\"2\"/><text class=\"dg-t\" x=\"500\" y=\"55\" style=\"font-size:12px\">Manage<\/text><line x1=\"500\" y1=\"58\" x2=\"541\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><rect class=\"dg-b\" x=\"560\" y=\"48\" width=\"66\" height=\"7\" rx=\"2\"/><line x1=\"560\" y1=\"58\" x2=\"620\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><path class=\"dg-ic\" d=\"M668 45l8 8M676 45l-8 8\"/><rect class=\"dg-c\" x=\"6\" y=\"64\" width=\"34\" height=\"140\" rx=\"0\"/><g transform=\"translate(0 30)\"><path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/><circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/><circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/><path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/><path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/><\/g><line class=\"dg-l\" x1=\"241\" y1=\"64\" x2=\"241\" y2=\"204\"/><rect class=\"dg-b\" x=\"51\" y=\"77\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M52.0 101.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"62\" y=\"101\" width=\"106\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":4,"plus":1.86,"outLine":4,"outPlus":2.97,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM663.1 224.8V276H761.6V224.8Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M712.3 292L712.3 270\"/><rect x=\"621.1\" y=\"292\" width=\"182.4\" height=\"91.4\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-644.9 206.4) scale(2.6)\"><clipPath id=\"ki18\"><rect x=\"490\" y=\"36\" width=\"64\" height=\"29\"/><\/clipPath><g clip-path=\"url(#ki18)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"200\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"20\" y=\"19\" width=\"257\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"6\" y=\"36\" width=\"688\" height=\"28\" rx=\"0\"/><path class=\"dg-ic\" d=\"M22 41l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10v-5z\"/><text class=\"dg-t\" x=\"38\" y=\"55\" style=\"font-size:12px\">Restricted Mode<\/text><rect class=\"dg-b\" x=\"140\" y=\"49\" width=\"340\" height=\"6\" rx=\"2\"/><text class=\"dg-t\" x=\"500\" y=\"55\" style=\"font-size:12px\">Manage<\/text><line x1=\"500\" y1=\"58\" x2=\"541\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><rect class=\"dg-b\" x=\"560\" y=\"48\" width=\"66\" height=\"7\" rx=\"2\"/><line x1=\"560\" y1=\"58\" x2=\"620\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><path class=\"dg-ic\" d=\"M668 45l8 8M676 45l-8 8\"/><rect class=\"dg-c\" x=\"6\" y=\"64\" width=\"34\" height=\"140\" rx=\"0\"/><g transform=\"translate(0 30)\"><path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/><circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/><circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/><path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/><path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/><\/g><line class=\"dg-l\" x1=\"241\" y1=\"64\" x2=\"241\" y2=\"204\"/><rect class=\"dg-b\" x=\"51\" y=\"77\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M52.0 101.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"62\" y=\"101\" width=\"106\" height=\"7\" rx=\"2\"/><rect class=\"dg-m\" x=\"493\" y=\"39\" width=\"58\" height=\"23\" rx=\"5\"/><\/g><\/g>"},{"line":4,"plus":2.97,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(12.77 8) scale(1.7467)\"><clipPath id=\"kc19\"><rect x=\"0\" y=\"0\" width=\"535\" height=\"300\"/><\/clipPath><g clip-path=\"url(#kc19)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"525\" height=\"290\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"523\" height=\"30\" rx=\"7\"/><rect class=\"dg-w\" x=\"10\" y=\"10\" width=\"150\" height=\"26\" rx=\"4\"/><path class=\"dg-ic\" d=\"M22 15l6 2.5v4.5c0 4-2.5 6.5-6 8-3.5-1.5-6-4-6-8v-4.5z\"/><rect class=\"dg-b\" x=\"36\" y=\"21\" width=\"90\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M44 58l14 6v10c0 9-6 15-14 18-8-3-14-9-14-18v-10z\"/><rect class=\"dg-b2\" x=\"76\" y=\"62\" width=\"220\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"76\" y=\"84\" width=\"380\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"76\" y=\"98\" width=\"300\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"30\" y=\"124\" width=\"230\" height=\"156\" rx=\"6\"/><rect class=\"dg-b2\" x=\"46\" y=\"140\" width=\"150\" height=\"8\" rx=\"2\"/><rect class=\"dg-b\" x=\"46\" y=\"162\" width=\"170\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"46\" y=\"178\" width=\"148\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"46\" y=\"194\" width=\"126\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"46\" y=\"210\" width=\"170\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"275\" y=\"124\" width=\"230\" height=\"156\" rx=\"6\"/><rect class=\"dg-b2\" x=\"291\" y=\"140\" width=\"150\" height=\"8\" rx=\"2\"/><rect class=\"dg-b\" x=\"291\" y=\"162\" width=\"170\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"291\" y=\"178\" width=\"148\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"291\" y=\"194\" width=\"126\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"291\" y=\"210\" width=\"170\" height=\"6\" rx=\"2\"/><rect class=\"dg-btn\" x=\"46\" y=\"238\" width=\"80\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"60\" y=\"257\">Trust<\/text><rect class=\"dg-p\" x=\"291\" y=\"238\" width=\"104\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"305\" y=\"249\" width=\"76\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":4,"plus":4.44,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(12.77 8) scale(1.7467)\"><clipPath id=\"kc20\"><rect x=\"0\" y=\"0\" width=\"535\" height=\"300\"/><\/clipPath><g clip-path=\"url(#kc20)\"><rect class=\"dg-m\" x=\"42\" y=\"234\" width=\"88\" height=\"36\" rx=\"5\"/><\/g><\/g>"},{"line":5,"anim":"fade","svg":"<g transform=\"translate(14.3 17.74) scale(1.9404)\"><clipPath id=\"kc21\"><rect x=\"5\" y=\"5\" width=\"470\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc21)\"><rect class=\"dg-c\" x=\"5\" y=\"5\" width=\"470\" height=\"250\" rx=\"8\" style=\"stroke:var(--rule2,#cdcdcd);stroke-width:1.5\"/>\n<rect class=\"dg-w\" x=\"30\" y=\"30\" width=\"420\" height=\"190\" rx=\"8\"/>\n<path class=\"dg-ic\" d=\"M60 50l12 5v9c0 8-5 13-12 16-7-3-12-8-12-16v-9z\"/>\n<rect class=\"dg-b2\" x=\"88\" y=\"54\" width=\"250\" height=\"10\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"88\" y=\"80\" width=\"320\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"88\" y=\"95\" width=\"290\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"88\" y=\"110\" width=\"210\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-p\" x=\"88\" y=\"124\" width=\"11\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"106\" y=\"127\" width=\"230\" height=\"6\" rx=\"2\"/>\n<rect class=\"dg-btn\" x=\"128\" y=\"150\" width=\"172\" height=\"48\" rx=\"5\"/><text class=\"dg-btnt\" x=\"142\" y=\"170\">Yes, I trust the authors<\/text>\n<rect x=\"142\" y=\"180\" width=\"140\" height=\"6\" rx=\"2\" style=\"fill:var(--accent-ink,#fff);fill-opacity:.55\"/>\n<rect class=\"dg-p\" x=\"308\" y=\"150\" width=\"130\" height=\"48\" rx=\"5\"/><rect class=\"dg-b2\" x=\"320\" y=\"163\" width=\"100\" height=\"8\" rx=\"2\"/><rect class=\"dg-b\" x=\"320\" y=\"180\" width=\"90\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":5,"plus":3.28,"outLine":6,"anim":"fade","svg":"<g transform=\"translate(14.3 17.74) scale(1.9404)\"><clipPath id=\"kc22\"><rect x=\"5\" y=\"5\" width=\"470\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc22)\"><rect class=\"dg-m\" x=\"84\" y=\"120\" width=\"19\" height=\"19\" rx=\"5\"/><\/g><\/g>"},{"line":6,"plus":0.55,"anim":"fade","svg":"<g transform=\"translate(14.3 17.74) scale(1.9404)\"><clipPath id=\"kc23\"><rect x=\"5\" y=\"5\" width=\"470\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc23)\"><rect class=\"dg-m\" x=\"122\" y=\"144\" width=\"184\" height=\"60\" rx=\"5\"/><\/g><\/g>"}],"title":"Open the folder and trust it"},{"id":"procedures-check","lines":[{"caption":"Pause the video now, send the request, and when Copilot has finished, open the folder."},{"caption":"Look for this: the list on the left shows AGENTS-PRACTICE, with procedures in it."},{"caption":"And the control at the bottom of the chat box shows Agent."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"30\" y=\"40\" width=\"900\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"70\" y=\"78\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"92\" y=\"78\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"130\" y=\"111\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request, and when Copilot has finished, open the folder<\/text>"},{"line":0,"outLine":1,"anim":"fade","svg":"<rect x=\"80\" y=\"186\" width=\"800\" height=\"274\" rx=\"12\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"1.6\"/><text x=\"108\" y=\"226\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">Create a new folder named agents-practice in the folder<\/text><text x=\"108\" y=\"260\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">Windows uses as my Documents folder, which may be under<\/text><text x=\"108\" y=\"294\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">OneDrive. If agents-practice already exists, don't change it;<\/text><text x=\"108\" y=\"328\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">tell me instead. In it, create a folder named procedures with<\/text><text x=\"108\" y=\"362\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">three short, made-up office procedures. Give each procedure<\/text><text x=\"108\" y=\"396\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">numbered steps, with one unclear step and one step left out.<\/text><text x=\"108\" y=\"430\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">Add or change no other file.<\/text>"},{"line":1,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(156 78) scale(2.4)\"><clipPath id=\"kc24\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"160\"/><\/clipPath><g clip-path=\"url(#kc24)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"260\" height=\"150\" rx=\"8\"/><rect class=\"dg-b\" x=\"15\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M16.0 42.5l3.7 3.7 3.7 -3.7\"/><text class=\"dg-tb\" x=\"26.1\" y=\"49\" style=\"font-size:12px\">AGENTS-PRACTICE<\/text><path class=\"dg-ic\" d=\"M29.0 62.0l4.0 4.0 -4.0 4.0\"/><text class=\"dg-t\" x=\"39.0\" y=\"71\">procedures<\/text><\/g><\/g>"},{"line":1,"plus":4.17,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(156 78) scale(2.4)\"><clipPath id=\"kc25\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"160\"/><\/clipPath><g clip-path=\"url(#kc25)\"><rect class=\"dg-m\" x=\"10\" y=\"33\" width=\"200\" height=\"44\" rx=\"5\"/><path d=\"M218.0 62.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"},{"line":2,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc26\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc26)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"170\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"183\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"212\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 215v5M30.0 217h5\"/><rect class=\"dg-p\" x=\"45\" y=\"206\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 212.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"68\" y=\"221\" style=\"font-size:12px\">Agent<\/text><rect class=\"dg-p\" x=\"122\" y=\"206\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"214\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"2.2\"/><path d=\"M421 223l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":2,"plus":2.25,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc27\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc27)\"><rect class=\"dg-m\" x=\"41\" y=\"202\" width=\"79\" height=\"30\" rx=\"5\"/><path d=\"M128.0 218.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: the folder is open, the chat says Agent"},{"id":"reviewer","lines":[{"caption":"Next, you describe the role, and Copilot writes the custom agent's file."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."},{"caption":"It names the file, procedure-reviewer.agent.md, in the agents folder, inside .github."},{"caption":"It sets the custom agent's tools to read and search only."},{"caption":"Its instructions have it quote each unclear step, and name each missing step."},{"caption":"And give the file name of the procedure for each step."},{"caption":"Copilot asks before it writes a file in the agents folder, inside .github, unless you've chosen to allow all."},{"caption":"Allow it if it creates only that file."},{"caption":"Then, in the list on the left, expand .github until procedure-reviewer.agent.md shows, and select it."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc28\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc28)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"170\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"183\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"212\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 215v5M30.0 217h5\"/><rect class=\"dg-p\" x=\"45\" y=\"206\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 212.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"68\" y=\"221\" style=\"font-size:12px\">Agent<\/text><rect class=\"dg-p\" x=\"122\" y=\"206\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"214\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"2.2\"/><path d=\"M421 223l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"outLine":6,"anim":"fade","svg":"<g transform=\"translate(30.62 -3.54) scale(1.9538)\"><clipPath id=\"kc29\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"260\"/><\/clipPath><g clip-path=\"url(#kc29)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"246\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">In the agents-practice folder, create the custom agent<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">file .github/agents/procedure-reviewer.agent.md. In its<\/text><text class=\"dg-t\" x=\"29\" y=\"73\">header, set the name to Procedure reviewer. Set the<\/text><text class=\"dg-t\" x=\"29\" y=\"91\">tools in its header to read and search only. Set its<\/text><text class=\"dg-t\" x=\"29\" y=\"109\">description to: Check procedures for unclear or missing<\/text><text class=\"dg-t\" x=\"29\" y=\"127\">steps, without changing them. In its instructions, have<\/text><text class=\"dg-t\" x=\"29\" y=\"145\">it quote each unclear step and say why, and name each<\/text><text class=\"dg-t\" x=\"29\" y=\"163\">missing step. In its instructions, also have it give the<\/text><text class=\"dg-t\" x=\"29\" y=\"181\">file name of the procedure for each step. If that file<\/text><text class=\"dg-t\" x=\"29\" y=\"199\">already exists, don't change it; tell me instead. Add or<\/text><text class=\"dg-t\" x=\"29\" y=\"217\">change no other file.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"239\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 242v5M30.0 244h5\"/><rect class=\"dg-p\" x=\"45\" y=\"233\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 239.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"68\" y=\"248\" style=\"font-size:12px\">Agent<\/text><rect class=\"dg-p\" x=\"122\" y=\"233\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"241\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"244\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"244\" r=\"2.2\"/><path d=\"M421 250l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":5.09,"outLine":2,"anim":"fade","svg":"<rect x=\"410\" y=\"458\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"410\" y=\"452\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"480\" y=\"498\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"},{"line":2,"plus":1.08,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(30.62 -3.54) scale(1.9538)\"><clipPath id=\"kc30\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"260\"/><\/clipPath><g clip-path=\"url(#kc30)\"><text class=\"dg-t\" x=\"29\" y=\"55\"><tspan style=\"fill:transparent\">file <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">.github/agents/procedure-reviewer.agent.md<\/tspan><tspan style=\"fill:transparent\">. In its<\/tspan><\/text><\/g><\/g>"},{"line":3,"plus":1.81,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(30.62 -3.54) scale(1.9538)\"><clipPath id=\"kc31\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"260\"/><\/clipPath><g clip-path=\"url(#kc31)\"><text class=\"dg-t\" x=\"29\" y=\"91\"><tspan style=\"fill:transparent\">tools in its header to <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">read and search only<\/tspan><tspan style=\"fill:transparent\">. Set its<\/tspan><\/text><\/g><\/g>"},{"line":4,"plus":0.95,"outLine":4,"outPlus":2.57,"anim":"fade","svg":"<g transform=\"translate(30.62 -3.54) scale(1.9538)\"><clipPath id=\"kc32\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"260\"/><\/clipPath><g clip-path=\"url(#kc32)\"><text class=\"dg-t\" x=\"29\" y=\"145\"><tspan style=\"fill:transparent\">it <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">quote each unclear step<\/tspan><tspan style=\"fill:transparent\"> and say why, and name each<\/tspan><\/text><\/g><\/g>"},{"line":4,"plus":2.57,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(30.62 -3.54) scale(1.9538)\"><clipPath id=\"kc33\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"260\"/><\/clipPath><g clip-path=\"url(#kc33)\"><text class=\"dg-t\" x=\"29\" y=\"145\"><tspan style=\"fill:transparent\">it quote each unclear step and say why, and <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">name each<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"163\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">missing step<\/tspan><tspan style=\"fill:transparent\">. In its instructions, also have it give the<\/tspan><\/text><\/g><\/g>"},{"line":5,"plus":0.37,"outLine":6,"anim":"fade","svg":"<g transform=\"translate(30.62 -3.54) scale(1.9538)\"><clipPath id=\"kc34\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"260\"/><\/clipPath><g clip-path=\"url(#kc34)\"><text class=\"dg-t\" x=\"29\" y=\"181\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">file name of the procedure<\/tspan><tspan style=\"fill:transparent\"> for each step. If that file<\/tspan><\/text><\/g><\/g>"},{"line":6,"outLine":8,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc35\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc35)\"><rect class=\"dg-w\" x=\"20\" y=\"106\" width=\"420\" height=\"150\" rx=\"7\"/><rect class=\"dg-b2\" x=\"38\" y=\"124\" width=\"210\" height=\"9\" rx=\"2\"/><rect class=\"dg-b\" x=\"38\" y=\"151\" width=\"128\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"174\" y=\"158\" style=\"font-size:12px\">procedure-reviewer.agent.md<\/text><rect class=\"dg-b\" x=\"38\" y=\"171\" width=\"150\" height=\"7\" rx=\"2\"/><rect class=\"dg-btn\" x=\"38\" y=\"204\" width=\"150\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"52\" y=\"223\">Allow<\/text><rect x=\"96\" y=\"214\" width=\"62\" height=\"7\" rx=\"2\" style=\"fill:var(--accent-ink,#fff);fill-opacity:.55\"/><line class=\"dg-btnl\" x1=\"166\" y1=\"208\" x2=\"166\" y2=\"228\"/><path class=\"dg-btnl\" d=\"M171 215l5 5 5-5\" style=\"stroke-width:1.6\"/><rect class=\"dg-p\" x=\"196\" y=\"204\" width=\"58\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"210\" y=\"215\" width=\"29\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":7,"outLine":8,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc36\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc36)\"><rect class=\"dg-m\" x=\"170\" y=\"143\" width=\"190\" height=\"22\" rx=\"5\"/><\/g><\/g>"},{"line":7,"plus":0.72,"outLine":8,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc37\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc37)\"><rect class=\"dg-m\" x=\"34\" y=\"200\" width=\"158\" height=\"36\" rx=\"5\"/><\/g><\/g>"},{"line":8,"anim":"fade","svg":"<g transform=\"translate(63.33 8.1) scale(2.381)\"><clipPath id=\"kc38\"><rect x=\"5\" y=\"5\" width=\"340\" height=\"210\"/><\/clipPath><g clip-path=\"url(#kc38)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"210\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"34\" width=\"34\" height=\"180\" rx=\"0\"/><g transform=\"translate(0 0)\"><path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/><circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/><circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/><path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/><path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/><\/g><line class=\"dg-l\" x1=\"341\" y1=\"34\" x2=\"341\" y2=\"214\"/><rect class=\"dg-b\" x=\"51\" y=\"47\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M52.0 71.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"62\" y=\"71\" width=\"99\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M64.0 93.0l4.0 4.0 4.0 -4.0\"/><text class=\"dg-t\" x=\"75.0\" y=\"100\">.github\\agents<\/text><rect class=\"dg-tn\" x=\"42\" y=\"107\" width=\"298\" height=\"21\" rx=\"0\"/><rect class=\"dg-b2\" x=\"75\" y=\"112\" width=\"9\" height=\"11\" rx=\"2\"/><text class=\"dg-t\" x=\"90\" y=\"122\">procedure-reviewer.agent.md<\/text><path class=\"dg-ic\" d=\"M65.0 135.0l4.0 4.0 -4.0 4.0\"/><rect class=\"dg-b\" x=\"75\" y=\"136\" width=\"72\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":8,"plus":3.66,"anim":"fade","svg":"<g transform=\"translate(63.33 8.1) scale(2.381)\"><clipPath id=\"kc39\"><rect x=\"5\" y=\"5\" width=\"340\" height=\"210\"/><\/clipPath><g clip-path=\"url(#kc39)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h340v210h-340zM40 105v25h302v-25z\"/><rect class=\"dg-m\" x=\"42\" y=\"107\" width=\"298\" height=\"21\" rx=\"5\"/><\/g><\/g>"}],"title":"Have Copilot create the Procedure reviewer"},{"id":"reviewer-check","lines":[{"caption":"Pause the video now, send the request, allow it, and open the file."},{"caption":"Look for this: the header's name line says Procedure reviewer."},{"caption":"Its tools line lists read and search only."},{"caption":"The tool that changes files, named edit, isn't there."},{"caption":"This custom agent is saved in the agents-practice folder, so it works only while that folder is open in VS Code."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"30\" y=\"210\" width=\"900\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"70\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"92\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"130\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request, allow it, and open the file<\/text>"},{"line":1,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(20 62.55) scale(1.8039)\"><clipPath id=\"kc40\"><rect x=\"0\" y=\"0\" width=\"510\" height=\"230\"/><\/clipPath><g clip-path=\"url(#kc40)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"500\" height=\"220\" rx=\"6\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"498\" height=\"26\" rx=\"5\"/><rect class=\"dg-w\" x=\"6\" y=\"6\" width=\"240\" height=\"26\" style=\"stroke:none\"/><line x1=\"6\" y1=\"31\" x2=\"246\" y2=\"31\" style=\"stroke:var(--accent,#0065b3);stroke-width:2\"/><rect class=\"dg-b\" x=\"17\" y=\"15\" width=\"193\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"56\">---<\/text><text class=\"dg-t\" x=\"24\" y=\"78\">name: Procedure reviewer<\/text><rect class=\"dg-b\" x=\"24\" y=\"93\" width=\"330\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"122\">tools: ['read', 'search']<\/text><text class=\"dg-t\" x=\"24\" y=\"144\">---<\/text><rect class=\"dg-b\" x=\"24\" y=\"160\" width=\"400\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"24\" y=\"176\" width=\"360\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"24\" y=\"192\" width=\"420\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"24\" y=\"208\" width=\"300\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":1.39,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(20 62.55) scale(1.8039)\"><clipPath id=\"kc41\"><rect x=\"0\" y=\"0\" width=\"510\" height=\"230\"/><\/clipPath><g clip-path=\"url(#kc41)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M0 0h510v230h-510zM16 61v25h254v-25z\"/><rect class=\"dg-m\" x=\"18\" y=\"63\" width=\"250\" height=\"21\" rx=\"5\"/><path d=\"M282.0 78.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"},{"line":2,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(20 62.55) scale(1.8039)\"><clipPath id=\"kc42\"><rect x=\"0\" y=\"0\" width=\"510\" height=\"230\"/><\/clipPath><g clip-path=\"url(#kc42)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M0 0h510v230h-510zM16 105v25h254v-25z\"/><rect class=\"dg-m\" x=\"18\" y=\"107\" width=\"250\" height=\"21\" rx=\"5\"/><path d=\"M282.0 122.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"},{"line":4,"anim":"fade","svg":"<g transform=\"translate(156 48) scale(2.4)\"><clipPath id=\"kc43\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"185\"/><\/clipPath><g clip-path=\"url(#kc43)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"260\" height=\"175\" rx=\"8\"/><rect class=\"dg-b\" x=\"15\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M16.0 42.5l3.7 3.7 3.7 -3.7\"/><text class=\"dg-tb\" x=\"26.1\" y=\"49\" style=\"font-size:12px\">AGENTS-PRACTICE<\/text><path class=\"dg-ic\" d=\"M28.0 64.0l4.0 4.0 4.0 -4.0\"/><text class=\"dg-t\" x=\"39.0\" y=\"71\">.github\\agents<\/text><rect class=\"dg-b2\" x=\"39\" y=\"83\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"54\" y=\"85\" width=\"193\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M29.0 106.0l4.0 4.0 -4.0 4.0\"/><rect class=\"dg-b\" x=\"39\" y=\"107\" width=\"72\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":4,"plus":1.82,"anim":"fade","svg":"<g transform=\"translate(156 48) scale(2.4)\"><clipPath id=\"kc44\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"185\"/><\/clipPath><g clip-path=\"url(#kc44)\"><rect class=\"dg-m\" x=\"10\" y=\"33\" width=\"200\" height=\"22\" rx=\"5\"/><\/g><\/g>"}],"title":"Check: the file's name and tools lines"},{"id":"select","lines":[{"caption":"While a custom agent is selected, Copilot works in its role, with only its tools."},{"caption":"At the top of the chat, select the button New Chat, the plus sign."},{"caption":"At the bottom of the chat box, select the control that shows Agent. Then select Procedure reviewer."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(96.77 -144.42) scale(1.7825)\"><clipPath id=\"kc45\"><rect x=\"5\" y=\"90\" width=\"420\" height=\"285\"/><\/clipPath><g clip-path=\"url(#kc45)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"420\" height=\"370\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M347 23v14M340 30h14\"/><path class=\"dg-ic\" d=\"M358 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"383\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"383\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M403 30h.5M409 30h.5M415 30h.5\"/><rect class=\"dg-b\" x=\"21\" y=\"56\" width=\"180\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"73\" width=\"240\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"17\" y=\"276\" width=\"396\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"289\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"318\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 321v5M30.0 323h5\"/><rect class=\"dg-p\" x=\"45\" y=\"312\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 318.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"68\" y=\"327\" style=\"font-size:12px\">Agent<\/text><rect class=\"dg-p\" x=\"122\" y=\"312\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"320\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"323\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"323\" r=\"2.2\"/><path d=\"M391 329l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(9.05 138.57) scale(2.1905)\"><clipPath id=\"kc46\"><rect x=\"5\" y=\"5\" width=\"420\" height=\"110\"/><\/clipPath><g clip-path=\"url(#kc46)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"420\" height=\"370\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M347 23v14M340 30h14\"/><path class=\"dg-ic\" d=\"M358 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"383\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"383\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M403 30h.5M409 30h.5M415 30h.5\"/><rect class=\"dg-b\" x=\"21\" y=\"56\" width=\"180\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"73\" width=\"240\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"17\" y=\"276\" width=\"396\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"289\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"318\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 321v5M30.0 323h5\"/><rect class=\"dg-p\" x=\"45\" y=\"312\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 318.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"68\" y=\"327\" style=\"font-size:12px\">Agent<\/text><rect class=\"dg-p\" x=\"122\" y=\"312\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"320\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"323\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"323\" r=\"2.2\"/><path d=\"M391 329l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":1.89,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(9.05 138.57) scale(2.1905)\"><clipPath id=\"kc47\"><rect x=\"5\" y=\"5\" width=\"420\" height=\"110\"/><\/clipPath><g clip-path=\"url(#kc47)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h420v110h-420zM332 14v32h38v-32z\"/><rect class=\"dg-m\" x=\"334\" y=\"16\" width=\"34\" height=\"28\" rx=\"5\"/><\/g><\/g>"},{"line":2,"anim":"fade","svg":"<g transform=\"translate(96.77 -144.42) scale(1.7825)\"><clipPath id=\"kc48\"><rect x=\"5\" y=\"90\" width=\"420\" height=\"285\"/><\/clipPath><g clip-path=\"url(#kc48)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"420\" height=\"370\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M347 23v14M340 30h14\"/><path class=\"dg-ic\" d=\"M358 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"383\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"383\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M403 30h.5M409 30h.5M415 30h.5\"/><rect class=\"dg-b\" x=\"21\" y=\"56\" width=\"180\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"73\" width=\"240\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"17\" y=\"276\" width=\"396\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"289\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"318\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 321v5M30.0 323h5\"/><rect class=\"dg-p\" x=\"45\" y=\"312\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 318.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"68\" y=\"327\" style=\"font-size:12px\">Agent<\/text><rect class=\"dg-p\" x=\"122\" y=\"312\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"320\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"323\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"323\" r=\"2.2\"/><path d=\"M391 329l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":2,"plus":2.83,"outLine":2,"outPlus":4.96,"anim":"fade","svg":"<g transform=\"translate(96.77 -144.42) scale(1.7825)\"><clipPath id=\"kc49\"><rect x=\"5\" y=\"90\" width=\"420\" height=\"285\"/><\/clipPath><g clip-path=\"url(#kc49)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 90h420v285h-420zM39 306v34h83v-34z\"/><rect class=\"dg-m\" x=\"41\" y=\"308\" width=\"79\" height=\"30\" rx=\"5\"/><\/g><\/g>"},{"line":2,"plus":4.96,"anim":"fade","svg":"<g transform=\"translate(96.77 -144.42) scale(1.7825)\"><clipPath id=\"kc50\"><rect x=\"5\" y=\"90\" width=\"420\" height=\"285\"/><\/clipPath><g clip-path=\"url(#kc50)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"420\" height=\"370\" rx=\"8\"/>\n<text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M347 23v14M340 30h14\"/><path class=\"dg-ic\" d=\"M358 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"383\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"383\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M403 30h.5M409 30h.5M415 30h.5\"/>\n<rect class=\"dg-b\" x=\"21\" y=\"56\" width=\"180\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"73\" width=\"240\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-w\" x=\"21\" y=\"100\" width=\"230\" height=\"168\" rx=\"6\"/>\n<rect class=\"dg-tn\" x=\"22\" y=\"110\" width=\"228\" height=\"28\" rx=\"0\"/>\n<path class=\"dg-ic\" d=\"M38 119 l5 5 -5 5 -5 -5z\"/><text class=\"dg-t\" x=\"51\" y=\"129\">Agent<\/text>\n<rect class=\"dg-b2\" x=\"34\" y=\"148\" width=\"9\" height=\"9\" rx=\"2\"/><rect class=\"dg-b\" x=\"51\" y=\"149\" width=\"70\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b2\" x=\"34\" y=\"172\" width=\"9\" height=\"9\" rx=\"2\"/><rect class=\"dg-b\" x=\"51\" y=\"173\" width=\"56\" height=\"7\" rx=\"2\"/>\n<line class=\"dg-l\" x1=\"29\" y1=\"194\" x2=\"243\" y2=\"194\"/>\n<text class=\"dg-t\" x=\"51\" y=\"220\">Procedure reviewer<\/text>\n<line class=\"dg-l\" x1=\"29\" y1=\"232\" x2=\"243\" y2=\"232\"/><rect class=\"dg-b\" x=\"51\" y=\"245\" width=\"90\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-w\" x=\"17\" y=\"276\" width=\"396\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"289\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"318\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 321v5M30.0 323h5\"/><rect class=\"dg-p\" x=\"45\" y=\"312\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 318.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"68\" y=\"327\" style=\"font-size:12px\">Agent<\/text><rect class=\"dg-p\" x=\"122\" y=\"312\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"320\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"323\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"323\" r=\"2.2\"/><path d=\"M391 329l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":2,"plus":4.96,"anim":"fade","svg":"<g transform=\"translate(96.77 -144.42) scale(1.7825)\"><clipPath id=\"kc51\"><rect x=\"5\" y=\"90\" width=\"420\" height=\"285\"/><\/clipPath><g clip-path=\"url(#kc51)\"><rect class=\"dg-m\" x=\"27\" y=\"203\" width=\"214\" height=\"26\" rx=\"5\"/><\/g><\/g>"}],"title":"Select the Procedure reviewer"},{"id":"select-check","lines":[{"caption":"Pause the video now, start a new chat, and select Procedure reviewer."},{"caption":"Look for this: the control shows Procedure reviewer."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"30\" y=\"210\" width=\"900\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"70\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"92\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"130\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> start a new chat, and select Procedure reviewer<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc52\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc52)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"170\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"183\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"212\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 215v5M30.0 217h5\"/><rect class=\"dg-p\" x=\"45\" y=\"206\" width=\"146\" height=\"22\" rx=\"5\"/><text class=\"dg-t\" x=\"55\" y=\"221\" style=\"font-size:12px\">Procedure reviewer<\/text><rect class=\"dg-p\" x=\"197\" y=\"206\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"205\" y=\"214\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"217\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"217\" r=\"2.2\"/><path d=\"M421 223l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":1.5,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc53\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc53)\"><rect class=\"dg-m\" x=\"41\" y=\"202\" width=\"154\" height=\"30\" rx=\"5\"/><path d=\"M203.0 218.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: the control shows Procedure reviewer"},{"id":"check","lines":[{"caption":"You ask in one line. Its instructions say how to report."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc54\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc54)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"170\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"183\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"212\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 215v5M30.0 217h5\"/><rect class=\"dg-p\" x=\"45\" y=\"206\" width=\"146\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"55\" y=\"214\" width=\"119\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"197\" y=\"206\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"205\" y=\"214\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"217\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"217\" r=\"2.2\"/><path d=\"M421 223l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(-5.09 164.55) scale(2.1091)\"><clipPath id=\"kc55\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"80\"/><\/clipPath><g clip-path=\"url(#kc55)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"66\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Check the procedures in the procedures folder.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"59\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 62v5M30.0 64h5\"/><rect class=\"dg-p\" x=\"45\" y=\"53\" width=\"146\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"55\" y=\"61\" width=\"119\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"197\" y=\"53\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"205\" y=\"61\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"64\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"64\" r=\"2.2\"/><path d=\"M421 70l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":5.09,"anim":"fade","svg":"<rect x=\"410\" y=\"446\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"410\" y=\"440\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"480\" y=\"486\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"}],"title":"Have the Procedure reviewer check the procedures"},{"id":"check-check","lines":[{"caption":"Pause the video now, and send the request."},{"caption":"Look for this: the reply quotes unclear steps, and names missing ones."},{"caption":"Each comes with the file name of its procedure."},{"caption":"Pick one quoted step, and note the file the reply names for it."},{"caption":"Pause the video again, and open that file from the list on the left."},{"caption":"Look for this: the step, as the reply quoted it."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"232\" y=\"210\" width=\"496\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"272\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"294\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"332\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request<\/text>"},{"line":1,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(155.44 8.94) scale(1.4111)\"><clipPath id=\"kc56\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"360\"/><\/clipPath><g clip-path=\"url(#kc56)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"360\" rx=\"8\"/><rect class=\"dg-b\" x=\"21\" y=\"27\" width=\"24\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-tn\" x=\"255\" y=\"50\" width=\"186\" height=\"30\" rx=\"7\"/><rect class=\"dg-b2\" x=\"267\" y=\"62\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"17\" y=\"286\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"299\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"328\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 331v5M30.0 333h5\"/><rect class=\"dg-p\" x=\"45\" y=\"322\" width=\"146\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"55\" y=\"330\" width=\"119\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"197\" y=\"322\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"205\" y=\"330\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"333\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"333\" r=\"2.2\"/><path d=\"M421 339l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><rect class=\"dg-b2\" x=\"21\" y=\"96\" width=\"96\" height=\"7\" rx=\"2\"/><line x1=\"25\" y1=\"108\" x2=\"25\" y2=\"132\" style=\"stroke:var(--rule2,#cdcdcd);stroke-width:3\"/><rect class=\"dg-b\" x=\"33\" y=\"112\" width=\"250\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"33\" y=\"124\" width=\"190\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"142\" width=\"230\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"21\" y=\"160\" width=\"108\" height=\"7\" rx=\"2\"/><line x1=\"25\" y1=\"172\" x2=\"25\" y2=\"196\" style=\"stroke:var(--rule2,#cdcdcd);stroke-width:3\"/><rect class=\"dg-b\" x=\"33\" y=\"176\" width=\"230\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"33\" y=\"188\" width=\"190\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"206\" width=\"245\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"21\" y=\"224\" width=\"120\" height=\"7\" rx=\"2\"/><line x1=\"25\" y1=\"236\" x2=\"25\" y2=\"260\" style=\"stroke:var(--rule2,#cdcdcd);stroke-width:3\"/><rect class=\"dg-b\" x=\"33\" y=\"240\" width=\"210\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"33\" y=\"252\" width=\"190\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"270\" width=\"260\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":1.3,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(155.44 8.94) scale(1.4111)\"><clipPath id=\"kc57\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"360\"/><\/clipPath><g clip-path=\"url(#kc57)\"><rect class=\"dg-m\" x=\"19\" y=\"106\" width=\"270\" height=\"30\" rx=\"5\"/><rect class=\"dg-m\" x=\"19\" y=\"170\" width=\"270\" height=\"30\" rx=\"5\"/><rect class=\"dg-m\" x=\"19\" y=\"234\" width=\"270\" height=\"30\" rx=\"5\"/><\/g><\/g>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(155.44 8.94) scale(1.4111)\"><clipPath id=\"kc58\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"360\"/><\/clipPath><g clip-path=\"url(#kc58)\"><rect class=\"dg-m\" x=\"17\" y=\"92\" width=\"104\" height=\"15\" rx=\"5\"/><rect class=\"dg-m\" x=\"17\" y=\"156\" width=\"116\" height=\"15\" rx=\"5\"/><rect class=\"dg-m\" x=\"17\" y=\"220\" width=\"128\" height=\"15\" rx=\"5\"/><path d=\"M330.0 120.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"},{"line":3,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(155.44 8.94) scale(1.4111)\"><clipPath id=\"kc59\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"360\"/><\/clipPath><g clip-path=\"url(#kc59)\"><rect class=\"dg-m\" x=\"19\" y=\"106\" width=\"270\" height=\"30\" rx=\"5\"/><rect class=\"dg-m\" x=\"19\" y=\"170\" width=\"270\" height=\"30\" rx=\"5\"/><rect class=\"dg-m\" x=\"19\" y=\"234\" width=\"270\" height=\"30\" rx=\"5\"/><rect class=\"dg-m\" x=\"17\" y=\"92\" width=\"104\" height=\"15\" rx=\"5\"/><rect class=\"dg-m\" x=\"17\" y=\"156\" width=\"116\" height=\"15\" rx=\"5\"/><rect class=\"dg-m\" x=\"17\" y=\"220\" width=\"128\" height=\"15\" rx=\"5\"/><\/g><\/g>"},{"line":4,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(156 48) scale(2.4)\"><clipPath id=\"kc60\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"185\"/><\/clipPath><g clip-path=\"url(#kc60)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"260\" height=\"175\" rx=\"8\"/><rect class=\"dg-b\" x=\"15\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M16.0 42.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"26\" y=\"42\" width=\"99\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M29.0 62.0l4.0 4.0 -4.0 4.0\"/><rect class=\"dg-b\" x=\"39\" y=\"63\" width=\"100\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M28.0 86.0l4.0 4.0 4.0 -4.0\"/><rect class=\"dg-b\" x=\"39\" y=\"85\" width=\"72\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"39\" y=\"105\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"54\" y=\"107\" width=\"114\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"6\" y=\"122\" width=\"258\" height=\"21\" rx=\"0\"/><rect class=\"dg-b2\" x=\"39\" y=\"127\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"54\" y=\"129\" width=\"114\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"39\" y=\"149\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"54\" y=\"151\" width=\"129\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":4,"plus":1.01,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(156 48) scale(2.4)\"><clipPath id=\"kc61\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"185\"/><\/clipPath><g clip-path=\"url(#kc61)\"><rect class=\"dg-m\" x=\"10\" y=\"121\" width=\"250\" height=\"22\" rx=\"5\"/><\/g><\/g>"},{"line":5,"anim":"fade","svg":"<g transform=\"translate(20 62.55) scale(1.8039)\"><clipPath id=\"kc62\"><rect x=\"0\" y=\"0\" width=\"510\" height=\"230\"/><\/clipPath><g clip-path=\"url(#kc62)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"500\" height=\"220\" rx=\"6\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"498\" height=\"26\" rx=\"5\"/><rect class=\"dg-w\" x=\"6\" y=\"6\" width=\"152\" height=\"26\" style=\"stroke:none\"/><line x1=\"6\" y1=\"31\" x2=\"158\" y2=\"31\" style=\"stroke:var(--accent,#0065b3);stroke-width:2\"/><rect class=\"dg-b\" x=\"17\" y=\"15\" width=\"114\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"24\" y=\"46\" width=\"160\" height=\"9\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"82\">1<\/text><rect class=\"dg-b\" x=\"42\" y=\"75\" width=\"300\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"104\">2<\/text><rect class=\"dg-b\" x=\"42\" y=\"97\" width=\"260\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"126\">3<\/text><rect class=\"dg-b\" x=\"42\" y=\"119\" width=\"340\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"148\">4<\/text><rect class=\"dg-b\" x=\"42\" y=\"141\" width=\"280\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"170\">5<\/text><rect class=\"dg-b\" x=\"42\" y=\"163\" width=\"320\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"192\">6<\/text><rect class=\"dg-b\" x=\"42\" y=\"185\" width=\"240\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":5,"plus":0.77,"anim":"fade","svg":"<g transform=\"translate(20 62.55) scale(1.8039)\"><clipPath id=\"kc63\"><rect x=\"0\" y=\"0\" width=\"510\" height=\"230\"/><\/clipPath><g clip-path=\"url(#kc63)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M0 0h510v230h-510zM16 122v25h344v-25z\"/><rect class=\"dg-m\" x=\"18\" y=\"124\" width=\"340\" height=\"21\" rx=\"5\"/><\/g><\/g>"}],"title":"Check: quoted steps, each with its file"},{"id":"change","lines":[{"caption":"Now ask the reviewer to change a procedure. It has no tool to make the change."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."},{"caption":"If a permission request to change a file appears anyway, select Skip."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc64\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc64)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"170\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"183\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"212\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 215v5M30.0 217h5\"/><rect class=\"dg-p\" x=\"45\" y=\"206\" width=\"146\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"55\" y=\"214\" width=\"119\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"197\" y=\"206\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"205\" y=\"214\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"217\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"217\" r=\"2.2\"/><path d=\"M421 223l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(-5.09 145.56) scale(2.1091)\"><clipPath id=\"kc65\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"98\"/><\/clipPath><g clip-path=\"url(#kc65)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"84\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Rewrite the unclear steps in the procedures so they're<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">clear.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"77\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 80v5M30.0 82h5\"/><rect class=\"dg-p\" x=\"45\" y=\"71\" width=\"146\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"55\" y=\"79\" width=\"119\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"197\" y=\"71\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"205\" y=\"79\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"82\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"82\" r=\"2.2\"/><path d=\"M421 88l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":5.09,"outLine":2,"anim":"fade","svg":"<rect x=\"410\" y=\"446\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"410\" y=\"440\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"480\" y=\"486\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"},{"line":2,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc66\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc66)\"><rect class=\"dg-w\" x=\"20\" y=\"106\" width=\"420\" height=\"150\" rx=\"7\"/><rect class=\"dg-b2\" x=\"38\" y=\"124\" width=\"210\" height=\"9\" rx=\"2\"/><rect class=\"dg-b\" x=\"38\" y=\"151\" width=\"128\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"174\" y=\"151\" width=\"170\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"38\" y=\"171\" width=\"150\" height=\"7\" rx=\"2\"/><rect class=\"dg-btn\" x=\"38\" y=\"204\" width=\"150\" height=\"28\" rx=\"5\"/><rect class=\"dg-b2\" x=\"52\" y=\"215\" width=\"36\" height=\"7\" rx=\"2\"/><rect x=\"96\" y=\"214\" width=\"62\" height=\"7\" rx=\"2\" style=\"fill:var(--accent-ink,#fff);fill-opacity:.55\"/><line class=\"dg-btnl\" x1=\"166\" y1=\"208\" x2=\"166\" y2=\"228\"/><path class=\"dg-btnl\" d=\"M171 215l5 5 5-5\" style=\"stroke-width:1.6\"/><rect class=\"dg-p\" x=\"196\" y=\"204\" width=\"58\" height=\"28\" rx=\"5\"/><text class=\"dg-t\" x=\"210\" y=\"223\">Skip<\/text><\/g><\/g>"},{"line":2,"plus":3.11,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc67\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc67)\"><rect class=\"dg-m\" x=\"192\" y=\"200\" width=\"66\" height=\"36\" rx=\"5\"/><\/g><\/g>"}],"title":"Ask the Procedure reviewer to change a procedure"},{"id":"change-check","lines":[{"caption":"Pause the video now, and send the request."},{"caption":"Look for this: Copilot says it can't change the files, or shows new wording in the chat only."},{"caption":"Open the same procedure file again."},{"caption":"The step you found there is unchanged."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"232\" y=\"210\" width=\"496\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"272\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"294\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"332\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request<\/text>"},{"line":1,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc68\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc68)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-tn\" x=\"255\" y=\"50\" width=\"186\" height=\"30\" rx=\"7\"/><rect class=\"dg-b2\" x=\"267\" y=\"62\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"17\" y=\"176\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"189\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"218\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 221v5M30.0 223h5\"/><rect class=\"dg-p\" x=\"45\" y=\"212\" width=\"146\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"55\" y=\"220\" width=\"119\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"197\" y=\"212\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"205\" y=\"220\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"223\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"259\" cy=\"223\" r=\"2.2\"/><path d=\"M421 229l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><rect class=\"dg-b\" x=\"21\" y=\"96\" width=\"250\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"110\" width=\"300\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"124\" width=\"220\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"138\" width=\"280\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":0.89,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc69\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc69)\"><rect class=\"dg-m\" x=\"15\" y=\"88\" width=\"300\" height=\"60\" rx=\"5\"/><path d=\"M330.0 118.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(156 48) scale(2.4)\"><clipPath id=\"kc70\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"185\"/><\/clipPath><g clip-path=\"url(#kc70)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"260\" height=\"175\" rx=\"8\"/><rect class=\"dg-b\" x=\"15\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M16.0 42.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"26\" y=\"42\" width=\"99\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M29.0 62.0l4.0 4.0 -4.0 4.0\"/><rect class=\"dg-b\" x=\"39\" y=\"63\" width=\"100\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M28.0 86.0l4.0 4.0 4.0 -4.0\"/><rect class=\"dg-b\" x=\"39\" y=\"85\" width=\"72\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"39\" y=\"105\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"54\" y=\"107\" width=\"114\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"6\" y=\"122\" width=\"258\" height=\"21\" rx=\"0\"/><rect class=\"dg-b2\" x=\"39\" y=\"127\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"54\" y=\"129\" width=\"114\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"39\" y=\"149\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"54\" y=\"151\" width=\"129\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(156 48) scale(2.4)\"><clipPath id=\"kc71\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"185\"/><\/clipPath><g clip-path=\"url(#kc71)\"><rect class=\"dg-m\" x=\"10\" y=\"121\" width=\"250\" height=\"22\" rx=\"5\"/><\/g><\/g>"},{"line":3,"anim":"fade","svg":"<g transform=\"translate(20 62.55) scale(1.8039)\"><clipPath id=\"kc72\"><rect x=\"0\" y=\"0\" width=\"510\" height=\"230\"/><\/clipPath><g clip-path=\"url(#kc72)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"500\" height=\"220\" rx=\"6\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"498\" height=\"26\" rx=\"5\"/><rect class=\"dg-w\" x=\"6\" y=\"6\" width=\"152\" height=\"26\" style=\"stroke:none\"/><line x1=\"6\" y1=\"31\" x2=\"158\" y2=\"31\" style=\"stroke:var(--accent,#0065b3);stroke-width:2\"/><rect class=\"dg-b\" x=\"17\" y=\"15\" width=\"114\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"24\" y=\"46\" width=\"160\" height=\"9\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"82\">1<\/text><rect class=\"dg-b\" x=\"42\" y=\"75\" width=\"300\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"104\">2<\/text><rect class=\"dg-b\" x=\"42\" y=\"97\" width=\"260\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"126\">3<\/text><rect class=\"dg-b\" x=\"42\" y=\"119\" width=\"340\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"148\">4<\/text><rect class=\"dg-b\" x=\"42\" y=\"141\" width=\"280\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"170\">5<\/text><rect class=\"dg-b\" x=\"42\" y=\"163\" width=\"320\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"24\" y=\"192\">6<\/text><rect class=\"dg-b\" x=\"42\" y=\"185\" width=\"240\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":3,"plus":1.26,"anim":"fade","svg":"<g transform=\"translate(20 62.55) scale(1.8039)\"><clipPath id=\"kc73\"><rect x=\"0\" y=\"0\" width=\"510\" height=\"230\"/><\/clipPath><g clip-path=\"url(#kc73)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M0 0h510v230h-510zM16 122v25h344v-25z\"/><rect class=\"dg-m\" x=\"18\" y=\"124\" width=\"340\" height=\"21\" rx=\"5\"/><path d=\"M372.0 138.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: the step is unchanged"},{"id":"close","lines":[{"caption":"You had Copilot create a custom agent that can only read files."},{"caption":"You selected it, used it to check the procedures, and saw that it couldn't change them."},{"caption":"When you've done the steps, open the written steps and select Continue to complete the unit."}],"beats":[{"line":0,"anim":"up","svg":"<rect x=\"150\" y=\"136\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"222\" y=\"179\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Had Copilot create a custom agent<\/text><path d=\"M178,167 L185,174 L197,158\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"},{"line":1,"plus":0.5,"anim":"up","svg":"<rect x=\"150\" y=\"236\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"222\" y=\"279\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Used it to check the procedures<\/text><path d=\"M178,267 L185,274 L197,258\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"},{"line":1,"plus":2.48,"anim":"up","svg":"<rect x=\"150\" y=\"336\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"222\" y=\"379\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Saw that it couldn't change them<\/text><path d=\"M178,367 L185,374 L197,358\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"}],"title":"What you did"}];
+
+  function lead(tm, n) {
+    return Math.max(0, tm.starts[n] - Math.min(MAX_LEAD, Math.max(0, tm.pre[n] - 0.05)));
+  }
+
+  var sound = true, audioOK = true;
+
+  var SILENT_CAP = 0.8;
+
+  function silentTiming(tm) {
+    var pre = tm.pre.map(function (x) { return Math.min(x, SILENT_CAP); });
+    var st = [pre[0]];
+    for (var i = 1; i < tm.starts.length; i++) {
+      var spoken = tm.starts[i] - tm.starts[i - 1] - tm.pre[i];
+      st.push(st[i - 1] + spoken + pre[i]);
+    }
+    var last = tm.starts.length - 1;
+    return { dur: st[last] + (tm.dur - tm.starts[last]), starts: st, pre: pre };
+  }
+
+  var starts = [], total = 0;
+
+  function buildTimeline() {
+    starts = [];
+    total = 0;
+    for (var s = 0; s < S.length; s++) {
+      var sc = S[s];
+      var tm = useSound() ? TIMING[sc.id] : silentTiming(TIMING[sc.id]);
+      sc.dur = tm.dur;
+      sc.tm = tm;
+      sc.lineStarts = tm.starts;
+      sc.caption = sc.lines.map(function (l) { return l.caption; }).join(" ");
+      var settled = 0;
+      for (var bi = 0; bi < sc.beats.length; bi++) {
+        var bt = sc.beats[bi];
+
+        bt.at = bt.plus === undefined ? lead(tm, bt.line) : tm.starts[bt.line] + bt.plus;
+        if (bt.outLine !== undefined) bt.out = bt.outPlus === undefined ? lead(tm, bt.outLine) : tm.starts[bt.outLine] + bt.outPlus;
+        if (!bt.held && bt.at > settled) settled = bt.at;
+        if (bt.out !== undefined && bt.out > settled) settled = bt.out;
+      }
+
+      sc.settled = Math.min(settled + RAMP, sc.dur);
+
+      sc.stop = useSound() ? sc.settled : Math.max(sc.settled, sc.dur - 0.05);
+      starts.push(total);
+      total += sc.dur;
+    }
+  }
+  buildTimeline();
+
+  var stage = document.getElementById("stage");
+  var markup = '<rect x="0" y="0" width="960" height="540" fill="' + PAPER + '"/>';
+  for (var sm = 0; sm < S.length; sm++) {
+    markup += '<g class="scene">';
+    for (var bm = 0; bm < S[sm].beats.length; bm++) {
+      var bt2 = S[sm].beats[bm];
+      markup += '<g class="beat" data-at="' + bt2.at + '" data-anim="' + bt2.anim + '"' +
+        (bt2.out === undefined ? "" : ' data-out="' + bt2.out + '"') +
+        (bt2.linear ? ' data-linear=""' : "") + ">" + bt2.svg + "</g>";
+    }
+    markup += "</g>";
+  }
+  stage.innerHTML = markup;
+
+  var sceneEls = stage.querySelectorAll(".scene"), beatEls = [];
+  for (var k = 0; k < sceneEls.length; k++) beatEls.push(sceneEls[k].querySelectorAll(".beat"));
+
+  var clips = [];
+  for (var c = 0; c < S.length; c++) {
+    var clip = new Audio("audio/" + S[c].id + ".mp3");
+    clip.preload = "metadata";
+    clip.addEventListener("error", onAudioLost);
+    clips.push(clip);
+  }
+
+  var compact = false;
+  var t = 0, playing = false, speed = 1, started = false,
+      last = 0, cur = 0, looping = false, seekUntil = 0;
+  var SPEEDS = [0.75, 1, 1.25, 1.5];
+
+  var captionEl = document.getElementById("caption"),
+      captionText = document.getElementById("captiontext"),
+      readout = document.getElementById("readout"),
+      scrub = document.getElementById("scrub"),
+      playbtn = document.getElementById("playbtn"),
+      poster = document.getElementById("poster"),
+      soundBtn = document.getElementById("sound");
+
+  var SPEAKER = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zm2.6 2.2-.9 1.3a3.6 3.6 0 0 1 0 5.8l.9 1.3a5.2 5.2 0 0 0 0-8.4z"/></svg>';
+  var MUTED_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zM10.3 5.7l1.5 1.5 1.5-1.5 1 1-1.5 1.5 1.5 1.5-1 1-1.5-1.5-1.5 1.5-1-1L10.8 8.2 9.3 6.7z"/></svg>';
+
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function mmss(x) {
+    var m = Math.floor(x / 60), ss = Math.floor(x % 60);
+    return m + ":" + (ss < 10 ? "0" : "") + ss;
+  }
+  function sceneAt(time) {
+    for (var i = S.length - 1; i >= 0; i--) if (time >= starts[i]) return i;
+    return 0;
+  }
+  function useSound() { return sound && audioOK; }
+
+  function reflectSound() {
+    var on = useSound();
+    soundBtn.innerHTML = on ? SPEAKER : MUTED_ICON;
+    soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    soundBtn.setAttribute("aria-label", on ? "Narration sound, on"
+      : audioOK ? "Narration sound, off" : "Narration sound, unavailable");
+  }
+
+  function paint(posterMode) {
+    var now = sceneAt(t);
+    for (var i = 0; i < S.length; i++) {
+      var on = i === now;
+      sceneEls[i].style.display = on ? "" : "none";
+      if (!on) continue;
+      var local = t - starts[i];
+      for (var j = 0; j < beatEls[i].length; j++) {
+        var g = beatEls[i][j];
+        var beat = S[i].beats[j];
+
+        var lin = beat.linear;
+        var pin = posterMode || beat.held ? 1 : clamp((local - beat.at) / RAMP, 0, 1);
+        var e = lin ? pin : 1 - Math.pow(1 - pin, 3);
+        if (beat.out !== undefined && !posterMode) {
+          var pout = clamp((local - beat.out) / RAMP, 0, 1);
+          e = e * (1 - (lin ? pout : 1 - Math.pow(1 - pout, 3)));
+        }
+        var off = beat.held ? [0, 0] : ANIM[beat.anim] || ANIM.fade;
+        g.style.opacity = e;
+        g.style.transform = "translate(" + (off[0] * (1 - e)).toFixed(2) + "px," + (off[1] * (1 - e)).toFixed(2) + "px)";
+      }
+    }
+
+    var ln = 0, localT = t - starts[now];
+    for (var li = 0; li < S[now].lines.length; li++) if (localT >= S[now].lineStarts[li] - 0.3) ln = li;
+    captionText.textContent = S[now].lines[ln].caption;
+
+    paintReadout();
+    scrub.value = t >= total ? 1000 : Math.round((starts[now] / total) * 1000);
+
+    scrub.style.setProperty("--fill",
+      "calc(5.5px + " + (scrub.value / 1000) + " * (100% - 11px))");
+    scrub.setAttribute("aria-valuetext", "Scene " + (now + 1) + ", " + mmss(t));
+    if (started) markLine(now, ln);
+  }
+
+  function paintReadout() {
+    var now = sceneAt(t);
+    readout.textContent = (compact ? (now + 1) + "/" + S.length : "Scene " + (now + 1) + " of " + S.length) + " " +
+      String.fromCharCode(183) + " " + mmss(t) + " / " + mmss(total);
+  }
+
+  function stopClips() { for (var i = 0; i < clips.length; i++) clips[i].pause(); }
+
+  function syncClip() {
+    if (!useSound()) { stopClips(); return; }
+    for (var i = 0; i < clips.length; i++) if (i !== cur) clips[i].pause();
+    var clip = clips[cur];
+    clip.playbackRate = speed;
+    var want = clamp(t - starts[cur], 0, S[cur].dur);
+    if (Math.abs(clip.currentTime - want) > 0.25) {
+      try { clip.currentTime = want; seekUntil = performance.now() + 220; } catch (e) {}
+    }
+    if (playing && clip.paused) {
+      var pr = clip.play();
+      if (pr && pr.catch) pr.catch(onAudioLost);
+    }
+    if (!playing && !clip.paused) clip.pause();
+  }
+
+  function setPlaying(on) {
+    playing = on;
+    playbtn.setAttribute("aria-label", on ? "Pause" : "Play");
+    playbtn.innerHTML = on
+      ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 1.5h3.5v13H3.5zm5.5 0h3.5v13H9z"/></svg>'
+      : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>';
+    syncClip();
+    if (on && !looping) { looping = true; last = 0; requestAnimationFrame(step); }
+  }
+
+  function step(now) {
+    if (!playing) { looping = false; return; }
+    if (!last) last = now;
+    var dt = (now - last) / 1000;
+    last = now;
+
+    if (useSound() && !clips[cur].paused && now > seekUntil) {
+      t = starts[cur] + Math.min(clips[cur].currentTime, S[cur].dur);
+    } else {
+      t += dt * speed;
+    }
+
+    if (t >= total - 0.02) { t = total; paint(false); setPlaying(false); looping = false; return; }
+
+    if (!useSound() && t >= starts[cur] + S[cur].stop) {
+      t = starts[cur] + S[cur].stop;
+      paint(false);
+      setPlaying(false);
+      looping = false;
+      return;
+    }
+
+    var next = sceneAt(t);
+    if (next !== cur) { cur = next; syncClip(); }
+    paint(false);
+    requestAnimationFrame(step);
+  }
+
+  function goto(time, keepPlaying) {
+    addressed = -1;
+    t = clamp(time, 0, total);
+    cur = sceneAt(t);
+    if (!keepPlaying) t = starts[cur] + S[cur].settled;
+    if (!started) { started = true; poster.hidden = true; }
+    paint(false);
+    if (keepPlaying) syncClip(); else setPlaying(false);
+
+    if (!keepPlaying) addressed = cur;
+  }
+  function fromTop() {
+    started = true; poster.hidden = true; t = 0; cur = 0; paint(false); setPlaying(true);
+  }
+
+  poster.addEventListener("click", function () { fromTop(); playbtn.focus({ preventScroll: true }); });
+  document.getElementById("replay").addEventListener("click", fromTop);
+  playbtn.addEventListener("click", function () {
+    if (!started || t >= total) { fromTop(); return; }
+
+    if (!playing && addressed === cur) { t = starts[cur]; paint(false); }
+    addressed = -1;
+
+    if (!playing && !useSound() && cur < S.length - 1 && t >= starts[cur] + S[cur].stop - 0.01) {
+      cur += 1; t = starts[cur]; paint(false);
+    }
+    setPlaying(!playing);
+  });
+  document.getElementById("prev").addEventListener("click", function () {
+    var i = sceneAt(t);
+
+    var replayThisScene = playing && useSound() && t - starts[i] >= 1.2;
+    if (!replayThisScene && i > 0) i--;
+    goto(starts[i], playing && useSound());
+  });
+  document.getElementById("next").addEventListener("click", function () {
+    var i = sceneAt(t);
+    goto(i + 1 < S.length ? starts[i + 1] : total,
+         playing && useSound() && i + 1 < S.length);
+  });
+  scrub.addEventListener("input", function () {
+    var want = sceneAt((scrub.value / 1000) * total);
+
+    if (want !== sceneAt(t)) goto(starts[want], playing); else paint(false);
+  });
+
+  scrub.addEventListener("keydown", function (e) {
+    var dir = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1
+      : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    var i = Math.min(S.length - 1, Math.max(0, sceneAt(t) + dir));
+    goto(starts[i], playing);
+  });
+
+  soundBtn.addEventListener("click", function () {
+    if (!audioOK) return;
+    var at = cur;
+    sound = !sound;
+    reflectSound();
+    buildTimeline();
+    renderChrome();
+    cur = at;
+    t = starts[at] + (sound ? 0 : S[at].settled);
+    if (!sound) { stopClips(); last = 0; } else syncClip();
+    fitPlayer();
+    paint(false);
+  });
+  var ccBtn = document.getElementById("cc");
+  ccBtn.addEventListener("click", function () {
+    var on = this.getAttribute("aria-pressed") === "true";
+    this.setAttribute("aria-pressed", on ? "false" : "true");
+    this.setAttribute("aria-label", on ? "CC, captions off" : "CC, captions on");
+    captionEl.hidden = on;
+  });
+  var speedBtn = document.getElementById("speed");
+  speedBtn.addEventListener("click", function () {
+    speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+    speedBtn.textContent = speed + "x";
+    speedBtn.setAttribute("aria-label", speed + "x, playback speed");
+    if (useSound()) clips[cur].playbackRate = speed;
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var tag = e.target && e.target.tagName;
+    if (tag === "TEXTAREA" || (tag === "INPUT" && e.target !== scrub) || (e.target && e.target.isContentEditable)) return;
+    if (e.key === " ") { if (tag === "BUTTON" || tag === "A") return; e.preventDefault(); playbtn.click(); }
+    else if (e.key === "c" || e.key === "C") {
+      if (e.target && e.target.closest && e.target.closest(".player")) { e.preventDefault(); ccBtn.click(); }
+    }
+    else if (e.target === scrub || e.target === tscroll) return;
+    else if (e.key === "ArrowRight") { e.preventDefault(); document.getElementById("next").click(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); document.getElementById("prev").click(); }
+  });
+
+  var ol = document.getElementById("transcript");
+
+  function newChapter(i) { return i > 0 && (S[i].chapter || "") !== (S[i - 1].chapter || ""); }
+
+  function renderChrome() {
+    var tickHtml = "";
+    for (var ti = 1; ti < S.length; ti++) {
+
+      tickHtml += '<i' + (newChapter(ti) ? ' class="ch"' : "") + ' style="left:' +
+        ((starts[ti] / total) * 100).toFixed(2) + '%"></i>';
+    }
+    document.getElementById("ticks").innerHTML = tickHtml;
+    document.getElementById("meta-scenes").textContent = S.length + " scenes";
+    document.getElementById("meta-len").textContent = mmss(total);
+
+    var tr = "";
+    lineEls = [];
+    for (var x = 0; x < S.length; x++) {
+
+      if (S[x].chapter && (x === 0 || newChapter(x))) {
+        tr += '<li class="chap"><p class="chap-h">' + esc(S[x].chapter) + "</p></li>";
+      }
+      tr += '<li class="scn"><p class="scn-h">Scene ' + (x + 1) +
+        (S[x].title ? ": " + esc(S[x].title) : "") +
+        "<span>" + mmss(starts[x]) + "</span></p><ol class=\"lines\">";
+      for (var y = 0; y < S[x].lines.length; y++) {
+        tr += '<li><button class="jump" type="button" data-s="' + x + '" data-l="' + y + '" data-on="false">' +
+          '<span class="tc">' + mmss(starts[x] + S[x].lineStarts[y]) + "</span>" +
+          '<span class="line">' + esc(S[x].lines[y].caption) + "</span></button></li>";
+      }
+      tr += "</ol></li>";
+    }
+    ol.innerHTML = tr;
+    var btns = ol.querySelectorAll(".jump");
+    for (var b = 0; b < btns.length; b++) {
+      var bs = +btns[b].getAttribute("data-s");
+      (lineEls[bs] = lineEls[bs] || []).push(btns[b]);
+    }
+    onLine = null;
+  }
+
+  var lineEls = [], onLine = null, userScrolledAt = -1e9;
+  var tscroll = document.getElementById("p-transcript");
+
+  ["wheel", "touchmove"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function () { userScrolledAt = performance.now(); }, { passive: true });
+  });
+
+  ["keydown", "pointerdown"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function (e) { if (e.target === tscroll) userScrolledAt = performance.now(); });
+  });
+
+  function follow(force) {
+    if (!onLine || tscroll.hidden) return;
+    if (!force && performance.now() - userScrolledAt < 4000) return;
+    var r = onLine.getBoundingClientRect(), sr = tscroll.getBoundingClientRect();
+    if (!sr.height) return;
+    var head = 36;
+    var want = tscroll.scrollTop + (r.top - sr.top) - (sr.height + head - r.height) / 2;
+    want = clamp(want, 0, tscroll.scrollHeight - tscroll.clientHeight);
+    if (Math.abs(want - tscroll.scrollTop) < 2) return;
+    try { tscroll.scrollTo({ top: want, behavior: reduce ? "auto" : "smooth" }); }
+    catch (e) { tscroll.scrollTop = want; }
+  }
+
+  function markLine(s, l) {
+    var el = lineEls[s] && lineEls[s][l];
+    if (!el || el === onLine) return;
+    if (onLine) { onLine.setAttribute("data-on", "false"); onLine.removeAttribute("aria-current"); }
+    onLine = el;
+    el.setAttribute("data-on", "true");
+    el.setAttribute("aria-current", "true");
+    follow(false);
+  }
+
+  function seekLine(s, l) {
+    var sc = S[s];
+    var at = l === 0 ? 0 : Math.max(0, sc.lineStarts[l] - 0.3);
+    t = clamp(starts[s] + at, 0, total);
+    cur = s;
+    addressed = -1;
+    if (!started) { started = true; poster.hidden = true; }
+    userScrolledAt = -1e9;
+
+    if (!useSound() && at >= sc.stop) { paint(false); setPlaying(false); return; }
+    paint(false);
+    setPlaying(true);
+  }
+
+  renderChrome();
+  ol.addEventListener("click", function (e) {
+    var btn = e.target.closest(".jump");
+    if (btn) seekLine(+btn.getAttribute("data-s"), +btn.getAttribute("data-l"));
+  });
+
+  var MAX_PLAYER = 860, MAX_PAGE = 1480;
+  var INKIT = / inkit/.test(document.documentElement.className), kitH = 0, kitTop = 0;
+  function viewH() { return INKIT && kitH ? kitH : window.innerHeight; }
+
+  if (INKIT) Array.prototype.forEach.call(document.querySelectorAll("a[href]"), function (a) {
+    if (a.getAttribute("href").charAt(0) !== "#") a.target = "_parent";
+  });
+  var theaterEl = document.querySelector(".theater"), playerEl = document.querySelector(".player"),
+      consoleEl = document.querySelector(".console"), wrapEl = document.querySelector(".wrap");
+  var WIDE = window.matchMedia ? window.matchMedia("(min-width: 960px)") : { matches: false };
+
+  function longestCaption() {
+    var best = "";
+    for (var i = 0; i < S.length; i++) {
+      var opts = S[i].lines.map(function (l) { return l.caption; });
+      for (var j = 0; j < opts.length; j++) if (opts[j].length > best.length) best = opts[j];
+    }
+    return best;
+  }
+
+  function sizeCaption() {
+    var wasHidden = captionEl.hidden, keep = captionText.textContent;
+    captionEl.hidden = false;
+    captionEl.style.height = "";
+    captionText.textContent = longestCaption();
+
+    var h = Math.min(Math.ceil(captionEl.getBoundingClientRect().height),
+                     Math.max(104, Math.round(viewH() * 0.3)));
+    captionText.textContent = keep;
+    captionEl.style.height = h + "px";
+    captionEl.hidden = wasHidden;
+    return h;
+  }
+
+  function fitPlayer() {
+
+    var bs = getComputedStyle(document.body);
+    var avail = Math.min(MAX_PAGE, document.body.clientWidth -
+      parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight));
+    var wide = WIDE.matches;
+    var gap = wide ? parseFloat(getComputedStyle(theaterEl).columnGap) || 0 : 0;
+    var sw = wide ? Math.round(clamp(avail * 0.3, 320, 400)) : 0;
+    var room0 = avail - (wide ? sw + gap : 0);
+    var w = Math.max(320, Math.min(MAX_PLAYER, room0));
+
+    theaterEl.style.setProperty("--sw", sw + "px");
+    wrapEl.style.setProperty("--tw", avail + "px");
+    for (var pass = 0; pass < 4; pass++) {
+      var px = Math.floor(w);
+      theaterEl.style.setProperty("--pw", px + "px");
+      compact = px < 660;
+      paintReadout();
+      var capH = sizeCaption();
+      var chrome = consoleEl.getBoundingClientRect().height + (captionEl.hidden ? capH : 0);
+      var top = playerEl.getBoundingClientRect().top + window.scrollY + kitTop;
+
+      var room = viewH() - Math.min(top, viewH() * 0.2) - chrome - 16;
+      var whole = viewH() - top - chrome - 16;
+      if (INKIT && kitH) room = whole;
+      w = Math.max(320, Math.min(MAX_PLAYER, room0, room * 16 / 9));
+      if (Math.floor(w) === px) break;
+    }
+    var pw = Math.floor(w);
+
+    if (wide) sw = Math.round(clamp(avail - gap - pw, 320, 460));
+    theaterEl.style.setProperty("--pw", pw + "px");
+    theaterEl.style.setProperty("--sw", sw + "px");
+    wrapEl.style.setProperty("--tw", (wide ? pw + gap + sw : avail) + "px");
+    sizeCaption();
+    follow(true);
+  }
+  function onAudioLost() { audioOK = false; reflectSound(); fitPlayer(); }
+
+  function postHeight() {
+    if (INKIT) window.parent.postMessage({ kitVideoHeight: Math.ceil(document.documentElement.getBoundingClientRect().height) }, "*");
+  }
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!INKIT || e.source !== window.parent || !d || typeof d.kitViewport !== "number") return;
+    kitH = d.kitViewport; kitTop = +d.kitTop || 0;
+    fitPlayer(); postHeight();
+  });
+  fitPlayer();
+  postHeight();
+  window.addEventListener("resize", function () { fitPlayer(); postHeight(); });
+  if (INKIT && window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+  var addressed = -1;
+  function openAddress() {
+    var id = (location.hash || "").replace(/^#/, "");
+    try { id = decodeURIComponent(id); } catch (e) {}
+    for (var i = 0; i < S.length; i++) {
+      if (S[i].id === id) {
+        setPlaying(false);
+        stopClips();
+        goto(starts[i], false);
+        addressed = i;
+        follow(true);
+        return true;
+      }
+    }
+    return false;
+  }
+  window.addEventListener("hashchange", function () {
+    if (openAddress()) return;
+    setPlaying(false); stopClips(); addressed = -1; t = 0; cur = 0; paint(!started);
+  });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPlayer);
+
+  reflectSound();
+  if (!openAddress()) paint(true);
+})();
+</script>
+</html>

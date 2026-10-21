@@ -62,8 +62,10 @@ Tell it:
 ## On your own work
 
 The same questions work on a real application's code. On the **File** menu, select **Open
-Folder**, and choose the application's folder. If VS Code asks whether you trust the authors, leave the box about the
-parent folder unticked. Select **Yes, I trust the authors** only when you trust where its code came from. Then ask what it does, and where something you care about happens.
+Folder**, and choose the application's folder.
+
+Trust it only when you trust where its code came from. To trust it, on the Restricted Mode bar, under the menu bar, select **Manage**. On the **Workspace Trust** page that opens, select **Trust**. If VS Code asks instead whether you trust
+the authors, leave the box about the parent folder unticked and select **Yes, I trust the authors**. Then ask what it does, and where something you care about happens.
 
 ## What you did
 

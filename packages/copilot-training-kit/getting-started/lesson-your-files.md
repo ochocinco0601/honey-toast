@@ -48,7 +48,7 @@ Restore Checkpoint undoes the edits Copilot made with a request, so it's safe to
 
 ![Drawing of the chat. Hovering over your last request shows Restore Checkpoint above it.](images/restore-checkpoint.svg)
 
-2. In the dialog that asks whether to undo your last edit, select **Yes**.
+2. If a dialog asks whether to undo your last edit, select **Yes**.
 
 Check: `actions.md` is a list again, as it was before the table.
 

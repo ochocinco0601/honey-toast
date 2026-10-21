@@ -1,0 +1,171 @@
+{
+ "voice": "af_heart",
+ "speed": 1.0,
+ "head": 1.3,
+ "gap": 0.4,
+ "tail": 1.3,
+ "page": {
+  "kind": "explainer",
+  "title": "Learn GitHub Copilot in VS Code",
+  "doc_title": "Copilot Trainings Overview",
+  "stage_label": "Animated overview of the GitHub Copilot in VS Code trainings. The narration is written out in the transcript.",
+  "standfirst": "An overview of the trainings: what they let you do, how they fit together, and where to start.",
+  "summary_html": "  <p class=\"summary\">Learn GitHub Copilot in VS Code is a series of short trainings on handing work on your files to an AI assistant, in plain language, whether or not you write code. It works across a whole folder from a chat beside your files: ask for a one-page summary of the folder and the file appears. It asks before moving or deleting files, and the edits it makes inside your files can be undone. It works from what you tell it (your request, plus preferences it remembers) and what it is allowed to do (read files, change them, run commands).</p>\n  <ul class=\"parts\">\n   <li><b>Getting started</b> covers asking, undoing and custom instructions.</li>\n   <li><b>Skills</b> is for work you repeat, such as a weekly summary.</li>\n   <li><b>Custom agents</b> is for a dedicated helper, such as a reviewer that can only read your documents.</li>\n   <li><b>Connecting your tools</b> lets it look things up in another service your team uses, such as GitHub.</li>\n  </ul>\n  <p class=\"summary\">Start with Getting started; the others build on it.</p>",
+  "lesson": "README.md",
+  "back_href": "../../README.html",
+  "kit": "packages/copilot-training-kit"
+ },
+ "brief": {
+  "purpose": "orient someone to a course (purpose-orient-to-a-course.md)",
+  "fix": "Explainer, no job aid. The trainings' home page already says in text what they let you do, that you don't need to write code, and to start with Getting started, so a piece that says that again is not the fix. This piece earns its place by what the page cannot do: it shows Copilot at work in VS Code to a viewer new to both, who has never seen a request turn into files, a permission request or an undo, and it gives the four trainings one frame to hang on. The home page holds the map in order, so no separate job aid. Routed to the material's owner, not filled in by the piece: the material never says where a Copilot plan comes from, whether the viewer may install software, or whether their network allows GitHub and Copilot (all three taken as Viewer assumptions below); its Help has no step for checking that you have a plan; and if the piece travels as a file rather than sitting on the home page, the viewer needs the pages' address, which the material does not give.",
+  "viewer": "Anyone new to VS Code and to GitHub Copilot. No role or job is assumed. On Windows. They may not have VS Code installed or ever opened it. Stated assumptions, none of which the piece supplies: they watch with sound; they may install VS Code or already have it; they have, or are given with the trainings, a GitHub account with a Copilot plan; and their network allows GitHub sign-in and Copilot (assume Copilot features work). When they need this they are about to start the trainings, at the trainings' home page or holding a link to it.",
+  "problem": "My assumption, from the material's own Help page, for correction: (1) VS Code looks like a programmers' tool, so they may expect to need to write code (Help: 'Do I need to write code? No.'); (2) if they have used a Copilot in an office suite, they may take this to be the same thing, where this one works on a folder of files on their computer and acts on them (Help: 'Is this the same as Copilot in my office suite? No.'); (3) the trainings can be opened in any order, and the later ones fail without Getting started, which they all build on.",
+  "action": "Starts the trainings with Getting started, not a later one.",
+  "outcome": "In their own work: have Copilot read, make and change files on their computer by asking in plain words, and undo the edits it makes to their files; save how they want a repeated task done so one line is enough; set Copilot up for one kind of work with only the tools that work needs; and let it look things up in another service, such as GitHub.",
+  "organizer": "Copilot works from instructions and tools. Instructions say what to do and how; tools are the actions it can take, such as reading a file, changing a file or running a command, and it starts with all of its own. Your request is the first instruction; each later training changes what it is told, what it can do, or both: instructions saved for a task, its own instructions with a narrower set of tools for one kind of work, or tools added from another service. It connects to what anyone knows from asking someone to do something for them: what you tell them, and what they can touch.",
+  "map": "1. Getting started (named): requests, and instructions saved for a folder; for everyone, first. 2. Saving instructions for a task you repeat (Skills), after Getting started. 3. Setting Copilot up for one kind of work, with its own instructions and only the tools it needs (Custom agents), after Getting started and Skills. 4. Connecting Copilot to another service so it can look things up there (Connecting your tools), after Getting started. Placed on the organizer: 1 and 2 on instructions, 3 on both (tools taken away), 4 on tools (a tool added).",
+  "format": "Self-paced and hands-on: the viewer reads the web pages and works in VS Code on their own computer. Steps give the request to paste and what they should see; the first step of Getting started opens VS Code and the chat. Copilot creates the practice files. The home page links a Help page (what to do when something goes wrong, and questions to paste to Copilot when stuck) and a Glossary, and steps link to Help. Some trainings end with optional practice recipes.",
+  "entry": "To have: a Windows computer; VS Code installed (Help, Getting set up: install from code.visualstudio.com); signed in to Copilot with the GitHub account that has a Copilot plan (Help, Getting set up). Copilot is built into VS Code, so there is nothing else to install. To know: nothing; no code. Getting started's page lists what you need under Before you start and links to Getting set up.",
+  "scope": "Starts before the viewer has opened VS Code. Stops at: begin with Getting started. Left out on purpose, and where it is covered: how to do any step, including opening the practice folder and VS Code's trust prompt (the trainings themselves; Getting started's first unit); what each training's units are (each training's own page); what you need before you start, installing VS Code and signing in (Getting started's own page and Help, Getting set up; Help has no step for checking you have a plan, which goes to the material's owner); where to find the trainings (wherever the video is placed); the practice recipes (the end of Getting started and of Custom agents); when to use instructions, a skill or a custom agent (Custom agents, What is a custom agent?); what is on the Help and Glossary pages (those pages, linked from the home page).",
+  "where_it_plays": "Two versions from one script: a page, narrated with the sound optional, captions on, scene steps and a transcript; and a video file (MP4), narrated, no captions, for anywhere a file has to be sent. Place: the person's to name, for delivery only; the content does not depend on it.",
+  "must": "Must not presume the viewer's role or job. Must say what each training lets the viewer do, and must not narrate the trainings' practice exercises; the picture may show a request and files, and the voice does not read out an exercise. Names each training and its parts by their real titles and terms, on screen and aloud (Skills, Custom agents, Connecting your tools), never a vaguer paraphrase. Carries nothing volatile in the last scene: no hosting location, no list of prerequisites, no first-step detail. No organisation's name on screen. Anything further: UNCONFIRMED, guessed nothing.",
+  "source": "The training kit's own pages, at the version the piece was made from."
+ },
+ "scenes": [
+  {
+   "id": "open",
+   "title": "What the trainings are",
+   "step": null,
+   "idea": "Names the trainings, says this is an overview of them, and that the next two minutes show what they let you do and where to start.",
+   "lines": [
+    {
+     "say": "Learn GitHub Copilot in V S Code is a series of short trainings on handing work on your files to an AI assistant, in plain language, whether or not you write code.",
+     "caption": "Learn GitHub Copilot in VS Code is a series of short trainings on handing work on your files to an AI assistant, in plain language, whether or not you write code."
+    },
+    {
+     "say": "Ask it to draft a report, review a set of documents, build a small app or explain code, and it does the work in your folder.",
+     "caption": "Ask it to draft a report, review a set of documents, build a small app or explain code, and it does the work in your folder."
+    }
+   ]
+  },
+  {
+   "id": "at-work",
+   "title": "Copilot at work in a folder",
+   "step": null,
+   "idea": "Says: you ask in plain words, and Copilot creates and changes your documents and files on your computer; before it runs a command that could change something, it asks you; you can undo the edits it makes; you write no code. If you've used a Copilot in an office suite, this is a different one: it works on the files on your computer. Shows: a VS Code window, a short request typed in the chat, files appearing in the folder on the left, an Allow and Skip prompt, an undo. The voice does not read out the request or any exercise from the trainings.",
+   "lines": [
+    {
+     "say": "It's a different Copilot from the one in office apps: this one works across a whole folder of files on your computer.",
+     "caption": "It's a different Copilot from the one in office apps: this one works across a whole folder of files on your computer.",
+     "pause": 2.4
+    },
+    {
+     "say": "Your files sit on one side, and you talk to it in a chat beside them.",
+     "caption": "Your files sit on one side, and you talk to it in a chat beside them.",
+     "pause": 2.4
+    },
+    {
+     "say": "Ask for a one-page summary of the folder in a new file, and the file appears.",
+     "caption": "Ask for a one-page summary of the folder in a new file, and the file appears."
+    },
+    {
+     "say": "If it needs to move or delete files, it asks you first.",
+     "caption": "If it needs to move or delete files, it asks you first."
+    },
+    {
+     "say": "Edits it makes inside your files, you can undo.",
+     "caption": "Edits it makes inside your files, you can undo."
+    }
+   ]
+  },
+  {
+   "id": "frame",
+   "title": "Instructions and tools",
+   "step": null,
+   "idea": "The frame: Copilot works from instructions and tools. Instructions hold your request; tools hold the actions just seen (read a file, change a file, run a command), all there by default. Like asking someone to do something for you: what you tell them, and what they can touch.",
+   "lines": [
+    {
+     "say": "It works from what you tell it, and what it's allowed to do.",
+     "caption": "It works from what you tell it, and what it's allowed to do.",
+     "pause": 2.4
+    },
+    {
+     "say": "What you tell it is your request, plus preferences it remembers every time.",
+     "caption": "What you tell it is your request, plus preferences it remembers every time."
+    },
+    {
+     "say": "What it's allowed to do is read files, change them, and run commands, like those moves and deletes.",
+     "caption": "What it's allowed to do is read files, change them, and run commands, like those moves and deletes."
+    }
+   ]
+  },
+  {
+   "id": "getting-started",
+   "title": "Getting started",
+   "step": null,
+   "idea": "Says: the first training, Getting started, teaches what you just saw, and saving instructions for a folder. Shows: Getting started placed on the instructions side.",
+   "lines": [
+    {
+     "say": "The first training, Getting started, covers asking, undoing, and custom instructions: your preferences, set once.",
+     "caption": "The first training, Getting started, covers asking, undoing, and custom instructions: your preferences, set once."
+    }
+   ]
+  },
+  {
+   "id": "skills",
+   "title": "Skills",
+   "step": null,
+   "idea": "Says: the next training, Skills, saves your instructions for a task you repeat, so a few words will do. Shows: a Skills chip landing on the instructions side.",
+   "lines": [
+    {
+     "say": "The Skills training is for work you repeat, like a weekly summary: describe it once, then ask in one line and get it done the same way.",
+     "caption": "The Skills training is for work you repeat, like a weekly summary: describe it once, then ask in one line and get it done the same way."
+    }
+   ]
+  },
+  {
+   "id": "agents",
+   "title": "Custom agents",
+   "step": null,
+   "idea": "Says: the one after, Custom agents, sets Copilot up for one kind of work, with only the tools it needs; a reviewer, for example, can read your files but not change them. Shows: a Custom agents chip on the instructions side, linked to change a file and run a command struck off on the tools side.",
+   "lines": [
+    {
+     "say": "The Custom agents training is for a dedicated helper, like a reviewer that checks your documents and is only allowed to read them.",
+     "caption": "The Custom agents training is for a dedicated helper, like a reviewer that checks your documents and is only allowed to read them."
+    },
+    {
+     "say": "You give that reviewer its own instructions, so its reports come back in the same layout every time.",
+     "caption": "You give that reviewer its own instructions, so its reports come back in the same layout every time."
+    }
+   ]
+  },
+  {
+   "id": "connecting",
+   "title": "Connecting your tools",
+   "step": null,
+   "idea": "Says: another, Connecting your tools, links Copilot to a service outside your files, such as GitHub, to look things up there. Shows: a Connecting your tools chip arriving onto the tools side from GitHub, outside the board.",
+   "lines": [
+    {
+     "say": "The Connecting your tools training lets it look things up in another service your team uses, such as GitHub, and use what it finds.",
+     "caption": "The Connecting your tools training lets it look things up in another service your team uses, such as GitHub, and use what it finds."
+    }
+   ]
+  },
+  {
+   "id": "start",
+   "title": "Where to start",
+   "step": null,
+   "idea": "Says: begin with Getting started; the other trainings build on it. Shows: Getting started marked Start here, with Skills, Custom agents and Connecting your tools drawn after it. Nothing that depends on where the video is hosted or on what the trainings' pages currently list.",
+   "lines": [
+    {
+     "say": "Start with Getting started.",
+     "caption": "Start with Getting started."
+    },
+    {
+     "say": "The others build on it, so each one starts from what you already know.",
+     "caption": "The others build on it, so each one starts from what you already know."
+    }
+   ]
+  }
+ ]
+}

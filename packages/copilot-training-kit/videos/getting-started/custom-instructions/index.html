@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Give Copilot custom instructions for a folder</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+
+:root {
+
+  --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+  --serif: Georgia, "Times New Roman", serif;
+}
+
+:root {
+  --bg: #fbfcfd;
+  --bg2: #f1f4f7;
+  --surface: #ffffff;
+  --ink: #16202c;
+  --ink2: #3e4a58;
+  --ink3: #5a6676;
+  --rule: #e0e5eb;
+  --rule2: #c2cad4;
+  --accent: #1659b7;
+  --accent-soft: #e9f0fa;
+  --accent-ink: #ffffff;
+  --ctl: #7b8594;
+  --mark: #b44900;
+  --mark-ink: #ffffff;
+  --good: #2E7D55;
+  --bad: #B33A2E;
+  --shadow: 0 1px 2px rgb(20 23 28 / .06), 0 8px 28px -12px rgb(20 23 28 / .22);
+  --console-bg: #1B1E23;
+  --console-fg: #F2F1ED;
+  --console-dim: #A3A9B0;
+  --console-line: #33383F;
+  --console-hover: #2A2F36;
+  --track-rest: #666C75;
+  --paper: var(--surface);
+  --muted: var(--ink3);
+  --line: var(--rule2);
+  --line-soft: var(--rule);
+  --hover: var(--bg2);
+  --caution: var(--mark);
+  --caution-ui: var(--mark);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b;
+    --bg2: #161b22;
+    --surface: #1a2029;
+    --ink: #e4e8ee;
+    --ink2: #b3bcc8;
+    --ink3: #8e99a7;
+    --rule: #272e38;
+    --rule2: #3b4451;
+    --accent: #80b3ff;
+    --accent-soft: #18263a;
+    --accent-ink: #0c1320;
+    --ctl: #6c7787;
+    --mark: #f08a3c;
+    --mark-ink: #101010;
+    --good: #5FBF8C;
+    --bad: #E0847A;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 30px -14px rgb(0 0 0 / .7);
+    --console-bg: #111418;
+    --console-fg: #ECEEF1;
+    --console-dim: #9AA1A9;
+    --console-line: #2B3037;
+    --console-hover: #222830;
+    --track-rest: #5E646C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b;
+  --bg2: #161b22;
+  --surface: #1a2029;
+  --ink: #e4e8ee;
+  --ink2: #b3bcc8;
+  --ink3: #8e99a7;
+  --rule: #272e38;
+  --rule2: #3b4451;
+  --accent: #80b3ff;
+  --accent-soft: #18263a;
+  --accent-ink: #0c1320;
+  --ctl: #6c7787;
+  --mark: #f08a3c;
+  --mark-ink: #101010;
+  --good: #5FBF8C;
+  --bad: #E0847A;
+  --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 30px -14px rgb(0 0 0 / .7);
+  --console-bg: #111418;
+  --console-fg: #ECEEF1;
+  --console-dim: #9AA1A9;
+  --console-line: #2B3037;
+  --console-hover: #222830;
+  --track-rest: #5E646C;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 64px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: var(--tw, 1480px); margin: 0 auto; }
+
+.theater {
+  display: grid; justify-content: center; gap: 12px 20px;
+  grid-template-columns: var(--pw, minmax(0, 1fr));
+}
+@media (min-width: 960px) {
+  .theater { grid-template-columns: var(--pw, minmax(0, 1fr)) var(--sw, 360px); }
+}
+.head {
+  grid-column: 1 / -1; min-width: 0;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 18px;
+}
+h1 {
+  font-family: var(--display); font-weight: 650; font-size: 22px; line-height: 1.2;
+  letter-spacing: -.012em; margin: 0; text-wrap: balance;
+}
+.meta {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0;
+  font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.meta span + span::before {
+  content: ""; display: inline-block; width: 3px; height: 3px; border-radius: 50%;
+  background: currentColor; vertical-align: middle; margin: 0 14px 0 0; opacity: .7;
+  position: relative; top: -1px;
+}
+
+.player {
+  min-width: 0; border-radius: 12px; overflow: hidden;
+  background: var(--console-bg); box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+.stage { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: var(--paper); }
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage svg text { font-family: var(--sans); }
+.stage svg text.mono { font-family: var(--mono); }
+.stage svg text.serif { font-family: var(--serif); }
+
+.poster { position: absolute; inset: 0; display: block; border: 0; background: transparent; cursor: pointer; padding: 0; }
+
+.poster[hidden] { display: none; }
+
+.poster span svg { position: static; inset: auto; width: 14px; height: 14px; }
+.poster span {
+  position: absolute; left: 50%; top: 79%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 10px; white-space: nowrap;
+  background: var(--ink); color: var(--paper);
+  font-size: 15px; font-weight: 600; padding: 12px 22px 12px 18px;
+  border-radius: 999px; box-shadow: 0 4px 18px rgb(0 0 0 / .28);
+  transition: transform .15s ease;
+}
+.poster:hover span { transform: translate(-50%, -50%) scale(1.04); }
+
+.console { background: var(--console-bg); color: var(--console-fg); }
+
+.caption {
+  display: flex; gap: 14px; padding: 14px 20px 12px; min-height: 104px;
+  align-items: flex-start; overflow-y: auto;
+}
+.caption .rule { flex: 0 0 3px; align-self: stretch; background: var(--caution-ui); border-radius: 2px; }
+.caption p {
+  font-size: clamp(16px, 1.6vw, 19px); font-weight: 450;
+  line-height: 1.5; margin: 0; min-width: 0; max-width: 62ch; text-wrap: pretty;
+}
+.caption[hidden] { display: none !important; }
+
+.transport {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 10px 10px; border-top: 1px solid var(--console-line); flex-wrap: wrap;
+}
+.transport .grp { display: flex; align-items: center; gap: 2px; flex: none; }
+.transport button {
+  background: transparent; border: 0; color: var(--console-fg);
+  border-radius: 8px; cursor: pointer; display: grid; place-items: center;
+  width: 34px; height: 34px; padding: 0; flex: none;
+}
+.transport button:hover { background: var(--console-hover); }
+.transport button:focus-visible, .poster:focus-visible span,
+.jump:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; }
+.transport button[aria-pressed="false"] { color: var(--console-dim); }
+.transport button.play {
+  background: var(--console-fg); color: var(--console-bg);
+  width: 38px; height: 38px; border-radius: 50%; margin-right: 4px;
+}
+.transport button.play:hover { background: var(--console-fg); opacity: .88; }
+.transport button.wide {
+  width: auto; min-width: 36px; padding: 0 8px;
+  font-size: 12px; font-weight: 700; font-family: var(--sans); letter-spacing: .02em;
+}
+.transport svg { width: 16px; height: 16px; fill: currentColor; }
+
+.track { position: relative; flex: 1 1 140px; min-width: 90px; height: 34px; display: flex; align-items: center; margin: 0 8px; }
+.track input { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; margin: 0; height: 34px; position: relative; z-index: 2; cursor: pointer; }
+
+.track input {
+  --fill: 0%;
+  --played: linear-gradient(to right, var(--console-fg) var(--fill), var(--track-rest) var(--fill));
+}
+.track input::-webkit-slider-runnable-track { height: 5px; background: var(--played); border-radius: 3px; }
+.track input::-moz-range-track { height: 5px; background: var(--played); border-radius: 3px; }
+.track input::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--console-fg); border: 0; margin-top: -4px; box-shadow: 0 0 0 3px var(--console-bg); }
+.track input::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: var(--console-fg); border: 0; box-shadow: 0 0 0 3px var(--console-bg); }
+.track input:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 1px; border-radius: 4px; }
+
+.ticks { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.ticks i { position: absolute; top: 50%; width: 2px; height: 5px; margin: -2.5px 0 0 -1px; background: var(--console-bg); }
+.readout { font-size: 12.5px; color: var(--console-dim); white-space: nowrap; font-variant-numeric: tabular-nums; flex: none; margin-right: 6px; }
+
+.side {
+  position: relative; min-width: 0; min-height: 0;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+}
+.side-in { position: absolute; inset: 0; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; }
+@media (max-width: 959.98px) {
+  .side-in { position: static; }
+  .tpanel { max-height: 22rem; }
+}
+.panelhead {
+  display: flex; align-items: baseline; gap: 10px; flex: none;
+  padding: 13px 16px 11px; border-bottom: 1px solid var(--line-soft);
+}
+.panelhead h2 { font-family: var(--display); font-size: 15px; font-weight: 650; margin: 0; }
+.panelhead .how { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+.tpanel {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 8px 12px; scrollbar-width: thin;
+}
+.tpanel:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: -2px; }
+
+ol.transcript, ol.lines { list-style: none; margin: 0; padding: 0; }
+ol.lines { display: grid; gap: 2px; }
+.scn + .scn { border-top: 1px solid var(--line-soft); margin-top: 6px; }
+.scn-h {
+  position: sticky; top: 0; z-index: 1; background: var(--surface);
+  margin: 0; padding: 12px 10px 6px;
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 12.5px; font-weight: 650; color: var(--ink);
+}
+.scn-h span { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.jump {
+  display: grid; grid-template-columns: 38px 1fr; gap: 10px; width: 100%;
+  text-align: left; border: 0; background: transparent; font: inherit;
+  cursor: pointer; padding: 7px 10px; border-radius: 8px; color: var(--ink);
+}
+
+.jump { scroll-margin-top: 36px; }
+.jump:hover { background: var(--hover); }
+.jump:focus-visible { outline-offset: -2px; }
+.jump[data-on="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--caution-ui); }
+.jump .tc { font-size: 12px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.jump:hover .tc { color: var(--accent); }
+.jump[data-on="true"] .tc { color: var(--ink); font-weight: 600; }
+.jump .line { font-size: 14.5px; line-height: 1.55; min-width: 0; }
+
+.about {
+  max-width: 68rem; margin: 36px 0 0;
+  display: grid; gap: 14px;
+}
+.about h2 { font-family: var(--display); font-size: 23px; font-weight: 650; margin: 0; letter-spacing: -.005em; }
+.standfirst { font-size: 18px; line-height: 1.5; margin: 0; color: var(--ink); }
+.summary { font-size: 16px; line-height: 1.7; margin: 0; color: var(--ink); }
+.summary b, .parts b { font-weight: 650; }
+.parts { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.parts li { font-size: 16px; line-height: 1.6; padding-left: 18px; position: relative; }
+.parts li::before { content: ""; position: absolute; left: 2px; top: .7em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+.using {
+  margin: 14px 0 0; padding: 18px 20px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line-soft);
+  display: grid; gap: 12px;
+}
+.using h3 { font-size: 14px; font-weight: 650; margin: 0; }
+.keys { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 10px 24px; }
+.keys div { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.keys dt { flex: none; }
+.keys dd { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink); min-width: 0; }
+kbd {
+  display: inline-block; min-width: 26px; padding: 2px 7px; text-align: center;
+  font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
+}
+kbd.arrow { font-size: 15px; line-height: 17px; padding: 1px 6px; }
+.note { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.note code { font-family: var(--mono); font-size: .92em; color: var(--ink); }
+.note b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 700px) { .caption { min-height: 132px; } .meta { font-size: 12.5px; } }
+@media (max-width: 460px) {
+  .caption { min-height: 160px; padding: 12px 14px 10px; }
+  .readout { font-size: 11.5px; }
+  h1 { font-size: 19px; }
+  .standfirst { font-size: 17px; }
+}
+@media (hover: none) and (pointer: coarse) { .keys { display: none; } }
+@media (prefers-reduced-motion: reduce) { .poster span { transition: none; } }
+
+.lessonlink { margin: 0 0 8px; font-size: 14px; line-height: 1.4; }
+.lessonlink a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.lessonlink a:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; border-radius: 2px; }
+
+.ticks i.ch { height: 13px; margin-top: -6.5px; width: 3px; margin-left: -1.5px; }
+.scn + .chap { border-top: 1px solid var(--line); margin-top: 6px; }
+.chap-h {
+  margin: 0; padding: 14px 10px 2px;
+  font-family: var(--display); font-size: 13.5px; font-weight: 650; color: var(--accent);
+}
+
+.inkit body { padding-block: 0 16px; }
+.inkit .lessonlink, .inkit .head { display: none; }
+
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<script>if (/[?&]in=kit(&|$)/.test(location.search) && window.parent !== window) document.documentElement.className += " inkit";</script>
+
+<div class="wrap">
+ <nav class="lessonlink" aria-label="This lesson"><a href="../../../getting-started/custom-instructions.html">Written steps: Give Copilot custom instructions for a folder <span aria-hidden="true">&rsaquo;</span></a></nav>
+ <div class="theater">
+  <div class="head">
+    <h1>Give Copilot custom instructions for a folder</h1>
+    <p class="meta"><span>Video</span><span id="meta-scenes"></span><span id="meta-len"></span></p>
+  </div>
+
+  <div class="player">
+    <div class="stage">
+      <svg id="stage" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Animated video: Give Copilot custom instructions for a folder. The narration is written out in the transcript."></svg>
+      <button class="poster" id="poster" type="button" aria-label="Play video">
+        <span><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>Play video</span>
+      </button>
+    </div>
+
+    <div class="console">
+      <div class="caption" id="caption">
+        <div class="rule"></div>
+        <p id="captiontext"></p>
+      </div>
+      <div class="transport">
+        <div class="grp">
+          <button class="play" id="playbtn" type="button" aria-label="Play">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>
+          </button>
+          <button id="prev" type="button" aria-label="Previous scene">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h2v11h-2zM13.5 2.5v11L5.5 8z"/></svg>
+          </button>
+          <button id="next" type="button" aria-label="Next scene">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 2.5h2v11h-2zM2.5 2.5v11L10.5 8z"/></svg>
+          </button>
+        </div>
+        <div class="track">
+          <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Scene">
+          <div class="ticks" id="ticks"></div>
+        </div>
+        <span class="readout" id="readout"></span>
+        <div class="grp">
+          <button id="sound" type="button" aria-label="Narration sound, on"></button>
+          <button class="wide" id="cc" type="button" aria-label="CC, captions on" aria-pressed="true">CC</button>
+          <button class="wide" id="speed" type="button" aria-label="1x, playback speed">1x</button>
+          <button id="replay" type="button" aria-label="Replay from the start">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.6V0L4.4 3 8 6V3.6a4.4 4.4 0 1 1-4.4 4.4h-1A5.4 5.4 0 1 0 8 2.6z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side" aria-labelledby="transcript-h">
+   <div class="side-in">
+    <div class="panelhead">
+      <h2 id="transcript-h">Transcript</h2>
+      <span class="how">Click a line to play from it</span>
+    </div>
+    <div class="tpanel" id="p-transcript" tabindex="0" aria-label="Transcript lines">
+      <ol class="transcript" id="transcript"></ol>
+    </div>
+   </div>
+  </aside>
+ </div>
+
+ <section class="about" aria-labelledby="about-h">
+  <h2 id="about-h">About this video</h2>
+  <p class="standfirst">The fourth unit's steps, narrated: ask for a summary, have Copilot save custom instructions for summaries, ask again, and remove them. Pause where the video says, do the step on your computer, then play on.</p>
+  <p class="summary">This video walks through the unit's four written steps. If your screen doesn't match, the written steps say what to do.</p>
+  <ol class="summary">
+    <li>Ask Copilot to summarize the meeting notes.</li>
+    <li>Have Copilot save custom instructions for summaries, and open the file.</li>
+    <li>Start a new chat, ask for the summary again, and compare.</li>
+    <li>Have Copilot delete the custom instructions.</li>
+  </ol>
+
+  <div class="using">
+   <h3>Using the player</h3>
+   <dl class="keys">
+    <div><dt><kbd>Space</kbd></dt><dd>Play or pause</dd></div>
+    <div><dt><kbd class="arrow">&larr;</kbd> <kbd class="arrow">&rarr;</kbd></dt><dd>Go to the previous or next scene</dd></div>
+    <div><dt><kbd>C</kbd></dt><dd>Captions on or off, when you are using the player</dd></div>
+   </dl>
+   <p class="note">The progress bar moves one scene at a time. With the sound off, read the captions; the video stops after each scene until you press play.</p>
+  </div>
+ </section>
+</div>
+<script>
+(function () {
+  "use strict";
+
+  var PAPER = "var(--paper)";
+
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var RAMP = reduce ? 0.12 : 0.25;
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  var MAX_LEAD = 1.2;
+  var TIMING = {
+    "open": { dur: 36.333, starts: [1.3, 7.14, 13.039, 19.007, 21.753, 26.975, 30.489], pre: [1.3, 0.4, 2.4, 0.4, 0.4, 0.4, 0.4] },
+    "summarize": { dur: 16.28, starts: [1.3, 4.751, 9.22], pre: [1.3, 0.4, 2.4] },
+    "summarize-check": { dur: 19.533, starts: [1.3, 6.047, 11.284, 14.201], pre: [1.3, 2.4, 2.4, 0.4] },
+    "instructions": { dur: 37.619, starts: [1.3, 8.905, 15.065, 22.377, 30.388], pre: [1.3, 2.4, 0.4, 0.4, 2.4] },
+    "instructions-check": { dur: 11.507, starts: [1.3, 6.985], pre: [1.3, 2.4] },
+    "compare": { dur: 29.485, starts: [1.3, 4.175, 9.055, 13.951, 17.828, 22.425], pre: [1.3, 0.4, 0.4, 2.4, 0.4, 2.4] },
+    "compare-check": { dur: 22.371, starts: [1.3, 7.071, 11.588, 13.78, 16.527], pre: [1.3, 2.4, 0.4, 0.4, 0.4] },
+    "delete": { dur: 21.4, starts: [1.3, 9.033, 15.193], pre: [1.3, 2.4, 0.4] },
+    "delete-check": { dur: 10.824, starts: [1.3, 6.047], pre: [1.3, 2.4] },
+    "close": { dur: 13.283, starts: [1.3, 7.311], pre: [1.3, 0.4] }
+  };
+
+  var ANIM = reduce
+    ? { fade: [0, 0], up: [0, 0], right: [0, 0], left: [0, 0] }
+    : { fade: [0, 0], up: [0, 16], right: [-16, 0], left: [16, 0] };
+
+  var S = [{"id":"open","lines":[{"caption":"Custom instructions are a file in your folder that Copilot reads before every request."},{"caption":"They say what the work is, who reads it, and how you want it done."},{"caption":"In this unit, you ask Copilot for a summary, and have Copilot write down how you want summaries."},{"caption":"Then you ask again, and remove what it wrote."},{"caption":"Start with the practice folder open. It holds the notes folder from the second unit."},{"caption":"Each request is shown on screen, and in the written steps."},{"caption":"Where the video says pause, stop it, do the step on your computer, and then play on."}],"beats":[{"line":0,"outLine":2,"anim":"up","svg":"<rect x=\"330\" y=\"110\" width=\"300\" height=\"70\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2.2\"/><text x=\"480\" y=\"154\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"700\" text-anchor=\"middle\">Custom instructions<\/text><line x1=\"480\" y1=\"180\" x2=\"230\" y2=\"330\" stroke=\"var(--accent)\" stroke-width=\"2.4\" stroke-linecap=\"round\"/><rect x=\"135\" y=\"330\" width=\"190\" height=\"70\" rx=\"10\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"230\" y=\"374\" fill=\"var(--ink)\" font-size=\"26\" font-weight=\"400\" text-anchor=\"middle\">request<\/text><line x1=\"480\" y1=\"180\" x2=\"480\" y2=\"330\" stroke=\"var(--accent)\" stroke-width=\"2.4\" stroke-linecap=\"round\"/><rect x=\"385\" y=\"330\" width=\"190\" height=\"70\" rx=\"10\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"480\" y=\"374\" fill=\"var(--ink)\" font-size=\"26\" font-weight=\"400\" text-anchor=\"middle\">request<\/text><line x1=\"480\" y1=\"180\" x2=\"730\" y2=\"330\" stroke=\"var(--accent)\" stroke-width=\"2.4\" stroke-linecap=\"round\"/><rect x=\"635\" y=\"330\" width=\"190\" height=\"70\" rx=\"10\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"730\" y=\"374\" fill=\"var(--ink)\" font-size=\"26\" font-weight=\"400\" text-anchor=\"middle\">request<\/text>"},{"line":2,"anim":"up","svg":"<rect x=\"100\" y=\"76\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"134\" y=\"119\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Ask Copilot for a summary<\/text>"},{"line":2,"plus":2.74,"anim":"up","svg":"<rect x=\"100\" y=\"166\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"134\" y=\"209\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Have Copilot write down how you want summaries<\/text>"},{"line":3,"anim":"up","svg":"<rect x=\"100\" y=\"256\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"134\" y=\"299\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Ask again<\/text>"},{"line":3,"plus":0.95,"anim":"up","svg":"<rect x=\"100\" y=\"346\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"134\" y=\"389\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Remove what it wrote<\/text>"}],"title":"What you'll do"},{"id":"summarize","lines":[{"caption":"First, ask Copilot to summarize the meeting notes."},{"caption":"You'll compare this answer with the next one."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."}],"beats":[{"line":0,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc1\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc1)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"176\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"189\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"218\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 221v5M30.0 223h5\"/><rect class=\"dg-p\" x=\"45\" y=\"212\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 218.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"220\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"212\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"220\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"2.2\"/><path d=\"M421 229l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":2,"anim":"fade","svg":"<g transform=\"translate(-5.09 145.56) scale(2.1091)\"><clipPath id=\"kc2\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"98\"/><\/clipPath><g clip-path=\"url(#kc2)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"84\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Summarize the meeting notes in the notes folder of the<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">copilot-practice folder.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"77\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 80v5M30.0 82h5\"/><rect class=\"dg-p\" x=\"45\" y=\"71\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 77.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"79\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"71\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"79\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"82\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"82\" r=\"2.2\"/><path d=\"M421 88l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":2,"plus":5.09,"anim":"fade","svg":"<rect x=\"410\" y=\"436\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"410\" y=\"430\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"480\" y=\"476\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"}],"title":"Ask Copilot to summarize the meeting notes"},{"id":"summarize-check","lines":[{"caption":"Pause the video now, and send the request."},{"caption":"Look for this: the chat shows a summary of the notes."},{"caption":"Gray bars stand for text you don't need to read."},{"caption":"Look at what comes first, and whether each item names the note it came from."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"232\" y=\"210\" width=\"496\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"272\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"294\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"332\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc3\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc3)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-tn\" x=\"255\" y=\"50\" width=\"186\" height=\"30\" rx=\"7\"/><rect class=\"dg-b2\" x=\"267\" y=\"62\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"17\" y=\"176\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"189\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"218\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 221v5M30.0 223h5\"/><rect class=\"dg-p\" x=\"45\" y=\"212\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 218.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"220\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"212\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"220\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"2.2\"/><path d=\"M421 229l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><rect class=\"dg-b\" x=\"21\" y=\"96\" width=\"250\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"110\" width=\"300\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"124\" width=\"220\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"138\" width=\"280\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"152\" width=\"200\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":1.46,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc4\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc4)\"><path d=\"M330.0 130.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"},{"line":3,"plus":0.73,"outLine":3,"outPlus":1.53,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc5\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc5)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v250h-450zM13 86v32h308v-32z\"/><rect class=\"dg-m\" x=\"17\" y=\"90\" width=\"300\" height=\"24\" rx=\"5\"/><\/g><\/g>"},{"line":3,"plus":1.53,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc6\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc6)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v250h-450zM13 86v78h308v-78z\"/><rect class=\"dg-m\" x=\"17\" y=\"90\" width=\"300\" height=\"70\" rx=\"5\"/><\/g><\/g>"}],"title":"Check: a summary of the notes"},{"id":"instructions","lines":[{"caption":"Next, have Copilot write down how you want summaries, in a file of custom instructions."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."},{"caption":"It gives four points: what the notes are, who reads the summaries, what to lead with, and to name the note behind each item."},{"caption":"It also asks Copilot to tell you if the file already exists, and to change no other file."},{"caption":"Then, in the list on the left, open .github, and select copilot-instructions.md."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc7\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc7)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"176\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"189\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"218\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 221v5M30.0 223h5\"/><rect class=\"dg-p\" x=\"45\" y=\"212\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 218.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"220\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"212\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"220\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"2.2\"/><path d=\"M421 229l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(30.62 -3.54) scale(1.9538)\"><clipPath id=\"kc8\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"260\"/><\/clipPath><g clip-path=\"url(#kc8)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"246\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">In the copilot-practice folder, create<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">.github/copilot-instructions.md describing this work:<\/text><text class=\"dg-t\" x=\"29\" y=\"73\">- The notes folder holds a team's weekly meeting notes.<\/text><text class=\"dg-t\" x=\"29\" y=\"91\">- The people who read summaries of them are busy and not<\/text><text class=\"dg-t\" x=\"29\" y=\"109\">technical.<\/text><text class=\"dg-t\" x=\"29\" y=\"127\">- They only need what they must act on: lead with the<\/text><text class=\"dg-t\" x=\"29\" y=\"145\">actions, grouped by owner, then one line of decisions.<\/text><text class=\"dg-t\" x=\"29\" y=\"163\">- After each item, name the note it came from.<\/text><text class=\"dg-t\" x=\"29\" y=\"181\">If that file already exists, don't change it; tell me<\/text><text class=\"dg-t\" x=\"29\" y=\"199\">instead.<\/text><text class=\"dg-t\" x=\"29\" y=\"217\">Add or change no other file.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"239\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 242v5M30.0 244h5\"/><rect class=\"dg-p\" x=\"45\" y=\"233\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 239.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"241\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"233\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"241\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"244\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"244\" r=\"2.2\"/><path d=\"M421 250l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":2,"plus":1.38,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(30.62 -3.54) scale(1.9538)\"><clipPath id=\"kc9\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"260\"/><\/clipPath><g clip-path=\"url(#kc9)\"><text class=\"dg-t\" x=\"29\" y=\"73\"><tspan style=\"fill:transparent\">- The notes folder holds a team&#x27;s <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">weekly meeting notes<\/tspan><tspan style=\"fill:transparent\">.<\/tspan><\/text><\/g><\/g>"},{"line":2,"plus":2.24,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(30.62 -3.54) scale(1.9538)\"><clipPath id=\"kc10\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"260\"/><\/clipPath><g clip-path=\"url(#kc10)\"><text class=\"dg-t\" x=\"29\" y=\"91\"><tspan style=\"fill:transparent\">- The people who read summaries of them are <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">busy and not<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"109\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">technical<\/tspan><tspan style=\"fill:transparent\">.<\/tspan><\/text><\/g><\/g>"},{"line":2,"plus":3.68,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(30.62 -3.54) scale(1.9538)\"><clipPath id=\"kc11\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"260\"/><\/clipPath><g clip-path=\"url(#kc11)\"><text class=\"dg-t\" x=\"29\" y=\"127\"><tspan style=\"fill:transparent\">- They only need what they must act on: <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">lead with the<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"145\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">actions, grouped by owner, then one line of decisions<\/tspan><tspan style=\"fill:transparent\">.<\/tspan><\/text><\/g><\/g>"},{"line":2,"plus":4.83,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(30.62 -3.54) scale(1.9538)\"><clipPath id=\"kc12\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"260\"/><\/clipPath><g clip-path=\"url(#kc12)\"><text class=\"dg-t\" x=\"29\" y=\"163\"><tspan style=\"fill:transparent\">- After each item, <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">name the note it came from<\/tspan><tspan style=\"fill:transparent\">.<\/tspan><\/text><\/g><\/g>"},{"line":3,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(30.62 -3.54) scale(1.9538)\"><clipPath id=\"kc13\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"260\"/><\/clipPath><g clip-path=\"url(#kc13)\"><text class=\"dg-t\" x=\"29\" y=\"181\"><tspan style=\"fill:transparent\">If that file already exists, <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">don&#x27;t change it; tell me<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"199\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">instead<\/tspan><tspan style=\"fill:transparent\">.<\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"217\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">Add or change no other file.<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><\/g><\/g>"},{"line":4,"anim":"fade","svg":"<g transform=\"translate(156 48) scale(2.4)\"><clipPath id=\"kc14\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"185\"/><\/clipPath><g clip-path=\"url(#kc14)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"260\" height=\"175\" rx=\"8\"/><rect class=\"dg-b\" x=\"15\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M16.0 42.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"26\" y=\"42\" width=\"106\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M28.0 64.0l4.0 4.0 4.0 -4.0\"/><text class=\"dg-t\" x=\"39.0\" y=\"71\">.github<\/text><rect class=\"dg-tn\" x=\"6\" y=\"78\" width=\"258\" height=\"21\" rx=\"0\"/><rect class=\"dg-b2\" x=\"39\" y=\"83\" width=\"9\" height=\"11\" rx=\"2\"/><text class=\"dg-t\" x=\"54\" y=\"93\">copilot-instructions.md<\/text><path class=\"dg-ic\" d=\"M29.0 106.0l4.0 4.0 -4.0 4.0\"/><text class=\"dg-t\" x=\"39.0\" y=\"115\">notes<\/text><path class=\"dg-ic\" d=\"M29.0 128.0l4.0 4.0 -4.0 4.0\"/><rect class=\"dg-b\" x=\"39\" y=\"129\" width=\"100\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"27\" y=\"149\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"151\" width=\"72\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":4,"plus":1.96,"outLine":4,"outPlus":3.6,"anim":"fade","svg":"<g transform=\"translate(156 48) scale(2.4)\"><clipPath id=\"kc15\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"185\"/><\/clipPath><g clip-path=\"url(#kc15)\"><rect class=\"dg-m\" x=\"9\" y=\"55\" width=\"252\" height=\"22\" rx=\"5\"/><\/g><\/g>"},{"line":4,"plus":3.6,"anim":"fade","svg":"<g transform=\"translate(156 48) scale(2.4)\"><clipPath id=\"kc16\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"185\"/><\/clipPath><g clip-path=\"url(#kc16)\"><rect class=\"dg-m\" x=\"9\" y=\"77\" width=\"252\" height=\"22\" rx=\"5\"/><\/g><\/g>"}],"title":"Have Copilot save custom instructions for summaries"},{"id":"instructions-check","lines":[{"caption":"Pause the video now, send the request, and open the file."},{"caption":"Look for this: the file holds the four points you asked for."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"84.5\" y=\"210\" width=\"791\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"124.5\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"146.5\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"184.5\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request, and open the file<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(20 80.59) scale(1.8039)\"><clipPath id=\"kc17\"><rect x=\"0\" y=\"0\" width=\"510\" height=\"210\"/><\/clipPath><g clip-path=\"url(#kc17)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"500\" height=\"200\" rx=\"6\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"498\" height=\"26\" rx=\"5\"/><rect class=\"dg-w\" x=\"6\" y=\"6\" width=\"208\" height=\"26\" style=\"stroke:none\"/><line x1=\"6\" y1=\"31\" x2=\"214\" y2=\"31\" style=\"stroke:var(--accent,#0065b3);stroke-width:2\"/><rect class=\"dg-b\" x=\"17\" y=\"15\" width=\"164\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"24\" y=\"50\" width=\"180\" height=\"8\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"30\" cy=\"81\" r=\"2\"/><rect class=\"dg-b\" x=\"40\" y=\"78\" width=\"330\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"30\" cy=\"103\" r=\"2\"/><rect class=\"dg-b\" x=\"40\" y=\"100\" width=\"360\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"30\" cy=\"125\" r=\"2\"/><rect class=\"dg-b\" x=\"40\" y=\"122\" width=\"410\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"30\" cy=\"147\" r=\"2\"/><rect class=\"dg-b\" x=\"40\" y=\"144\" width=\"260\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":1.53,"anim":"fade","svg":"<g transform=\"translate(20 80.59) scale(1.8039)\"><clipPath id=\"kc18\"><rect x=\"0\" y=\"0\" width=\"510\" height=\"210\"/><\/clipPath><g clip-path=\"url(#kc18)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h500v200h-500zM16 68v104h448v-104z\"/><rect class=\"dg-m\" x=\"20\" y=\"72\" width=\"440\" height=\"96\" rx=\"5\"/><path d=\"M470.0 108.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: the file holds four points"},{"id":"compare","lines":[{"caption":"Now ask for the summary again, in a new chat."},{"caption":"A new chat starts without the first answer, so that answer can't shape the next one."},{"caption":"The custom instructions you saved still apply."},{"caption":"At the top of the chat, select the button New Chat (+)."},{"caption":"Then send the same request as before."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."}],"beats":[{"line":0,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc19\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc19)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-tn\" x=\"255\" y=\"50\" width=\"186\" height=\"30\" rx=\"7\"/><rect class=\"dg-b2\" x=\"267\" y=\"62\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"92\" width=\"220\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"108\" width=\"260\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"124\" width=\"190\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"17\" y=\"176\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"189\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"218\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 221v5M30.0 223h5\"/><rect class=\"dg-p\" x=\"45\" y=\"212\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 218.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"220\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"212\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"220\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"2.2\"/><path d=\"M421 229l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":3,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc20\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc20)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v250h-450zM360 12v36h42v-36z\"/><rect class=\"dg-m\" x=\"364\" y=\"16\" width=\"34\" height=\"28\" rx=\"5\"/><\/g><\/g>"},{"line":4,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc21\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc21)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"176\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"189\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"218\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 221v5M30.0 223h5\"/><rect class=\"dg-p\" x=\"45\" y=\"212\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 218.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"220\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"212\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"220\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"2.2\"/><path d=\"M421 229l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":5,"anim":"fade","svg":"<g transform=\"translate(-5.09 145.56) scale(2.1091)\"><clipPath id=\"kc22\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"98\"/><\/clipPath><g clip-path=\"url(#kc22)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"84\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Summarize the meeting notes in the notes folder of the<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">copilot-practice folder.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"77\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 80v5M30.0 82h5\"/><rect class=\"dg-p\" x=\"45\" y=\"71\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 77.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"79\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"71\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"79\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"82\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"82\" r=\"2.2\"/><path d=\"M421 88l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":5,"plus":5.09,"anim":"fade","svg":"<rect x=\"410\" y=\"436\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"410\" y=\"430\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"480\" y=\"476\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"}],"title":"Ask for the summary again"},{"id":"compare-check","lines":[{"caption":"Pause the video now, start a new chat, and send the request."},{"caption":"Look for this: the new summary leads with the actions, grouped by owner."},{"caption":"Then comes one line of decisions."},{"caption":"And each item names the note behind it."},{"caption":"If the summary ignores the instructions, the written steps give a request to send."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"61.5\" y=\"210\" width=\"837\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"101.5\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"123.5\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"161.5\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> start a new chat, and send the request<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(125.94 8.3) scale(1.5394)\"><clipPath id=\"kc23\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"330\"/><\/clipPath><g clip-path=\"url(#kc23)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"330\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-tn\" x=\"255\" y=\"50\" width=\"186\" height=\"30\" rx=\"7\"/><rect class=\"dg-b2\" x=\"267\" y=\"62\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"17\" y=\"256\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"269\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"298\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 301v5M30.0 303h5\"/><rect class=\"dg-p\" x=\"45\" y=\"292\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 298.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"300\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"292\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"300\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"303\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"303\" r=\"2.2\"/><path d=\"M421 309l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><rect class=\"dg-b2\" x=\"21\" y=\"92\" width=\"90\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"37\" cy=\"109\" r=\"1.6\"/><rect class=\"dg-b\" x=\"45\" y=\"106\" width=\"170\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"223\" y=\"105\" width=\"46\" height=\"9\" rx=\"3\"/><circle class=\"dg-ic\" cx=\"37\" cy=\"123\" r=\"1.6\"/><rect class=\"dg-b\" x=\"45\" y=\"120\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"193\" y=\"119\" width=\"46\" height=\"9\" rx=\"3\"/><rect class=\"dg-b2\" x=\"21\" y=\"140\" width=\"110\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"37\" cy=\"157\" r=\"1.6\"/><rect class=\"dg-b\" x=\"45\" y=\"154\" width=\"160\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"213\" y=\"153\" width=\"46\" height=\"9\" rx=\"3\"/><circle class=\"dg-ic\" cx=\"37\" cy=\"171\" r=\"1.6\"/><rect class=\"dg-b\" x=\"45\" y=\"168\" width=\"130\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"183\" y=\"167\" width=\"46\" height=\"9\" rx=\"3\"/><rect class=\"dg-b2\" x=\"21\" y=\"188\" width=\"130\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"37\" cy=\"205\" r=\"1.6\"/><rect class=\"dg-b\" x=\"45\" y=\"202\" width=\"150\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"203\" y=\"201\" width=\"46\" height=\"9\" rx=\"3\"/><circle class=\"dg-ic\" cx=\"37\" cy=\"219\" r=\"1.6\"/><rect class=\"dg-b\" x=\"45\" y=\"216\" width=\"120\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"173\" y=\"215\" width=\"46\" height=\"9\" rx=\"3\"/><rect class=\"dg-b\" x=\"21\" y=\"236\" width=\"290\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":1.55,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(125.94 8.3) scale(1.5394)\"><clipPath id=\"kc24\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"330\"/><\/clipPath><g clip-path=\"url(#kc24)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v330h-450zM11 82v144h288v-144z\"/><rect class=\"dg-m\" x=\"15\" y=\"86\" width=\"280\" height=\"136\" rx=\"5\"/><\/g><\/g>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(125.94 8.3) scale(1.5394)\"><clipPath id=\"kc25\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"330\"/><\/clipPath><g clip-path=\"url(#kc25)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v330h-450zM11 226v26h308v-26z\"/><rect class=\"dg-m\" x=\"15\" y=\"230\" width=\"300\" height=\"18\" rx=\"5\"/><\/g><\/g>"},{"line":3,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(125.94 8.3) scale(1.5394)\"><clipPath id=\"kc26\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"330\"/><\/clipPath><g clip-path=\"url(#kc26)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v330h-450zM221 103v13h50v-13zM191 117v13h50v-13zM211 151v13h50v-13zM181 165v13h50v-13zM201 199v13h50v-13zM171 213v13h50v-13z\"/><rect class=\"dg-m\" x=\"221\" y=\"103\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"191\" y=\"117\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"211\" y=\"151\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"181\" y=\"165\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"201\" y=\"199\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"171\" y=\"213\" width=\"50\" height=\"13\" rx=\"5\"/><path d=\"M400.0 150.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: the summary follows the instructions"},{"id":"delete","lines":[{"caption":"Left in place, these instructions shape every later answer in this folder, so remove them."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."},{"caption":"If a permission request appears, allow it if it deletes only the .github folder."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc27\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc27)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"176\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"189\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"218\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 221v5M30.0 223h5\"/><rect class=\"dg-p\" x=\"45\" y=\"212\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 218.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"220\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"212\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"220\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"2.2\"/><path d=\"M421 229l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(-5.09 145.56) scale(2.1091)\"><clipPath id=\"kc28\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"98\"/><\/clipPath><g clip-path=\"url(#kc28)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"84\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Delete the .github folder in the copilot-practice folder,<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">and nothing else.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"77\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 80v5M30.0 82h5\"/><rect class=\"dg-p\" x=\"45\" y=\"71\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 77.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"79\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"71\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"79\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"82\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"82\" r=\"2.2\"/><path d=\"M421 88l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":5.09,"outLine":2,"anim":"fade","svg":"<rect x=\"410\" y=\"436\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"410\" y=\"430\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"480\" y=\"476\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"},{"line":2,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc29\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc29)\"><rect class=\"dg-w\" x=\"20\" y=\"106\" width=\"420\" height=\"150\" rx=\"7\"/>\n<path class=\"dg-ic\" d=\"M38 128l5 5-5 5M48 140h9\"/>\n<rect class=\"dg-b2\" x=\"66\" y=\"129\" width=\"180\" height=\"9\" rx=\"2\"/>\n<rect class=\"dg-c\" x=\"38\" y=\"156\" width=\"384\" height=\"28\" rx=\"4\"/><rect class=\"dg-b\" x=\"50\" y=\"166\" width=\"30\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"88\" y=\"166\" width=\"24\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"120\" y=\"174\" style=\"font-size:12px\">.github<\/text><rect class=\"dg-b\" x=\"172\" y=\"166\" width=\"120\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-btn\" x=\"38\" y=\"204\" width=\"88\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"52\" y=\"223\">Allow<\/text>\n<line class=\"dg-btnl\" x1=\"100\" y1=\"208\" x2=\"100\" y2=\"228\"/><path class=\"dg-btnl\" d=\"M107 215l5 5 5-5\" style=\"stroke-width:1.6\"/>\n<rect class=\"dg-p\" x=\"134\" y=\"204\" width=\"58\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"148\" y=\"215\" width=\"29\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":2,"plus":1.18,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc30\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc30)\"><rect class=\"dg-m\" x=\"34\" y=\"200\" width=\"96\" height=\"36\" rx=\"5\"/><\/g><\/g>"}],"title":"Have Copilot delete the custom instructions"},{"id":"delete-check","lines":[{"caption":"Pause the video now, and send the request."},{"caption":"Look for this: the list on the left no longer shows .github."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"232\" y=\"210\" width=\"496\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"272\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"294\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"332\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(156 48) scale(2.4)\"><clipPath id=\"kc31\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"185\"/><\/clipPath><g clip-path=\"url(#kc31)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"260\" height=\"175\" rx=\"8\"/><rect class=\"dg-b\" x=\"15\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M16.0 42.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"26\" y=\"42\" width=\"106\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M29.0 62.0l4.0 4.0 -4.0 4.0\"/><rect class=\"dg-b\" x=\"39\" y=\"63\" width=\"36\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M29.0 84.0l4.0 4.0 -4.0 4.0\"/><rect class=\"dg-b\" x=\"39\" y=\"85\" width=\"100\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"27\" y=\"105\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"107\" width=\"72\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":1.64,"anim":"fade","svg":"<g transform=\"translate(156 48) scale(2.4)\"><clipPath id=\"kc32\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"185\"/><\/clipPath><g clip-path=\"url(#kc32)\"><path d=\"M232.0 46.0l5.6 5.6 9.6 -12.8\" style=\"fill:none;stroke:var(--good);stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: .github is gone"},{"id":"close","lines":[{"caption":"You saved instructions once, saw Copilot follow them without being asked, and then removed them."},{"caption":"When you've done the steps, open the written steps and select Continue to complete the unit."}],"beats":[{"line":0,"anim":"up","svg":"<rect x=\"100\" y=\"126\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"172\" y=\"169\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Saved instructions once<\/text><path d=\"M128,157 L135,164 L147,148\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"},{"line":0,"plus":1.15,"anim":"up","svg":"<rect x=\"100\" y=\"221\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"172\" y=\"264\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Saw Copilot follow them<\/text><path d=\"M128,252 L135,259 L147,243\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"},{"line":0,"plus":4.51,"anim":"up","svg":"<rect x=\"100\" y=\"316\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"172\" y=\"359\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Removed them<\/text><path d=\"M128,347 L135,354 L147,338\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"}],"title":"What you did"}];
+
+  function lead(tm, n) {
+    return Math.max(0, tm.starts[n] - Math.min(MAX_LEAD, Math.max(0, tm.pre[n] - 0.05)));
+  }
+
+  var sound = true, audioOK = true;
+
+  var SILENT_CAP = 0.8;
+
+  function silentTiming(tm) {
+    var pre = tm.pre.map(function (x) { return Math.min(x, SILENT_CAP); });
+    var st = [pre[0]];
+    for (var i = 1; i < tm.starts.length; i++) {
+      var spoken = tm.starts[i] - tm.starts[i - 1] - tm.pre[i];
+      st.push(st[i - 1] + spoken + pre[i]);
+    }
+    var last = tm.starts.length - 1;
+    return { dur: st[last] + (tm.dur - tm.starts[last]), starts: st, pre: pre };
+  }
+
+  var starts = [], total = 0;
+
+  function buildTimeline() {
+    starts = [];
+    total = 0;
+    for (var s = 0; s < S.length; s++) {
+      var sc = S[s];
+      var tm = useSound() ? TIMING[sc.id] : silentTiming(TIMING[sc.id]);
+      sc.dur = tm.dur;
+      sc.tm = tm;
+      sc.lineStarts = tm.starts;
+      sc.caption = sc.lines.map(function (l) { return l.caption; }).join(" ");
+      var settled = 0;
+      for (var bi = 0; bi < sc.beats.length; bi++) {
+        var bt = sc.beats[bi];
+
+        bt.at = bt.plus === undefined ? lead(tm, bt.line) : tm.starts[bt.line] + bt.plus;
+        if (bt.outLine !== undefined) bt.out = bt.outPlus === undefined ? lead(tm, bt.outLine) : tm.starts[bt.outLine] + bt.outPlus;
+        if (!bt.held && bt.at > settled) settled = bt.at;
+        if (bt.out !== undefined && bt.out > settled) settled = bt.out;
+      }
+
+      sc.settled = Math.min(settled + RAMP, sc.dur);
+
+      sc.stop = useSound() ? sc.settled : Math.max(sc.settled, sc.dur - 0.05);
+      starts.push(total);
+      total += sc.dur;
+    }
+  }
+  buildTimeline();
+
+  var stage = document.getElementById("stage");
+  var markup = '<rect x="0" y="0" width="960" height="540" fill="' + PAPER + '"/>';
+  for (var sm = 0; sm < S.length; sm++) {
+    markup += '<g class="scene">';
+    for (var bm = 0; bm < S[sm].beats.length; bm++) {
+      var bt2 = S[sm].beats[bm];
+      markup += '<g class="beat" data-at="' + bt2.at + '" data-anim="' + bt2.anim + '"' +
+        (bt2.out === undefined ? "" : ' data-out="' + bt2.out + '"') +
+        (bt2.linear ? ' data-linear=""' : "") + ">" + bt2.svg + "</g>";
+    }
+    markup += "</g>";
+  }
+  stage.innerHTML = markup;
+
+  var sceneEls = stage.querySelectorAll(".scene"), beatEls = [];
+  for (var k = 0; k < sceneEls.length; k++) beatEls.push(sceneEls[k].querySelectorAll(".beat"));
+
+  var clips = [];
+  for (var c = 0; c < S.length; c++) {
+    var clip = new Audio("audio/" + S[c].id + ".mp3");
+    clip.preload = "metadata";
+    clip.addEventListener("error", onAudioLost);
+    clips.push(clip);
+  }
+
+  var compact = false;
+  var t = 0, playing = false, speed = 1, started = false,
+      last = 0, cur = 0, looping = false, seekUntil = 0;
+  var SPEEDS = [0.75, 1, 1.25, 1.5];
+
+  var captionEl = document.getElementById("caption"),
+      captionText = document.getElementById("captiontext"),
+      readout = document.getElementById("readout"),
+      scrub = document.getElementById("scrub"),
+      playbtn = document.getElementById("playbtn"),
+      poster = document.getElementById("poster"),
+      soundBtn = document.getElementById("sound");
+
+  var SPEAKER = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zm2.6 2.2-.9 1.3a3.6 3.6 0 0 1 0 5.8l.9 1.3a5.2 5.2 0 0 0 0-8.4z"/></svg>';
+  var MUTED_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zM10.3 5.7l1.5 1.5 1.5-1.5 1 1-1.5 1.5 1.5 1.5-1 1-1.5-1.5-1.5 1.5-1-1L10.8 8.2 9.3 6.7z"/></svg>';
+
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function mmss(x) {
+    var m = Math.floor(x / 60), ss = Math.floor(x % 60);
+    return m + ":" + (ss < 10 ? "0" : "") + ss;
+  }
+  function sceneAt(time) {
+    for (var i = S.length - 1; i >= 0; i--) if (time >= starts[i]) return i;
+    return 0;
+  }
+  function useSound() { return sound && audioOK; }
+
+  function reflectSound() {
+    var on = useSound();
+    soundBtn.innerHTML = on ? SPEAKER : MUTED_ICON;
+    soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    soundBtn.setAttribute("aria-label", on ? "Narration sound, on"
+      : audioOK ? "Narration sound, off" : "Narration sound, unavailable");
+  }
+
+  function paint(posterMode) {
+    var now = sceneAt(t);
+    for (var i = 0; i < S.length; i++) {
+      var on = i === now;
+      sceneEls[i].style.display = on ? "" : "none";
+      if (!on) continue;
+      var local = t - starts[i];
+      for (var j = 0; j < beatEls[i].length; j++) {
+        var g = beatEls[i][j];
+        var beat = S[i].beats[j];
+
+        var lin = beat.linear;
+        var pin = posterMode || beat.held ? 1 : clamp((local - beat.at) / RAMP, 0, 1);
+        var e = lin ? pin : 1 - Math.pow(1 - pin, 3);
+        if (beat.out !== undefined && !posterMode) {
+          var pout = clamp((local - beat.out) / RAMP, 0, 1);
+          e = e * (1 - (lin ? pout : 1 - Math.pow(1 - pout, 3)));
+        }
+        var off = beat.held ? [0, 0] : ANIM[beat.anim] || ANIM.fade;
+        g.style.opacity = e;
+        g.style.transform = "translate(" + (off[0] * (1 - e)).toFixed(2) + "px," + (off[1] * (1 - e)).toFixed(2) + "px)";
+      }
+    }
+
+    var ln = 0, localT = t - starts[now];
+    for (var li = 0; li < S[now].lines.length; li++) if (localT >= S[now].lineStarts[li] - 0.3) ln = li;
+    captionText.textContent = S[now].lines[ln].caption;
+
+    paintReadout();
+    scrub.value = t >= total ? 1000 : Math.round((starts[now] / total) * 1000);
+
+    scrub.style.setProperty("--fill",
+      "calc(5.5px + " + (scrub.value / 1000) + " * (100% - 11px))");
+    scrub.setAttribute("aria-valuetext", "Scene " + (now + 1) + ", " + mmss(t));
+    if (started) markLine(now, ln);
+  }
+
+  function paintReadout() {
+    var now = sceneAt(t);
+    readout.textContent = (compact ? (now + 1) + "/" + S.length : "Scene " + (now + 1) + " of " + S.length) + " " +
+      String.fromCharCode(183) + " " + mmss(t) + " / " + mmss(total);
+  }
+
+  function stopClips() { for (var i = 0; i < clips.length; i++) clips[i].pause(); }
+
+  function syncClip() {
+    if (!useSound()) { stopClips(); return; }
+    for (var i = 0; i < clips.length; i++) if (i !== cur) clips[i].pause();
+    var clip = clips[cur];
+    clip.playbackRate = speed;
+    var want = clamp(t - starts[cur], 0, S[cur].dur);
+    if (Math.abs(clip.currentTime - want) > 0.25) {
+      try { clip.currentTime = want; seekUntil = performance.now() + 220; } catch (e) {}
+    }
+    if (playing && clip.paused) {
+      var pr = clip.play();
+      if (pr && pr.catch) pr.catch(onAudioLost);
+    }
+    if (!playing && !clip.paused) clip.pause();
+  }
+
+  function setPlaying(on) {
+    playing = on;
+    playbtn.setAttribute("aria-label", on ? "Pause" : "Play");
+    playbtn.innerHTML = on
+      ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 1.5h3.5v13H3.5zm5.5 0h3.5v13H9z"/></svg>'
+      : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>';
+    syncClip();
+    if (on && !looping) { looping = true; last = 0; requestAnimationFrame(step); }
+  }
+
+  function step(now) {
+    if (!playing) { looping = false; return; }
+    if (!last) last = now;
+    var dt = (now - last) / 1000;
+    last = now;
+
+    if (useSound() && !clips[cur].paused && now > seekUntil) {
+      t = starts[cur] + Math.min(clips[cur].currentTime, S[cur].dur);
+    } else {
+      t += dt * speed;
+    }
+
+    if (t >= total - 0.02) { t = total; paint(false); setPlaying(false); looping = false; return; }
+
+    if (!useSound() && t >= starts[cur] + S[cur].stop) {
+      t = starts[cur] + S[cur].stop;
+      paint(false);
+      setPlaying(false);
+      looping = false;
+      return;
+    }
+
+    var next = sceneAt(t);
+    if (next !== cur) { cur = next; syncClip(); }
+    paint(false);
+    requestAnimationFrame(step);
+  }
+
+  function goto(time, keepPlaying) {
+    addressed = -1;
+    t = clamp(time, 0, total);
+    cur = sceneAt(t);
+    if (!keepPlaying) t = starts[cur] + S[cur].settled;
+    if (!started) { started = true; poster.hidden = true; }
+    paint(false);
+    if (keepPlaying) syncClip(); else setPlaying(false);
+
+    if (!keepPlaying) addressed = cur;
+  }
+  function fromTop() {
+    started = true; poster.hidden = true; t = 0; cur = 0; paint(false); setPlaying(true);
+  }
+
+  poster.addEventListener("click", function () { fromTop(); playbtn.focus({ preventScroll: true }); });
+  document.getElementById("replay").addEventListener("click", fromTop);
+  playbtn.addEventListener("click", function () {
+    if (!started || t >= total) { fromTop(); return; }
+
+    if (!playing && addressed === cur) { t = starts[cur]; paint(false); }
+    addressed = -1;
+
+    if (!playing && !useSound() && cur < S.length - 1 && t >= starts[cur] + S[cur].stop - 0.01) {
+      cur += 1; t = starts[cur]; paint(false);
+    }
+    setPlaying(!playing);
+  });
+  document.getElementById("prev").addEventListener("click", function () {
+    var i = sceneAt(t);
+
+    var replayThisScene = playing && useSound() && t - starts[i] >= 1.2;
+    if (!replayThisScene && i > 0) i--;
+    goto(starts[i], playing && useSound());
+  });
+  document.getElementById("next").addEventListener("click", function () {
+    var i = sceneAt(t);
+    goto(i + 1 < S.length ? starts[i + 1] : total,
+         playing && useSound() && i + 1 < S.length);
+  });
+  scrub.addEventListener("input", function () {
+    var want = sceneAt((scrub.value / 1000) * total);
+
+    if (want !== sceneAt(t)) goto(starts[want], playing); else paint(false);
+  });
+
+  scrub.addEventListener("keydown", function (e) {
+    var dir = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1
+      : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    var i = Math.min(S.length - 1, Math.max(0, sceneAt(t) + dir));
+    goto(starts[i], playing);
+  });
+
+  soundBtn.addEventListener("click", function () {
+    if (!audioOK) return;
+    var at = cur;
+    sound = !sound;
+    reflectSound();
+    buildTimeline();
+    renderChrome();
+    cur = at;
+    t = starts[at] + (sound ? 0 : S[at].settled);
+    if (!sound) { stopClips(); last = 0; } else syncClip();
+    fitPlayer();
+    paint(false);
+  });
+  var ccBtn = document.getElementById("cc");
+  ccBtn.addEventListener("click", function () {
+    var on = this.getAttribute("aria-pressed") === "true";
+    this.setAttribute("aria-pressed", on ? "false" : "true");
+    this.setAttribute("aria-label", on ? "CC, captions off" : "CC, captions on");
+    captionEl.hidden = on;
+  });
+  var speedBtn = document.getElementById("speed");
+  speedBtn.addEventListener("click", function () {
+    speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+    speedBtn.textContent = speed + "x";
+    speedBtn.setAttribute("aria-label", speed + "x, playback speed");
+    if (useSound()) clips[cur].playbackRate = speed;
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var tag = e.target && e.target.tagName;
+    if (tag === "TEXTAREA" || (tag === "INPUT" && e.target !== scrub) || (e.target && e.target.isContentEditable)) return;
+    if (e.key === " ") { if (tag === "BUTTON" || tag === "A") return; e.preventDefault(); playbtn.click(); }
+    else if (e.key === "c" || e.key === "C") {
+      if (e.target && e.target.closest && e.target.closest(".player")) { e.preventDefault(); ccBtn.click(); }
+    }
+    else if (e.target === scrub || e.target === tscroll) return;
+    else if (e.key === "ArrowRight") { e.preventDefault(); document.getElementById("next").click(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); document.getElementById("prev").click(); }
+  });
+
+  var ol = document.getElementById("transcript");
+
+  function newChapter(i) { return i > 0 && (S[i].chapter || "") !== (S[i - 1].chapter || ""); }
+
+  function renderChrome() {
+    var tickHtml = "";
+    for (var ti = 1; ti < S.length; ti++) {
+
+      tickHtml += '<i' + (newChapter(ti) ? ' class="ch"' : "") + ' style="left:' +
+        ((starts[ti] / total) * 100).toFixed(2) + '%"></i>';
+    }
+    document.getElementById("ticks").innerHTML = tickHtml;
+    document.getElementById("meta-scenes").textContent = S.length + " scenes";
+    document.getElementById("meta-len").textContent = mmss(total);
+
+    var tr = "";
+    lineEls = [];
+    for (var x = 0; x < S.length; x++) {
+
+      if (S[x].chapter && (x === 0 || newChapter(x))) {
+        tr += '<li class="chap"><p class="chap-h">' + esc(S[x].chapter) + "</p></li>";
+      }
+      tr += '<li class="scn"><p class="scn-h">Scene ' + (x + 1) +
+        (S[x].title ? ": " + esc(S[x].title) : "") +
+        "<span>" + mmss(starts[x]) + "</span></p><ol class=\"lines\">";
+      for (var y = 0; y < S[x].lines.length; y++) {
+        tr += '<li><button class="jump" type="button" data-s="' + x + '" data-l="' + y + '" data-on="false">' +
+          '<span class="tc">' + mmss(starts[x] + S[x].lineStarts[y]) + "</span>" +
+          '<span class="line">' + esc(S[x].lines[y].caption) + "</span></button></li>";
+      }
+      tr += "</ol></li>";
+    }
+    ol.innerHTML = tr;
+    var btns = ol.querySelectorAll(".jump");
+    for (var b = 0; b < btns.length; b++) {
+      var bs = +btns[b].getAttribute("data-s");
+      (lineEls[bs] = lineEls[bs] || []).push(btns[b]);
+    }
+    onLine = null;
+  }
+
+  var lineEls = [], onLine = null, userScrolledAt = -1e9;
+  var tscroll = document.getElementById("p-transcript");
+
+  ["wheel", "touchmove"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function () { userScrolledAt = performance.now(); }, { passive: true });
+  });
+
+  ["keydown", "pointerdown"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function (e) { if (e.target === tscroll) userScrolledAt = performance.now(); });
+  });
+
+  function follow(force) {
+    if (!onLine || tscroll.hidden) return;
+    if (!force && performance.now() - userScrolledAt < 4000) return;
+    var r = onLine.getBoundingClientRect(), sr = tscroll.getBoundingClientRect();
+    if (!sr.height) return;
+    var head = 36;
+    var want = tscroll.scrollTop + (r.top - sr.top) - (sr.height + head - r.height) / 2;
+    want = clamp(want, 0, tscroll.scrollHeight - tscroll.clientHeight);
+    if (Math.abs(want - tscroll.scrollTop) < 2) return;
+    try { tscroll.scrollTo({ top: want, behavior: reduce ? "auto" : "smooth" }); }
+    catch (e) { tscroll.scrollTop = want; }
+  }
+
+  function markLine(s, l) {
+    var el = lineEls[s] && lineEls[s][l];
+    if (!el || el === onLine) return;
+    if (onLine) { onLine.setAttribute("data-on", "false"); onLine.removeAttribute("aria-current"); }
+    onLine = el;
+    el.setAttribute("data-on", "true");
+    el.setAttribute("aria-current", "true");
+    follow(false);
+  }
+
+  function seekLine(s, l) {
+    var sc = S[s];
+    var at = l === 0 ? 0 : Math.max(0, sc.lineStarts[l] - 0.3);
+    t = clamp(starts[s] + at, 0, total);
+    cur = s;
+    addressed = -1;
+    if (!started) { started = true; poster.hidden = true; }
+    userScrolledAt = -1e9;
+
+    if (!useSound() && at >= sc.stop) { paint(false); setPlaying(false); return; }
+    paint(false);
+    setPlaying(true);
+  }
+
+  renderChrome();
+  ol.addEventListener("click", function (e) {
+    var btn = e.target.closest(".jump");
+    if (btn) seekLine(+btn.getAttribute("data-s"), +btn.getAttribute("data-l"));
+  });
+
+  var MAX_PLAYER = 860, MAX_PAGE = 1480;
+  var INKIT = / inkit/.test(document.documentElement.className), kitH = 0, kitTop = 0;
+  function viewH() { return INKIT && kitH ? kitH : window.innerHeight; }
+
+  if (INKIT) Array.prototype.forEach.call(document.querySelectorAll("a[href]"), function (a) {
+    if (a.getAttribute("href").charAt(0) !== "#") a.target = "_parent";
+  });
+  var theaterEl = document.querySelector(".theater"), playerEl = document.querySelector(".player"),
+      consoleEl = document.querySelector(".console"), wrapEl = document.querySelector(".wrap");
+  var WIDE = window.matchMedia ? window.matchMedia("(min-width: 960px)") : { matches: false };
+
+  function longestCaption() {
+    var best = "";
+    for (var i = 0; i < S.length; i++) {
+      var opts = S[i].lines.map(function (l) { return l.caption; });
+      for (var j = 0; j < opts.length; j++) if (opts[j].length > best.length) best = opts[j];
+    }
+    return best;
+  }
+
+  function sizeCaption() {
+    var wasHidden = captionEl.hidden, keep = captionText.textContent;
+    captionEl.hidden = false;
+    captionEl.style.height = "";
+    captionText.textContent = longestCaption();
+
+    var h = Math.min(Math.ceil(captionEl.getBoundingClientRect().height),
+                     Math.max(104, Math.round(viewH() * 0.3)));
+    captionText.textContent = keep;
+    captionEl.style.height = h + "px";
+    captionEl.hidden = wasHidden;
+    return h;
+  }
+
+  function fitPlayer() {
+
+    var bs = getComputedStyle(document.body);
+    var avail = Math.min(MAX_PAGE, document.body.clientWidth -
+      parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight));
+    var wide = WIDE.matches;
+    var gap = wide ? parseFloat(getComputedStyle(theaterEl).columnGap) || 0 : 0;
+    var sw = wide ? Math.round(clamp(avail * 0.3, 320, 400)) : 0;
+    var room0 = avail - (wide ? sw + gap : 0);
+    var w = Math.max(320, Math.min(MAX_PLAYER, room0));
+
+    theaterEl.style.setProperty("--sw", sw + "px");
+    wrapEl.style.setProperty("--tw", avail + "px");
+    for (var pass = 0; pass < 4; pass++) {
+      var px = Math.floor(w);
+      theaterEl.style.setProperty("--pw", px + "px");
+      compact = px < 660;
+      paintReadout();
+      var capH = sizeCaption();
+      var chrome = consoleEl.getBoundingClientRect().height + (captionEl.hidden ? capH : 0);
+      var top = playerEl.getBoundingClientRect().top + window.scrollY + kitTop;
+
+      var room = viewH() - Math.min(top, viewH() * 0.2) - chrome - 16;
+      var whole = viewH() - top - chrome - 16;
+      if (INKIT && kitH) room = whole;
+      w = Math.max(320, Math.min(MAX_PLAYER, room0, room * 16 / 9));
+      if (Math.floor(w) === px) break;
+    }
+    var pw = Math.floor(w);
+
+    if (wide) sw = Math.round(clamp(avail - gap - pw, 320, 460));
+    theaterEl.style.setProperty("--pw", pw + "px");
+    theaterEl.style.setProperty("--sw", sw + "px");
+    wrapEl.style.setProperty("--tw", (wide ? pw + gap + sw : avail) + "px");
+    sizeCaption();
+    follow(true);
+  }
+  function onAudioLost() { audioOK = false; reflectSound(); fitPlayer(); }
+
+  function postHeight() {
+    if (INKIT) window.parent.postMessage({ kitVideoHeight: Math.ceil(document.documentElement.getBoundingClientRect().height) }, "*");
+  }
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!INKIT || e.source !== window.parent || !d || typeof d.kitViewport !== "number") return;
+    kitH = d.kitViewport; kitTop = +d.kitTop || 0;
+    fitPlayer(); postHeight();
+  });
+  fitPlayer();
+  postHeight();
+  window.addEventListener("resize", function () { fitPlayer(); postHeight(); });
+  if (INKIT && window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+  var addressed = -1;
+  function openAddress() {
+    var id = (location.hash || "").replace(/^#/, "");
+    try { id = decodeURIComponent(id); } catch (e) {}
+    for (var i = 0; i < S.length; i++) {
+      if (S[i].id === id) {
+        setPlaying(false);
+        stopClips();
+        goto(starts[i], false);
+        addressed = i;
+        follow(true);
+        return true;
+      }
+    }
+    return false;
+  }
+  window.addEventListener("hashchange", function () {
+    if (openAddress()) return;
+    setPlaying(false); stopClips(); addressed = -1; t = 0; cur = 0; paint(!started);
+  });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPlayer);
+
+  reflectSound();
+  if (!openAddress()) paint(true);
+})();
+</script>
+</html>

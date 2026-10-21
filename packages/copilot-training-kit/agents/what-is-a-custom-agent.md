@@ -29,8 +29,8 @@ command. A custom agent's tools come with it: while it's selected, Copilot has o
 In [Create your first custom agent](create-your-first-custom-agent.md), you build a reviewer that
 has only the tools for reading files. It lists unclear steps in your procedures and leaves the procedures unchanged.
 
-A custom agent can also hand its work on. After the reviewer replies, a button can pass its
-findings to **Agent** to fix. **Agent** is the agent you've used so far. The practice recipe
+A custom agent can also hand its work on. In some setups, after the reviewer replies, a button
+appears to pass its findings to **Agent** to fix. **Agent** is the agent you've used so far. The practice recipe
 [Hand a review to Agent to fix](how-to/hand-a-review-to-agent.md) shows how to add that button.
 
 ## What a custom agent looks like

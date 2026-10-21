@@ -84,7 +84,10 @@ carries the stop's material.
 ## Stage 12: delivery, and when the piece is done
 
 The brief's "Where it plays" line names a place. **Generate the package; never hand-edit it.** It
-is first built at stage 10 for Stop 3 and rebuilt here from the final cut. `python
+is first built at stage 10 for Stop 3 and rebuilt here from the final cut. **A page only:** the
+builder's `python <skill>/builder/build_publish.py <folder>` writes `package/` as `index.html`,
+`audio/` and the manifest `video.json`, and refuses a page that is not clean; the rest of this
+paragraph is the video file's package. **A video file, or both:** the template's `python
 build_publish.py` writes it to the piece's `package/` folder, which it empties first and which git
 ignores; it refuses to write over the piece's own folder. It holds the page as `index.html` with no
 review material or code comments and no outside calls, with

@@ -116,24 +116,6 @@ perm = ("""
 <path class="dg-ml" d="M198 218h268"/><text class="dg-lab" x="472" y="223">Allow runs it; Skip doesn't</text>
 """)
 
-# The trust dialog: the question, the parent-folder box, Yes, I trust the authors on the left on Windows,
-# each button with a second line (contrib/workspace/browser/workspace.contribution.ts 424, 471-476).
-trust = """
-<rect class="dg-c" x="5" y="5" width="470" height="250" rx="8" style="stroke:var(--rule2,#cdcdcd);stroke-width:1.5"/>
-<rect class="dg-w" x="30" y="30" width="420" height="190" rx="8"/>
-<path class="dg-ic" d="M60 50l12 5v9c0 8-5 13-12 16-7-3-12-8-12-16v-9z"/>
-<rect class="dg-b2" x="88" y="54" width="250" height="10" rx="2"/>
-<rect class="dg-b" x="88" y="80" width="320" height="7" rx="2"/>
-<rect class="dg-b" x="88" y="95" width="290" height="7" rx="2"/>
-<rect class="dg-b" x="88" y="110" width="210" height="7" rx="2"/>
-<rect class="dg-p" x="88" y="124" width="11" height="11" rx="2"/><rect class="dg-b" x="106" y="127" width="230" height="6" rx="2"/>
-<rect class="dg-btn" x="128" y="150" width="172" height="48" rx="5"/><text class="dg-btnt" x="142" y="170">Yes, I trust the authors</text>
-<rect x="142" y="180" width="140" height="6" rx="2" style="fill:var(--accent-ink,#fff);fill-opacity:.55"/>
-<rect class="dg-p" x="308" y="150" width="130" height="48" rx="5"/><rect class="dg-b2" x="320" y="163" width="100" height="8" rx="2"/><rect class="dg-b" x="320" y="180" width="90" height="6" rx="2"/>
-<rect class="dg-m" x="122" y="144" width="184" height="60" rx="6"/>
-<path class="dg-ml" d="M214 204v36h271"/><text class="dg-lab" x="492" y="245">Yes, I trust the authors</text>
-"""
-
 # Restore Checkpoint: centred on a solid line above the request it undoes, Fork icon after it, never on the
 # chat's first request (chat/widget/media/chat.css 4360-4385; chatEditing/chatEditingActions.ts 507-530;
 # actions/chatForkActions.ts 34-55).
@@ -466,10 +448,36 @@ agents = agents.replace("The custom agent you created", "Procedure reviewer")
 agents_with_new_chat = agents + outline(334, 21, 34, 28) + leader([(351, 21), (351, 12), (441, 12)]) + label(447, 17, "New Chat (+)")
 
 
+# The Restricted Mode bar: VS Code's banner, under the title bar (browser/layout.ts 2682-2694), shown when a
+# folder is not trusted; security.workspace.trust.startupPrompt defaults to never, so this bar, not the
+# trust dialog, is what a new folder opens with (contrib/workspace/browser/workspace.contribution.ts 806-808).
+# Left to right: the shield icon, the message, then Manage and Learn More as underlined links, and
+# Close Banner (x) at the right (workspace.contribution.ts 568-584, 610; browser/parts/banner/bannerPart.ts
+# 215-247). The message is 12px on one 26px line and ends in an ellipsis when the window is narrow; the
+# links never shrink (browser/parts/banner/media/bannerpart.css). Manage opens the Workspace Trust editor,
+# whose button is Trust (contrib/workspace/browser/workspaceTrustEditor.ts 1032, 1061). Fill: VS Code derives
+# banner.background from the list selection background (workbench/common/theme.ts 281-288), hence dg-tn.
+def _link(x, y, words, w):
+    return text(x, y, words, size=12) + '<line x1="%d" y1="%d" x2="%d" y2="%d" style="stroke:var(--ink,#1b1b1b);stroke-width:1"/>' % (
+        x, y + 3, x + w, y + 3)
+
+_rex, _ = explorer(41, 64, 200, 130, "COPILOT-PRACTICE", [])
+restricted_mode = (frame(5, 5, 690, 200) + strip(6, 6, 688, 30, 7) +
+    text(20, 26, "File   Edit   Selection   View   Go   …", size=12) +
+    tint(6, 36, 688, 28, 0) +
+    '<path class="dg-ic" d="M22 41l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10v-5z"/>' +
+    text(38, 55, "Restricted Mode is intended for safe code browsing. Trust this folder to…", size=12) +
+    _link(500, 55, "Manage", 41) + _link(560, 55, "Learn More", 60) +
+    '<path class="dg-ic" d="M668 45l8 8M676 45l-8 8"/>' +
+    activity_bar(6, 64, 140) + rule(241, 64, 241, 204) + _rex +
+    outline(493, 39, 58, 23) + leader([(522, 62), (522, 110), (530, 110)]) +
+    label(536, 115, "Select Manage"))
+
+
 DRAWINGS = {
  "getting-started/images/vs-code-window.svg": (700, 440, "The VS Code window: the list on the left, a file and the chat", window),
  "getting-started/images/permission-request.svg": (700, 346, "A permission request in the chat", perm),
- "getting-started/images/trust-question.svg": (700, 260, "The question whether you trust the authors of a folder", trust),
+ "getting-started/images/restricted-mode.svg": (700, 210, "The Restricted Mode bar under the menu bar", restricted_mode),
  "getting-started/images/restore-checkpoint.svg": (700, 260, "Restore Checkpoint above your last request", restore),
  "agents/images/list-of-agents.svg": (700, 380, "The list of agents, open above the Agent control", agents_with_new_chat),
  "getting-started/images/open-preview.svg": (700, 280, "Open Preview in the menu of a Markdown file", open_preview),

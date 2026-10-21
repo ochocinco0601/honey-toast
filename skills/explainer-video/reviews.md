@@ -82,7 +82,7 @@ Run at once, after the build:
 
 | Check | Who | What | Report |
 |---|---|---|---|
-| **Timing** | the scripts | page: `python check_timing.py` exits zero (it prints to the terminal; copy its result into `NOTES.md`); video file: the render in `build.py` succeeds, since it fails on any late beat and writes `timing-check.txt` | `NOTES.md`; `timing-check.txt` |
+| **Timing** | the scripts | page: `python <skill>/builder/check_timing.py <folder>` exits zero (it prints to the terminal; copy its result into `NOTES.md`); video file: the render in `build.py` succeeds, since it fails on any late beat and writes `timing-check.txt` | `NOTES.md`; `timing-check.txt` |
 | **Operate it** | you | the page driven in a visible browser tab (`build-page.md`, "Operate it") | in `NOTES.md` |
 | **Frames** | you | every scene's settled frame looked at, both forms: a shape that reads wrong, text past its box, marks on a border | in `NOTES.md` |
 | **The finished piece** | `independent-discipline-reviewer` | lenses `visual-usability` and `editorial`, given the brief, the purpose file, `WALK.md`, and renders of every scene's settled frame you made; asks Set B2's brief questions of the transcript and stage text (page) or the narration and the text drawn in `scene.py` (video) | `REVIEW-<page stem>.md`, or `REVIEW-<video file stem>.md` for a video-file-only piece |

@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Have Copilot explain code you didn't write</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+
+:root {
+
+  --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+  --serif: Georgia, "Times New Roman", serif;
+}
+
+:root {
+  --bg: #fbfcfd;
+  --bg2: #f1f4f7;
+  --surface: #ffffff;
+  --ink: #16202c;
+  --ink2: #3e4a58;
+  --ink3: #5a6676;
+  --rule: #e0e5eb;
+  --rule2: #c2cad4;
+  --accent: #1659b7;
+  --accent-soft: #e9f0fa;
+  --accent-ink: #ffffff;
+  --ctl: #7b8594;
+  --mark: #b44900;
+  --mark-ink: #ffffff;
+  --good: #2E7D55;
+  --bad: #B33A2E;
+  --shadow: 0 1px 2px rgb(20 23 28 / .06), 0 8px 28px -12px rgb(20 23 28 / .22);
+  --console-bg: #1B1E23;
+  --console-fg: #F2F1ED;
+  --console-dim: #A3A9B0;
+  --console-line: #33383F;
+  --console-hover: #2A2F36;
+  --track-rest: #666C75;
+  --paper: var(--surface);
+  --muted: var(--ink3);
+  --line: var(--rule2);
+  --line-soft: var(--rule);
+  --hover: var(--bg2);
+  --caution: var(--mark);
+  --caution-ui: var(--mark);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b;
+    --bg2: #161b22;
+    --surface: #1a2029;
+    --ink: #e4e8ee;
+    --ink2: #b3bcc8;
+    --ink3: #8e99a7;
+    --rule: #272e38;
+    --rule2: #3b4451;
+    --accent: #80b3ff;
+    --accent-soft: #18263a;
+    --accent-ink: #0c1320;
+    --ctl: #6c7787;
+    --mark: #f08a3c;
+    --mark-ink: #101010;
+    --good: #5FBF8C;
+    --bad: #E0847A;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 30px -14px rgb(0 0 0 / .7);
+    --console-bg: #111418;
+    --console-fg: #ECEEF1;
+    --console-dim: #9AA1A9;
+    --console-line: #2B3037;
+    --console-hover: #222830;
+    --track-rest: #5E646C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b;
+  --bg2: #161b22;
+  --surface: #1a2029;
+  --ink: #e4e8ee;
+  --ink2: #b3bcc8;
+  --ink3: #8e99a7;
+  --rule: #272e38;
+  --rule2: #3b4451;
+  --accent: #80b3ff;
+  --accent-soft: #18263a;
+  --accent-ink: #0c1320;
+  --ctl: #6c7787;
+  --mark: #f08a3c;
+  --mark-ink: #101010;
+  --good: #5FBF8C;
+  --bad: #E0847A;
+  --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 30px -14px rgb(0 0 0 / .7);
+  --console-bg: #111418;
+  --console-fg: #ECEEF1;
+  --console-dim: #9AA1A9;
+  --console-line: #2B3037;
+  --console-hover: #222830;
+  --track-rest: #5E646C;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 64px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: var(--tw, 1480px); margin: 0 auto; }
+
+.theater {
+  display: grid; justify-content: center; gap: 12px 20px;
+  grid-template-columns: var(--pw, minmax(0, 1fr));
+}
+@media (min-width: 960px) {
+  .theater { grid-template-columns: var(--pw, minmax(0, 1fr)) var(--sw, 360px); }
+}
+.head {
+  grid-column: 1 / -1; min-width: 0;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 18px;
+}
+h1 {
+  font-family: var(--display); font-weight: 650; font-size: 22px; line-height: 1.2;
+  letter-spacing: -.012em; margin: 0; text-wrap: balance;
+}
+.meta {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0;
+  font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.meta span + span::before {
+  content: ""; display: inline-block; width: 3px; height: 3px; border-radius: 50%;
+  background: currentColor; vertical-align: middle; margin: 0 14px 0 0; opacity: .7;
+  position: relative; top: -1px;
+}
+
+.player {
+  min-width: 0; border-radius: 12px; overflow: hidden;
+  background: var(--console-bg); box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+.stage { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: var(--paper); }
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage svg text { font-family: var(--sans); }
+.stage svg text.mono { font-family: var(--mono); }
+.stage svg text.serif { font-family: var(--serif); }
+
+.poster { position: absolute; inset: 0; display: block; border: 0; background: transparent; cursor: pointer; padding: 0; }
+
+.poster[hidden] { display: none; }
+
+.poster span svg { position: static; inset: auto; width: 14px; height: 14px; }
+.poster span {
+  position: absolute; left: 50%; top: 79%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 10px; white-space: nowrap;
+  background: var(--ink); color: var(--paper);
+  font-size: 15px; font-weight: 600; padding: 12px 22px 12px 18px;
+  border-radius: 999px; box-shadow: 0 4px 18px rgb(0 0 0 / .28);
+  transition: transform .15s ease;
+}
+.poster:hover span { transform: translate(-50%, -50%) scale(1.04); }
+
+.console { background: var(--console-bg); color: var(--console-fg); }
+
+.caption {
+  display: flex; gap: 14px; padding: 14px 20px 12px; min-height: 104px;
+  align-items: flex-start; overflow-y: auto;
+}
+.caption .rule { flex: 0 0 3px; align-self: stretch; background: var(--caution-ui); border-radius: 2px; }
+.caption p {
+  font-size: clamp(16px, 1.6vw, 19px); font-weight: 450;
+  line-height: 1.5; margin: 0; min-width: 0; max-width: 62ch; text-wrap: pretty;
+}
+.caption[hidden] { display: none !important; }
+
+.transport {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 10px 10px; border-top: 1px solid var(--console-line); flex-wrap: wrap;
+}
+.transport .grp { display: flex; align-items: center; gap: 2px; flex: none; }
+.transport button {
+  background: transparent; border: 0; color: var(--console-fg);
+  border-radius: 8px; cursor: pointer; display: grid; place-items: center;
+  width: 34px; height: 34px; padding: 0; flex: none;
+}
+.transport button:hover { background: var(--console-hover); }
+.transport button:focus-visible, .poster:focus-visible span,
+.jump:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; }
+.transport button[aria-pressed="false"] { color: var(--console-dim); }
+.transport button.play {
+  background: var(--console-fg); color: var(--console-bg);
+  width: 38px; height: 38px; border-radius: 50%; margin-right: 4px;
+}
+.transport button.play:hover { background: var(--console-fg); opacity: .88; }
+.transport button.wide {
+  width: auto; min-width: 36px; padding: 0 8px;
+  font-size: 12px; font-weight: 700; font-family: var(--sans); letter-spacing: .02em;
+}
+.transport svg { width: 16px; height: 16px; fill: currentColor; }
+
+.track { position: relative; flex: 1 1 140px; min-width: 90px; height: 34px; display: flex; align-items: center; margin: 0 8px; }
+.track input { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; margin: 0; height: 34px; position: relative; z-index: 2; cursor: pointer; }
+
+.track input {
+  --fill: 0%;
+  --played: linear-gradient(to right, var(--console-fg) var(--fill), var(--track-rest) var(--fill));
+}
+.track input::-webkit-slider-runnable-track { height: 5px; background: var(--played); border-radius: 3px; }
+.track input::-moz-range-track { height: 5px; background: var(--played); border-radius: 3px; }
+.track input::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--console-fg); border: 0; margin-top: -4px; box-shadow: 0 0 0 3px var(--console-bg); }
+.track input::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: var(--console-fg); border: 0; box-shadow: 0 0 0 3px var(--console-bg); }
+.track input:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 1px; border-radius: 4px; }
+
+.ticks { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.ticks i { position: absolute; top: 50%; width: 2px; height: 5px; margin: -2.5px 0 0 -1px; background: var(--console-bg); }
+.readout { font-size: 12.5px; color: var(--console-dim); white-space: nowrap; font-variant-numeric: tabular-nums; flex: none; margin-right: 6px; }
+
+.side {
+  position: relative; min-width: 0; min-height: 0;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+}
+.side-in { position: absolute; inset: 0; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; }
+@media (max-width: 959.98px) {
+  .side-in { position: static; }
+  .tpanel { max-height: 22rem; }
+}
+.panelhead {
+  display: flex; align-items: baseline; gap: 10px; flex: none;
+  padding: 13px 16px 11px; border-bottom: 1px solid var(--line-soft);
+}
+.panelhead h2 { font-family: var(--display); font-size: 15px; font-weight: 650; margin: 0; }
+.panelhead .how { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+.tpanel {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 8px 12px; scrollbar-width: thin;
+}
+.tpanel:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: -2px; }
+
+ol.transcript, ol.lines { list-style: none; margin: 0; padding: 0; }
+ol.lines { display: grid; gap: 2px; }
+.scn + .scn { border-top: 1px solid var(--line-soft); margin-top: 6px; }
+.scn-h {
+  position: sticky; top: 0; z-index: 1; background: var(--surface);
+  margin: 0; padding: 12px 10px 6px;
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 12.5px; font-weight: 650; color: var(--ink);
+}
+.scn-h span { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.jump {
+  display: grid; grid-template-columns: 38px 1fr; gap: 10px; width: 100%;
+  text-align: left; border: 0; background: transparent; font: inherit;
+  cursor: pointer; padding: 7px 10px; border-radius: 8px; color: var(--ink);
+}
+
+.jump { scroll-margin-top: 36px; }
+.jump:hover { background: var(--hover); }
+.jump:focus-visible { outline-offset: -2px; }
+.jump[data-on="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--caution-ui); }
+.jump .tc { font-size: 12px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.jump:hover .tc { color: var(--accent); }
+.jump[data-on="true"] .tc { color: var(--ink); font-weight: 600; }
+.jump .line { font-size: 14.5px; line-height: 1.55; min-width: 0; }
+
+.about {
+  max-width: 68rem; margin: 36px 0 0;
+  display: grid; gap: 14px;
+}
+.about h2 { font-family: var(--display); font-size: 23px; font-weight: 650; margin: 0; letter-spacing: -.005em; }
+.standfirst { font-size: 18px; line-height: 1.5; margin: 0; color: var(--ink); }
+.summary { font-size: 16px; line-height: 1.7; margin: 0; color: var(--ink); }
+.summary b, .parts b { font-weight: 650; }
+.parts { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.parts li { font-size: 16px; line-height: 1.6; padding-left: 18px; position: relative; }
+.parts li::before { content: ""; position: absolute; left: 2px; top: .7em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+.using {
+  margin: 14px 0 0; padding: 18px 20px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line-soft);
+  display: grid; gap: 12px;
+}
+.using h3 { font-size: 14px; font-weight: 650; margin: 0; }
+.keys { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 10px 24px; }
+.keys div { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.keys dt { flex: none; }
+.keys dd { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink); min-width: 0; }
+kbd {
+  display: inline-block; min-width: 26px; padding: 2px 7px; text-align: center;
+  font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
+}
+kbd.arrow { font-size: 15px; line-height: 17px; padding: 1px 6px; }
+.note { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.note code { font-family: var(--mono); font-size: .92em; color: var(--ink); }
+.note b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 700px) { .caption { min-height: 132px; } .meta { font-size: 12.5px; } }
+@media (max-width: 460px) {
+  .caption { min-height: 160px; padding: 12px 14px 10px; }
+  .readout { font-size: 11.5px; }
+  h1 { font-size: 19px; }
+  .standfirst { font-size: 17px; }
+}
+@media (hover: none) and (pointer: coarse) { .keys { display: none; } }
+@media (prefers-reduced-motion: reduce) { .poster span { transition: none; } }
+
+.lessonlink { margin: 0 0 8px; font-size: 14px; line-height: 1.4; }
+.lessonlink a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.lessonlink a:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; border-radius: 2px; }
+
+.ticks i.ch { height: 13px; margin-top: -6.5px; width: 3px; margin-left: -1.5px; }
+.scn + .chap { border-top: 1px solid var(--line); margin-top: 6px; }
+.chap-h {
+  margin: 0; padding: 14px 10px 2px;
+  font-family: var(--display); font-size: 13.5px; font-weight: 650; color: var(--accent);
+}
+
+.inkit body { padding-block: 0 16px; }
+.inkit .lessonlink, .inkit .head { display: none; }
+
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<script>if (/[?&]in=kit(&|$)/.test(location.search) && window.parent !== window) document.documentElement.className += " inkit";</script>
+
+<div class="wrap">
+ <nav class="lessonlink" aria-label="This lesson"><a href="../../../getting-started/lesson-application.html">Written steps: Have Copilot explain code you didn't write <span aria-hidden="true">&rsaquo;</span></a></nav>
+ <div class="theater">
+  <div class="head">
+    <h1>Have Copilot explain code you didn't write</h1>
+    <p class="meta"><span>Video</span><span id="meta-scenes"></span><span id="meta-len"></span></p>
+  </div>
+
+  <div class="player">
+    <div class="stage">
+      <svg id="stage" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Animated video: Have Copilot explain code you didn&#x27;t write. The narration is written out in the transcript."></svg>
+      <button class="poster" id="poster" type="button" aria-label="Play video">
+        <span><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>Play video</span>
+      </button>
+    </div>
+
+    <div class="console">
+      <div class="caption" id="caption">
+        <div class="rule"></div>
+        <p id="captiontext"></p>
+      </div>
+      <div class="transport">
+        <div class="grp">
+          <button class="play" id="playbtn" type="button" aria-label="Play">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>
+          </button>
+          <button id="prev" type="button" aria-label="Previous scene">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h2v11h-2zM13.5 2.5v11L5.5 8z"/></svg>
+          </button>
+          <button id="next" type="button" aria-label="Next scene">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 2.5h2v11h-2zM2.5 2.5v11L10.5 8z"/></svg>
+          </button>
+        </div>
+        <div class="track">
+          <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Scene">
+          <div class="ticks" id="ticks"></div>
+        </div>
+        <span class="readout" id="readout"></span>
+        <div class="grp">
+          <button id="sound" type="button" aria-label="Narration sound, on"></button>
+          <button class="wide" id="cc" type="button" aria-label="CC, captions on" aria-pressed="true">CC</button>
+          <button class="wide" id="speed" type="button" aria-label="1x, playback speed">1x</button>
+          <button id="replay" type="button" aria-label="Replay from the start">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.6V0L4.4 3 8 6V3.6a4.4 4.4 0 1 1-4.4 4.4h-1A5.4 5.4 0 1 0 8 2.6z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side" aria-labelledby="transcript-h">
+   <div class="side-in">
+    <div class="panelhead">
+      <h2 id="transcript-h">Transcript</h2>
+      <span class="how">Click a line to play from it</span>
+    </div>
+    <div class="tpanel" id="p-transcript" tabindex="0" aria-label="Transcript lines">
+      <ol class="transcript" id="transcript"></ol>
+    </div>
+   </div>
+  </aside>
+ </div>
+
+ <section class="about" aria-labelledby="about-h">
+  <h2 id="about-h">About this video</h2>
+  <p class="standfirst">The third unit's steps, narrated: have Copilot build a small tip calculator, ask what it does, and ask which lines work out the tip. Pause where the video says, do the step on your computer, then play on.</p>
+  <p class="summary">This video walks through the unit's three written steps. If your screen doesn't match, the written steps say what to do.</p>
+  <ol class="summary">
+    <li>Have Copilot build a small tip calculator, and open its folder in the list on the left.</li>
+    <li>Ask Copilot what the tip calculator does, and what each file is for.</li>
+    <li>Ask which lines work out the tip, then open the file and check the lines.</li>
+  </ol>
+
+  <div class="using">
+   <h3>Using the player</h3>
+   <dl class="keys">
+    <div><dt><kbd>Space</kbd></dt><dd>Play or pause</dd></div>
+    <div><dt><kbd class="arrow">&larr;</kbd> <kbd class="arrow">&rarr;</kbd></dt><dd>Go to the previous or next scene</dd></div>
+    <div><dt><kbd>C</kbd></dt><dd>Captions on or off, when you are using the player</dd></div>
+   </dl>
+   <p class="note">The progress bar moves one scene at a time. With the sound off, read the captions; the video stops after each scene until you press play.</p>
+  </div>
+ </section>
+</div>
+<script>
+(function () {
+  "use strict";
+
+  var PAPER = "var(--paper)";
+
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var RAMP = reduce ? 0.12 : 0.25;
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  var MAX_LEAD = 1.2;
+  var TIMING = {
+    "open": { dur: 27.48, starts: [1.3, 8.911, 15.732, 21.636], pre: [1.3, 0.4, 0.4, 0.4] },
+    "build": { dur: 30.605, starts: [1.3, 7.135, 10.052, 16.212, 24.569], pre: [1.3, 2.4, 0.4, 0.4, 0.4] },
+    "build-check": { dur: 17.309, starts: [1.3, 8.031], pre: [1.3, 2.4] },
+    "explain": { dur: 21.443, starts: [1.3, 7.263, 13.636], pre: [1.3, 2.4, 0.4] },
+    "explain-check": { dur: 20.349, starts: [1.3, 6.047, 16.639], pre: [1.3, 2.4, 2.4] },
+    "where": { dur: 32.947, starts: [1.3, 7.54, 13.913, 21.097, 27.06], pre: [1.3, 2.4, 0.4, 0.4, 2.4] },
+    "where-check": { dur: 20.2, starts: [1.3, 8.031, 14.676], pre: [1.3, 2.4, 2.4] },
+    "close": { dur: 14.925, starts: [1.3, 8.953], pre: [1.3, 0.4] }
+  };
+
+  var ANIM = reduce
+    ? { fade: [0, 0], up: [0, 0], right: [0, 0], left: [0, 0] }
+    : { fade: [0, 0], up: [0, 16], right: [-16, 0], left: [16, 0] };
+
+  var S = [{"id":"open","lines":[{"caption":"Copilot can explain code you didn't write: what an application does, which file does what, and where a particular thing happens."},{"caption":"In this unit, you have Copilot build a tip calculator, ask what it does, and ask which lines work out the tip."},{"caption":"Start with the practice folder open, and the chat set to Agent, as at the end of the first unit."},{"caption":"Where the video says pause, stop it, do the step on your computer, and then play on."}],"beats":[{"line":1,"anim":"up","svg":"<rect x=\"110\" y=\"136\" width=\"740\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"144\" y=\"179\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Have Copilot build a tip calculator<\/text>"},{"line":1,"plus":2.57,"anim":"up","svg":"<rect x=\"110\" y=\"236\" width=\"740\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"144\" y=\"279\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Ask what it does<\/text>"},{"line":1,"plus":4.03,"anim":"up","svg":"<rect x=\"110\" y=\"336\" width=\"740\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"144\" y=\"379\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Ask which lines work out the tip<\/text>"}],"title":"What you'll do"},{"id":"build","lines":[{"caption":"You need an application to ask about, so Copilot makes one."},{"caption":"Gray bars stand for text you don't need to read."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."},{"caption":"It asks for a folder named tip-calculator, with three files that make a small web page, and tells Copilot to change nothing else."},{"caption":"When Copilot has finished, in the list on the left, open the folder tip-calculator."}],"beats":[{"line":0,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc1\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc1)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"170\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"183\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"212\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 215v5M30.0 217h5\"/><rect class=\"dg-p\" x=\"45\" y=\"206\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 212.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"214\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"206\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"214\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"2.2\"/><path d=\"M421 223l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":2,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(-5.09 44.33) scale(2.1091)\"><clipPath id=\"kc2\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"194\"/><\/clipPath><g clip-path=\"url(#kc2)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"174\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">In the copilot-practice folder, create a folder named<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">tip-calculator.<\/text><text class=\"dg-t\" x=\"29\" y=\"73\">In it, make a small web page that works out a tip from<\/text><text class=\"dg-t\" x=\"29\" y=\"91\">a bill and a percentage: index.html, style.css and<\/text><text class=\"dg-t\" x=\"29\" y=\"109\">script.js.<\/text><text class=\"dg-t\" x=\"29\" y=\"127\">Keep the code short and plain.<\/text><text class=\"dg-t\" x=\"29\" y=\"145\">Change nothing else.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"167\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 170v5M30.0 172h5\"/><rect class=\"dg-p\" x=\"45\" y=\"161\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 167.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"169\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"161\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"169\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"172\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"172\" r=\"2.2\"/><path d=\"M421 178l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":2,"plus":5.09,"outLine":3,"anim":"fade","svg":"<rect x=\"774.000909090909\" y=\"450.58454545454543\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"774.000909090909\" y=\"444.58454545454543\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"844.000909090909\" y=\"490.58454545454543\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"},{"line":3,"plus":1.64,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(-5.09 44.33) scale(2.1091)\"><clipPath id=\"kc3\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"194\"/><\/clipPath><g clip-path=\"url(#kc3)\"><text class=\"dg-t\" x=\"29\" y=\"55\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">tip-calculator<\/tspan><tspan style=\"fill:transparent\">.<\/tspan><\/text><\/g><\/g>"},{"line":3,"plus":4.29,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(-5.09 44.33) scale(2.1091)\"><clipPath id=\"kc4\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"194\"/><\/clipPath><g clip-path=\"url(#kc4)\"><text class=\"dg-t\" x=\"29\" y=\"73\"><tspan style=\"fill:transparent\">In it, make a <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">small web page<\/tspan><tspan style=\"fill:transparent\"> that works out a tip from<\/tspan><\/text><\/g><\/g>"},{"line":3,"plus":6.61,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(-5.09 44.33) scale(2.1091)\"><clipPath id=\"kc5\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"194\"/><\/clipPath><g clip-path=\"url(#kc5)\"><text class=\"dg-t\" x=\"29\" y=\"145\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">Change nothing else<\/tspan><tspan style=\"fill:transparent\">.<\/tspan><\/text><\/g><\/g>"},{"line":4,"anim":"fade","svg":"<g transform=\"translate(156 66) scale(2.4)\"><clipPath id=\"kc6\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"170\"/><\/clipPath><g clip-path=\"url(#kc6)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"260\" height=\"160\" rx=\"8\"/><rect class=\"dg-b\" x=\"15\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M16.0 42.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"26\" y=\"42\" width=\"106\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M29.0 62.0l4.0 4.0 -4.0 4.0\"/><text class=\"dg-t\" x=\"39.0\" y=\"71\">tip-calculator<\/text><\/g><\/g>"},{"line":4,"plus":3.75,"anim":"fade","svg":"<g transform=\"translate(156 66) scale(2.4)\"><clipPath id=\"kc7\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"170\"/><\/clipPath><g clip-path=\"url(#kc7)\"><rect class=\"dg-m\" x=\"10\" y=\"55\" width=\"150\" height=\"22\" rx=\"5\"/><\/g><\/g>"}],"title":"Have Copilot build a tip calculator"},{"id":"build-check","lines":[{"caption":"Pause the video now, send the request, and open the folder tip-calculator."},{"caption":"Look for this: the folder tip-calculator holds index.html, script.js, and style.css."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"30\" y=\"50\" width=\"900\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"70\" y=\"88\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"92\" y=\"88\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"130\" y=\"121\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request, and open the folder tip-calculator<\/text>"},{"line":0,"outLine":1,"anim":"fade","svg":"<rect x=\"110\" y=\"196\" width=\"740\" height=\"286\" rx=\"12\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"1.6\"/><text x=\"138\" y=\"234\" fill=\"var(--ink)\" font-size=\"21\" font-weight=\"400\" text-anchor=\"start\">In the copilot-practice folder, create a folder named<\/text><text x=\"138\" y=\"270\" fill=\"var(--ink)\" font-size=\"21\" font-weight=\"400\" text-anchor=\"start\">tip-calculator.<\/text><text x=\"138\" y=\"306\" fill=\"var(--ink)\" font-size=\"21\" font-weight=\"400\" text-anchor=\"start\">In it, make a small web page that works out a tip from<\/text><text x=\"138\" y=\"342\" fill=\"var(--ink)\" font-size=\"21\" font-weight=\"400\" text-anchor=\"start\">a bill and a percentage: index.html, style.css and<\/text><text x=\"138\" y=\"378\" fill=\"var(--ink)\" font-size=\"21\" font-weight=\"400\" text-anchor=\"start\">script.js.<\/text><text x=\"138\" y=\"414\" fill=\"var(--ink)\" font-size=\"21\" font-weight=\"400\" text-anchor=\"start\">Keep the code short and plain.<\/text><text x=\"138\" y=\"450\" fill=\"var(--ink)\" font-size=\"21\" font-weight=\"400\" text-anchor=\"start\">Change nothing else.<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(156 66) scale(2.4)\"><clipPath id=\"kc8\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"170\"/><\/clipPath><g clip-path=\"url(#kc8)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"260\" height=\"160\" rx=\"8\"/><rect class=\"dg-b\" x=\"15\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M16.0 42.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"26\" y=\"42\" width=\"106\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M28.0 64.0l4.0 4.0 4.0 -4.0\"/><text class=\"dg-t\" x=\"39.0\" y=\"71\">tip-calculator<\/text><rect class=\"dg-b2\" x=\"39\" y=\"83\" width=\"9\" height=\"11\" rx=\"2\"/><text class=\"dg-t\" x=\"54\" y=\"93\">index.html<\/text><rect class=\"dg-b2\" x=\"39\" y=\"105\" width=\"9\" height=\"11\" rx=\"2\"/><text class=\"dg-t\" x=\"54\" y=\"115\">script.js<\/text><rect class=\"dg-b2\" x=\"39\" y=\"127\" width=\"9\" height=\"11\" rx=\"2\"/><text class=\"dg-t\" x=\"54\" y=\"137\">style.css<\/text><\/g><\/g>"},{"line":1,"plus":2.31,"anim":"fade","svg":"<g transform=\"translate(156 66) scale(2.4)\"><clipPath id=\"kc9\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"170\"/><\/clipPath><g clip-path=\"url(#kc9)\"><rect class=\"dg-m\" x=\"26\" y=\"77\" width=\"160\" height=\"66\" rx=\"5\"/><path d=\"M196.0 111.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: three files in tip-calculator"},{"id":"explain","lines":[{"caption":"Start by asking, in plain words, what the application does."},{"caption":"In the written steps, select Copy beside the next request. Paste it into the chat box, and press Enter."},{"caption":"It asks for an explanation for someone who doesn't write code: what the application does, and what each file is for."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc10\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc10)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"170\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"183\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"212\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 215v5M30.0 217h5\"/><rect class=\"dg-p\" x=\"45\" y=\"206\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 212.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"214\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"206\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"214\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"2.2\"/><path d=\"M421 223l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(-5.09 120.25) scale(2.1091)\"><clipPath id=\"kc11\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"122\"/><\/clipPath><g clip-path=\"url(#kc11)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"102\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Explain the application in the tip-calculator folder for<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">someone who doesn't write code.<\/text><text class=\"dg-t\" x=\"29\" y=\"73\">Say what it does, and what each file is for.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"95\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 98v5M30.0 100h5\"/><rect class=\"dg-p\" x=\"45\" y=\"89\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 95.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"97\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"89\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"97\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"100\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"100\" r=\"2.2\"/><path d=\"M421 106l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":5.31,"outLine":2,"anim":"fade","svg":"<rect x=\"774.000909090909\" y=\"374.65\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"774.000909090909\" y=\"368.65\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"844.000909090909\" y=\"414.65\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"},{"line":2,"plus":1.51,"anim":"fade","svg":"<g transform=\"translate(-5.09 120.25) scale(2.1091)\"><clipPath id=\"kc12\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"122\"/><\/clipPath><g clip-path=\"url(#kc12)\"><text class=\"dg-t\" x=\"29\" y=\"55\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">someone who doesn&#x27;t write code<\/tspan><tspan style=\"fill:transparent\">.<\/tspan><\/text><\/g><\/g>"},{"line":2,"plus":3.06,"anim":"fade","svg":"<g transform=\"translate(-5.09 120.25) scale(2.1091)\"><clipPath id=\"kc13\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"122\"/><\/clipPath><g clip-path=\"url(#kc13)\"><text class=\"dg-t\" x=\"29\" y=\"73\"><tspan style=\"fill:transparent\">Say <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">what it does<\/tspan><tspan style=\"fill:transparent\">, and what each file is for.<\/tspan><\/text><\/g><\/g>"},{"line":2,"plus":4.92,"anim":"fade","svg":"<g transform=\"translate(-5.09 120.25) scale(2.1091)\"><clipPath id=\"kc14\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"122\"/><\/clipPath><g clip-path=\"url(#kc14)\"><text class=\"dg-t\" x=\"29\" y=\"73\"><tspan style=\"fill:transparent\">Say what it does, and <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">what each file is for<\/tspan><tspan style=\"fill:transparent\">.<\/tspan><\/text><\/g><\/g>"}],"title":"Ask what the tip calculator does"},{"id":"explain-check","lines":[{"caption":"Pause the video now, and send the request."},{"caption":"Look for this: the reply names all three files, index.html, script.js, and style.css."},{"caption":"For each one, it says what the file is for."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"232\" y=\"90\" width=\"496\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"272\" y=\"128\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"294\" y=\"128\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"332\" y=\"161\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request<\/text>"},{"line":0,"outLine":1,"anim":"fade","svg":"<rect x=\"110\" y=\"250\" width=\"740\" height=\"127\" rx=\"12\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"1.6\"/><text x=\"138\" y=\"288\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">Explain the application in the tip-calculator folder for<\/text><text x=\"138\" y=\"319\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">someone who doesn't write code.<\/text><text x=\"138\" y=\"350\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">Say what it does, and what each file is for.<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(5.69 38) scale(2.0622)\"><clipPath id=\"kc15\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"215\"/><\/clipPath><g clip-path=\"url(#kc15)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><rect class=\"dg-b\" x=\"21\" y=\"27\" width=\"24\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-tn\" x=\"255\" y=\"50\" width=\"186\" height=\"30\" rx=\"7\"/><rect class=\"dg-b2\" x=\"267\" y=\"62\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"96\" width=\"300\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"112\" width=\"250\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"131\" width=\"40\" height=\"7\" rx=\"2\"/><text class=\"dg-tb\" x=\"69\" y=\"138\">index.html<\/text><rect class=\"dg-b\" x=\"150\" y=\"131\" width=\"130\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"155\" width=\"90\" height=\"7\" rx=\"2\"/><text class=\"dg-tb\" x=\"119\" y=\"162\">script.js<\/text><rect class=\"dg-b\" x=\"193\" y=\"155\" width=\"109\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"179\" width=\"64\" height=\"7\" rx=\"2\"/><text class=\"dg-tb\" x=\"93\" y=\"186\">style.css<\/text><rect class=\"dg-b\" x=\"167\" y=\"179\" width=\"122\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"208\" width=\"280\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":2.6,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(5.69 38) scale(2.0622)\"><clipPath id=\"kc16\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"215\"/><\/clipPath><g clip-path=\"url(#kc16)\"><rect class=\"dg-m\" x=\"64\" y=\"122\" width=\"79\" height=\"22\" rx=\"5\"/><\/g><\/g>"},{"line":1,"plus":4.57,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(5.69 38) scale(2.0622)\"><clipPath id=\"kc17\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"215\"/><\/clipPath><g clip-path=\"url(#kc17)\"><rect class=\"dg-m\" x=\"114\" y=\"146\" width=\"72\" height=\"22\" rx=\"5\"/><\/g><\/g>"},{"line":1,"plus":6.2,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(5.69 38) scale(2.0622)\"><clipPath id=\"kc18\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"215\"/><\/clipPath><g clip-path=\"url(#kc18)\"><rect class=\"dg-m\" x=\"88\" y=\"170\" width=\"72\" height=\"22\" rx=\"5\"/><\/g><\/g>"},{"line":2,"anim":"fade","svg":"<g transform=\"translate(5.69 38) scale(2.0622)\"><clipPath id=\"kc19\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"215\"/><\/clipPath><g clip-path=\"url(#kc19)\"><rect class=\"dg-m\" x=\"16\" y=\"122\" width=\"300\" height=\"70\" rx=\"5\"/><path d=\"M324.0 160.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: the reply names all three files"},{"id":"where","lines":[{"caption":"Ask for the file and the line numbers, and you can go straight to the code."},{"caption":"In the written steps, select Copy beside the next request. Paste it into the chat box, and press Enter."},{"caption":"This request asks Copilot to name the file and the line numbers where the tip is worked out, and to quote those lines."},{"caption":"Then, in the list on the left, select the file Copilot names."},{"caption":"The file opens in the middle of the window, with line numbers down its left edge."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc20\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc20)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"170\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"183\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"212\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 215v5M30.0 217h5\"/><rect class=\"dg-p\" x=\"45\" y=\"206\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 212.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"214\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"206\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"214\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"2.2\"/><path d=\"M421 223l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(-5.09 101.27) scale(2.1091)\"><clipPath id=\"kc21\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"140\"/><\/clipPath><g clip-path=\"url(#kc21)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"120\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Read the files in the tip-calculator folder.<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">Tell me where the tip is worked out.<\/text><text class=\"dg-t\" x=\"29\" y=\"73\">Name the file and the line numbers,<\/text><text class=\"dg-t\" x=\"29\" y=\"91\">and quote those lines.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"113\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 116v5M30.0 118h5\"/><rect class=\"dg-p\" x=\"45\" y=\"107\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 113.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"115\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"107\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"115\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"118\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"118\" r=\"2.2\"/><path d=\"M421 124l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":5.31,"outLine":2,"anim":"fade","svg":"<rect x=\"774.000909090909\" y=\"393.63363636363636\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"774.000909090909\" y=\"387.63363636363636\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"844.000909090909\" y=\"433.63363636363636\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"},{"line":2,"plus":1.12,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(-5.09 101.27) scale(2.1091)\"><clipPath id=\"kc22\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"140\"/><\/clipPath><g clip-path=\"url(#kc22)\"><text class=\"dg-t\" x=\"29\" y=\"73\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">Name the file and the line numbers<\/tspan><tspan style=\"fill:transparent\">,<\/tspan><\/text><\/g><\/g>"},{"line":2,"plus":3.19,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(-5.09 101.27) scale(2.1091)\"><clipPath id=\"kc23\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"140\"/><\/clipPath><g clip-path=\"url(#kc23)\"><text class=\"dg-t\" x=\"29\" y=\"55\"><tspan style=\"fill:transparent\">Tell me <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">where the tip is worked out<\/tspan><tspan style=\"fill:transparent\">.<\/tspan><\/text><\/g><\/g>"},{"line":2,"plus":5.55,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(-5.09 101.27) scale(2.1091)\"><clipPath id=\"kc24\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"140\"/><\/clipPath><g clip-path=\"url(#kc24)\"><text class=\"dg-t\" x=\"29\" y=\"91\"><tspan style=\"fill:transparent\">and <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">quote those lines<\/tspan><tspan style=\"fill:transparent\">.<\/tspan><\/text><\/g><\/g>"},{"line":3,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(66.36 10) scale(1.1818)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"430\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"28\" rx=\"7\"/><rect class=\"dg-b\" x=\"20\" y=\"17\" width=\"150\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M630 20h9M652 15h9v9h-9zM674 15l9 9M683 15l-9 9\"/><rect class=\"dg-c\" x=\"6\" y=\"34\" width=\"34\" height=\"380\" rx=\"0\"/><g transform=\"translate(0 0)\"><path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/><circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/><circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/><path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/><path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/><\/g><line class=\"dg-l\" x1=\"190\" y1=\"34\" x2=\"190\" y2=\"414\"/><rect class=\"dg-b\" x=\"51\" y=\"47\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M52.0 71.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"62\" y=\"71\" width=\"106\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M64.0 93.0l4.0 4.0 4.0 -4.0\"/><rect class=\"dg-b\" x=\"75\" y=\"92\" width=\"100\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"75\" y=\"112\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"90\" y=\"114\" width=\"72\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"42\" y=\"129\" width=\"147\" height=\"21\" rx=\"0\"/><rect class=\"dg-b2\" x=\"75\" y=\"134\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"90\" y=\"136\" width=\"64\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"75\" y=\"156\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"90\" y=\"158\" width=\"64\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"191\" y=\"34\" width=\"263\" height=\"380\" rx=\"6\"/><rect class=\"dg-c\" x=\"192\" y=\"35\" width=\"261\" height=\"26\" rx=\"5\"/><rect class=\"dg-w\" x=\"192\" y=\"35\" width=\"96\" height=\"26\" style=\"stroke:none\"/><line x1=\"192\" y1=\"60\" x2=\"288\" y2=\"60\" style=\"stroke:var(--accent,#0065b3);stroke-width:2\"/><rect class=\"dg-b\" x=\"203\" y=\"44\" width=\"64\" height=\"7\" rx=\"2\"/><g class=\"dg-n\" style=\"font-size:11px\"><text x=\"200\" y=\"84\">1<\/text><text x=\"200\" y=\"102\">2<\/text><text x=\"200\" y=\"120\">3<\/text><text x=\"200\" y=\"138\">4<\/text><text x=\"200\" y=\"156\">5<\/text><text x=\"200\" y=\"174\">6<\/text><text x=\"200\" y=\"192\">7<\/text><text x=\"200\" y=\"210\">8<\/text><text x=\"200\" y=\"228\">9<\/text><text x=\"200\" y=\"246\">10<\/text><text x=\"200\" y=\"264\">11<\/text><text x=\"200\" y=\"282\">12<\/text><\/g><rect class=\"dg-b\" x=\"222\" y=\"77\" width=\"120\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"222\" y=\"113\" width=\"160\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"234\" y=\"131\" width=\"190\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"222\" y=\"167\" width=\"150\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"234\" y=\"185\" width=\"120\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"234\" y=\"203\" width=\"170\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"222\" y=\"239\" width=\"90\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"222\" y=\"257\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"222\" y=\"275\" width=\"60\" height=\"7\" rx=\"2\"/><line class=\"dg-l\" x1=\"455\" y1=\"34\" x2=\"455\" y2=\"414\"/><text class=\"dg-s\" x=\"471\" y=\"54\">CHAT<\/text><path class=\"dg-ic\" d=\"M616 43v14M609 50h14\"/><path class=\"dg-ic\" d=\"M627 49l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M672 50h.5M678 50h.5M684 50h.5\"/><rect class=\"dg-tn\" x=\"520\" y=\"70\" width=\"164\" height=\"42\" rx=\"7\"/><rect class=\"dg-b2\" x=\"532\" y=\"81\" width=\"138\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"532\" y=\"95\" width=\"96\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"467\" y=\"130\" width=\"150\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"467\" y=\"147\" width=\"205\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"467\" y=\"164\" width=\"180\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"467\" y=\"181\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"467\" y=\"198\" width=\"190\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"467\" y=\"215\" width=\"160\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"463\" y=\"318\" width=\"223\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"475\" y=\"331\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"473\" y=\"360\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M478 363v5M476.0 365h5\"/><rect class=\"dg-p\" x=\"491\" y=\"354\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M503 360.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"514\" y=\"362\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"568\" y=\"354\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"576\" y=\"362\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"630\" cy=\"365\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"630\" cy=\"365\" r=\"2.2\"/><path d=\"M664 371l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><rect class=\"dg-c\" x=\"6\" y=\"414\" width=\"688\" height=\"20\" rx=\"0\"/><\/g>"},{"line":3,"plus":1.73,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(66.36 10) scale(1.1818)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h690v430h-690zM37 125v29h157v-29z\"/><rect class=\"dg-m\" x=\"43\" y=\"128\" width=\"145\" height=\"23\" rx=\"5\"/><\/g>"},{"line":4,"anim":"fade","svg":"<g transform=\"translate(-154.68 -42.91) scale(1.968)\"><clipPath id=\"kc25\"><rect x=\"191\" y=\"34\" width=\"263\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc25)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"430\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"28\" rx=\"7\"/><rect class=\"dg-b\" x=\"20\" y=\"17\" width=\"150\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M630 20h9M652 15h9v9h-9zM674 15l9 9M683 15l-9 9\"/><rect class=\"dg-c\" x=\"6\" y=\"34\" width=\"34\" height=\"380\" rx=\"0\"/><g transform=\"translate(0 0)\"><path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/><circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/><circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/><path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/><path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/><\/g><line class=\"dg-l\" x1=\"190\" y1=\"34\" x2=\"190\" y2=\"414\"/><rect class=\"dg-b\" x=\"51\" y=\"47\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M52.0 71.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"62\" y=\"71\" width=\"106\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M64.0 93.0l4.0 4.0 4.0 -4.0\"/><rect class=\"dg-b\" x=\"75\" y=\"92\" width=\"100\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"75\" y=\"112\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"90\" y=\"114\" width=\"72\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"42\" y=\"129\" width=\"147\" height=\"21\" rx=\"0\"/><rect class=\"dg-b2\" x=\"75\" y=\"134\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"90\" y=\"136\" width=\"64\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"75\" y=\"156\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"90\" y=\"158\" width=\"64\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"191\" y=\"34\" width=\"263\" height=\"380\" rx=\"6\"/><rect class=\"dg-c\" x=\"192\" y=\"35\" width=\"261\" height=\"26\" rx=\"5\"/><rect class=\"dg-w\" x=\"192\" y=\"35\" width=\"96\" height=\"26\" style=\"stroke:none\"/><line x1=\"192\" y1=\"60\" x2=\"288\" y2=\"60\" style=\"stroke:var(--accent,#0065b3);stroke-width:2\"/><rect class=\"dg-b\" x=\"203\" y=\"44\" width=\"64\" height=\"7\" rx=\"2\"/><g class=\"dg-n\" style=\"font-size:11px\"><text x=\"200\" y=\"84\">1<\/text><text x=\"200\" y=\"102\">2<\/text><text x=\"200\" y=\"120\">3<\/text><text x=\"200\" y=\"138\">4<\/text><text x=\"200\" y=\"156\">5<\/text><text x=\"200\" y=\"174\">6<\/text><text x=\"200\" y=\"192\">7<\/text><text x=\"200\" y=\"210\">8<\/text><text x=\"200\" y=\"228\">9<\/text><text x=\"200\" y=\"246\">10<\/text><text x=\"200\" y=\"264\">11<\/text><text x=\"200\" y=\"282\">12<\/text><\/g><rect class=\"dg-b\" x=\"222\" y=\"77\" width=\"120\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"222\" y=\"113\" width=\"160\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"234\" y=\"131\" width=\"190\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"222\" y=\"167\" width=\"150\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"234\" y=\"185\" width=\"120\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"234\" y=\"203\" width=\"170\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"222\" y=\"239\" width=\"90\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"222\" y=\"257\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"222\" y=\"275\" width=\"60\" height=\"7\" rx=\"2\"/><line class=\"dg-l\" x1=\"455\" y1=\"34\" x2=\"455\" y2=\"414\"/><text class=\"dg-s\" x=\"471\" y=\"54\">CHAT<\/text><path class=\"dg-ic\" d=\"M616 43v14M609 50h14\"/><path class=\"dg-ic\" d=\"M627 49l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M672 50h.5M678 50h.5M684 50h.5\"/><rect class=\"dg-tn\" x=\"520\" y=\"70\" width=\"164\" height=\"42\" rx=\"7\"/><rect class=\"dg-b2\" x=\"532\" y=\"81\" width=\"138\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"532\" y=\"95\" width=\"96\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"467\" y=\"130\" width=\"150\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"467\" y=\"147\" width=\"205\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"467\" y=\"164\" width=\"180\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"467\" y=\"181\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"467\" y=\"198\" width=\"190\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"467\" y=\"215\" width=\"160\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"463\" y=\"318\" width=\"223\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"475\" y=\"331\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"473\" y=\"360\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M478 363v5M476.0 365h5\"/><rect class=\"dg-p\" x=\"491\" y=\"354\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M503 360.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"514\" y=\"362\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"568\" y=\"354\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"576\" y=\"362\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"630\" cy=\"365\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"630\" cy=\"365\" r=\"2.2\"/><path d=\"M664 371l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><rect class=\"dg-c\" x=\"6\" y=\"414\" width=\"688\" height=\"20\" rx=\"0\"/><\/g><\/g>"},{"line":4,"plus":2.52,"anim":"fade","svg":"<g transform=\"translate(-154.68 -42.91) scale(1.968)\"><clipPath id=\"kc26\"><rect x=\"191\" y=\"34\" width=\"263\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc26)\"><rect class=\"dg-m\" x=\"195\" y=\"70\" width=\"20\" height=\"204\" rx=\"5\"/><\/g><\/g>"}],"title":"Ask which lines work out the tip"},{"id":"where-check","lines":[{"caption":"Pause the video now, send the request, and open the file Copilot names."},{"caption":"Look for this: the lines Copilot quoted are at the line numbers it gave."},{"caption":"If they don't match, the written steps give a request that has Copilot look again."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"30\" y=\"50\" width=\"900\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"70\" y=\"88\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"92\" y=\"88\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"130\" y=\"121\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request, and open the file Copilot names<\/text>"},{"line":0,"outLine":1,"anim":"fade","svg":"<rect x=\"110\" y=\"196\" width=\"740\" height=\"158\" rx=\"12\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"1.6\"/><text x=\"138\" y=\"234\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">Read the files in the tip-calculator folder.<\/text><text x=\"138\" y=\"265\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">Tell me where the tip is worked out.<\/text><text x=\"138\" y=\"296\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">Name the file and the line numbers,<\/text><text x=\"138\" y=\"327\" fill=\"var(--ink)\" font-size=\"22\" font-weight=\"400\" text-anchor=\"start\">and quote those lines.<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(20 53.14) scale(1.3143)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"330\" height=\"320\" rx=\"8\"/><rect class=\"dg-b\" x=\"21\" y=\"27\" width=\"24\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M257 23v14M250 30h14\"/><path class=\"dg-ic\" d=\"M268 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"293\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"293\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M313 30h.5M319 30h.5M325 30h.5\"/><rect class=\"dg-tn\" x=\"150\" y=\"50\" width=\"172\" height=\"30\" rx=\"7\"/><rect class=\"dg-b2\" x=\"162\" y=\"62\" width=\"130\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"100\" width=\"260\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"116\" width=\"200\" height=\"7\" rx=\"2\"/><rect class=\"dg-c\" x=\"21\" y=\"132\" width=\"296\" height=\"80\" rx=\"6\"/><rect class=\"dg-b\" x=\"33\" y=\"146\" width=\"150\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"45\" y=\"168\" width=\"120\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"45\" y=\"190\" width=\"170\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"232\" width=\"280\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"248\" width=\"230\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"350\" y=\"5\" width=\"345\" height=\"320\" rx=\"6\"/><rect class=\"dg-c\" x=\"351\" y=\"6\" width=\"343\" height=\"26\" rx=\"5\"/><rect class=\"dg-b\" x=\"362\" y=\"16\" width=\"64\" height=\"7\" rx=\"2\"/><g class=\"dg-n\" style=\"font-size:14px\"><text x=\"360\" y=\"54\">1<\/text><text x=\"360\" y=\"76\">2<\/text><text x=\"360\" y=\"98\">3<\/text><text x=\"360\" y=\"120\">4<\/text><text x=\"360\" y=\"142\">5<\/text><text x=\"360\" y=\"164\">6<\/text><text x=\"360\" y=\"186\">7<\/text><text x=\"360\" y=\"208\">8<\/text><text x=\"360\" y=\"230\">9<\/text><text x=\"360\" y=\"252\">10<\/text><text x=\"360\" y=\"274\">11<\/text><text x=\"360\" y=\"296\">12<\/text><\/g><rect class=\"dg-b\" x=\"382\" y=\"47\" width=\"120\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"382\" y=\"91\" width=\"160\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"394\" y=\"113\" width=\"190\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"382\" y=\"157\" width=\"150\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"394\" y=\"179\" width=\"120\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"394\" y=\"201\" width=\"170\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"382\" y=\"245\" width=\"90\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"382\" y=\"267\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"382\" y=\"289\" width=\"60\" height=\"7\" rx=\"2\"/><\/g>"},{"line":1,"plus":1.47,"anim":"fade","svg":"<g transform=\"translate(20 53.14) scale(1.3143)\"><rect class=\"dg-m\" x=\"17\" y=\"128\" width=\"304\" height=\"88\" rx=\"5\"/><\/g>"},{"line":1,"plus":2.99,"anim":"fade","svg":"<g transform=\"translate(20 53.14) scale(1.3143)\"><rect class=\"dg-m\" x=\"354\" y=\"146\" width=\"336\" height=\"70\" rx=\"5\"/><path class=\"dg-ml\" d=\"M321 172L354 181\"/><path d=\"M656.0 140.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g>"}],"title":"Check: the quoted lines are at those numbers"},{"id":"close","lines":[{"caption":"You had Copilot build a small application, explain it in plain words, and point you to the lines that do a particular job."},{"caption":"When you've done the steps, open the written steps and select Continue to complete the unit."}],"beats":[{"line":0,"anim":"up","svg":"<rect x=\"110\" y=\"136\" width=\"740\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"182\" y=\"179\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Had Copilot build a small application<\/text><path d=\"M138,167 L145,174 L157,158\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"},{"line":0,"plus":1.86,"anim":"up","svg":"<rect x=\"110\" y=\"236\" width=\"740\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"182\" y=\"279\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Explain it in plain words<\/text><path d=\"M138,267 L145,274 L157,258\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"},{"line":0,"plus":3.75,"anim":"up","svg":"<rect x=\"110\" y=\"336\" width=\"740\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"182\" y=\"379\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Point you to the lines that do a particular job<\/text><path d=\"M138,367 L145,374 L157,358\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"}],"title":"What you did"}];
+
+  function lead(tm, n) {
+    return Math.max(0, tm.starts[n] - Math.min(MAX_LEAD, Math.max(0, tm.pre[n] - 0.05)));
+  }
+
+  var sound = true, audioOK = true;
+
+  var SILENT_CAP = 0.8;
+
+  function silentTiming(tm) {
+    var pre = tm.pre.map(function (x) { return Math.min(x, SILENT_CAP); });
+    var st = [pre[0]];
+    for (var i = 1; i < tm.starts.length; i++) {
+      var spoken = tm.starts[i] - tm.starts[i - 1] - tm.pre[i];
+      st.push(st[i - 1] + spoken + pre[i]);
+    }
+    var last = tm.starts.length - 1;
+    return { dur: st[last] + (tm.dur - tm.starts[last]), starts: st, pre: pre };
+  }
+
+  var starts = [], total = 0;
+
+  function buildTimeline() {
+    starts = [];
+    total = 0;
+    for (var s = 0; s < S.length; s++) {
+      var sc = S[s];
+      var tm = useSound() ? TIMING[sc.id] : silentTiming(TIMING[sc.id]);
+      sc.dur = tm.dur;
+      sc.tm = tm;
+      sc.lineStarts = tm.starts;
+      sc.caption = sc.lines.map(function (l) { return l.caption; }).join(" ");
+      var settled = 0;
+      for (var bi = 0; bi < sc.beats.length; bi++) {
+        var bt = sc.beats[bi];
+
+        bt.at = bt.plus === undefined ? lead(tm, bt.line) : tm.starts[bt.line] + bt.plus;
+        if (bt.outLine !== undefined) bt.out = bt.outPlus === undefined ? lead(tm, bt.outLine) : tm.starts[bt.outLine] + bt.outPlus;
+        if (!bt.held && bt.at > settled) settled = bt.at;
+        if (bt.out !== undefined && bt.out > settled) settled = bt.out;
+      }
+
+      sc.settled = Math.min(settled + RAMP, sc.dur);
+
+      sc.stop = useSound() ? sc.settled : Math.max(sc.settled, sc.dur - 0.05);
+      starts.push(total);
+      total += sc.dur;
+    }
+  }
+  buildTimeline();
+
+  var stage = document.getElementById("stage");
+  var markup = '<rect x="0" y="0" width="960" height="540" fill="' + PAPER + '"/>';
+  for (var sm = 0; sm < S.length; sm++) {
+    markup += '<g class="scene">';
+    for (var bm = 0; bm < S[sm].beats.length; bm++) {
+      var bt2 = S[sm].beats[bm];
+      markup += '<g class="beat" data-at="' + bt2.at + '" data-anim="' + bt2.anim + '"' +
+        (bt2.out === undefined ? "" : ' data-out="' + bt2.out + '"') +
+        (bt2.linear ? ' data-linear=""' : "") + ">" + bt2.svg + "</g>";
+    }
+    markup += "</g>";
+  }
+  stage.innerHTML = markup;
+
+  var sceneEls = stage.querySelectorAll(".scene"), beatEls = [];
+  for (var k = 0; k < sceneEls.length; k++) beatEls.push(sceneEls[k].querySelectorAll(".beat"));
+
+  var clips = [];
+  for (var c = 0; c < S.length; c++) {
+    var clip = new Audio("audio/" + S[c].id + ".mp3");
+    clip.preload = "metadata";
+    clip.addEventListener("error", onAudioLost);
+    clips.push(clip);
+  }
+
+  var compact = false;
+  var t = 0, playing = false, speed = 1, started = false,
+      last = 0, cur = 0, looping = false, seekUntil = 0;
+  var SPEEDS = [0.75, 1, 1.25, 1.5];
+
+  var captionEl = document.getElementById("caption"),
+      captionText = document.getElementById("captiontext"),
+      readout = document.getElementById("readout"),
+      scrub = document.getElementById("scrub"),
+      playbtn = document.getElementById("playbtn"),
+      poster = document.getElementById("poster"),
+      soundBtn = document.getElementById("sound");
+
+  var SPEAKER = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zm2.6 2.2-.9 1.3a3.6 3.6 0 0 1 0 5.8l.9 1.3a5.2 5.2 0 0 0 0-8.4z"/></svg>';
+  var MUTED_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zM10.3 5.7l1.5 1.5 1.5-1.5 1 1-1.5 1.5 1.5 1.5-1 1-1.5-1.5-1.5 1.5-1-1L10.8 8.2 9.3 6.7z"/></svg>';
+
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function mmss(x) {
+    var m = Math.floor(x / 60), ss = Math.floor(x % 60);
+    return m + ":" + (ss < 10 ? "0" : "") + ss;
+  }
+  function sceneAt(time) {
+    for (var i = S.length - 1; i >= 0; i--) if (time >= starts[i]) return i;
+    return 0;
+  }
+  function useSound() { return sound && audioOK; }
+
+  function reflectSound() {
+    var on = useSound();
+    soundBtn.innerHTML = on ? SPEAKER : MUTED_ICON;
+    soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    soundBtn.setAttribute("aria-label", on ? "Narration sound, on"
+      : audioOK ? "Narration sound, off" : "Narration sound, unavailable");
+  }
+
+  function paint(posterMode) {
+    var now = sceneAt(t);
+    for (var i = 0; i < S.length; i++) {
+      var on = i === now;
+      sceneEls[i].style.display = on ? "" : "none";
+      if (!on) continue;
+      var local = t - starts[i];
+      for (var j = 0; j < beatEls[i].length; j++) {
+        var g = beatEls[i][j];
+        var beat = S[i].beats[j];
+
+        var lin = beat.linear;
+        var pin = posterMode || beat.held ? 1 : clamp((local - beat.at) / RAMP, 0, 1);
+        var e = lin ? pin : 1 - Math.pow(1 - pin, 3);
+        if (beat.out !== undefined && !posterMode) {
+          var pout = clamp((local - beat.out) / RAMP, 0, 1);
+          e = e * (1 - (lin ? pout : 1 - Math.pow(1 - pout, 3)));
+        }
+        var off = beat.held ? [0, 0] : ANIM[beat.anim] || ANIM.fade;
+        g.style.opacity = e;
+        g.style.transform = "translate(" + (off[0] * (1 - e)).toFixed(2) + "px," + (off[1] * (1 - e)).toFixed(2) + "px)";
+      }
+    }
+
+    var ln = 0, localT = t - starts[now];
+    for (var li = 0; li < S[now].lines.length; li++) if (localT >= S[now].lineStarts[li] - 0.3) ln = li;
+    captionText.textContent = S[now].lines[ln].caption;
+
+    paintReadout();
+    scrub.value = t >= total ? 1000 : Math.round((starts[now] / total) * 1000);
+
+    scrub.style.setProperty("--fill",
+      "calc(5.5px + " + (scrub.value / 1000) + " * (100% - 11px))");
+    scrub.setAttribute("aria-valuetext", "Scene " + (now + 1) + ", " + mmss(t));
+    if (started) markLine(now, ln);
+  }
+
+  function paintReadout() {
+    var now = sceneAt(t);
+    readout.textContent = (compact ? (now + 1) + "/" + S.length : "Scene " + (now + 1) + " of " + S.length) + " " +
+      String.fromCharCode(183) + " " + mmss(t) + " / " + mmss(total);
+  }
+
+  function stopClips() { for (var i = 0; i < clips.length; i++) clips[i].pause(); }
+
+  function syncClip() {
+    if (!useSound()) { stopClips(); return; }
+    for (var i = 0; i < clips.length; i++) if (i !== cur) clips[i].pause();
+    var clip = clips[cur];
+    clip.playbackRate = speed;
+    var want = clamp(t - starts[cur], 0, S[cur].dur);
+    if (Math.abs(clip.currentTime - want) > 0.25) {
+      try { clip.currentTime = want; seekUntil = performance.now() + 220; } catch (e) {}
+    }
+    if (playing && clip.paused) {
+      var pr = clip.play();
+      if (pr && pr.catch) pr.catch(onAudioLost);
+    }
+    if (!playing && !clip.paused) clip.pause();
+  }
+
+  function setPlaying(on) {
+    playing = on;
+    playbtn.setAttribute("aria-label", on ? "Pause" : "Play");
+    playbtn.innerHTML = on
+      ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 1.5h3.5v13H3.5zm5.5 0h3.5v13H9z"/></svg>'
+      : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>';
+    syncClip();
+    if (on && !looping) { looping = true; last = 0; requestAnimationFrame(step); }
+  }
+
+  function step(now) {
+    if (!playing) { looping = false; return; }
+    if (!last) last = now;
+    var dt = (now - last) / 1000;
+    last = now;
+
+    if (useSound() && !clips[cur].paused && now > seekUntil) {
+      t = starts[cur] + Math.min(clips[cur].currentTime, S[cur].dur);
+    } else {
+      t += dt * speed;
+    }
+
+    if (t >= total - 0.02) { t = total; paint(false); setPlaying(false); looping = false; return; }
+
+    if (!useSound() && t >= starts[cur] + S[cur].stop) {
+      t = starts[cur] + S[cur].stop;
+      paint(false);
+      setPlaying(false);
+      looping = false;
+      return;
+    }
+
+    var next = sceneAt(t);
+    if (next !== cur) { cur = next; syncClip(); }
+    paint(false);
+    requestAnimationFrame(step);
+  }
+
+  function goto(time, keepPlaying) {
+    addressed = -1;
+    t = clamp(time, 0, total);
+    cur = sceneAt(t);
+    if (!keepPlaying) t = starts[cur] + S[cur].settled;
+    if (!started) { started = true; poster.hidden = true; }
+    paint(false);
+    if (keepPlaying) syncClip(); else setPlaying(false);
+
+    if (!keepPlaying) addressed = cur;
+  }
+  function fromTop() {
+    started = true; poster.hidden = true; t = 0; cur = 0; paint(false); setPlaying(true);
+  }
+
+  poster.addEventListener("click", function () { fromTop(); playbtn.focus({ preventScroll: true }); });
+  document.getElementById("replay").addEventListener("click", fromTop);
+  playbtn.addEventListener("click", function () {
+    if (!started || t >= total) { fromTop(); return; }
+
+    if (!playing && addressed === cur) { t = starts[cur]; paint(false); }
+    addressed = -1;
+
+    if (!playing && !useSound() && cur < S.length - 1 && t >= starts[cur] + S[cur].stop - 0.01) {
+      cur += 1; t = starts[cur]; paint(false);
+    }
+    setPlaying(!playing);
+  });
+  document.getElementById("prev").addEventListener("click", function () {
+    var i = sceneAt(t);
+
+    var replayThisScene = playing && useSound() && t - starts[i] >= 1.2;
+    if (!replayThisScene && i > 0) i--;
+    goto(starts[i], playing && useSound());
+  });
+  document.getElementById("next").addEventListener("click", function () {
+    var i = sceneAt(t);
+    goto(i + 1 < S.length ? starts[i + 1] : total,
+         playing && useSound() && i + 1 < S.length);
+  });
+  scrub.addEventListener("input", function () {
+    var want = sceneAt((scrub.value / 1000) * total);
+
+    if (want !== sceneAt(t)) goto(starts[want], playing); else paint(false);
+  });
+
+  scrub.addEventListener("keydown", function (e) {
+    var dir = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1
+      : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    var i = Math.min(S.length - 1, Math.max(0, sceneAt(t) + dir));
+    goto(starts[i], playing);
+  });
+
+  soundBtn.addEventListener("click", function () {
+    if (!audioOK) return;
+    var at = cur;
+    sound = !sound;
+    reflectSound();
+    buildTimeline();
+    renderChrome();
+    cur = at;
+    t = starts[at] + (sound ? 0 : S[at].settled);
+    if (!sound) { stopClips(); last = 0; } else syncClip();
+    fitPlayer();
+    paint(false);
+  });
+  var ccBtn = document.getElementById("cc");
+  ccBtn.addEventListener("click", function () {
+    var on = this.getAttribute("aria-pressed") === "true";
+    this.setAttribute("aria-pressed", on ? "false" : "true");
+    this.setAttribute("aria-label", on ? "CC, captions off" : "CC, captions on");
+    captionEl.hidden = on;
+  });
+  var speedBtn = document.getElementById("speed");
+  speedBtn.addEventListener("click", function () {
+    speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+    speedBtn.textContent = speed + "x";
+    speedBtn.setAttribute("aria-label", speed + "x, playback speed");
+    if (useSound()) clips[cur].playbackRate = speed;
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var tag = e.target && e.target.tagName;
+    if (tag === "TEXTAREA" || (tag === "INPUT" && e.target !== scrub) || (e.target && e.target.isContentEditable)) return;
+    if (e.key === " ") { if (tag === "BUTTON" || tag === "A") return; e.preventDefault(); playbtn.click(); }
+    else if (e.key === "c" || e.key === "C") {
+      if (e.target && e.target.closest && e.target.closest(".player")) { e.preventDefault(); ccBtn.click(); }
+    }
+    else if (e.target === scrub || e.target === tscroll) return;
+    else if (e.key === "ArrowRight") { e.preventDefault(); document.getElementById("next").click(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); document.getElementById("prev").click(); }
+  });
+
+  var ol = document.getElementById("transcript");
+
+  function newChapter(i) { return i > 0 && (S[i].chapter || "") !== (S[i - 1].chapter || ""); }
+
+  function renderChrome() {
+    var tickHtml = "";
+    for (var ti = 1; ti < S.length; ti++) {
+
+      tickHtml += '<i' + (newChapter(ti) ? ' class="ch"' : "") + ' style="left:' +
+        ((starts[ti] / total) * 100).toFixed(2) + '%"></i>';
+    }
+    document.getElementById("ticks").innerHTML = tickHtml;
+    document.getElementById("meta-scenes").textContent = S.length + " scenes";
+    document.getElementById("meta-len").textContent = mmss(total);
+
+    var tr = "";
+    lineEls = [];
+    for (var x = 0; x < S.length; x++) {
+
+      if (S[x].chapter && (x === 0 || newChapter(x))) {
+        tr += '<li class="chap"><p class="chap-h">' + esc(S[x].chapter) + "</p></li>";
+      }
+      tr += '<li class="scn"><p class="scn-h">Scene ' + (x + 1) +
+        (S[x].title ? ": " + esc(S[x].title) : "") +
+        "<span>" + mmss(starts[x]) + "</span></p><ol class=\"lines\">";
+      for (var y = 0; y < S[x].lines.length; y++) {
+        tr += '<li><button class="jump" type="button" data-s="' + x + '" data-l="' + y + '" data-on="false">' +
+          '<span class="tc">' + mmss(starts[x] + S[x].lineStarts[y]) + "</span>" +
+          '<span class="line">' + esc(S[x].lines[y].caption) + "</span></button></li>";
+      }
+      tr += "</ol></li>";
+    }
+    ol.innerHTML = tr;
+    var btns = ol.querySelectorAll(".jump");
+    for (var b = 0; b < btns.length; b++) {
+      var bs = +btns[b].getAttribute("data-s");
+      (lineEls[bs] = lineEls[bs] || []).push(btns[b]);
+    }
+    onLine = null;
+  }
+
+  var lineEls = [], onLine = null, userScrolledAt = -1e9;
+  var tscroll = document.getElementById("p-transcript");
+
+  ["wheel", "touchmove"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function () { userScrolledAt = performance.now(); }, { passive: true });
+  });
+
+  ["keydown", "pointerdown"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function (e) { if (e.target === tscroll) userScrolledAt = performance.now(); });
+  });
+
+  function follow(force) {
+    if (!onLine || tscroll.hidden) return;
+    if (!force && performance.now() - userScrolledAt < 4000) return;
+    var r = onLine.getBoundingClientRect(), sr = tscroll.getBoundingClientRect();
+    if (!sr.height) return;
+    var head = 36;
+    var want = tscroll.scrollTop + (r.top - sr.top) - (sr.height + head - r.height) / 2;
+    want = clamp(want, 0, tscroll.scrollHeight - tscroll.clientHeight);
+    if (Math.abs(want - tscroll.scrollTop) < 2) return;
+    try { tscroll.scrollTo({ top: want, behavior: reduce ? "auto" : "smooth" }); }
+    catch (e) { tscroll.scrollTop = want; }
+  }
+
+  function markLine(s, l) {
+    var el = lineEls[s] && lineEls[s][l];
+    if (!el || el === onLine) return;
+    if (onLine) { onLine.setAttribute("data-on", "false"); onLine.removeAttribute("aria-current"); }
+    onLine = el;
+    el.setAttribute("data-on", "true");
+    el.setAttribute("aria-current", "true");
+    follow(false);
+  }
+
+  function seekLine(s, l) {
+    var sc = S[s];
+    var at = l === 0 ? 0 : Math.max(0, sc.lineStarts[l] - 0.3);
+    t = clamp(starts[s] + at, 0, total);
+    cur = s;
+    addressed = -1;
+    if (!started) { started = true; poster.hidden = true; }
+    userScrolledAt = -1e9;
+
+    if (!useSound() && at >= sc.stop) { paint(false); setPlaying(false); return; }
+    paint(false);
+    setPlaying(true);
+  }
+
+  renderChrome();
+  ol.addEventListener("click", function (e) {
+    var btn = e.target.closest(".jump");
+    if (btn) seekLine(+btn.getAttribute("data-s"), +btn.getAttribute("data-l"));
+  });
+
+  var MAX_PLAYER = 860, MAX_PAGE = 1480;
+  var INKIT = / inkit/.test(document.documentElement.className), kitH = 0, kitTop = 0;
+  function viewH() { return INKIT && kitH ? kitH : window.innerHeight; }
+
+  if (INKIT) Array.prototype.forEach.call(document.querySelectorAll("a[href]"), function (a) {
+    if (a.getAttribute("href").charAt(0) !== "#") a.target = "_parent";
+  });
+  var theaterEl = document.querySelector(".theater"), playerEl = document.querySelector(".player"),
+      consoleEl = document.querySelector(".console"), wrapEl = document.querySelector(".wrap");
+  var WIDE = window.matchMedia ? window.matchMedia("(min-width: 960px)") : { matches: false };
+
+  function longestCaption() {
+    var best = "";
+    for (var i = 0; i < S.length; i++) {
+      var opts = S[i].lines.map(function (l) { return l.caption; });
+      for (var j = 0; j < opts.length; j++) if (opts[j].length > best.length) best = opts[j];
+    }
+    return best;
+  }
+
+  function sizeCaption() {
+    var wasHidden = captionEl.hidden, keep = captionText.textContent;
+    captionEl.hidden = false;
+    captionEl.style.height = "";
+    captionText.textContent = longestCaption();
+
+    var h = Math.min(Math.ceil(captionEl.getBoundingClientRect().height),
+                     Math.max(104, Math.round(viewH() * 0.3)));
+    captionText.textContent = keep;
+    captionEl.style.height = h + "px";
+    captionEl.hidden = wasHidden;
+    return h;
+  }
+
+  function fitPlayer() {
+
+    var bs = getComputedStyle(document.body);
+    var avail = Math.min(MAX_PAGE, document.body.clientWidth -
+      parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight));
+    var wide = WIDE.matches;
+    var gap = wide ? parseFloat(getComputedStyle(theaterEl).columnGap) || 0 : 0;
+    var sw = wide ? Math.round(clamp(avail * 0.3, 320, 400)) : 0;
+    var room0 = avail - (wide ? sw + gap : 0);
+    var w = Math.max(320, Math.min(MAX_PLAYER, room0));
+
+    theaterEl.style.setProperty("--sw", sw + "px");
+    wrapEl.style.setProperty("--tw", avail + "px");
+    for (var pass = 0; pass < 4; pass++) {
+      var px = Math.floor(w);
+      theaterEl.style.setProperty("--pw", px + "px");
+      compact = px < 660;
+      paintReadout();
+      var capH = sizeCaption();
+      var chrome = consoleEl.getBoundingClientRect().height + (captionEl.hidden ? capH : 0);
+      var top = playerEl.getBoundingClientRect().top + window.scrollY + kitTop;
+
+      var room = viewH() - Math.min(top, viewH() * 0.2) - chrome - 16;
+      var whole = viewH() - top - chrome - 16;
+      if (INKIT && kitH) room = whole;
+      w = Math.max(320, Math.min(MAX_PLAYER, room0, room * 16 / 9));
+      if (Math.floor(w) === px) break;
+    }
+    var pw = Math.floor(w);
+
+    if (wide) sw = Math.round(clamp(avail - gap - pw, 320, 460));
+    theaterEl.style.setProperty("--pw", pw + "px");
+    theaterEl.style.setProperty("--sw", sw + "px");
+    wrapEl.style.setProperty("--tw", (wide ? pw + gap + sw : avail) + "px");
+    sizeCaption();
+    follow(true);
+  }
+  function onAudioLost() { audioOK = false; reflectSound(); fitPlayer(); }
+
+  function postHeight() {
+    if (INKIT) window.parent.postMessage({ kitVideoHeight: Math.ceil(document.documentElement.getBoundingClientRect().height) }, "*");
+  }
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!INKIT || e.source !== window.parent || !d || typeof d.kitViewport !== "number") return;
+    kitH = d.kitViewport; kitTop = +d.kitTop || 0;
+    fitPlayer(); postHeight();
+  });
+  fitPlayer();
+  postHeight();
+  window.addEventListener("resize", function () { fitPlayer(); postHeight(); });
+  if (INKIT && window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+  var addressed = -1;
+  function openAddress() {
+    var id = (location.hash || "").replace(/^#/, "");
+    try { id = decodeURIComponent(id); } catch (e) {}
+    for (var i = 0; i < S.length; i++) {
+      if (S[i].id === id) {
+        setPlaying(false);
+        stopClips();
+        goto(starts[i], false);
+        addressed = i;
+        follow(true);
+        return true;
+      }
+    }
+    return false;
+  }
+  window.addEventListener("hashchange", function () {
+    if (openAddress()) return;
+    setPlaying(false); stopClips(); addressed = -1; t = 0; cur = 0; paint(!started);
+  });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPlayer);
+
+  reflectSound();
+  if (!openAddress()) paint(true);
+})();
+</script>
+</html>

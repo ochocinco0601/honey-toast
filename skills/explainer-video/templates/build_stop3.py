@@ -38,7 +38,7 @@ if text.get("video_text") and not (HERE / video).exists():
 
 STYLE = """
 <style>
-.stopband { display: grid; gap: 12px; margin: 0 0 30px; padding: 0 0 26px; border-bottom: 1px solid var(--line); }
+.stopband { display: grid; gap: 12px; max-width: 68rem; margin: 0 0 30px; padding: 0 0 26px; border-bottom: 1px solid var(--line); }
 .stopk { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 0; }
 .stopband h2, .after h2 { font-size: 18px; margin: 6px 0 0; }
 .stopband p, .after p, .stopband li, .after li, .after dd { font-size: 15px; line-height: 1.6; margin: 0; }
@@ -47,7 +47,7 @@ STYLE = """
 .verdict { font-weight: 700; color: var(--accent); }
 .ask { border-left: 3px solid var(--accent); background: var(--surface); padding: 9px 13px; font-weight: 600; }
 .ask.open { border-color: var(--caution-ui); }
-.after { display: grid; gap: 12px; margin: 34px 0 0; padding: 26px 0 0; border-top: 1px solid var(--line); }
+.after { display: grid; gap: 12px; max-width: 68rem; margin: 34px 0 0; padding: 26px 0 0; border-top: 1px solid var(--line); }
 .after video { width: 100%; max-width: 44rem; height: auto; border: 1px solid var(--line); border-radius: 8px; background: #000; }
 .after dl { margin: 0; display: grid; gap: 8px; }
 .after dt { font-weight: 700; font-size: 15px; }
@@ -98,11 +98,12 @@ out = page.replace("</style>", "</style>" + STYLE, 1)
 # The player and its transcript open the page; the review sits directly beneath them, so nothing
 # is added above the player.
 out = out.replace('<p class="eyebrow">Explainer</p>', "", 1)
-anchor = '<p class="note">'
+# The review record goes after the page's reading column, which closes the page's own content.
+anchor = '<section class="about"'
 if anchor not in out:
-    sys.exit('the page has no <p class="note">: the review record is placed after it')
+    sys.exit('the page has no <section class="about">: the review record is placed after it')
 i = out.index(anchor)
-j = out.index("</p>", i) + len("</p>")
+j = out.index("</section>", i) + len("</section>")
 out = out[:j] + "\n" + record + video_section + delivery + replies + out[j:]
 note = "<!-- Made by build_stop3.py from the piece's page, stop3.json and stop3-reviews.json: rebuild it rather than editing this file. -->\n"
 doctype = "<!doctype html>\n"

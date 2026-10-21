@@ -1,16 +1,20 @@
 """Build the trainings' web pages from their markdown, then check them.
 
     python maintaining/build_pages.py        (from the kit's folder)
+    python maintaining/build_pages.py --strict    (also fails on a stale video; before a release)
 
 Reads every learner .md file in the kit and writes read-in-browser/ with the same
 names (.md -> .html; a subfolder's README.md -> index.html). Never edit read-in-browser/ by
 hand. The conventions it reads are in maintaining/README.md.
 """
 import datetime
+import hashlib
 import html
 import io
 import json
+import math
 import os
+import posixpath
 import re
 import shutil
 import subprocess
@@ -19,7 +23,7 @@ import sys
 # ---- What a maintainer changes when the kit grows (see maintaining/README.md) ----
 # A record, not a setting: the version of the training-kit skill that built this kit. It goes into
 # each page's generated-file comment only. The kit's own version is the newest entry in CHANGELOG.md.
-SKILL_VERSION = "1.14"
+SKILL_VERSION = "1.16"
 PROGRAM_NAME = "GitHub Copilot training"
 # Who the learner asks for help, and where they paste a prompt for it.
 ASSISTANT = "Copilot"
@@ -73,7 +77,7 @@ GLOSSARY_TERMS = ["Permission request", "Preview", "Terminal", "Checkpoint", "Co
                   "Custom agent", "Follow-up", "Markdown", "MCP server", "Skill", "Subagent", "Explorer", "Tool"]
 UI_LABELS = ("File Explorer", "New Chat", "Open Preview", "Reveal in File Explorer", "Add Folder to Workspace", "Clone Git Repository", "Open Recent", "Open Folder", "New File")
 # Folders that are not learner pages.
-NOT_FOR_LEARNERS = ("facilitator/", "sample-files/", "maintaining/", "read-in-browser/")
+NOT_FOR_LEARNERS = ("facilitator/", "sample-files/", "maintaining/", "read-in-browser/", "videos/")
 # Off by default: the assistant creates the practice files from complete requests on the page, so
 # the training needs no download. Set a name, such as "training-files.zip", only when a later
 # training truly needs ready-made files: the build then packs the learner pages (as markdown) and
@@ -616,6 +620,227 @@ if absent:
     sys.exit("In a menu but not found as learner pages: %s" % ", ".join(absent))
 
 
+# ---- Videos: a narrated explainer page for a lesson (see maintaining/README.md, "Videos") ----
+# Each video is a package made by the explainer skill's builder: videos/<training folder>/<lesson name>/ for a lesson,
+# videos/overview/ for the home page, holding index.html, its audio and video.json, the manifest.
+# The build checks every package, copies videos/ into the pages byte for byte, and never reads an
+# explainer page as a kit page. A kit with no videos/ folder builds exactly as it did without them.
+VIDEOS_DIR = "videos"
+# GitHub warns about a file over 50 MB; a package over it is cut or split into chapters.
+VIDEO_MAX_MB = 50
+VIDEO_FIELDS = ("format", "lesson", "lesson_sha256", "title", "seconds", "back_href", "scenes", "files")
+SCENE_ID = re.compile(r"[a-z0-9-]+")
+# Run with --strict to fail on a stale video too, as a release does before packaging.
+STRICT = "--strict" in sys.argv[1:]
+VIDEOS = {}
+
+
+def lesson_sha256(md):
+    """A lesson's content hash as a video records it: its bytes, with CRLF read as LF."""
+    with open(os.path.join(KIT, md), "rb") as f:
+        return hashlib.sha256(f.read().replace(b"\r\n", b"\n")).hexdigest()
+
+
+def lesson_steps(md):
+    """The numbers of a page's numbered steps, the "## 1. ..." headings check_step_numbers counts."""
+    return [int(m.group(1)) for m in (re.match(r"^## (\d+)\. ", ln) for ln in read(md)) if m]
+
+
+def video_minutes(v):
+    """A video's length to the nearest minute, at least one."""
+    return max(1, int(v["seconds"] / 60.0 + 0.5))
+
+
+def video_href(md, v):
+    """A video's kit page, as a link from another kit page."""
+    return rel(md, v["kitpage"])
+
+
+def package_faults(pkg, files_on_disk, size):
+    """Read one package's manifest and check it against its folder and the kit. Returns (video, faults);
+    the video is None when the manifest cannot be used at all."""
+    where = "%s/%s/video.json" % (VIDEOS_DIR, pkg)
+    try:
+        with io.open(os.path.join(KIT, VIDEOS_DIR, pkg, "video.json"), encoding="utf-8") as f:
+            m = json.load(f)
+    except (ValueError, UnicodeDecodeError) as e:
+        return None, ["%s does not parse as JSON: %s" % (where, e)]
+    if not isinstance(m, dict):
+        return None, ["%s is not a JSON object" % where]
+    lacking = [k for k in VIDEO_FIELDS if k not in m]
+    if lacking:
+        return None, ["%s lacks %s" % (where, ", ".join(lacking))]
+    faults = []
+    kinds = {"lesson": str, "lesson_sha256": str, "title": str, "back_href": str, "scenes": list, "files": dict}
+    for k, kind in kinds.items():
+        if not isinstance(m[k], kind) or not m[k]:
+            faults.append("%s: \"%s\" must be a non-empty %s"
+                          % (where, k, {str: "string", list: "list", dict: "object"}[kind]))
+    if m["format"] != 1:
+        faults.append("%s: \"format\" is %r; this build reads format 1" % (where, m["format"]))
+    if isinstance(m["seconds"], bool) or not isinstance(m["seconds"], (int, float)) or m["seconds"] <= 0:
+        faults.append("%s: \"seconds\" must be the video's length, a number above 0" % where)
+    if faults:
+        return None, faults
+    lesson = m["lesson"]
+    if lesson not in FILES:
+        return None, ["%s names the lesson %s, which this kit does not have as a learner page" % (where, lesson)]
+    home = "overview" if lesson == "README.md" else lesson[:-3]
+    if pkg != home:
+        faults.append("%s/%s holds the video for %s, which belongs in %s/%s" % (VIDEOS_DIR, pkg, lesson, VIDEOS_DIR, home))
+    page = "%s/%s/index.html" % (VIDEOS_DIR, pkg)
+    kitpage = "overview-video.html" if lesson == "README.md" else lesson[:-3] + "-video.html"
+    if kitpage[:-5] + ".md" in FILES:
+        faults.append("%s's video page would be %s, which is already a page of this kit; rename that page"
+                      % (lesson, kitpage))
+    back = m["back_href"]
+    target = posixpath.normpath(posixpath.join(posixpath.dirname(page), back))
+    if re.match(r"[a-z]+:|/", back) or "#" in back or target != out_name(lesson):
+        faults.append("%s: \"back_href\" is %s, which from %s opens %s, not the lesson's page %s"
+                      % (where, back, page, target, out_name(lesson)))
+    ids, scenes = set(), []
+    for n, sc in enumerate(m["scenes"], 1):
+        if not isinstance(sc, dict) or not {"id", "title", "step"} <= set(sc):
+            faults.append("%s: scene %d needs \"id\", \"title\" and \"step\"" % (where, n))
+            continue
+        sid, step = sc["id"], sc["step"]
+        if not isinstance(sid, str) or not SCENE_ID.fullmatch(sid):
+            faults.append("%s: scene %d's id %r is not lowercase letters, digits and hyphens" % (where, n, sid))
+        elif sid in ids:
+            faults.append("%s: the scene id %s is used twice" % (where, sid))
+        ids.add(sid)
+        if step is not None and (isinstance(step, bool) or not isinstance(step, int)):
+            faults.append("%s: scene %s's \"step\" must be a step number or null" % (where, sid))
+            continue
+        scenes.append((sid, step))
+    listed = set(m["files"])
+    if "index.html" not in listed:
+        faults.append("%s: \"files\" does not list index.html" % where)
+    # Compared by exact name: a web server reads "Audio/open.mp3" and "audio/open.mp3" as two files,
+    # even where Windows does not.
+    for f in sorted(listed - files_on_disk):
+        faults.append("%s lists %s, which is missing from %s/%s" % (where, f, VIDEOS_DIR, pkg))
+    for f in sorted(files_on_disk - listed):
+        faults.append("%s/%s/%s is not pinned in %s's \"files\"" % (VIDEOS_DIR, pkg, f, where))
+    for f in sorted(listed & files_on_disk):
+        with open(os.path.join(KIT, VIDEOS_DIR, pkg, *f.split("/")), "rb") as fh:
+            got = hashlib.sha256(fh.read()).hexdigest()
+        if got != m["files"][f]:
+            faults.append("%s/%s/%s does not match the SHA-256 pinned for it in %s; a package is never edited "
+                          "by hand: remake it with the explainer skill" % (VIDEOS_DIR, pkg, f, where))
+    if "index.html" in listed & files_on_disk:
+        with io.open(os.path.join(KIT, VIDEOS_DIR, pkg, "index.html"), encoding="utf-8", errors="replace") as fh:
+            if 'href="%s"' % back not in fh.read():
+                faults.append("%s/%s/index.html has no link to %s, the \"back_href\" in %s: the page and its "
+                              "manifest were made apart; remake the package with the explainer skill" % (VIDEOS_DIR, pkg, back, where))
+    if size > VIDEO_MAX_MB * 1e6:
+        faults.append("%s/%s is %.0f MB; a video package is at most %d MB" % (VIDEOS_DIR, pkg, size / 1e6, VIDEO_MAX_MB))
+    stale = m["lesson_sha256"] != lesson_sha256(lesson)
+    have = lesson_steps(lesson)
+    lost = sorted(set(s for _, s in scenes if s is not None and s not in have))
+    if lost and not stale:
+        faults.append("%s: scenes narrate step %s, which %s does not have (its numbered steps: %d)"
+                      % (where, ", ".join(map(str, lost)), lesson, len(have)))
+    first = {}
+    for sid, s in scenes:
+        first.setdefault(s, sid)
+    return {"pkg": pkg, "page": page, "kitpage": kitpage, "lesson": lesson, "title": m["title"], "seconds": m["seconds"],
+            "stale": stale, "lost": lost, "steps": {n: first[n] for n in have if n in first}}, faults
+
+
+def load_videos():
+    """Every package under videos/, checked. Stops the build on any fault; warns on a stale video."""
+    top = os.path.join(KIT, VIDEOS_DIR)
+    if not os.path.isdir(top):
+        return {}
+    found, loose, faults = {}, [], []
+    for root, dirs, files in os.walk(top):
+        dirs.sort()
+        here = os.path.relpath(root, top).replace(os.sep, "/")
+        owner = next((p for p in sorted(found, key=len, reverse=True) if here.startswith(p + "/")), None)
+        if "video.json" in files:
+            if owner:
+                faults.append("%s/%s is a package inside the package %s/%s" % (VIDEOS_DIR, here, VIDEOS_DIR, owner))
+            else:
+                found[here] = {}
+                owner = here
+        if owner is None:
+            loose += [f if here == "." else here + "/" + f for f in files]
+            continue
+        for f in files:
+            inside = posixpath.relpath(posixpath.join(here, f), owner)
+            found[owner][inside] = os.path.getsize(os.path.join(root, f))
+    for f in loose:
+        faults.append("%s/%s is in no package: every file under %s/ sits in a folder with its video.json"
+                      % (VIDEOS_DIR, f, VIDEOS_DIR))
+    videos = {}
+    for pkg in sorted(found):
+        on_disk = found[pkg]
+        v, more = package_faults(pkg, set(on_disk) - {"video.json"}, sum(on_disk.values()))
+        faults += more
+        if v and v["lesson"] in videos:
+            faults.append("%s/%s and %s/%s are both videos for %s" % (
+                VIDEOS_DIR, videos[v["lesson"]]["pkg"], VIDEOS_DIR, pkg, v["lesson"]))
+        elif v:
+            videos[v["lesson"]] = v
+    if faults:
+        sys.exit("VIDEO PACKAGES FAILED (see 'Videos' in maintaining/README.md):\n  " + "\n  ".join(faults))
+    for lesson, v in sorted(videos.items()):
+        if v["stale"]:
+            print("WARNING: The video for %s was made from an earlier version of the lesson (%s)%s. Remake it with "
+                  "the explainer skill; until then the lesson page says so and has no \"Watch this step\" links."
+                  % (v["title"], lesson, "; it narrates step %s, which the lesson no longer has"
+                     % ", ".join(map(str, v["lost"])) if v["lost"] else ""))
+        elif lesson != "README.md":
+            for n in lesson_steps(lesson):
+                if n not in v["steps"]:
+                    print("WARNING: step %d of %s has no scene in its video, so it has no \"Watch this step\" link."
+                          % (n, lesson))
+    return videos
+
+
+def copy_videos():
+    """videos/ copied whole beside the pages, byte for byte; returns how many files."""
+    src = os.path.join(KIT, VIDEOS_DIR)
+    if not os.path.isdir(src):
+        return 0
+    dest = os.path.join(OUT, VIDEOS_DIR)
+    shutil.copytree(src, dest)
+    count = 0
+    for root, _, files in os.walk(src):
+        for f in files:
+            a = os.path.join(root, f)
+            with open(a, "rb") as x, open(os.path.join(dest, os.path.relpath(a, src)), "rb") as y:
+                if x.read() != y.read():
+                    sys.exit("%s was not copied byte for byte into %s" % (a, OUT_DIR))
+            count += 1
+    return count
+
+
+WATCH = '<p class="watch"><a href="%s"><span aria-hidden="true">&#9654;</span> %s</a></p>'
+STALE_LINE = ('<p class="stalevideo">The video for this lesson was made from an earlier version of these steps. '
+              'Where they differ, follow the written steps.</p>\n')
+VIDEO_CSS = r"""
+/* videos: "Watch this step" under a step's heading, and the home page's link to the overview */
+main p.watch{margin:4px 0 12px;font-size:.875rem;line-height:1.4}
+main p.watch a{text-decoration:none}
+main p.watch a:hover{text-decoration:underline}
+.pagehead p.watch{margin:8px 0 0}
+.pagehead p.stalevideo{margin:8px 0 0;font-size:.875rem;color:var(--ink2)}"""
+
+
+def watch_links(md, rest):
+    """Under each numbered step heading, a link to the first scene of the lesson's video that narrates it."""
+    v = VIDEOS.get(md)
+    if not v or v["stale"] or md == "README.md":
+        return rest
+
+    def add(mo):
+        sid = v["steps"].get(int(mo.group(1)))
+        return mo.group(0) + (WATCH % (html.escape(video_href(md, v) + "#" + sid), "Watch this step") if sid else "")
+    return re.sub(r'<h2 id="[^"]+" class="step"><span class="sr">(\d+)\. </span>.*?</h2>', add, rest)
+
+
 HEAD = r'<h([23]) id="([^"]+)"[^>]*>(.*?)</h\1>'
 
 
@@ -673,11 +898,13 @@ def unit_cards(t, md):
     lis = []
     for n, (target, title, outcome) in enumerate(list_items(md, "## The path", True), 1):
         text = outcome[:1].upper() + outcome[1:]
-        lis.append('<li class="unitcard" data-u="%s">'
+        # The ring repeats the outline's: the unit's number, filled with a tick once the unit is complete.
+        lis.append('<li class="unitcard" data-u="%s"><span class="uring" aria-hidden="true">%d</span>'
                    '<span class="un">Unit %d%s</span><a href="%s">%s</a><p class="uo">%s</p>'
                    '<p class="us">Not started</p></li>'
-                   % (html.escape(out_name(target)), n,
-                      (" &middot; " + html.escape(t["path"][n - 1][2])) if n <= len(t["path"]) else "",
+                   % (html.escape(out_name(target)), n, n,
+                      ((" &middot; " + html.escape(t["path"][n - 1][2])) if n <= len(t["path"]) else "") +
+                      (", plus a %d-minute video" % video_minutes(VIDEOS[target]) if target in VIDEOS else ""),
                       html.escape(rel(md, out_name(target))), html.escape(title), inline(text, md)))
     return '<ol class="units">%s</ol>' % "".join(lis)
 
@@ -728,16 +955,17 @@ def ring(label):
             'style="display:none"/></svg><span class="n">%s</span></span>' % label)
 
 
-def outline(md):
+def outline(md, video=False):
     """The left-hand outline: every training, always, so the learner sees the whole programme; the
-    training the page belongs to is open, with its units and their steps. Then the help pages, under More."""
+    training the page belongs to is open, with its units and their steps. Then the help pages, under More.
+    On a video's page (video=True, md its lesson), the video's entry is the current page."""
     t = outline_training(md)
 
     def cur(target):
-        return ' aria-current="page"' if target == md else ""
+        return ' aria-current="page"' if target == md and not video else ""
 
     def link(target, text, count=""):
-        mark = ' aria-current="page"' if target == md else (' aria-current="true"' if count and md in t["recipes"] else "")
+        mark = ' aria-current="page"' if target == md and not video else (' aria-current="true"' if count and md in t["recipes"] else "")
         return '<li><a href="%s"%s>%s%s</a></li>' % (
             html.escape(rel(md, out_name(target))), mark, html.escape(text),
             '<span class="cnt"><span class="sr">, </span>%s</span>' % count if count else "")
@@ -772,12 +1000,19 @@ def outline(md):
                    % (rel(md, out_name(u)), cur(u), ring(n), html.escape(tip), html.escape(name), html.escape(time[:1].upper() + time[1:]), n, html.escape(time),
                       base, base))
             toggle = sub = ""
-            if base:
-                page = "" if here else rel(md, out_name(u))
-                sub = '<ol class="osteps" id="os%d" aria-label="Steps in unit %d">%s</ol>' % (n, n, "".join(
+            # A unit's video is the first entry in its list, before step 1; it has no data-id, so the
+            # outline never marks it as the step being read.
+            entry = ('<li><a class="ostep%s" href="%s"%s><span class="odot" aria-hidden="true"></span>'
+                     '<span class="olab">Video &middot; %d min</span></a></li>'
+                     % (" here" if here and video else "", html.escape(video_href(md, VIDEOS[u])),
+                        ' aria-current="page"' if here and video else "",
+                        video_minutes(VIDEOS[u]))) if u in VIDEOS else ""
+            if base or entry:
+                page = "" if here and not video else rel(md, out_name(u))
+                sub = '<ol class="osteps" id="os%d" aria-label="Steps in unit %d">%s</ol>' % (n, n, entry + "".join(
                     '<li><a class="ostep" href="%s#%s" data-id="%s"><span class="odot" aria-hidden="true"></span>'
                     '<span class="olab">%s</span></a></li>' % (page, i, i, label)
-                    for i, label in steps))
+                    for i, label in (steps if base else [])))
                 toggle = ('<button class="otoggle" type="button" aria-expanded="%s" aria-controls="os%d">'
                           '<span class="sr">Steps in unit %d</span>%s</button>'
                           % ("true" if here else "false", n, n, CHEVRON_SVG))
@@ -813,11 +1048,15 @@ def outline(md):
             '<div class="scrim" id="scrim" aria-hidden="true"></div>' % (close, "".join(trains), block, "".join(lis)))
 
 
-def crumbs(md):
-    """Where the page sits, and, on a training's pages, the learner's place and progress in it."""
+def crumbs(md, video=False):
+    """Where the page sits, and, on a training's pages, the learner's place and progress in it. On a
+    video's page (video=True, md its lesson), the lesson is a link and the trail ends in the video."""
     t = page_training(md)
     items = []
-    if md == "README.md":
+    if video and md == "README.md":
+        items.append('<li class="prog"><a href="%s">%s</a></li>' % (rel(md, "README.html"), html.escape(PROGRAM_NAME)))
+        items.append('<li aria-current="page"><span>Overview video</span></li>')
+    elif md == "README.md":
         items.append('<li aria-current="page"><span>%s</span></li>' % html.escape(PROGRAM_NAME))
     else:
         items.append('<li class="prog"><a href="%s">%s</a></li>' % (rel(md, "README.html"), html.escape(PROGRAM_NAME)))
@@ -827,7 +1066,11 @@ def crumbs(md):
             if md in t["recipes"]:
                 items.append('<li><a href="%s">%s</a></li>' % (rel(md, out_name(index)), html.escape(nav_title(index))))
         name = t["name"] if t and md == t["readme"] else (unit_name(md) if md in UNITS else nav_title(md))
-        items.append('<li aria-current="page"><span>%s</span></li>' % html.escape(name))
+        if video:
+            items.append('<li><a href="%s">%s</a></li>' % (rel(md, out_name(md)), html.escape(name)))
+            items.append('<li aria-current="page"><span>Video</span></li>')
+        else:
+            items.append('<li aria-current="page"><span>%s</span></li>' % html.escape(name))
     pos = ""
     if md in UNITS:
         start = "Unit %d of %d" % (UNITS[md][1], len(t["units"]))
@@ -855,6 +1098,11 @@ def pager(md):
             lbl = ("Next unit: %d of %d &middot; %s" % (UNITS[next_][1], len(t["units"]), html.escape(UNITS[next_][2]))
                    if next_ in UNITS else "Next")
             title, href, btn = (unit_name(next_) if next_ in UNITS else nav_title(next_)), rel(md, out_name(next_)), "Continue"
+            if next_ in UNITS and next_ in VIDEOS:
+                # The next unit's video comes before its steps; the video page's lesson link is the way on.
+                lbl = "Next unit: %d of %d &middot; video %d min, then the steps" % (
+                    UNITS[next_][1], len(t["units"]), video_minutes(VIDEOS[next_]))
+                href = video_href(md, VIDEOS[next_])
         else:
             lbl, title, href, btn = "End of the path", t["name"], rel(md, out_name(t["readme"])), "Back to the training"
         back = ""
@@ -882,7 +1130,9 @@ def pager(md):
         links.append('<a class="prev" href="%s">&lsaquo; Previous: %s</a>' % (rel(md, out_name(prev_)), html.escape(nav_title(prev_))))
     if next_:
         pid = ' id="pager-next"' if t and md == t["readme"] else ""
-        links.append('<a class="next"%s href="%s">Next: %s &rsaquo;</a>' % (pid, rel(md, out_name(next_)), html.escape(nav_title(next_))))
+        # From a training's home, unit 1 starts with its video when it has one.
+        to = video_href(md, VIDEOS[next_]) if pid and next_ in UNITS and next_ in VIDEOS else rel(md, out_name(next_))
+        links.append('<a class="next"%s href="%s">Next: %s &rsaquo;</a>' % (pid, to, html.escape(nav_title(next_))))
     elif t and md in t["recipes"]:
         # The last recipe would otherwise offer only "Previous"; the training's home is where to go next.
         links.append('<a class="next" href="%s">Back to %s &rsaquo;</a>' % (rel(md, out_name(t["readme"])), html.escape(t["name"])))
@@ -907,7 +1157,7 @@ def search_entries(md, title, rest):
         if m:
             anchor, section = m.group(1), re.sub(r"<[^>]+>", "", m.group(2))
             continue
-        text = html.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", part))).strip()
+        text = html.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", re.sub(r"<(style|script)\b.*?</\1>", " ", part, flags=re.S)))).strip()
         if text or section:
             entries.append({"u": out_name(md) + ("#" + anchor if anchor else ""), "t": title,
                             "s": html.unescape(section), "x": text})
@@ -929,7 +1179,7 @@ TEMPLATE = """<!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
 <a class="skip" href="#main">Skip to the page</a>
 <header class="site">
 <button id="menu" class="menu" type="button" aria-controls="side" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Outline</button>
-<a class="brand" href="{home}">{program}</a>
+<a class="brand" href="{home}"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M8 19h4v-4h4v-4h4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>{program}</span></a>
 <div class="search" role="search"><label class="sr" for="q">Search the trainings</label>
 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
 <input id="q" type="search" placeholder="Search" autocomplete="off" aria-controls="results">
@@ -1081,6 +1331,14 @@ def workbook_section(t, md):
     return '<section class="workbook">%s%s</section>' % (acts, "".join(parts))
 
 
+def step_sections(rest):
+    """Each numbered step (an h2 of class "step") and everything up to the next h2, wrapped in a section,
+    so the page can draw the steps as one track with a marker at each. Words and order are unchanged."""
+    parts = re.split(r'(?=<h2[ >])', rest)
+    return "".join('<section class="stepsec">%s</section>\n' % p if re.match(r'<h2 [^>]*class="step"', p) else p
+                   for p in parts)
+
+
 def write(md):
     lines = read(md)
     title = title_of(md)
@@ -1108,7 +1366,22 @@ def write(md):
         n_steps = unit_steps(md)
         size = '<p class="unit">%s%s</p>\n' % (html.escape(UNITS[md][2][:1].upper() + UNITS[md][2][1:]),
                                                 "" if n_steps[0][0] == "unit" else " &middot; " + plural(len(n_steps), "step"))
-    body = "<h1>%s</h1>\n" % inline(title, md) + size + ("" if md in UNITS or landing else inline_toc(rest)) + rest
+    elif t and t["path"] and md == t["readme"]:
+        # A training's home says its level and size once under its title, as a course page does.
+        size = '<p class="unit" data-kind="course"><span class="lvl">%s</span> &middot; %s &middot; %s</p>\n' % (
+            html.escape(t["level"]), plural(len(t["units"]), "unit"), html.escape(t["time"][:1].upper() + t["time"][1:]))
+    # A lesson's video: "Watch this step" under each step, or, while the video is stale, one line under
+    # the title instead. The home page links to the overview's video under its title.
+    v = VIDEOS.get(md)
+    if v and md == "README.md":
+        size += WATCH % (html.escape(video_href(md, v)), "Watch the overview &middot; %d min" % video_minutes(v)) + "\n"
+    elif v and v["stale"]:
+        size += STALE_LINE
+    rest = watch_links(md, rest)
+    # The title and its size are the page's opening, set apart so the eye starts there; a page's
+    # numbered steps each become a section on the step track (see step_sections).
+    body = ('<header class="pagehead"><h1>%s</h1>\n%s</header>\n' % (inline(title, md), size)
+            + ("" if md in UNITS or landing else inline_toc(rest)) + step_sections(rest))
     path = os.path.join(OUT, out_name(md))
     os.makedirs(os.path.dirname(path), exist_ok=True)
     root = rel(md, "x")[:-1]
@@ -1118,12 +1391,89 @@ def write(md):
                                                else "%s - %s" % (title, t["name"] if t else PROGRAM_NAME)),
                           tfolder=html.escape(t["folder"] if t else ""), ofolder=html.escape(ot["folder"] if ot else ""),
                           home=rel(md, "README.html"), nav=outline(md), crumbs=crumbs(md), body=body,
-                          pager=pager(md), foot=page_foot(md), skill=html.escape(SKILL_VERSION), css=CSS, js=JS,
+                          pager=pager(md), foot=page_foot(md), skill=html.escape(SKILL_VERSION), css=CSS + (VIDEO_CSS if VIDEOS else ""), js=JS,
                           steps="1" if md in UNITS else "0", page=html.escape(nav_title(md)),
                           kitopen="1" if KIT_OPEN_IN_ASSISTANT else "0", stuck="1" if STUCK_BUTTON else "0",
                           stuckfrom=str(t["stuck_from"].get(md[len(t["folder"]) + 1:], 1) if t else 1))
     io.open(path, "w", encoding="utf-8", newline="\n").write(doc)
     return body.count('class="prompt'), body.count("prompt frame")
+
+
+VIDEO_PAGE_CSS = r"""
+/* a video's page: the kit's chrome around the video's own page, framed at the column's full width */
+.vidhead.pagehead{margin:0 0 12px;padding:0 0 12px}
+.vidnav{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;margin:0 0 12px}
+.vidnav .prev{font-size:.875rem;color:var(--ink2);text-decoration:none}
+.vidnav .prev:hover{color:var(--accent);text-decoration:underline}
+.vidnav .btn{margin-left:auto;min-height:36px;padding:6px 18px}
+.vidframe{display:block;width:100%;height:600px;border:0;background:var(--bg)}
+/* a short window: the head gives up space so the player's controls and the row above stay in view */
+@media (max-height:720px){main[data-video]{padding-top:12px}.vidhead.pagehead{margin:0 0 8px;padding:0 0 8px}
+.vidhead h1{font-size:1.5rem}.vidhead p.unit{margin-top:2px}.vidnav{margin:0 0 6px}}"""
+VIDEO_PAGE_JS = r"""(function(){
+var f=document.getElementById("vidframe"),base=f.getAttribute("src");
+function scene(){f.src=base+location.hash;}
+if(location.hash) scene();
+window.addEventListener("hashchange",scene);
+function post(){try{f.contentWindow.postMessage({kitViewport:window.innerHeight,
+  kitTop:f.getBoundingClientRect().top+window.scrollY},"*");}catch(e){}}
+f.addEventListener("load",post);
+window.addEventListener("resize",post);
+window.addEventListener("message",function(e){
+  if(e.source!==f.contentWindow||!e.data||typeof e.data.kitVideoHeight!=="number") return;
+  f.style.height=Math.max(600,e.data.kitVideoHeight)+"px";});
+})();"""
+
+
+def write_video(md):
+    """A video's own page in the kit, beside its lesson: the header, breadcrumb and outline, a row with the
+    way back and the way on above the video, the video's page in a frame at the column's width, and the
+    pager below. The frame opens the package's index.html?in=kit, which then shows its player alone."""
+    v = VIDEOS[md]
+    t = page_training(md)
+    kp = v["kitpage"]
+    mins = "Video &middot; %d min" % video_minutes(v)
+    if md == "README.md":
+        meta = mins
+        prev_ = ("All trainings", "README.html")
+        btn = next_ = ("Next: %s" % AVAILABLE[0]["name"], out_name(AVAILABLE[0]["readme"])) if AVAILABLE else None
+    else:
+        meta = ("Unit %d of %d &middot; " % (UNITS[md][1], len(t["units"])) if md in UNITS else "") + mins
+        seq = t["seq"] if t and md in t["seq"] else [md]
+        k = seq.index(md)
+        p = seq[k - 1] if k else (t["readme"] if t else "README.md")
+        prev_ = (("Previous unit: " + unit_name(p)) if p in UNITS else
+                 ("Back to " + t["name"]) if t and p == t["readme"] else ("Previous: " + nav_title(p)), out_name(p))
+        # Said as the video's close says it: a unit with no numbered steps has a page, not written steps.
+        on = "Written steps" if lesson_steps(md) else "The unit's page"
+        btn = ("Next: " + on, out_name(md))
+        next_ = ("Next: %s, %s" % (on, title_of(md)), out_name(md))
+    back = '<a class="prev" href="%s">&lsaquo; %s</a>' % (html.escape(rel(kp, prev_[1])), html.escape(prev_[0]))
+    on = ('<a class="btn" href="%s">%s%s</a>' % (html.escape(rel(kp, btn[1])), html.escape(btn[0]), ARROW_SVG)
+          if btn else "")
+    row = '<nav class="vidnav" aria-label="Before and after this video">%s%s</nav>' % (back, on)
+    frame = ('<iframe id="vidframe" class="vidframe" src="%s?in=kit" title="Video: %s"></iframe>'
+             % (html.escape(rel(kp, v["page"])), html.escape(v["title"])))
+    quiet = ('<nav class="pager" aria-label="Previous and next page"><div class="nextrow quiet">%s%s</div></nav>'
+             % (back, '<a class="next" href="%s">%s &rsaquo;</a>' % (html.escape(rel(kp, next_[1])), html.escape(next_[0]))
+                      if next_ else ""))
+    body = ('<header class="pagehead vidhead"><h1>%s</h1>\n<p class="unit">%s</p>\n</header>\n%s\n%s\n'
+            % (html.escape(v["title"]), meta, row, frame))
+    ot = outline_training(md)
+    # The video's page sits beside its lesson, so the outline and breadcrumb written for the lesson's
+    # folder hold for it too.
+    doc = TEMPLATE.format(source=v["page"].rsplit("/", 1)[0] + "/video.json", title=html.escape(v["title"]),
+                          root=rel(md, "x")[:-1], program=html.escape(PROGRAM_NAME), assistant=html.escape(ASSISTANT),
+                          chat=html.escape(ASSISTANT_CHAT),
+                          tabtitle=html.escape("Video: %s - %s" % (v["title"], t["name"] if t else PROGRAM_NAME)),
+                          tfolder=html.escape(t["folder"] if t else ""), ofolder=html.escape(ot["folder"] if ot else ""),
+                          home=rel(md, "README.html"), nav=outline(md, video=True), crumbs=crumbs(md, video=True),
+                          body=body, pager=quiet, foot=page_foot(md), skill=html.escape(SKILL_VERSION),
+                          css=CSS + VIDEO_CSS + VIDEO_PAGE_CSS, js=JS + "\n" + VIDEO_PAGE_JS, steps="0",
+                          page=html.escape("Video: " + v["title"]), kitopen="1" if KIT_OPEN_IN_ASSISTANT else "0",
+                          stuck="0", stuckfrom="1")
+    doc = doc.replace('<main id="main"', '<main id="main" data-video="1"', 1)
+    io.open(os.path.join(OUT, kp), "w", encoding="utf-8", newline="\n").write(doc)
 
 
 def write_blanks():
@@ -1132,7 +1482,7 @@ def write_blanks():
     for root, _, files in os.walk(KIT):
         for f in sorted(files):
             md = os.path.relpath(os.path.join(root, f), KIT).replace("\\", "/")
-            if not md.endswith(".md") or md.startswith(("maintaining/", OUT_DIR + "/")) or md == "facilitator/BLANKS.md":
+            if not md.endswith(".md") or md.startswith(("maintaining/", OUT_DIR + "/", VIDEOS_DIR + "/")) or md == "facilitator/BLANKS.md":
                 continue
             section = ""
             for n, line in enumerate(read(md), 1):
@@ -1242,7 +1592,7 @@ def write_files_zip():
     with zipfile.ZipFile(os.path.join(OUT, FILES_ZIP), "w", zipfile.ZIP_DEFLATED) as z:
         for root, dirs, files in os.walk(KIT):
             relroot = os.path.relpath(root, KIT).replace(os.sep, "/")
-            dirs[:] = sorted(d for d in dirs if not (relroot == "." and d in ("maintaining", "facilitator", OUT_DIR)))
+            dirs[:] = sorted(d for d in dirs if not (relroot == "." and d in ("maintaining", "facilitator", OUT_DIR, VIDEOS_DIR)))
             for f in sorted(files):
                 z.write(os.path.join(root, f), f if relroot == "." else relroot + "/" + f)
                 count += 1
@@ -1281,8 +1631,13 @@ def main():
         if not t["workbook"]:
             sys.exit("%s has notes or ratings for the learner (%s) but no %s/workbook.md to gather them. Copy the "
                      "starter's getting-started/workbook.md into the folder." % (t["name"], md, t["folder"]))
+    VIDEOS.update(load_videos())
     if os.path.isdir(OUT):
-        shutil.rmtree(OUT)
+        try:
+            shutil.rmtree(OUT)
+        except PermissionError as e:
+            sys.exit("%s is in use, so the pages cannot be rebuilt: %s. Stop the web server or close the program "
+                     "that has it open, then build again: until then its pages are incomplete." % (OUT_DIR, e.filename))
     for md in ORDER:
         PAGE_DATES[md] = git_date(md)
     total = 0
@@ -1292,13 +1647,19 @@ def main():
         print("%-52s %2d prompts (%d to write)" % (out_name(md), n, frames))
     trainings = [{"f": t["folder"], "name": t["name"], "readme": out_name(t["readme"]),
                   "before": [{"u": out_name(b), "name": nav_title(b)} for b in t["before"]],
-                  "units": [{"u": out_name(u), "n": n, "name": unit_name(u),
-                             "steps": [[i, label] for i, label in unit_steps(u) if i != "unit"]}
+                  "units": [dict({"u": out_name(u), "n": n, "name": unit_name(u),
+                                  "steps": [[i, label] for i, label in unit_steps(u) if i != "unit"]},
+                                 **({"v": VIDEOS[u]["kitpage"]} if u in VIDEOS else {}))
                             for n, u in enumerate(t["units"], 1)]} for t in TRAININGS]
     io.open(os.path.join(OUT, "search-index.js"), "w", encoding="utf-8", newline="\n").write(
         "window.KIT_INDEX=" + json.dumps(INDEX, ensure_ascii=False) + ";\n"
         "window.KIT_TRAININGS=" + json.dumps(trainings, ensure_ascii=False) + ";\n")
     print("total prompts: %d; search entries: %d" % (total, len(INDEX)))
+    if VIDEOS:
+        print("videos: %d, %d files copied into %s/%s" % (len(VIDEOS), copy_videos(), OUT_DIR, VIDEOS_DIR))
+        for md in sorted(VIDEOS):
+            write_video(md)
+        print("video pages: %d" % len(VIDEOS))
     if FILES_ZIP:
         print("files zip: %d files in %s" % (write_files_zip(), FILES_ZIP))
     print("blanks still to fill: %d, listed in facilitator/BLANKS.md" % write_blanks())
@@ -1326,302 +1687,370 @@ def main():
         problems = [l for l in r.stdout.splitlines() if not l.startswith("OK")]
         print("\n".join(problems))
         failed = failed or r.returncode != 0 or not problems or not problems[-1].endswith(": 0")
+    stale = sorted(l for l, v in VIDEOS.items() if v["stale"])
+    if STRICT and stale:
+        print("STALE VIDEOS (--strict): %s -> remake each with the explainer skill before a release" % ", ".join(stale))
+        failed = True
     if failed:
         sys.exit("CHECKS FAILED: fix the markdown (never the pages) and build again.")
     print("All checks passed.")
 
 
-CSS = r"""/* One accent (links and where you are), neutrals for everything else, and green only as the small
-   mark on a completed unit. Nothing on the page is louder than the step the reader is doing. */
-:root{--bg:#ffffff;--bg2:#f7f7f7;--surface:#ffffff;--ink:#1b1b1b;--ink2:#4f4f4f;--ink3:#6b6b6b;
---rule:#e6e6e6;--rule2:#cdcdcd;--accent:#0065b3;--accent-ink:#ffffff;--accent-soft:#eef4fa;--ok:#107c10;--ok-ink:#ffffff;
---ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;--mark:#bc4c00;--mark-ink:#ffffff;
---shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.06)}
+CSS = r"""/* A learning site's page: a course outline on the left, a wide reading column, and in it one clear
+   order of attention - the page's title, then each step on a track, then the prompt the learner copies.
+   One accent (links, where you are, what to copy); cool neutrals for everything else; green only as
+   the mark of a completed unit. Colours are tokens, defined for light and redefined for dark. */
+:root{--bg:#fbfcfd;--bg2:#f1f4f7;--surface:#ffffff;--ink:#16202c;--ink2:#3e4a58;--ink3:#5a6676;
+--rule:#e0e5eb;--rule2:#c2cad4;--accent:#1659b7;--accent-ink:#ffffff;--accent-soft:#e9f0fa;--ok:#17763a;--ok-ink:#ffffff;
+--ctl:#7b8594;--blank:#edf0f4;--code:#edf1f5;--focus:#1659b7;--mark:#b44900;--mark-ink:#ffffff;
+--prompt:#eaf1fc;--prompt-edge:#8fb0de;
+--shadow:0 1px 2px rgba(22,32,44,.06),0 6px 20px rgba(22,32,44,.08)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
---bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;--rule:#303030;--rule2:#4a4a4a;
---accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
-:root[data-theme="dark"]{--bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;
---rule:#303030;--rule2:#4a4a4a;--accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
-:root[data-theme="dark"]{color-scheme:dark}:root[data-theme="light"]{color-scheme:light}
-:root{--side:var(--bg2);--cur:var(--accent-soft);--field:var(--ctl);--okink:var(--ok-ink);--hdr:52px;--crb:42px}
+--bg:#11151b;--bg2:#161b22;--surface:#1a2029;--ink:#e4e8ee;--ink2:#b3bcc8;--ink3:#8e99a7;--rule:#272e38;--rule2:#3b4451;
+--accent:#80b3ff;--accent-ink:#0c1320;--accent-soft:#18263a;--ok:#5cbf74;--ok-ink:#0c1320;
+--ctl:#6c7787;--blank:#1f262f;--code:#1f2630;--focus:#80b3ff;--mark:#f08a3c;--mark-ink:#101010;
+--prompt:#142033;--prompt-edge:#33507a;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11151b;--bg2:#161b22;--surface:#1a2029;--ink:#e4e8ee;--ink2:#b3bcc8;--ink3:#8e99a7;
+--rule:#272e38;--rule2:#3b4451;--accent:#80b3ff;--accent-ink:#0c1320;--accent-soft:#18263a;--ok:#5cbf74;--ok-ink:#0c1320;
+--ctl:#6c7787;--blank:#1f262f;--code:#1f2630;--focus:#80b3ff;--mark:#f08a3c;--mark-ink:#101010;
+--prompt:#142033;--prompt-edge:#33507a;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+/* type: the system's own faces, no download. Seven sizes: .8125 .875 1 1.0625 (body) 1.1875 1.5 2.25rem */
+:root{--side:var(--bg2);--cur:var(--accent-soft);--field:var(--ctl);--okink:var(--ok-ink);--hdr:56px;--crb:44px;--col:68rem;
+--f-display:"Segoe UI Variable Display","Segoe UI",SegoeUI,-apple-system,BlinkMacSystemFont,"Helvetica Neue",system-ui,sans-serif;
+--f-text:"Segoe UI Variable Text","Segoe UI",SegoeUI,-apple-system,BlinkMacSystemFont,"Helvetica Neue",system-ui,sans-serif;
+--f-mono:"Cascadia Mono",ui-monospace,Consolas,"SF Mono",Menlo,monospace;
+--i-chat:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4h0A2.5 2.5 0 0 1 4 13.5z' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M8 9h8M8 12h5' stroke='black' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+--i-copy:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='5.5' y='5.5' width='8' height='8' rx='1.5' fill='none' stroke='black' stroke-width='1.5'/%3E%3Cpath d='M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5' fill='none' stroke='black' stroke-width='1.5'/%3E%3C/svg%3E");
+--i-clock:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.25' fill='none' stroke='black' stroke-width='1.5'/%3E%3Cpath d='M8 4.5V8l2.5 1.5' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+--i-pen:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 5l4 4L9 19H5v-4z' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E")}
 *{box-sizing:border-box}
-html{scroll-padding-top:calc(var(--hdr) + var(--crb) + 14px);-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);
-font:1rem/1.65 "Segoe UI",SegoeUI,-apple-system,BlinkMacSystemFont,"Helvetica Neue",system-ui,sans-serif}
-a{color:var(--accent);text-underline-offset:2px}
+html{scroll-padding-top:calc(var(--hdr) + var(--crb) + 16px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.6 var(--f-text)}
+a{color:var(--accent);text-underline-offset:3px;text-decoration-thickness:1px}
 a:hover{text-decoration-thickness:2px}
-:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:2px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:3px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.skip{position:absolute;left:-999px;top:8px;background:var(--surface);padding:6px 10px;z-index:40}
+.skip{position:absolute;left:-999px;top:8px;background:var(--surface);padding:6px 12px;z-index:40}
 .skip:focus{left:8px}
-/* site header: the programme's name and search, and nothing louder */
-.site{position:sticky;top:0;z-index:30;height:var(--hdr);display:flex;align-items:center;gap:14px;padding:0 20px;
+/* site header: the programme's mark and name, search, and the theme switch */
+.site{position:sticky;top:0;z-index:30;height:var(--hdr);display:flex;align-items:center;gap:16px;padding:0 20px;
 background:var(--surface);border-bottom:1px solid var(--rule)}
-.brand{font-weight:600;font-size:1rem;color:var(--ink2);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.brand:hover{color:var(--ink)}
-.menu{display:none;align-items:center;gap:6px;font:inherit;font-size:.875rem;padding:5px 10px;border:1px solid var(--ctl);
-border-radius:4px;background:var(--surface);color:var(--ink2);cursor:pointer;flex:none}
-.search{position:relative;margin-left:auto;width:min(280px,42vw);flex:none}
-.search input{width:100%;height:32px;padding:0 10px 0 30px;font:inherit;font-size:.875rem;color:var(--ink);
-background:var(--bg2);border:1px solid var(--ctl);border-radius:4px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0;font:600 1rem/1.2 var(--f-display);color:var(--ink);text-decoration:none}
+.brand span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand svg{flex:none;width:28px;height:28px;border-radius:8px;background:var(--accent);color:var(--accent-ink)}
+.brand:hover span{text-decoration:underline;text-underline-offset:3px}
+.menu{display:none;align-items:center;gap:8px;font:inherit;font-size:.875rem;font-weight:600;min-height:36px;padding:4px 12px;
+border:1px solid var(--rule2);border-radius:8px;background:var(--surface);color:var(--ink);cursor:pointer;flex:none}
+.menu:hover{border-color:var(--ctl)}
+.search{position:relative;margin-left:auto;width:min(320px,42vw);flex:none}
+.search input{width:100%;height:36px;padding:0 12px 0 34px;font:inherit;font-size:.875rem;color:var(--ink);
+background:var(--bg2);border:1px solid var(--rule2);border-radius:8px}
 .search input::placeholder{color:var(--ink3);opacity:1}
-.search input:hover{border-color:var(--ink3)}
-.search svg{position:absolute;left:10px;top:9px;width:14px;height:14px;color:var(--ink3)}
-.results{position:absolute;right:0;top:38px;width:min(460px,92vw);max-height:70vh;overflow:auto;margin:0;padding:6px;
-list-style:none;z-index:30;background:var(--surface);border:1px solid var(--rule);border-radius:6px;box-shadow:var(--shadow)}
+.search input:hover{border-color:var(--ctl)}
+.search input:focus{background:var(--surface)}
+.search svg{position:absolute;left:12px;top:11px;width:14px;height:14px;color:var(--ink3)}
+.results{position:absolute;right:0;top:44px;width:min(480px,92vw);max-height:70vh;overflow:auto;margin:0;padding:8px;
+list-style:none;z-index:30;background:var(--surface);border:1px solid var(--rule);border-radius:10px;box-shadow:var(--shadow)}
 .results li{margin:0}
-.results li a{display:block;padding:7px 10px;line-height:1.4;border-radius:4px;color:var(--ink);text-decoration:none}
+.results li a{display:block;padding:8px 12px;line-height:1.4;border-radius:6px;color:var(--ink);text-decoration:none}
 .results li a:hover,.results li a:focus{background:var(--accent-soft)}
 .results .rt{font-weight:600;font-size:.875rem}
-.results .rs{font-size:.8rem;color:var(--ink2)}
-.results .none{padding:7px 10px;color:var(--ink2);font-size:.875rem}
-.iconbtn{flex:none;width:32px;height:32px;display:grid;place-items:center;border:1px solid transparent;border-radius:4px;
-background:none;color:var(--ink3);cursor:pointer}
+.results .rs{font-size:.8125rem;color:var(--ink2)}
+.results .none{padding:8px 12px;color:var(--ink2);font-size:.875rem}
+.iconbtn{flex:none;width:36px;height:36px;display:grid;place-items:center;border:1px solid transparent;border-radius:8px;
+background:none;color:var(--ink2);cursor:pointer}
 .iconbtn:hover{background:var(--bg2);color:var(--ink)}
-.iconbtn svg{width:17px;height:17px}
+.iconbtn svg{width:18px;height:18px}
 /* page grid: outline | page */
-.layout{display:grid;grid-template-columns:280px minmax(0,1fr)}
-.content{--gut:clamp(24px,4.5vw,72px);min-width:0}
-/* the outline: one line per unit, a ring that fills when the unit is complete, and space rather than lines */
+.layout{display:grid;grid-template-columns:288px minmax(0,1fr)}
+.content{--gut:clamp(24px,3vw,40px);min-width:0}
+/* the outline: every training, then the current one's units, each one line with a ring that fills when complete */
 .side{position:sticky;top:var(--hdr);align-self:start;height:calc(100vh - var(--hdr));overflow:auto;padding:0 0 32px;
 background:var(--side);border-right:1px solid var(--rule);font-size:.875rem;line-height:1.4}
 .side ol,.side ul{list-style:none;margin:0;padding:0}
 .side li{margin:0}
 .otop{padding:20px 20px 4px}
 .otop .omh{margin:0}
-.side .otrains{padding:0 10px 12px}
-.otrow{display:flex;align-items:baseline;gap:8px;min-height:36px;padding:7px 10px;border-radius:6px;color:var(--ink);text-decoration:none}
-.otrow:hover{background:var(--cur)}
+.side .otrains{padding:0 12px 12px}
+.otrow{display:flex;align-items:baseline;gap:8px;min-height:36px;padding:8px 8px;border-radius:8px;color:var(--ink);text-decoration:none}
+.otrow:hover{background:var(--surface)}
 .otrow .oname{font-weight:500}
-.olevel{margin-left:auto;font-size:.8rem;color:var(--ink3);white-space:nowrap;text-align:right}
-.otrow[aria-current]{background:var(--cur);box-shadow:inset 3px 0 0 var(--accent)}
+.olevel{margin-left:auto;font-size:.8125rem;color:var(--ink3);white-space:nowrap;text-align:right}
+.otrow[aria-current]{background:var(--surface);box-shadow:0 0 0 1px var(--rule)}
 .otrow[aria-current] .oname{color:var(--accent);font-weight:600}
 .ou.later .otrow{color:var(--ink3)}
 .ocur{border-top:1px solid var(--rule);margin-top:4px}
-.ohead{padding:16px 20px 4px}
+.ohead{padding:20px 20px 4px}
 .side .oextras{padding:0 20px 8px}
-.oextras a{display:flex;align-items:center;gap:8px;min-height:36px;padding:6px 10px;margin:0 -10px;border-radius:6px;
+.oextras a{display:flex;align-items:center;gap:8px;min-height:36px;padding:8px 8px;margin:0 -8px;border-radius:8px;
 color:var(--ink2);font-size:.875rem;text-decoration:none}
-.oextras a:hover{background:var(--cur);color:var(--ink)}
+.oextras a:hover{background:var(--surface);color:var(--ink)}
 .oextras a[aria-current]{color:var(--accent);font-weight:600}
-.oextras .cnt{margin-left:auto;font-size:.8rem;color:var(--ink3)}
+.oextras .cnt{margin-left:auto;font-size:.8125rem;color:var(--ink3)}
 .orec .ohd>a{flex:1;min-width:0}
-.orec .otoggle{margin-right:-10px}
+.orec .otoggle{margin-right:-8px}
 .oextras .osteps{padding:0 0 4px}
-.oextras a.ostep{margin:0;padding:6px 10px 6px 4px;align-items:flex-start}
+.oextras a.ostep{margin:0;padding:8px 8px 8px 4px;align-items:flex-start}
 .oextras a.ostep[aria-current] .odot{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 2px var(--side)}
-.otitle{display:block;font-size:1rem;font-weight:600;color:var(--ink);text-decoration:none;line-height:1.3}
+.otitle{display:block;font:600 1rem/1.3 var(--f-display);color:var(--ink);text-decoration:none}
 .otitle:hover{text-decoration:underline}
 .otitle[aria-current]{color:var(--accent)}
-.ototal{margin:2px 0 0;font-size:.8125rem;color:var(--ink3)}
-.obar{height:3px;border-radius:2px;background:var(--rule);overflow:hidden;margin:12px 0 6px}
-.obar span{display:block;height:100%;width:0;background:var(--ink);transition:width .3s}
-.opct{margin:0;font-size:.8rem;color:var(--ink3)}
+.ototal{margin:4px 0 0;font-size:.8125rem;color:var(--ink3)}
+.obar{height:4px;border-radius:2px;background:var(--rule);overflow:hidden;margin:12px 0 8px}
+.obar span{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+.opct{margin:0;font-size:.8125rem;color:var(--ink3)}
 .opct:empty{display:none}
-.ounits{padding:10px 0 6px}
+.ounits{padding:8px 0}
 .ohd{display:flex;align-items:center}
 .orow{flex:1;min-width:0;display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 4px 8px 20px;
 color:var(--ink);text-decoration:none}
 .orow:hover .oname{text-decoration:underline}
 .orow[aria-current] .oname{color:var(--accent)}
-.oring{flex:none;position:relative;width:22px;height:22px}
-.oring svg{display:block;width:22px;height:22px}
+.ou.current>.ohd{background:var(--surface);box-shadow:inset 0 1px 0 var(--rule),inset 0 -1px 0 var(--rule)}
+.oring{flex:none;position:relative;width:24px;height:24px}
+.oring svg{display:block;width:24px;height:24px}
 .oring .trk{fill:none;stroke:var(--ctl);stroke-width:2.5}
-.oring .arc{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-linecap:round;transition:stroke-dasharray .3s}
-.oring .n{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:600;color:var(--ink3)}
+.oring .arc{fill:none;stroke:var(--ok);stroke-width:2.5;stroke-linecap:round;transition:stroke-dasharray .3s}
+.oring .n{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.8125rem;font-weight:600;color:var(--ink2)}
+.ou.current .oring .trk{stroke:var(--accent)}
+.ou.current .oring .n{color:var(--accent)}
 .oring.full{border-radius:50%;background:var(--ok)}
 .oring.full svg{display:none}
-.oring.full .n{color:var(--okink)}
+.oring.full .n,.ou.current .oring.full .n{color:var(--okink)}
 .ou.later .oring{opacity:.55}
 .otext{display:flex;flex-direction:column;min-width:0}
 .oname{font-weight:500;line-height:1.35;overflow-wrap:anywhere}
 .otime{display:block;font-size:.8125rem;font-weight:400;color:var(--ink3);line-height:1.35}
 .ou.current .oname{font-weight:600}
 .ometa{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.otoggle{flex:none;width:36px;height:36px;margin-right:10px;display:flex;align-items:center;justify-content:center;
-border:0;border-radius:6px;background:none;color:var(--ink3);cursor:pointer;opacity:.8}
-.otoggle:hover{background:var(--cur);color:var(--ink);opacity:1}
+.otoggle{flex:none;width:36px;height:36px;margin-right:12px;display:flex;align-items:center;justify-content:center;
+border:0;border-radius:8px;background:none;color:var(--ink3);cursor:pointer}
+.otoggle:hover{background:var(--cur);color:var(--ink)}
 .otoggle svg{width:14px;height:14px;transition:transform .15s}
 .ou.open .otoggle svg{transform:rotate(180deg)}
 .osteps{display:none;padding:0 12px 8px 0}
 .ou.open .osteps{display:block}
-.ostep{position:relative;display:flex;align-items:flex-start;gap:12px;min-height:36px;padding:7px 10px 7px 24px;
-border-radius:0 6px 6px 0;color:var(--ink2);text-decoration:none;font-size:.875rem}
+.ou.current .osteps{background:var(--surface);box-shadow:inset 0 -1px 0 var(--rule)}
+.ostep{position:relative;display:flex;align-items:flex-start;gap:12px;min-height:36px;padding:8px 12px 8px 24px;
+border-radius:0 8px 8px 0;color:var(--ink2);text-decoration:none;font-size:.875rem}
 .ostep:hover{color:var(--ink)}
 .ostep:hover .olab{text-decoration:underline}
-.odot{flex:none;position:relative;width:12px;height:12px;margin:4px 5px 0;border-radius:50%;border:1.5px solid var(--field);
+.odot{flex:none;position:relative;width:12px;height:12px;margin:4px 6px 0;border-radius:50%;border:1.5px solid var(--field);
 background:var(--side)}
+.ou.current .odot{background:var(--surface)}
 .ostep.here{color:var(--accent);font-weight:600}
-.ostep.here .odot{border-color:var(--accent)}
-.ostep.here .odot{background:var(--accent);box-shadow:inset 0 0 0 2px var(--side)}
-.content pre.file{margin:16px 0;padding:14px 16px;overflow-x:auto;background:var(--bg2);border:1px solid var(--rule);border-radius:8px;font:.875rem/1.55 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
-.content pre.file code{background:none;padding:0;font:inherit}
-.content .callout{margin:20px 0;padding:12px 16px;border:1px solid var(--accent);border-left-width:4px;border-radius:6px;background:var(--bg2)}
-.content .callout p{margin:0}
-.content .callout .lbl{color:var(--accent)}
-.omore{margin:18px 20px 0;padding-top:14px;border-top:1px solid var(--rule)}
-.omh{margin:0 0 4px;font-size:.8rem;font-weight:600;color:var(--ink3)}
-.omore a{display:flex;align-items:center;gap:8px;min-height:36px;padding:6px 10px;margin:0 -10px;border-radius:6px;
+.ostep.here .odot,.ou.current .ostep.here .odot{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 2px var(--surface)}
+.omore{margin:20px 20px 0;padding-top:16px;border-top:1px solid var(--rule)}
+.omh{margin:0 0 4px;font-size:.8125rem;font-weight:600;color:var(--ink3)}
+.omore a{display:flex;align-items:center;gap:8px;min-height:36px;padding:8px 8px;margin:0 -8px;border-radius:8px;
 color:var(--ink2);font-size:.875rem;text-decoration:none}
-.omore a:hover{background:var(--cur);color:var(--ink)}
+.omore a:hover{background:var(--surface);color:var(--ink)}
 .omore a[aria-current]{color:var(--accent);font-weight:600}
-.omore .cnt{margin-left:auto;font-size:.8rem;color:var(--ink3)}
+.omore .cnt{margin-left:auto;font-size:.8125rem;color:var(--ink3)}
 .oclose{display:none}
 .scrim{display:none}
-/* breadcrumb strip: where you are, in the page's quietest voice */
+/* breadcrumb strip: where you are, quietly, with the training's progress as a thin line along its foot */
 .crumbs{position:sticky;top:var(--hdr);z-index:18;background:var(--bg);border-bottom:1px solid var(--rule)}
-.crumbs .in{max-width:720px;margin:0 var(--gut);height:var(--crb);display:flex;align-items:center;gap:12px}
-.crumbs ol{display:flex;align-items:center;min-width:0;flex:1;margin:0;padding:0;list-style:none;font-size:.8rem}
+.crumbs .in{max-width:var(--col);margin:0 var(--gut);height:var(--crb);display:flex;align-items:center;gap:12px}
+.crumbs ol{display:flex;align-items:center;min-width:0;flex:1;margin:0;padding:0;list-style:none;font-size:.8125rem}
 .crumbs li{display:flex;align-items:center;min-width:0;margin:0;white-space:nowrap}
 .crumbs li a,.crumbs li span{overflow:hidden;text-overflow:ellipsis}
-.crumbs li a{color:var(--ink2);text-decoration:underline;text-decoration-color:var(--ink3);text-underline-offset:3px}
-.crumbs li a:hover{color:var(--accent);text-decoration-color:currentColor}
-.crumbs li+li::before{content:"";flex:none;width:5px;height:5px;margin:0 9px 0 7px;border-right:1px solid var(--ink3);
-border-top:1px solid var(--ink3);transform:rotate(45deg)}
-.crumbs li[aria-current] span{color:var(--ink3)}
-.unitpos{flex:none;font-size:.8rem;color:var(--ink3);white-space:nowrap}
+.crumbs li a{color:var(--ink2);text-decoration:none}
+.crumbs li a:hover{color:var(--accent);text-decoration:underline}
+.crumbs li+li::before{content:"";flex:none;width:5px;height:5px;margin:0 10px 0 8px;border-right:1.5px solid var(--ctl);
+border-top:1.5px solid var(--ctl);transform:rotate(45deg)}
+.crumbs li[aria-current] span{color:var(--ink);font-weight:600}
+.unitpos{flex:none;font-size:.8125rem;font-weight:600;color:var(--ink2);white-space:nowrap;padding:2px 10px;border-radius:999px;background:var(--bg2);border:1px solid var(--rule)}
+.unitpos.all{color:var(--ok);border-color:var(--ok)}
 .unitpos .short{display:none}
 .line{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:transparent}
-.line span{display:block;height:100%;width:0;background:var(--ink3);transition:width .3s}
-/* the page */
-main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.6}
-main h1{font-size:2rem;line-height:1.25;font-weight:600;letter-spacing:-.01em;margin:8px 0 4px}
-main p.unit{margin:0 0 16px;font-size:.875rem;color:var(--ink3)}
-main > h1 + p:not(.unit),main > p.unit + p{font-size:1.0625rem}
-main h2{font-size:1.4rem;line-height:1.3;font-weight:600;margin:40px 0 8px}
-main h3{font-size:1.125rem;line-height:1.35;font-weight:600;margin:24px 0 8px}
-/* steps: a quiet number, then space; no rule between them */
-main h2.step{display:flex;gap:12px;align-items:baseline;margin-top:40px}
-main h3.step{display:flex;gap:10px;align-items:baseline}
-.step .n{flex:none;display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:13px;
-font-size:.8rem;font-weight:600;border:1.5px solid var(--ctl);color:var(--ink2);transform:translateY(-3px)}
-h3.step .n{min-width:22px;height:22px;font-size:.8rem}
+.line span{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+/* the page: a wide column, set in the body size; the title block opens it */
+main{max-width:var(--col);margin:0 var(--gut);padding:40px 0 80px;font-size:1.0625rem;line-height:1.7}
+.pagehead{margin:0 0 24px;padding:0 0 24px;border-bottom:1px solid var(--rule)}
+main h1{font:650 2.25rem/1.15 var(--f-display);letter-spacing:-.02em;margin:0;text-wrap:balance;color:var(--ink)}
+main p.unit{display:flex;align-items:center;gap:8px;margin:12px 0 0;font-size:.875rem;line-height:1.4;color:var(--ink2)}
+main p.unit::before{content:"";flex:none;width:16px;height:16px;background:var(--ink3);-webkit-mask:var(--i-clock) center/contain no-repeat;mask:var(--i-clock) center/contain no-repeat}
+main p.unit[data-kind="course"]::before{display:none}
+main p.unit .lvl{padding:2px 10px;border-radius:999px;font-size:.8125rem;font-weight:600;line-height:1.5;background:var(--bg2);color:var(--ink2);border:1px solid var(--rule)}
+/* the opening paragraph reads as the page's summary */
+.pagehead + p,.pagehead + details + p{font-size:1.1875rem;line-height:1.6;color:var(--ink2);margin:0 0 8px}
+main h2{font:600 1.5rem/1.3 var(--f-display);letter-spacing:-.01em;margin:48px 0 12px;text-wrap:balance}
+main h3{font:600 1.1875rem/1.35 var(--f-display);margin:32px 0 8px;text-wrap:balance}
+/* steps: one track down the page, a marker at each step heading, no number on screen (numbers belong
+   to the actions inside a step and to the units in the outline); the marker of the step being read fills */
+.stepsec{position:relative;margin:48px 0 0;padding:0 0 0 48px}
+.stepsec::before{content:"";position:absolute;left:11px;top:36px;bottom:0;width:2px;border-radius:1px;background:var(--rule2)}
+.stepsec:has(+ .stepsec)::before{bottom:-44px}
+main .stepsec > h2.step{margin-top:0}
+main h2.step{position:relative}
+main h2.step::before{content:"";position:absolute;left:-48px;top:4px;width:24px;height:24px;border-radius:50%;
+border:2px solid var(--ctl);background:var(--bg)}
+.stepsec.here > h2.step::before{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 4px var(--bg)}
+main h3.step{position:relative}
 main p{margin:16px 0}
-main ul,main ol{padding-left:22px;margin:16px 0}
-main li{margin:6px 0}
+main ul,main ol{padding-left:24px;margin:16px 0}
+main li{margin:8px 0;padding-left:4px}
+main ol > li::marker{font-weight:600;color:var(--ink2)}
 .gap{height:8px}
-code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:.875em;font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
-kbd{border:1px solid var(--field);border-radius:3px;padding:0 4px;font-size:.85em;font-family:inherit}
-main img{max-width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
-main .drawing{display:block;border:1px solid var(--rule);border-radius:6px;padding:8px;font-family:inherit}
+code{background:var(--code);border-radius:4px;padding:1px 6px;font-size:.875em;font-family:var(--f-mono);overflow-wrap:anywhere}
+kbd{border:1px solid var(--field);border-bottom-width:2px;border-radius:4px;padding:0 4px;font-size:.85em;font-family:inherit}
+main img{max-width:100%;height:auto;border:1px solid var(--rule);border-radius:8px}
+main .drawing{display:block;max-width:56rem;margin:20px 0;border:0;padding:0;font-family:inherit}
 main .drawing svg{display:block;max-width:100%;height:auto}
-/* a glossary word: a faint underline, the text's own colour */
-a.gl{color:inherit;text-decoration:underline;text-decoration-color:var(--rule2);text-decoration-thickness:1px;
+main pre.file{margin:20px 0;padding:16px;overflow-x:auto;background:var(--code);border:1px solid var(--rule);border-radius:10px;
+font:.875rem/1.6 var(--f-mono);white-space:pre-wrap;overflow-wrap:anywhere}
+main pre.file code{background:none;padding:0;font:inherit}
+/* a glossary word: a faint dotted underline, the text's own colour */
+a.gl{color:inherit;text-decoration:underline dotted;text-decoration-color:var(--ctl);text-decoration-thickness:1px;
 text-underline-offset:4px;cursor:help}
 a.gl:hover{color:var(--accent);text-decoration-color:var(--accent)}
 /* a blank still to fill: marked as unfinished by a light ground and a dotted line, not a box */
-.org{background:var(--blank);border-bottom:1px dotted var(--ink3);padding:0 3px;color:var(--ink2);
+.org{background:var(--blank);border-bottom:1px dotted var(--ink3);padding:0 4px;color:var(--ink2);
 -webkit-box-decoration-break:clone;box-decoration-break:clone}
-/* a Check: a short label in the body's colour, set off by a thin rule */
-.check{margin:12px 0;padding:0 0 0 16px;border-left:2px solid var(--ctl)}
+/* what the learner copies: the one object on the page with its own ground, edge and button, marked
+   with a chat glyph because it goes into the chat */
+.prompt{position:relative;margin:20px 0;padding:16px 16px 16px 56px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-start;
+background:var(--prompt);border:1px solid var(--prompt-edge);border-radius:12px}
+.prompt::before{content:"";position:absolute;left:18px;top:18px;width:22px;height:22px;background:var(--accent);
+-webkit-mask:var(--i-chat) center/contain no-repeat;mask:var(--i-chat) center/contain no-repeat}
+.prompt .t{flex:1 1 280px;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;color:var(--ink)}
+.prompt .lab{flex-basis:100%;margin:0;font-size:.875rem;font-weight:600;line-height:1.5;color:var(--accent)}
+/* an example to write from, or a prompt not supplied yet: nothing to copy, so no ground and a dashed edge */
+.prompt.frame,.prompt.orgprompt{background:transparent;border-style:dashed;border-color:var(--rule2)}
+.prompt.frame::before,.prompt.orgprompt::before{background:var(--ink3);-webkit-mask-image:var(--i-pen);mask-image:var(--i-pen)}
+.prompt.frame .lab,.prompt.orgprompt .lab{color:var(--ink2)}
+button.copy{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:.875rem;font-weight:600;line-height:1.2;
+min-height:32px;padding:6px 14px;cursor:pointer;border:1px solid var(--accent);background:var(--surface);color:var(--accent);border-radius:8px}
+.prompt button.copy::before{content:"";flex:none;width:14px;height:14px;background:currentColor;
+-webkit-mask:var(--i-copy) center/contain no-repeat;mask:var(--i-copy) center/contain no-repeat}
+button.copy:hover{background:var(--accent);color:var(--accent-ink)}
+button.copy.ok,button.copy.ok:hover{border-color:var(--ok);background:var(--surface);color:var(--ok)}
+/* a Check: a short bold label in the body's colour, set off by a thin rule */
+.check{margin:16px 0;padding:2px 0 2px 16px;border-left:3px solid var(--ctl)}
 .check p{margin:0}
 .check .lbl{font-weight:600;cursor:help}
-.example{margin:12px 0;padding:12px 16px;border-radius:6px;background:var(--bg2)}
-.example .tag{margin:0 0 4px;font-size:.8rem;font-weight:600;color:var(--ink2)}
+.example{margin:16px 0;padding:12px 16px;border-radius:8px;background:var(--bg2)}
+.example .tag{margin:0 0 4px;font-size:.8125rem;font-weight:600;color:var(--ink2)}
 .example p{margin:0}
 .example p.tag{margin:0 0 4px}
+/* Important: rare by design; a framed note with its label in the warning colour */
+main .callout{margin:20px 0;padding:12px 16px;border:1px solid var(--rule2);border-radius:10px;background:var(--surface)}
+main .callout p{margin:0}
+main .callout .lbl{color:var(--mark)}
 .question{font-weight:600}
-details.answer{margin:12px 0;border:1px solid var(--ctl);border-radius:6px;background:var(--surface)}
-details.answer summary{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;list-style:none;
-font-weight:500;color:var(--accent)}
+details.answer{margin:16px 0;border:1px solid var(--ctl);border-radius:10px;background:var(--surface)}
+details.answer summary{display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 16px;cursor:pointer;list-style:none;
+font-weight:600;color:var(--accent)}
 details.answer summary::-webkit-details-marker{display:none}
-details.answer summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+details.answer summary::before{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;
 transform:rotate(-45deg);transition:transform .15s}
 details.answer[open] summary::before{transform:rotate(45deg)}
 details.answer[open] summary{border-bottom:1px solid var(--rule)}
-details.answer .a{padding:4px 14px 10px}
-details.more{margin:8px 0}
-details.more summary{display:inline-flex;align-items:center;gap:8px;cursor:pointer;list-style:none;font-size:.9375rem;
+details.answer .a{padding:4px 16px 12px}
+details.more{margin:12px 0}
+details.more summary{display:inline-flex;align-items:center;gap:8px;min-height:32px;cursor:pointer;list-style:none;font-size:1rem;
 font-weight:500;color:var(--accent)}
 details.more summary::-webkit-details-marker{display:none}
-details.more summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+details.more summary::before{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;
 transform:rotate(-45deg);transition:transform .15s}
 details.more[open] summary::before{transform:rotate(45deg)}
-details.more .m{margin-top:6px;padding-left:14px;border-left:2px solid var(--rule)}
-.prompt{margin:16px 0;background:var(--code);border-radius:6px;
-padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-start}
-.prompt .t{flex:1 1 260px;white-space:pre-wrap;overflow-wrap:anywhere}
-.prompt .lab{flex-basis:100%;margin:0;font-size:.8rem;font-weight:600;color:var(--ink2)}
-.prompt.orgprompt{background:var(--blank)}
-.prompt.frame{background:var(--code)}
-button.copy{font:inherit;font-size:.8rem;font-weight:500;padding:3px 12px;cursor:pointer;border:1px solid var(--ctl);
-background:var(--surface);color:var(--ink2);border-radius:4px}
-button.copy:hover{border-color:var(--ink3);color:var(--ink)}
-button.copy.ok{border-color:var(--ok);color:var(--ok)}
-.tw{overflow-x:auto;margin:16px 0}
-/* tables: rules between rows only */
-table{border-collapse:collapse;width:100%;font-size:1rem}
-th,td{border:0;border-bottom:1px solid var(--rule);padding:6px 12px 6px 0;text-align:left;vertical-align:top}
-thead th{border-bottom:1px solid var(--rule2);font-weight:600;font-size:.875rem;color:var(--ink2)}
+details.more .m{margin-top:8px;padding-left:16px;border-left:2px solid var(--rule)}
+.tw{overflow-x:auto;margin:20px 0;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
+/* tables: a header band, then rules between rows only */
+table{border-collapse:collapse;width:100%;font-size:1rem;line-height:1.55}
+th,td{border:0;border-bottom:1px solid var(--rule);padding:10px 16px;text-align:left;vertical-align:top}
+tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
+thead th{background:var(--bg2);border-bottom:1px solid var(--rule2);font-weight:600;font-size:.875rem;color:var(--ink2)}
 tbody th{font-weight:600}
-.toc-inline{margin:4px 0 18px;padding:8px 14px;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
-.toc-inline summary{cursor:pointer;font-weight:600;font-size:.875rem}
-.toc-inline ul{list-style:none;margin:6px 0 2px;padding:0}.toc-inline li{margin:3px 0}
-.toc-inline li.l3{padding-left:14px}.toc-inline a{text-decoration:none}
+.toc-inline{margin:0 0 24px;padding:8px 16px;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
+.toc-inline summary{cursor:pointer;font-weight:600;font-size:.875rem;min-height:28px;display:flex;align-items:center}
+.toc-inline ul{list-style:none;margin:8px 0 4px;padding:0;font-size:.875rem}.toc-inline li{margin:4px 0;padding:0}
+.toc-inline li.l3{padding-left:16px}.toc-inline a{text-decoration:none}
+.toc-inline a:hover{text-decoration:underline}
 /* a step's footer, where offered: the quiet "stuck" link. Steps are never ticked; a unit is completed by its Continue button */
-.steprow{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:8px 0 0}
-button.stuck{font:inherit;font-size:.8rem;padding:4px 0;border:0;background:none;color:var(--ink2);cursor:pointer;
-text-decoration:underline;text-decoration-color:var(--ink3);text-underline-offset:3px;text-align:left}
+.steprow{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:12px 0 0}
+button.stuck{font:inherit;font-size:.875rem;min-height:28px;padding:4px 0;border:0;background:none;color:var(--ink2);cursor:pointer;
+text-decoration:underline;text-decoration-color:var(--ctl);text-underline-offset:3px;text-align:left}
 button.stuck:hover{color:var(--accent);text-decoration-color:currentColor}
 button.stuck.ok{color:var(--ok);text-decoration:none;font-weight:600}
-/* what comes next */
-.pager{margin:48px 0 0}
-.nextunit{padding:24px 0 0;border-top:1px solid var(--rule)}
-.nextunit .lbl{margin:0 0 4px;font-size:.8rem;color:var(--ink3)}
-.nextunit h2{margin:0 0 16px;font-size:1.2rem;border:0;padding:0}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border-radius:4px;font-weight:600;text-decoration:none;
-background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent)}
-.btn:hover{filter:brightness(1.08);text-decoration:none}
-.btn svg{width:14px;height:14px}
-.nextrow{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center}
+/* what comes next: the end of a unit is one framed block with the Continue button */
+.pager{margin:56px 0 0}
+.nextunit{padding:24px 28px;border:1px solid var(--rule);border-radius:14px;background:var(--surface);box-shadow:var(--shadow)}
+.nextunit .lbl{margin:0 0 4px;font-size:.875rem;color:var(--ink2)}
+main .nextunit h2{margin:0 0 20px;font-size:1.5rem;border:0;padding:0}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 22px;border-radius:8px;font-weight:600;font-size:1rem;line-height:1.2;
+text-decoration:none;background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent)}
+.btn:hover{filter:brightness(1.1);text-decoration:none}
+.btn svg{width:16px;height:16px}
+.nextrow{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:center}
 .nextrow .prev,.nextrow .next{font-size:.875rem;color:var(--ink2);text-decoration:none}
 .nextrow .prev:hover,.nextrow .next:hover{color:var(--accent);text-decoration:underline}
 .nextrow.quiet{padding-top:20px;border-top:1px solid var(--rule)}
 .nextrow.quiet .next{margin-left:auto;font-weight:600;color:var(--accent)}
-.pagefoot{max-width:720px;margin:-40px var(--gut) 0;padding:14px 0 32px;display:flex;flex-wrap:wrap;gap:4px 18px;
-font-size:.8rem;color:var(--ink3)}
+.pagefoot{max-width:var(--col);margin:-48px var(--gut) 0;padding:16px 0 32px;display:flex;flex-wrap:wrap;gap:4px 20px;
+font-size:.8125rem;color:var(--ink3)}
 .pagefoot a{margin-left:auto;color:var(--ink3);text-decoration:none}
 .pagefoot a:hover{color:var(--accent);text-decoration:underline}
-.nudge{margin:14px 0 0;font-size:.8rem;color:var(--ink3)}
+.nudge{margin:16px 0 0;font-size:.875rem;color:var(--ink2)}
 .nudge:empty{display:none}
-button.undo{font:inherit;font-size:inherit;padding:2px 0;margin-left:4px;border:0;background:none;color:var(--ink3);cursor:pointer;
-text-decoration:underline;text-decoration-color:var(--rule2);text-underline-offset:3px}
+button.undo{font:inherit;font-size:inherit;padding:2px 0;margin-left:4px;border:0;background:none;color:var(--ink2);cursor:pointer;
+text-decoration:underline;text-decoration-color:var(--ctl);text-underline-offset:3px}
 button.undo:hover{color:var(--accent);text-decoration-color:currentColor}
-/* a training's home: progress and resume; the programme's list of trainings */
-.course{margin:20px 0 8px;padding:16px 20px 8px;border:1px solid var(--rule);border-radius:8px;background:var(--surface)}
-.course .meta{margin:0;font-size:.875rem;color:var(--ink2)}
-.overall{display:flex;align-items:center;gap:12px;margin:10px 0 0;font-size:.875rem;color:var(--ink2)}
-#overall{white-space:nowrap}
-.bar{flex:0 1 260px;min-width:80px;height:4px;border-radius:2px;background:var(--rule);overflow:hidden}
-.bar span{display:block;height:100%;width:0;background:var(--ink)}
-.cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:16px 0 10px}
-.cta span{color:var(--ink2);font-size:.875rem}
-.units{list-style:none;padding:0;margin:12px 0;display:grid;gap:10px}
+/* the programme's home: its trainings as cards, two to a row, each with its level as a chip */
+.units{list-style:none;padding:0;margin:16px 0}
 main .units{padding-left:0}
-.unitcard{position:relative;margin:0;padding:12px 16px;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
-.unitcard:hover{border-color:var(--rule2)}
-.unitcard a{font-weight:600;font-size:1rem;text-decoration:none}
-.unitcard a::after{content:"";position:absolute;inset:0}
-.unitcard .un{display:block;font-size:.8rem;color:var(--ink3)}
-.unitcard .uo{margin:4px 0;color:var(--ink2);font-size:1rem}
-.unitcard .um{margin:2px 0 0;font-size:.8rem;color:var(--ink3)}
-.unitcard .us{margin:0;font-size:.8rem;color:var(--ink3)}
-.unitcard.done .us{color:var(--ok)}
-/* widths: below about 1000px the outline folds behind the Outline button */
+ul.units{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,26rem),1fr));gap:16px}
+.traincard{position:relative;margin:0;padding:20px 24px;border:1px solid var(--rule);border-radius:12px;background:var(--surface);
+display:flex;flex-direction:column;align-items:flex-start}
+.traincard:hover{border-color:var(--accent)}
+.traincard a{font:600 1.1875rem/1.3 var(--f-display);text-decoration:none;color:var(--ink)}
+.traincard:hover a{color:var(--accent)}
+.traincard a::after{content:"";position:absolute;inset:0;border-radius:12px}
+.traincard .un{display:inline-block;margin:0 0 8px;padding:2px 10px;border-radius:999px;font-size:.8125rem;font-weight:600;line-height:1.5;
+background:var(--bg2);color:var(--ink2);border:1px solid var(--rule)}
+.traincard .uo{margin:8px 0 12px;color:var(--ink2);font-size:1rem;line-height:1.6}
+.traincard .um{margin:auto 0 0;font-size:.8125rem;color:var(--ink3)}
+.traincard .us{margin:12px 0 0;padding:2px 10px;border-radius:999px;border:1px solid var(--rule2);
+font-size:.8125rem;font-weight:600;line-height:1.5;color:var(--ink2)}
+.traincard.going .us{border-color:var(--prompt-edge);background:var(--accent-soft);color:var(--accent)}
+.traincard.done .us{border-color:var(--ok);color:var(--ok)}
+/* a training's home: the path as a sequence - each unit's ring (the outline's ring) on one track, its
+   state as a chip: not started, in progress, completed */
+ol.units{display:grid;gap:0;margin:20px 0 8px}
+.unitcard:not(.traincard){position:relative;margin:0;display:grid;grid-template-columns:36px minmax(0,1fr);column-gap:20px;padding:16px 16px 20px 12px;border-radius:12px}
+.unitcard:not(.traincard):hover{background:var(--surface);box-shadow:0 0 0 1px var(--rule)}
+.unitcard:not(.traincard)::before{content:"";position:absolute;left:29px;top:56px;bottom:-16px;width:2px;background:var(--rule2)}
+.unitcard:not(.traincard):last-child::before{display:none}
+.unitcard > *{grid-column:2}
+.uring{grid-column:1;grid-row:1 / span 4;position:relative;z-index:1;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;
+border:2px solid var(--ctl);background:var(--bg);font-size:.875rem;font-weight:600;color:var(--ink2)}
+.unitcard.going .uring{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.unitcard.done .uring{border-color:var(--ok);background:var(--ok);color:var(--ok-ink);font-size:0}
+.unitcard.done .uring::after{content:"\2713";font-size:1rem}
+.unitcard:not(.traincard) .un{display:block;font-size:.8125rem;color:var(--ink3);line-height:1.5}
+.unitcard:not(.traincard) a{font:600 1.1875rem/1.35 var(--f-display);text-decoration:none;color:var(--ink)}
+.unitcard:not(.traincard):hover a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px}
+.unitcard:not(.traincard) a::after{content:"";position:absolute;inset:0;border-radius:12px}
+.unitcard:not(.traincard) .uo{margin:4px 0 0;color:var(--ink2);font-size:1rem;line-height:1.6}
+.unitcard:not(.traincard) .us{justify-self:start;margin:12px 0 0;padding:2px 10px;border-radius:999px;border:1px solid var(--rule2);
+font-size:.8125rem;font-weight:600;line-height:1.5;color:var(--ink2);background:var(--surface)}
+.unitcard:not(.traincard).going .us{border-color:var(--prompt-edge);background:var(--accent-soft);color:var(--accent)}
+.unitcard:not(.traincard).done .us{border-color:var(--ok);color:var(--ok)}
+/* widths: below 1000px the outline folds behind the Outline button */
 @media (max-width:999.98px){
 .menu{display:inline-flex}
 .layout{grid-template-columns:minmax(0,1fr)}
 .side{position:fixed;left:0;top:var(--hdr);z-index:25;width:min(320px,88vw);transform:translateX(-105%);visibility:hidden;
 transition:transform .2s,visibility .2s;box-shadow:4px 0 16px rgba(0,0,0,.15)}
 body.nav-open .side{transform:none;visibility:visible;transition:transform .2s}
-.scrim{display:block;position:fixed;inset:var(--hdr) 0 0;z-index:24;background:rgba(0,0,0,.35);opacity:0;visibility:hidden;
+.scrim{display:block;position:fixed;inset:var(--hdr) 0 0;z-index:24;background:rgba(0,0,0,.4);opacity:0;visibility:hidden;
 transition:opacity .2s,visibility .2s}
 body.nav-open .scrim{opacity:1;visibility:visible}
 .otop{position:relative;padding-right:56px;min-height:40px}
-.oclose{display:flex;position:absolute;right:10px;top:8px;width:40px;height:40px;align-items:center;justify-content:center;
-border:0;border-radius:6px;background:none;color:var(--ink2);cursor:pointer;font-size:1.4rem;line-height:1}
+.oclose{display:flex;position:absolute;right:12px;top:8px;width:40px;height:40px;align-items:center;justify-content:center;
+border:0;border-radius:8px;background:none;color:var(--ink2);cursor:pointer;font-size:1.5rem;line-height:1}
 .oclose:hover{background:var(--cur);color:var(--ink)}
 }
 @media (max-width:900px){.crumbs li.prog{display:none}.crumbs li.prog+li::before{display:none}
@@ -1629,39 +2058,60 @@ border:0;border-radius:6px;background:none;color:var(--ink2);cursor:pointer;font
 @media (max-width:680px){
 .site{gap:8px;padding:0 12px}
 .search{width:auto;flex:1}
-.results{position:fixed;left:8px;right:8px;top:calc(var(--hdr) - 6px);width:auto}
+.results{position:fixed;left:8px;right:8px;top:calc(var(--hdr) - 4px);width:auto}
 .content{--gut:16px}
-main h1{font-size:1.65rem}
-main h2{font-size:1.25rem;margin-top:32px}
-main h2.step{margin-top:32px}
-main{padding-top:20px}
+main{padding-top:24px;font-size:1rem}
+main h1{font-size:1.5rem}
+main h2{font-size:1.1875rem;margin-top:36px}
+.pagehead + p,.pagehead + details + p{font-size:1.0625rem}
+/* at phone width the text keeps the whole column: the track folds away and the marker sits beside the step's title */
+.stepsec{margin-top:36px;padding-left:0}
+.stepsec::before{display:none}
+main h2.step{padding-left:32px}
+main h2.step::before{left:0;top:3px;width:20px;height:20px}
+.prompt{padding:12px 12px 12px 44px}
+.prompt::before{left:14px;top:15px;width:18px;height:18px}
+/* a long prompt keeps its Copy button on the first screen: the button sits at the top right, the text below it */
+.prompt:has(> button.copy){padding:56px 16px 16px}
+.prompt:has(> button.copy)::before{left:16px;top:20px}
+.prompt:has(> button.copy) > button.copy{position:absolute;top:10px;right:12px}
+/* the current page's name is the title just below; the breadcrumb keeps the way back */
+.crumbs li:not(.prog) + li[aria-current]{display:none}
+.nextunit{padding:20px}
+main .nextunit h2{font-size:1.1875rem}
+.unitcard:not(.traincard){column-gap:16px;padding:12px 8px 16px 4px}
+.unitcard:not(.traincard)::before{left:21px}
+.unitcard:not(.traincard) a,.traincard a{font-size:1.0625rem}
+.traincard{padding:16px 20px}
 }
-@media (max-width:420px){.brand{display:none}}
+@media (max-width:420px){.brand span{display:none}}
 @media (forced-colors:active){.org{border-color:CanvasText}.line span,.obar span{background:Highlight}
 .check{border-color:CanvasText}.ostep.here,.omore a[aria-current],.oextras a[aria-current="page"]{outline:2px solid CanvasText}.oring .arc{stroke:CanvasText}
-.odot{forced-color-adjust:none}}
+.odot,main h2.step::before,.uring{forced-color-adjust:none}
+.prompt::before,main p.unit::before,.prompt button.copy::before{forced-color-adjust:none;background:CanvasText}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 /* notes the learner writes, and how sure they are of each objective: kept in this browser, gathered in the workbook */
-.note{margin:12px 0}
-.note > label{display:block;margin:0 0 6px}
-.note textarea{display:block;width:100%;min-height:76px;padding:8px 10px;font:inherit;line-height:1.5;color:var(--ink);
-background:var(--bg);border:1px solid var(--field);border-radius:4px;resize:vertical}
+.note{margin:16px 0}
+.note > label{display:block;margin:0 0 8px;font-weight:500}
+.note textarea{display:block;width:100%;min-height:76px;padding:8px 12px;font:inherit;line-height:1.5;color:var(--ink);
+background:var(--surface);border:1px solid var(--field);border-radius:8px;resize:vertical}
 .note textarea:hover{border-color:var(--ink3)}
-.kept{margin:4px 0 0;font-size:.8rem;color:var(--ink3)}
-main ul.rates{list-style:none;padding:0;margin:12px 0}
+.kept{margin:4px 0 0;font-size:.8125rem;color:var(--ink3)}
+main ul.rates{list-style:none;padding:0;margin:16px 0}
 .rate{margin:0 0 4px}
-.rate fieldset{margin:0;padding:8px 0;border:0;border-bottom:1px solid var(--rule)}
+main li.rate{padding-left:0}
+.rate fieldset{margin:0;padding:8px 0 12px;border:0;border-bottom:1px solid var(--rule)}
 .rate legend{padding:0;margin:0 0 4px}
 .rate .opts{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:.875rem;color:var(--ink2)}
-.rate .opts label{display:inline-flex;align-items:center;gap:6px;min-height:28px;cursor:pointer}
+.rate .opts label{display:inline-flex;align-items:center;gap:8px;min-height:28px;cursor:pointer}
 .rate input{width:16px;height:16px;margin:0;accent-color:var(--accent)}
 .wbacts{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;margin:20px 0 8px}
 .wbacts button.btn{font:inherit;font-weight:600;cursor:pointer}
-.wbacts button.copy{font-size:.875rem;padding:7px 14px}
+.wbacts button.copy{font-size:.875rem;padding:8px 14px}
 .workbook h3 a{color:inherit;text-decoration:none}
 .workbook h3 a:hover{color:var(--accent);text-decoration:underline}
 @media print{.site,.side,.scrim,.crumbs,.pager,.pagefoot,.steprow,.wbacts,.kept,.skip{display:none!important}
-.layout{display:block}main{max-width:none;margin:0;padding:0}
+.layout{display:block}main{max-width:none;margin:0;padding:0}.stepsec{padding-left:0}.stepsec::before,main h2.step::before{display:none}
 .note textarea{border:0;padding:0;min-height:0;resize:none;overflow:visible}}"""
 
 JS = r"""(function(){
@@ -1738,7 +2188,12 @@ if(main.getAttribute("data-stuck")==="1") steps.forEach(function(h){
     copyText(s,q);
   });
   row.appendChild(s);
-  (next||pagerEl).insertAdjacentElement("beforebegin",row);
+  /* the row ends its own step: before the next heading when it is in the same step section,
+     otherwise at the end of the section the step heading sits in */
+  var box_=h.parentNode;
+  if(next&&next.parentNode===box_) next.insertAdjacentElement("beforebegin",row);
+  else if(box_.classList.contains("stepsec")) box_.appendChild(row);
+  else (next||pagerEl).insertAdjacentElement("beforebegin",row);
 });
 /* progress, kept in this browser only: which units are complete ("kit.complete.<page>") and the last
    page and step read in each training ("kit.last.<training home>"). An earlier build's per-step
@@ -1871,8 +2326,10 @@ function paintUnitCards(){
     pnext(ROOT+lb.u,lb.name);
   }else if(li_>=0||s.done){
     var k=todo.filter(function(k){return k>li_;})[0]; if(k===undefined) k=todo[0];
-    go("Continue with unit "+(k+1),ROOT+T.units[k].u,"Next: "+T.units[k].name);
-    pnext(ROOT+T.units[k].u,T.units[k].name);
+    /* a unit not yet opened starts at its video, when it has one */
+    var nu=T.units[k], nh=ROOT+(nu.v||nu.u);
+    go("Continue with unit "+(k+1),nh,"Next: "+nu.name);
+    pnext(nh,nu.name);
   }else if(ctaStart) go(ctaStart.t,ctaStart.h,ctaStart.n);
   /* a training's home has no start button (its first unit card is the way in): with nothing done,
      there is nothing to repaint, and going on matters, since the outline and search are set up below */
@@ -1953,6 +2410,9 @@ function markHere(){
   if(window.scrollY<=4){at=hereHeads[0];reached=false;}
   hereLinks.forEach(function(a){var on=a.getAttribute("data-id")===at.id;a.classList.toggle("here",on);
     if(on) a.setAttribute("aria-current","location"); else a.removeAttribute("aria-current");});
+  /* the step track's marker for the same step fills, so the page and the outline agree */
+  var atSec=at.closest(".stepsec");
+  [].forEach.call(main.querySelectorAll(".stepsec"),function(sec){sec.classList.toggle("here",sec===atSec);});
   /* remember the step being read, so the training's home can pick up there */
   var h=reached?at.id:"";
   if(HERE&&h!==hereSaved){hereSaved=h;putLast(T,HERE.u,h);}

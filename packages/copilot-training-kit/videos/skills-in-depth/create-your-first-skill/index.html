@@ -1,0 +1,987 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Create your first skill</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+
+:root {
+
+  --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+  --serif: Georgia, "Times New Roman", serif;
+}
+
+:root {
+  --bg: #fbfcfd;
+  --bg2: #f1f4f7;
+  --surface: #ffffff;
+  --ink: #16202c;
+  --ink2: #3e4a58;
+  --ink3: #5a6676;
+  --rule: #e0e5eb;
+  --rule2: #c2cad4;
+  --accent: #1659b7;
+  --accent-soft: #e9f0fa;
+  --accent-ink: #ffffff;
+  --ctl: #7b8594;
+  --mark: #b44900;
+  --mark-ink: #ffffff;
+  --good: #2E7D55;
+  --bad: #B33A2E;
+  --shadow: 0 1px 2px rgb(20 23 28 / .06), 0 8px 28px -12px rgb(20 23 28 / .22);
+  --console-bg: #1B1E23;
+  --console-fg: #F2F1ED;
+  --console-dim: #A3A9B0;
+  --console-line: #33383F;
+  --console-hover: #2A2F36;
+  --track-rest: #666C75;
+  --paper: var(--surface);
+  --muted: var(--ink3);
+  --line: var(--rule2);
+  --line-soft: var(--rule);
+  --hover: var(--bg2);
+  --caution: var(--mark);
+  --caution-ui: var(--mark);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b;
+    --bg2: #161b22;
+    --surface: #1a2029;
+    --ink: #e4e8ee;
+    --ink2: #b3bcc8;
+    --ink3: #8e99a7;
+    --rule: #272e38;
+    --rule2: #3b4451;
+    --accent: #80b3ff;
+    --accent-soft: #18263a;
+    --accent-ink: #0c1320;
+    --ctl: #6c7787;
+    --mark: #f08a3c;
+    --mark-ink: #101010;
+    --good: #5FBF8C;
+    --bad: #E0847A;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 30px -14px rgb(0 0 0 / .7);
+    --console-bg: #111418;
+    --console-fg: #ECEEF1;
+    --console-dim: #9AA1A9;
+    --console-line: #2B3037;
+    --console-hover: #222830;
+    --track-rest: #5E646C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b;
+  --bg2: #161b22;
+  --surface: #1a2029;
+  --ink: #e4e8ee;
+  --ink2: #b3bcc8;
+  --ink3: #8e99a7;
+  --rule: #272e38;
+  --rule2: #3b4451;
+  --accent: #80b3ff;
+  --accent-soft: #18263a;
+  --accent-ink: #0c1320;
+  --ctl: #6c7787;
+  --mark: #f08a3c;
+  --mark-ink: #101010;
+  --good: #5FBF8C;
+  --bad: #E0847A;
+  --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 30px -14px rgb(0 0 0 / .7);
+  --console-bg: #111418;
+  --console-fg: #ECEEF1;
+  --console-dim: #9AA1A9;
+  --console-line: #2B3037;
+  --console-hover: #222830;
+  --track-rest: #5E646C;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 64px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: var(--tw, 1480px); margin: 0 auto; }
+
+.theater {
+  display: grid; justify-content: center; gap: 12px 20px;
+  grid-template-columns: var(--pw, minmax(0, 1fr));
+}
+@media (min-width: 960px) {
+  .theater { grid-template-columns: var(--pw, minmax(0, 1fr)) var(--sw, 360px); }
+}
+.head {
+  grid-column: 1 / -1; min-width: 0;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 18px;
+}
+h1 {
+  font-family: var(--display); font-weight: 650; font-size: 22px; line-height: 1.2;
+  letter-spacing: -.012em; margin: 0; text-wrap: balance;
+}
+.meta {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0;
+  font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.meta span + span::before {
+  content: ""; display: inline-block; width: 3px; height: 3px; border-radius: 50%;
+  background: currentColor; vertical-align: middle; margin: 0 14px 0 0; opacity: .7;
+  position: relative; top: -1px;
+}
+
+.player {
+  min-width: 0; border-radius: 12px; overflow: hidden;
+  background: var(--console-bg); box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+.stage { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: var(--paper); }
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage svg text { font-family: var(--sans); }
+.stage svg text.mono { font-family: var(--mono); }
+.stage svg text.serif { font-family: var(--serif); }
+
+.poster { position: absolute; inset: 0; display: block; border: 0; background: transparent; cursor: pointer; padding: 0; }
+
+.poster[hidden] { display: none; }
+
+.poster span svg { position: static; inset: auto; width: 14px; height: 14px; }
+.poster span {
+  position: absolute; left: 50%; top: 79%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 10px; white-space: nowrap;
+  background: var(--ink); color: var(--paper);
+  font-size: 15px; font-weight: 600; padding: 12px 22px 12px 18px;
+  border-radius: 999px; box-shadow: 0 4px 18px rgb(0 0 0 / .28);
+  transition: transform .15s ease;
+}
+.poster:hover span { transform: translate(-50%, -50%) scale(1.04); }
+
+.console { background: var(--console-bg); color: var(--console-fg); }
+
+.caption {
+  display: flex; gap: 14px; padding: 14px 20px 12px; min-height: 104px;
+  align-items: flex-start; overflow-y: auto;
+}
+.caption .rule { flex: 0 0 3px; align-self: stretch; background: var(--caution-ui); border-radius: 2px; }
+.caption p {
+  font-size: clamp(16px, 1.6vw, 19px); font-weight: 450;
+  line-height: 1.5; margin: 0; min-width: 0; max-width: 62ch; text-wrap: pretty;
+}
+.caption[hidden] { display: none !important; }
+
+.transport {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 10px 10px; border-top: 1px solid var(--console-line); flex-wrap: wrap;
+}
+.transport .grp { display: flex; align-items: center; gap: 2px; flex: none; }
+.transport button {
+  background: transparent; border: 0; color: var(--console-fg);
+  border-radius: 8px; cursor: pointer; display: grid; place-items: center;
+  width: 34px; height: 34px; padding: 0; flex: none;
+}
+.transport button:hover { background: var(--console-hover); }
+.transport button:focus-visible, .poster:focus-visible span,
+.jump:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; }
+.transport button[aria-pressed="false"] { color: var(--console-dim); }
+.transport button.play {
+  background: var(--console-fg); color: var(--console-bg);
+  width: 38px; height: 38px; border-radius: 50%; margin-right: 4px;
+}
+.transport button.play:hover { background: var(--console-fg); opacity: .88; }
+.transport button.wide {
+  width: auto; min-width: 36px; padding: 0 8px;
+  font-size: 12px; font-weight: 700; font-family: var(--sans); letter-spacing: .02em;
+}
+.transport svg { width: 16px; height: 16px; fill: currentColor; }
+
+.track { position: relative; flex: 1 1 140px; min-width: 90px; height: 34px; display: flex; align-items: center; margin: 0 8px; }
+.track input { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; margin: 0; height: 34px; position: relative; z-index: 2; cursor: pointer; }
+
+.track input {
+  --fill: 0%;
+  --played: linear-gradient(to right, var(--console-fg) var(--fill), var(--track-rest) var(--fill));
+}
+.track input::-webkit-slider-runnable-track { height: 5px; background: var(--played); border-radius: 3px; }
+.track input::-moz-range-track { height: 5px; background: var(--played); border-radius: 3px; }
+.track input::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--console-fg); border: 0; margin-top: -4px; box-shadow: 0 0 0 3px var(--console-bg); }
+.track input::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: var(--console-fg); border: 0; box-shadow: 0 0 0 3px var(--console-bg); }
+.track input:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 1px; border-radius: 4px; }
+
+.ticks { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.ticks i { position: absolute; top: 50%; width: 2px; height: 5px; margin: -2.5px 0 0 -1px; background: var(--console-bg); }
+.readout { font-size: 12.5px; color: var(--console-dim); white-space: nowrap; font-variant-numeric: tabular-nums; flex: none; margin-right: 6px; }
+
+.side {
+  position: relative; min-width: 0; min-height: 0;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+}
+.side-in { position: absolute; inset: 0; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; }
+@media (max-width: 959.98px) {
+  .side-in { position: static; }
+  .tpanel { max-height: 22rem; }
+}
+.panelhead {
+  display: flex; align-items: baseline; gap: 10px; flex: none;
+  padding: 13px 16px 11px; border-bottom: 1px solid var(--line-soft);
+}
+.panelhead h2 { font-family: var(--display); font-size: 15px; font-weight: 650; margin: 0; }
+.panelhead .how { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+.tpanel {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 8px 12px; scrollbar-width: thin;
+}
+.tpanel:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: -2px; }
+
+ol.transcript, ol.lines { list-style: none; margin: 0; padding: 0; }
+ol.lines { display: grid; gap: 2px; }
+.scn + .scn { border-top: 1px solid var(--line-soft); margin-top: 6px; }
+.scn-h {
+  position: sticky; top: 0; z-index: 1; background: var(--surface);
+  margin: 0; padding: 12px 10px 6px;
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 12.5px; font-weight: 650; color: var(--ink);
+}
+.scn-h span { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.jump {
+  display: grid; grid-template-columns: 38px 1fr; gap: 10px; width: 100%;
+  text-align: left; border: 0; background: transparent; font: inherit;
+  cursor: pointer; padding: 7px 10px; border-radius: 8px; color: var(--ink);
+}
+
+.jump { scroll-margin-top: 36px; }
+.jump:hover { background: var(--hover); }
+.jump:focus-visible { outline-offset: -2px; }
+.jump[data-on="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--caution-ui); }
+.jump .tc { font-size: 12px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.jump:hover .tc { color: var(--accent); }
+.jump[data-on="true"] .tc { color: var(--ink); font-weight: 600; }
+.jump .line { font-size: 14.5px; line-height: 1.55; min-width: 0; }
+
+.about {
+  max-width: 68rem; margin: 36px 0 0;
+  display: grid; gap: 14px;
+}
+.about h2 { font-family: var(--display); font-size: 23px; font-weight: 650; margin: 0; letter-spacing: -.005em; }
+.standfirst { font-size: 18px; line-height: 1.5; margin: 0; color: var(--ink); }
+.summary { font-size: 16px; line-height: 1.7; margin: 0; color: var(--ink); }
+.summary b, .parts b { font-weight: 650; }
+.parts { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.parts li { font-size: 16px; line-height: 1.6; padding-left: 18px; position: relative; }
+.parts li::before { content: ""; position: absolute; left: 2px; top: .7em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+.using {
+  margin: 14px 0 0; padding: 18px 20px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line-soft);
+  display: grid; gap: 12px;
+}
+.using h3 { font-size: 14px; font-weight: 650; margin: 0; }
+.keys { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 10px 24px; }
+.keys div { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.keys dt { flex: none; }
+.keys dd { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink); min-width: 0; }
+kbd {
+  display: inline-block; min-width: 26px; padding: 2px 7px; text-align: center;
+  font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
+}
+kbd.arrow { font-size: 15px; line-height: 17px; padding: 1px 6px; }
+.note { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.note code { font-family: var(--mono); font-size: .92em; color: var(--ink); }
+.note b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 700px) { .caption { min-height: 132px; } .meta { font-size: 12.5px; } }
+@media (max-width: 460px) {
+  .caption { min-height: 160px; padding: 12px 14px 10px; }
+  .readout { font-size: 11.5px; }
+  h1 { font-size: 19px; }
+  .standfirst { font-size: 17px; }
+}
+@media (hover: none) and (pointer: coarse) { .keys { display: none; } }
+@media (prefers-reduced-motion: reduce) { .poster span { transition: none; } }
+
+.lessonlink { margin: 0 0 8px; font-size: 14px; line-height: 1.4; }
+.lessonlink a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.lessonlink a:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; border-radius: 2px; }
+
+.ticks i.ch { height: 13px; margin-top: -6.5px; width: 3px; margin-left: -1.5px; }
+.scn + .chap { border-top: 1px solid var(--line); margin-top: 6px; }
+.chap-h {
+  margin: 0; padding: 14px 10px 2px;
+  font-family: var(--display); font-size: 13.5px; font-weight: 650; color: var(--accent);
+}
+
+.inkit body { padding-block: 0 16px; }
+.inkit .lessonlink, .inkit .head { display: none; }
+
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<script>if (/[?&]in=kit(&|$)/.test(location.search) && window.parent !== window) document.documentElement.className += " inkit";</script>
+
+<div class="wrap">
+ <nav class="lessonlink" aria-label="This lesson"><a href="../../../skills-in-depth/create-your-first-skill.html">Written steps: Create your first skill <span aria-hidden="true">&rsaquo;</span></a></nav>
+ <div class="theater">
+  <div class="head">
+    <h1>Create your first skill</h1>
+    <p class="meta"><span>Video</span><span id="meta-scenes"></span><span id="meta-len"></span></p>
+  </div>
+
+  <div class="player">
+    <div class="stage">
+      <svg id="stage" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Animated video: Create your first skill. The narration is written out in the transcript."></svg>
+      <button class="poster" id="poster" type="button" aria-label="Play video">
+        <span><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>Play video</span>
+      </button>
+    </div>
+
+    <div class="console">
+      <div class="caption" id="caption">
+        <div class="rule"></div>
+        <p id="captiontext"></p>
+      </div>
+      <div class="transport">
+        <div class="grp">
+          <button class="play" id="playbtn" type="button" aria-label="Play">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>
+          </button>
+          <button id="prev" type="button" aria-label="Previous scene">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h2v11h-2zM13.5 2.5v11L5.5 8z"/></svg>
+          </button>
+          <button id="next" type="button" aria-label="Next scene">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 2.5h2v11h-2zM2.5 2.5v11L10.5 8z"/></svg>
+          </button>
+        </div>
+        <div class="track">
+          <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Scene">
+          <div class="ticks" id="ticks"></div>
+        </div>
+        <span class="readout" id="readout"></span>
+        <div class="grp">
+          <button id="sound" type="button" aria-label="Narration sound, on"></button>
+          <button class="wide" id="cc" type="button" aria-label="CC, captions on" aria-pressed="true">CC</button>
+          <button class="wide" id="speed" type="button" aria-label="1x, playback speed">1x</button>
+          <button id="replay" type="button" aria-label="Replay from the start">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.6V0L4.4 3 8 6V3.6a4.4 4.4 0 1 1-4.4 4.4h-1A5.4 5.4 0 1 0 8 2.6z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side" aria-labelledby="transcript-h">
+   <div class="side-in">
+    <div class="panelhead">
+      <h2 id="transcript-h">Transcript</h2>
+      <span class="how">Click a line to play from it</span>
+    </div>
+    <div class="tpanel" id="p-transcript" tabindex="0" aria-label="Transcript lines">
+      <ol class="transcript" id="transcript"></ol>
+    </div>
+   </div>
+  </aside>
+ </div>
+
+ <section class="about" aria-labelledby="about-h">
+  <h2 id="about-h">About this video</h2>
+  <p class="standfirst">The unit's steps, narrated: ask for a meeting summary with every instruction typed out, have Copilot save those instructions as a skill, and get the same summary by asking in one line. Pause where the video says, do the step on your computer, then play on.</p>
+  <p class="summary">This video walks through the unit's four written steps. If your screen doesn't match, the written steps say what to do.</p>
+  <ol class="summary">
+    <li>Have Copilot create practice meeting notes in a new folder, then open the folder and trust it.</li>
+    <li>Ask for a meeting summary, with every instruction typed out.</li>
+    <li>Have Copilot save those instructions as a skill, and open its file.</li>
+    <li>Start a new chat, and ask for the summary in one line.</li>
+  </ol>
+
+  <div class="using">
+   <h3>Using the player</h3>
+   <dl class="keys">
+    <div><dt><kbd>Space</kbd></dt><dd>Play or pause</dd></div>
+    <div><dt><kbd class="arrow">&larr;</kbd> <kbd class="arrow">&rarr;</kbd></dt><dd>Go to the previous or next scene</dd></div>
+    <div><dt><kbd>C</kbd></dt><dd>Captions on or off, when you are using the player</dd></div>
+   </dl>
+   <p class="note">The progress bar moves one scene at a time. With the sound off, read the captions; the video stops after each scene until you press play.</p>
+  </div>
+ </section>
+</div>
+<script>
+(function () {
+  "use strict";
+
+  var PAPER = "var(--paper)";
+
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var RAMP = reduce ? 0.12 : 0.25;
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  var MAX_LEAD = 1.2;
+  var TIMING = {
+    "open": { dur: 32.28, starts: [1.3, 5.647, 10.463, 13.785, 19.236, 22.921, 26.436], pre: [1.3, 0.4, 0.4, 0.4, 2.4, 0.4, 0.4] },
+    "notes": { dur: 44.008, starts: [1.3, 6.948, 13.108, 17.455, 22.569, 31.135, 37.444, 40.361], pre: [1.3, 0.4, 0.4, 0.4, 0.4, 2.4, 0.4, 0.4] },
+    "open-folder": { dur: 36.637, starts: [1.3, 4.239, 7.284, 10.777, 14.868, 20.324, 25.887], pre: [1.3, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4] },
+    "notes-check": { dur: 19.389, starts: [1.3, 6.004, 11.225, 14.484], pre: [1.3, 2.4, 0.4, 0.4] },
+    "summarize": { dur: 22.12, starts: [1.3, 5.519, 11.679, 14.447, 18.047], pre: [1.3, 0.4, 0.4, 0.4, 0.4] },
+    "summarize-check": { dur: 19.469, starts: [1.3, 6.047, 9.284, 11.924, 14.735], pre: [1.3, 2.4, 0.4, 0.4, 0.4] },
+    "save": { dur: 41.005, starts: [1.3, 6.201, 12.361, 17.519, 22.164, 30.132, 35.844], pre: [1.3, 0.4, 0.4, 0.4, 0.4, 2.4, 0.4] },
+    "save-check": { dur: 27.704, starts: [1.3, 6.985, 10.009, 14.761, 20.452], pre: [1.3, 2.4, 0.4, 0.4, 0.4] },
+    "again": { dur: 20.669, starts: [1.3, 5.497, 11.375, 13.609], pre: [1.3, 0.4, 2.4, 0.4] },
+    "again-check": { dur: 23.197, starts: [1.3, 7.071, 10.308, 12.948, 15.759, 18.057], pre: [1.3, 2.4, 0.4, 0.4, 0.4, 0.4] },
+    "close": { dur: 17.352, starts: [1.3, 7.929, 11.38], pre: [1.3, 0.4, 0.4] }
+  };
+
+  var ANIM = reduce
+    ? { fade: [0, 0], up: [0, 0], right: [0, 0], left: [0, 0] }
+    : { fade: [0, 0], up: [0, 16], right: [-16, 0], left: [16, 0] };
+
+  var S = [{"id":"open","lines":[{"caption":"A skill saves your instructions for a task, so you don't type them again."},{"caption":"In this unit, you ask for a meeting summary, with every instruction typed out."},{"caption":"You have Copilot save those instructions as a skill."},{"caption":"Then you get the same summary by asking in one line."},{"caption":"Start with VS Code open, and the chat set to Agent."},{"caption":"Each request is shown on screen, and in the written steps."},{"caption":"Where the video says pause, stop it, do the step on your computer, and then play on."}],"beats":[{"line":1,"anim":"up","svg":"<rect x=\"100\" y=\"136\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"134\" y=\"179\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Ask for a meeting summary<\/text>"},{"line":2,"anim":"up","svg":"<rect x=\"100\" y=\"236\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"134\" y=\"279\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Save those instructions as a skill<\/text>"},{"line":3,"anim":"up","svg":"<rect x=\"100\" y=\"336\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"134\" y=\"379\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Get the same summary<\/text>"}],"title":"What you'll do"},{"id":"notes","lines":[{"caption":"First, have Copilot create meeting notes to practice on, in a new folder for this training."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."},{"caption":"It asks for a folder named skills-practice, in your Documents folder."},{"caption":"In it, a folder named notes, with three short, made-up notes from a team meeting."},{"caption":"It also tells Copilot not to change the folder if it exists, and to add or change no other file."},{"caption":"If a permission request appears, look at what it's about to do. If it matches what you asked, select Allow."},{"caption":"Gray bars stand for text you don't need to read."},{"caption":"Pause the video now, and send the request."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc2\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc2)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"176\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"189\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"218\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 221v5M30.0 223h5\"/><rect class=\"dg-p\" x=\"45\" y=\"212\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 218.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"220\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"212\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"220\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"2.2\"/><path d=\"M421 229l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(-2.81 -4.99) scale(2.0992)\"><clipPath id=\"kc1\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"242\"/><\/clipPath><g clip-path=\"url(#kc1)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"228\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Create a new folder named skills-practice in the folder<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">Windows uses as my Documents folder, which may be under<\/text><text class=\"dg-t\" x=\"29\" y=\"73\">OneDrive.<\/text><text class=\"dg-t\" x=\"29\" y=\"91\">If that folder already exists, don't change it; tell me<\/text><text class=\"dg-t\" x=\"29\" y=\"109\">instead.<\/text><text class=\"dg-t\" x=\"29\" y=\"127\">In it, create a folder named notes with three short,<\/text><text class=\"dg-t\" x=\"29\" y=\"145\">made-up notes from a weekly team meeting.<\/text><text class=\"dg-t\" x=\"29\" y=\"163\">Each note lists what was decided, and the actions with an<\/text><text class=\"dg-t\" x=\"29\" y=\"181\">owner and a due date.<\/text><text class=\"dg-t\" x=\"29\" y=\"199\">Add or change no other file.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"221\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 224v5M30.0 226h5\"/><rect class=\"dg-p\" x=\"45\" y=\"215\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 221.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"223\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"215\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"223\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"226\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"226\" r=\"2.2\"/><path d=\"M421 232l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":5.09,"outLine":2,"anim":"fade","svg":"<rect x=\"800\" y=\"446\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"800\" y=\"440\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"870\" y=\"486\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"},{"line":2,"plus":1.62,"outLine":2,"outPlus":2.94,"anim":"fade","svg":"<g transform=\"translate(-2.81 -4.99) scale(2.0992)\"><clipPath id=\"kc3\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"242\"/><\/clipPath><g clip-path=\"url(#kc3)\"><text class=\"dg-t\" x=\"29\" y=\"37\"><tspan style=\"fill:transparent\">Create a new folder named <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">skills-practice<\/tspan><tspan style=\"fill:transparent\"> in the folder<\/tspan><\/text><\/g><\/g>"},{"line":2,"plus":2.94,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(-2.81 -4.99) scale(2.0992)\"><clipPath id=\"kc4\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"242\"/><\/clipPath><g clip-path=\"url(#kc4)\"><text class=\"dg-t\" x=\"29\" y=\"55\"><tspan style=\"fill:transparent\">Windows uses as my <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">Documents<\/tspan><tspan style=\"fill:transparent\"> folder, which may be under<\/tspan><\/text><\/g><\/g>"},{"line":3,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(-2.81 -4.99) scale(2.0992)\"><clipPath id=\"kc5\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"242\"/><\/clipPath><g clip-path=\"url(#kc5)\"><text class=\"dg-t\" x=\"29\" y=\"127\"><tspan style=\"fill:transparent\">In it, create a <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">folder named notes with three short,<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"145\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">made-up notes<\/tspan><tspan style=\"fill:transparent\"> from a weekly team meeting.<\/tspan><\/text><\/g><\/g>"},{"line":4,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(-2.81 -4.99) scale(2.0992)\"><clipPath id=\"kc6\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"242\"/><\/clipPath><g clip-path=\"url(#kc6)\"><text class=\"dg-t\" x=\"29\" y=\"91\"><tspan style=\"fill:transparent\">If that folder already exists, <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">don&#x27;t change it; tell me<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"109\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">instead.<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"199\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">Add or change no other file.<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><\/g><\/g>"},{"line":5,"outLine":7,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc7\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc7)\"><rect class=\"dg-w\" x=\"20\" y=\"106\" width=\"420\" height=\"150\" rx=\"7\"/>\n<path class=\"dg-ic\" d=\"M38 128l5 5-5 5M48 140h9\"/>\n<rect class=\"dg-b2\" x=\"66\" y=\"129\" width=\"180\" height=\"9\" rx=\"2\"/>\n<rect class=\"dg-c\" x=\"38\" y=\"156\" width=\"384\" height=\"28\" rx=\"4\"/><rect class=\"dg-b2\" x=\"50\" y=\"166\" width=\"210\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-btn\" x=\"38\" y=\"204\" width=\"88\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"52\" y=\"223\">Allow<\/text>\n<line class=\"dg-btnl\" x1=\"100\" y1=\"208\" x2=\"100\" y2=\"228\"/><path class=\"dg-btnl\" d=\"M107 215l5 5 5-5\" style=\"stroke-width:1.6\"/>\n<rect class=\"dg-p\" x=\"134\" y=\"204\" width=\"58\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"148\" y=\"215\" width=\"29\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":5,"plus":5.26,"outLine":6,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc8\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc8)\"><rect class=\"dg-m\" x=\"34\" y=\"200\" width=\"96\" height=\"36\" rx=\"5\"/><\/g><\/g>"},{"line":7,"anim":"up","svg":"<rect x=\"232\" y=\"210\" width=\"496\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"272\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"294\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"332\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request<\/text>"}],"title":"Have Copilot create practice meeting notes"},{"id":"open-folder","lines":[{"caption":"Next, open the new folder in VS Code."},{"caption":"Select the File menu, and then Open Folder."},{"caption":"In the window that opens, select Documents on the left."},{"caption":"Select skills-practice, and then select the button Select Folder."},{"caption":"By default, the folder opens in Restricted Mode, with a bar at the top that says so."},{"caption":"On the Restricted Mode bar, select Manage. On the Workspace Trust page, select Trust."},{"caption":"If VS Code instead asks whether you trust the authors, leave the box about the parent folder unticked. Then select the button Yes, I trust the authors."}],"beats":[{"line":0,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(17.65 8) scale(1.9265)\"><clipPath id=\"kc9\"><rect x=\"0\" y=\"0\" width=\"480\" height=\"272\"/><\/clipPath><g clip-path=\"url(#kc9)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"470\" height=\"290\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"468\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"52\" y=\"18\" width=\"24\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"88\" y=\"18\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"152\" y=\"18\" width=\"28\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"192\" y=\"18\" width=\"16\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"220\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"254\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"314\" y=\"18\" width=\"26\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M412 20h9M432 15h9v9h-9zM452 15l9 9M461 15l-9 9\"/><\/g><\/g>"},{"line":1,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(17.65 8) scale(1.9265)\"><clipPath id=\"kc10\"><rect x=\"0\" y=\"0\" width=\"480\" height=\"272\"/><\/clipPath><g clip-path=\"url(#kc10)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"470\" height=\"290\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"468\" height=\"30\" rx=\"7\"/><rect class=\"dg-tn\" x=\"12\" y=\"10\" width=\"34\" height=\"22\" rx=\"4\"/><text class=\"dg-t\" x=\"18\" y=\"26\" style=\"font-size:12px\">File<\/text><rect class=\"dg-b\" x=\"52\" y=\"18\" width=\"24\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"88\" y=\"18\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"152\" y=\"18\" width=\"28\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"192\" y=\"18\" width=\"16\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"220\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"254\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"314\" y=\"18\" width=\"26\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M412 20h9M432 15h9v9h-9zM452 15l9 9M461 15l-9 9\"/><rect class=\"dg-w\" x=\"12\" y=\"34\" width=\"220\" height=\"232\" rx=\"6\"/><rect class=\"dg-b\" x=\"26\" y=\"51\" width=\"96\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"71\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"91\" width=\"120\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"20\" y1=\"108\" x2=\"224\" y2=\"108\"/><rect class=\"dg-b\" x=\"26\" y=\"120\" width=\"84\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"140\" width=\"110\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"16\" y=\"153\" width=\"212\" height=\"20\" rx=\"4\"/><text class=\"dg-t\" x=\"26\" y=\"168\" style=\"font-size:12px\">Open Folder<\/text><rect class=\"dg-b\" x=\"26\" y=\"180\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"200\" width=\"100\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"20\" y1=\"217\" x2=\"224\" y2=\"217\"/><rect class=\"dg-b\" x=\"26\" y=\"229\" width=\"76\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"249\" width=\"118\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":1.63,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(17.65 8) scale(1.9265)\"><clipPath id=\"kc11\"><rect x=\"0\" y=\"0\" width=\"480\" height=\"272\"/><\/clipPath><g clip-path=\"url(#kc11)\"><rect class=\"dg-m\" x=\"16\" y=\"153\" width=\"212\" height=\"20\" rx=\"5\"/><\/g><\/g>"},{"line":2,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(76.8 18) scale(1.26)\"><clipPath id=\"kc12\"><rect x=\"0\" y=\"0\" width=\"640\" height=\"400\"/><\/clipPath><g clip-path=\"url(#kc12)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"390\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"70\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M610 16l9 9M619 16l-9 9\"/><path class=\"dg-ic\" d=\"M24 51l-5 5 5 5M19 56h12M48 61l5-5-5-5M53 56H41M66 60v-8M62 56l4-4 4 4\"/><rect class=\"dg-w\" x=\"86\" y=\"44\" width=\"380\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"96\" y=\"53\" width=\"130\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"476\" y=\"44\" width=\"150\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"500\" y=\"53\" width=\"80\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"16\" y=\"82\" width=\"54\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"86\" y=\"82\" width=\"60\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"98\" x2=\"634\" y2=\"98\"/><line class=\"dg-l\" x1=\"176\" y1=\"98\" x2=\"176\" y2=\"330\"/><rect class=\"dg-b\" x=\"22\" y=\"110\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"113\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"132\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"135\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"158\" x2=\"166\" y2=\"158\"/><rect class=\"dg-b\" x=\"22\" y=\"162\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"165\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"184\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"187\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"201\" width=\"162\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"206\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"216\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"228\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"231\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"250\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"253\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"272\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"275\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"194\" y=\"112\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"420\" y=\"112\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"186\" y1=\"122\" x2=\"626\" y2=\"122\"/><path class=\"dg-ic\" d=\"M196.0 132.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"135\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"135\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"188\" y=\"150\" width=\"436\" height=\"22\" rx=\"4\"/><path class=\"dg-ic\" d=\"M196.0 156.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"222\" y=\"166\">skills-practice<\/text><rect class=\"dg-b\" x=\"420\" y=\"159\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 180.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"183\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"183\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 204.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"207\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"207\" width=\"92\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"330\" x2=\"634\" y2=\"330\"/><rect class=\"dg-b\" x=\"24\" y=\"351\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"80\" y=\"340\" width=\"300\" height=\"26\" rx=\"4\"/><text class=\"dg-t\" x=\"90\" y=\"358\">skills-practice<\/text><rect class=\"dg-btn\" x=\"400\" y=\"340\" width=\"120\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"414\" y=\"359\">Select Folder<\/text><rect class=\"dg-p\" x=\"530\" y=\"340\" width=\"92\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"550\" y=\"351\" width=\"52\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":2,"outLine":3,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM80.9 261.5V308.8H302V261.5Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M318 285.1L296 285.1\"/><rect x=\"318\" y=\"243.5\" width=\"414.4\" height=\"83.2\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(306.8 -223.7) scale(2.4)\"><clipPath id=\"ki13\"><rect x=\"8\" y=\"198\" width=\"166\" height=\"28\"/><\/clipPath><g clip-path=\"url(#ki13)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"390\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"70\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M610 16l9 9M619 16l-9 9\"/><path class=\"dg-ic\" d=\"M24 51l-5 5 5 5M19 56h12M48 61l5-5-5-5M53 56H41M66 60v-8M62 56l4-4 4 4\"/><rect class=\"dg-w\" x=\"86\" y=\"44\" width=\"380\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"96\" y=\"53\" width=\"130\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"476\" y=\"44\" width=\"150\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"500\" y=\"53\" width=\"80\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"16\" y=\"82\" width=\"54\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"86\" y=\"82\" width=\"60\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"98\" x2=\"634\" y2=\"98\"/><line class=\"dg-l\" x1=\"176\" y1=\"98\" x2=\"176\" y2=\"330\"/><rect class=\"dg-b\" x=\"22\" y=\"110\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"113\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"132\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"135\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"158\" x2=\"166\" y2=\"158\"/><rect class=\"dg-b\" x=\"22\" y=\"162\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"165\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"184\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"187\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"201\" width=\"162\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"206\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"216\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"228\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"231\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"250\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"253\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"272\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"275\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"194\" y=\"112\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"420\" y=\"112\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"186\" y1=\"122\" x2=\"626\" y2=\"122\"/><path class=\"dg-ic\" d=\"M196.0 132.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"135\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"135\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"188\" y=\"150\" width=\"436\" height=\"22\" rx=\"4\"/><path class=\"dg-ic\" d=\"M196.0 156.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"222\" y=\"166\">skills-practice<\/text><rect class=\"dg-b\" x=\"420\" y=\"159\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 180.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"183\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"183\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 204.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"207\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"207\" width=\"92\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"330\" x2=\"634\" y2=\"330\"/><rect class=\"dg-b\" x=\"24\" y=\"351\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"80\" y=\"340\" width=\"300\" height=\"26\" rx=\"4\"/><text class=\"dg-t\" x=\"90\" y=\"358\">skills-practice<\/text><rect class=\"dg-btn\" x=\"400\" y=\"340\" width=\"120\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"414\" y=\"359\">Select Folder<\/text><rect class=\"dg-p\" x=\"530\" y=\"340\" width=\"92\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"550\" y=\"351\" width=\"52\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":3,"outLine":3,"outPlus":2.23,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM305.2 197.2V244.5H576.7V197.2Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M440.9 260.5L440.9 238.5\"/><rect x=\"185.7\" y=\"260.5\" width=\"510.4\" height=\"83.2\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-252.7 -84.3) scale(2.4)\"><clipPath id=\"ki14\"><rect x=\"186\" y=\"147\" width=\"206\" height=\"28\"/><\/clipPath><g clip-path=\"url(#ki14)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"390\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"70\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M610 16l9 9M619 16l-9 9\"/><path class=\"dg-ic\" d=\"M24 51l-5 5 5 5M19 56h12M48 61l5-5-5-5M53 56H41M66 60v-8M62 56l4-4 4 4\"/><rect class=\"dg-w\" x=\"86\" y=\"44\" width=\"380\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"96\" y=\"53\" width=\"130\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"476\" y=\"44\" width=\"150\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"500\" y=\"53\" width=\"80\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"16\" y=\"82\" width=\"54\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"86\" y=\"82\" width=\"60\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"98\" x2=\"634\" y2=\"98\"/><line class=\"dg-l\" x1=\"176\" y1=\"98\" x2=\"176\" y2=\"330\"/><rect class=\"dg-b\" x=\"22\" y=\"110\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"113\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"132\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"135\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"158\" x2=\"166\" y2=\"158\"/><rect class=\"dg-b\" x=\"22\" y=\"162\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"165\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"184\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"187\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"201\" width=\"162\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"206\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"216\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"228\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"231\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"250\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"253\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"272\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"275\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"194\" y=\"112\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"420\" y=\"112\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"186\" y1=\"122\" x2=\"626\" y2=\"122\"/><path class=\"dg-ic\" d=\"M196.0 132.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"135\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"135\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"188\" y=\"150\" width=\"436\" height=\"22\" rx=\"4\"/><path class=\"dg-ic\" d=\"M196.0 156.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"222\" y=\"166\">skills-practice<\/text><rect class=\"dg-b\" x=\"420\" y=\"159\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 180.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"183\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"183\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 204.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"207\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"207\" width=\"92\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"330\" x2=\"634\" y2=\"330\"/><rect class=\"dg-b\" x=\"24\" y=\"351\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"80\" y=\"340\" width=\"300\" height=\"26\" rx=\"4\"/><text class=\"dg-t\" x=\"90\" y=\"358\">skills-practice<\/text><rect class=\"dg-btn\" x=\"400\" y=\"340\" width=\"120\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"414\" y=\"359\">Select Folder<\/text><rect class=\"dg-p\" x=\"530\" y=\"340\" width=\"92\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"550\" y=\"351\" width=\"52\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":3,"plus":2.23,"outLine":4,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM567.2 432.8V495.2H745.6V432.8Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M656.4 416.8L656.4 438.8\"/><rect x=\"490\" y=\"304.8\" width=\"332.8\" height=\"112\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-447.6 -488.8) scale(2.4)\"><clipPath id=\"ki15\"><rect x=\"394\" y=\"334\" width=\"132\" height=\"40\"/><\/clipPath><g clip-path=\"url(#ki15)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"390\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"70\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M610 16l9 9M619 16l-9 9\"/><path class=\"dg-ic\" d=\"M24 51l-5 5 5 5M19 56h12M48 61l5-5-5-5M53 56H41M66 60v-8M62 56l4-4 4 4\"/><rect class=\"dg-w\" x=\"86\" y=\"44\" width=\"380\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"96\" y=\"53\" width=\"130\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"476\" y=\"44\" width=\"150\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"500\" y=\"53\" width=\"80\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"16\" y=\"82\" width=\"54\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"86\" y=\"82\" width=\"60\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"98\" x2=\"634\" y2=\"98\"/><line class=\"dg-l\" x1=\"176\" y1=\"98\" x2=\"176\" y2=\"330\"/><rect class=\"dg-b\" x=\"22\" y=\"110\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"113\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"132\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"135\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"158\" x2=\"166\" y2=\"158\"/><rect class=\"dg-b\" x=\"22\" y=\"162\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"165\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"184\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"187\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"201\" width=\"162\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"206\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"216\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"228\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"231\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"250\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"253\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"272\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"275\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"194\" y=\"112\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"420\" y=\"112\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"186\" y1=\"122\" x2=\"626\" y2=\"122\"/><path class=\"dg-ic\" d=\"M196.0 132.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"135\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"135\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"188\" y=\"150\" width=\"436\" height=\"22\" rx=\"4\"/><path class=\"dg-ic\" d=\"M196.0 156.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"222\" y=\"166\">skills-practice<\/text><rect class=\"dg-b\" x=\"420\" y=\"159\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 180.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"183\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"183\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 204.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"207\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"207\" width=\"92\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"330\" x2=\"634\" y2=\"330\"/><rect class=\"dg-b\" x=\"24\" y=\"351\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"80\" y=\"340\" width=\"300\" height=\"26\" rx=\"4\"/><text class=\"dg-t\" x=\"90\" y=\"358\">skills-practice<\/text><rect class=\"dg-btn\" x=\"400\" y=\"340\" width=\"120\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"414\" y=\"359\">Select Folder<\/text><rect class=\"dg-p\" x=\"530\" y=\"340\" width=\"92\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"550\" y=\"351\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-m\" x=\"397\" y=\"337\" width=\"126\" height=\"34\" rx=\"5\"/><\/g><\/g>"},{"line":4,"outLine":5,"outPlus":4.44,"anim":"fade","svg":"<g transform=\"translate(7.25 182.2) scale(1.3507)\"><clipPath id=\"kc16\"><rect x=\"5\" y=\"5\" width=\"690\" height=\"120\"/><\/clipPath><g clip-path=\"url(#kc16)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"200\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"20\" y=\"19\" width=\"257\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"6\" y=\"36\" width=\"688\" height=\"28\" rx=\"0\"/><path class=\"dg-ic\" d=\"M22 41l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10v-5z\"/><text class=\"dg-t\" x=\"38\" y=\"55\" style=\"font-size:12px\">Restricted Mode<\/text><rect class=\"dg-b\" x=\"140\" y=\"49\" width=\"340\" height=\"6\" rx=\"2\"/><text class=\"dg-t\" x=\"500\" y=\"55\" style=\"font-size:12px\">Manage<\/text><line x1=\"500\" y1=\"58\" x2=\"541\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><rect class=\"dg-b\" x=\"560\" y=\"48\" width=\"66\" height=\"7\" rx=\"2\"/><line x1=\"560\" y1=\"58\" x2=\"620\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><path class=\"dg-ic\" d=\"M668 45l8 8M676 45l-8 8\"/><rect class=\"dg-c\" x=\"6\" y=\"64\" width=\"34\" height=\"140\" rx=\"0\"/><g transform=\"translate(0 30)\"><path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/><circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/><circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/><path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/><path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/><\/g><line class=\"dg-l\" x1=\"241\" y1=\"64\" x2=\"241\" y2=\"204\"/><rect class=\"dg-b\" x=\"51\" y=\"77\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M52.0 101.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"62\" y=\"101\" width=\"106\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":4,"outLine":5,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM17.5 226.2V273.3H202.4V226.2Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M109.9 289.3L109.9 267.3\"/><rect x=\"10\" y=\"289.3\" width=\"323.2\" height=\"78.4\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-10.8 208.5) scale(2.4)\"><clipPath id=\"ki17\"><rect x=\"12\" y=\"37\" width=\"128\" height=\"26\"/><\/clipPath><g clip-path=\"url(#ki17)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"200\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"20\" y=\"19\" width=\"257\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"6\" y=\"36\" width=\"688\" height=\"28\" rx=\"0\"/><path class=\"dg-ic\" d=\"M22 41l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10v-5z\"/><text class=\"dg-t\" x=\"38\" y=\"55\" style=\"font-size:12px\">Restricted Mode<\/text><rect class=\"dg-b\" x=\"140\" y=\"49\" width=\"340\" height=\"6\" rx=\"2\"/><text class=\"dg-t\" x=\"500\" y=\"55\" style=\"font-size:12px\">Manage<\/text><line x1=\"500\" y1=\"58\" x2=\"541\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><rect class=\"dg-b\" x=\"560\" y=\"48\" width=\"66\" height=\"7\" rx=\"2\"/><line x1=\"560\" y1=\"58\" x2=\"620\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><path class=\"dg-ic\" d=\"M668 45l8 8M676 45l-8 8\"/><rect class=\"dg-c\" x=\"6\" y=\"64\" width=\"34\" height=\"140\" rx=\"0\"/><g transform=\"translate(0 30)\"><path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/><circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/><circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/><path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/><path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/><\/g><line class=\"dg-l\" x1=\"241\" y1=\"64\" x2=\"241\" y2=\"204\"/><rect class=\"dg-b\" x=\"51\" y=\"77\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M52.0 101.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"62\" y=\"101\" width=\"106\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":5,"outLine":5,"outPlus":4.44,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM663.1 224.8V276H761.6V224.8Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M712.3 292L712.3 270\"/><rect x=\"621.1\" y=\"292\" width=\"182.4\" height=\"91.4\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-644.9 206.4) scale(2.6)\"><clipPath id=\"ki18\"><rect x=\"490\" y=\"36\" width=\"64\" height=\"29\"/><\/clipPath><g clip-path=\"url(#ki18)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"200\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"20\" y=\"19\" width=\"257\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"6\" y=\"36\" width=\"688\" height=\"28\" rx=\"0\"/><path class=\"dg-ic\" d=\"M22 41l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10v-5z\"/><text class=\"dg-t\" x=\"38\" y=\"55\" style=\"font-size:12px\">Restricted Mode<\/text><rect class=\"dg-b\" x=\"140\" y=\"49\" width=\"340\" height=\"6\" rx=\"2\"/><text class=\"dg-t\" x=\"500\" y=\"55\" style=\"font-size:12px\">Manage<\/text><line x1=\"500\" y1=\"58\" x2=\"541\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><rect class=\"dg-b\" x=\"560\" y=\"48\" width=\"66\" height=\"7\" rx=\"2\"/><line x1=\"560\" y1=\"58\" x2=\"620\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><path class=\"dg-ic\" d=\"M668 45l8 8M676 45l-8 8\"/><rect class=\"dg-c\" x=\"6\" y=\"64\" width=\"34\" height=\"140\" rx=\"0\"/><g transform=\"translate(0 30)\"><path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/><circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/><circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/><path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/><path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/><\/g><line class=\"dg-l\" x1=\"241\" y1=\"64\" x2=\"241\" y2=\"204\"/><rect class=\"dg-b\" x=\"51\" y=\"77\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M52.0 101.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"62\" y=\"101\" width=\"106\" height=\"7\" rx=\"2\"/><rect class=\"dg-m\" x=\"493\" y=\"39\" width=\"58\" height=\"23\" rx=\"5\"/><\/g><\/g>"},{"line":5,"plus":4.44,"outLine":6,"anim":"fade","svg":"<g transform=\"translate(12.77 8) scale(1.7467)\"><clipPath id=\"kc19\"><rect x=\"0\" y=\"0\" width=\"535\" height=\"300\"/><\/clipPath><g clip-path=\"url(#kc19)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"525\" height=\"290\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"523\" height=\"30\" rx=\"7\"/><rect class=\"dg-w\" x=\"10\" y=\"10\" width=\"150\" height=\"26\" rx=\"4\"/><path class=\"dg-ic\" d=\"M22 15l6 2.5v4.5c0 4-2.5 6.5-6 8-3.5-1.5-6-4-6-8v-4.5z\"/><rect class=\"dg-b\" x=\"36\" y=\"21\" width=\"90\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M44 58l14 6v10c0 9-6 15-14 18-8-3-14-9-14-18v-10z\"/><rect class=\"dg-b2\" x=\"76\" y=\"62\" width=\"220\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"76\" y=\"84\" width=\"380\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"76\" y=\"98\" width=\"300\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"30\" y=\"124\" width=\"230\" height=\"156\" rx=\"6\"/><rect class=\"dg-b2\" x=\"46\" y=\"140\" width=\"150\" height=\"8\" rx=\"2\"/><rect class=\"dg-b\" x=\"46\" y=\"162\" width=\"170\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"46\" y=\"178\" width=\"148\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"46\" y=\"194\" width=\"126\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"46\" y=\"210\" width=\"170\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"275\" y=\"124\" width=\"230\" height=\"156\" rx=\"6\"/><rect class=\"dg-b2\" x=\"291\" y=\"140\" width=\"150\" height=\"8\" rx=\"2\"/><rect class=\"dg-b\" x=\"291\" y=\"162\" width=\"170\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"291\" y=\"178\" width=\"148\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"291\" y=\"194\" width=\"126\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"291\" y=\"210\" width=\"170\" height=\"6\" rx=\"2\"/><rect class=\"dg-btn\" x=\"46\" y=\"238\" width=\"80\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"60\" y=\"257\">Trust<\/text><rect class=\"dg-p\" x=\"291\" y=\"238\" width=\"104\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"305\" y=\"249\" width=\"76\" height=\"6\" rx=\"2\"/><rect class=\"dg-m\" x=\"42\" y=\"234\" width=\"88\" height=\"36\" rx=\"5\"/><\/g><\/g>"},{"line":6,"anim":"fade","svg":"<g transform=\"translate(14.3 17.74) scale(1.9404)\"><clipPath id=\"kc20\"><rect x=\"5\" y=\"5\" width=\"470\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc20)\"><rect class=\"dg-c\" x=\"5\" y=\"5\" width=\"470\" height=\"250\" rx=\"8\" style=\"stroke:var(--rule2,#cdcdcd);stroke-width:1.5\"/>\n<rect class=\"dg-w\" x=\"30\" y=\"30\" width=\"420\" height=\"190\" rx=\"8\"/>\n<path class=\"dg-ic\" d=\"M60 50l12 5v9c0 8-5 13-12 16-7-3-12-8-12-16v-9z\"/>\n<rect class=\"dg-b2\" x=\"88\" y=\"54\" width=\"250\" height=\"10\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"88\" y=\"80\" width=\"320\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"88\" y=\"95\" width=\"290\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"88\" y=\"110\" width=\"210\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-p\" x=\"88\" y=\"124\" width=\"11\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"106\" y=\"127\" width=\"230\" height=\"6\" rx=\"2\"/>\n<rect class=\"dg-btn\" x=\"128\" y=\"150\" width=\"172\" height=\"48\" rx=\"5\"/><text class=\"dg-btnt\" x=\"142\" y=\"170\">Yes, I trust the authors<\/text>\n<rect x=\"142\" y=\"180\" width=\"140\" height=\"6\" rx=\"2\" style=\"fill:var(--accent-ink,#fff);fill-opacity:.55\"/>\n<rect class=\"dg-p\" x=\"308\" y=\"150\" width=\"130\" height=\"48\" rx=\"5\"/><rect class=\"dg-b2\" x=\"320\" y=\"163\" width=\"100\" height=\"8\" rx=\"2\"/><rect class=\"dg-b\" x=\"320\" y=\"180\" width=\"90\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":6,"plus":3.36,"outLine":6,"outPlus":6.4,"anim":"fade","svg":"<g transform=\"translate(14.3 17.74) scale(1.9404)\"><clipPath id=\"kc21\"><rect x=\"5\" y=\"5\" width=\"470\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc21)\"><rect class=\"dg-m\" x=\"84\" y=\"120\" width=\"19\" height=\"19\" rx=\"5\"/><\/g><\/g>"},{"line":6,"plus":6.4,"anim":"fade","svg":"<g transform=\"translate(14.3 17.74) scale(1.9404)\"><clipPath id=\"kc22\"><rect x=\"5\" y=\"5\" width=\"470\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc22)\"><rect class=\"dg-m\" x=\"122\" y=\"144\" width=\"184\" height=\"60\" rx=\"5\"/><\/g><\/g>"}],"title":"Open the folder, and trust it"},{"id":"notes-check","lines":[{"caption":"Pause the video now, and open the folder."},{"caption":"Look for this: the list on the left shows SKILLS-PRACTICE, with notes in it."},{"caption":"And the control at the bottom of the chat box says Agent."},{"caption":"If it says something else, the written steps show how to select Agent."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"239.5\" y=\"210\" width=\"481\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"279.5\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"301.5\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"339.5\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> open the folder<\/text>"},{"line":1,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(156 78) scale(2.4)\"><clipPath id=\"kc23\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"160\"/><\/clipPath><g clip-path=\"url(#kc23)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"260\" height=\"150\" rx=\"8\"/><rect class=\"dg-b\" x=\"15\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M16.0 42.5l3.7 3.7 3.7 -3.7\"/><text class=\"dg-tb\" x=\"26.1\" y=\"49\" style=\"font-size:12px\">SKILLS-PRACTICE<\/text><path class=\"dg-ic\" d=\"M29.0 62.0l4.0 4.0 -4.0 4.0\"/><text class=\"dg-t\" x=\"39.0\" y=\"71\">notes<\/text><\/g><\/g>"},{"line":1,"plus":2.2,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(156 78) scale(2.4)\"><clipPath id=\"kc24\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"160\"/><\/clipPath><g clip-path=\"url(#kc24)\"><rect class=\"dg-m\" x=\"10\" y=\"34\" width=\"170\" height=\"44\" rx=\"5\"/><path d=\"M190.0 60.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"},{"line":2,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc25\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc25)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"170\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"183\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"212\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 215v5M30.0 217h5\"/><rect class=\"dg-p\" x=\"45\" y=\"206\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 212.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"68\" y=\"221\" style=\"font-size:12px\">Agent<\/text><rect class=\"dg-p\" x=\"122\" y=\"206\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"214\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"2.2\"/><path d=\"M421 223l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":2,"plus":2.03,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc26\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc26)\"><rect class=\"dg-m\" x=\"41\" y=\"202\" width=\"79\" height=\"30\" rx=\"5\"/><path d=\"M148.0 197.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: the folder is open, with notes in it"},{"id":"summarize","lines":[{"caption":"Next, ask for a meeting summary, with every instruction typed out."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."},{"caption":"It asks Copilot to lead with the decisions."},{"caption":"Then to list the actions, each with its owner and due date."},{"caption":"And after each item, to name the note it came from."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc28\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc28)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"176\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"189\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"218\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 221v5M30.0 223h5\"/><rect class=\"dg-p\" x=\"45\" y=\"212\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 218.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"220\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"212\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"220\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"2.2\"/><path d=\"M421 229l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(-5.09 107.6) scale(2.1091)\"><clipPath id=\"kc27\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"134\"/><\/clipPath><g clip-path=\"url(#kc27)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"120\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Summarize the meeting notes in the notes folder.<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">Lead with the decisions.<\/text><text class=\"dg-t\" x=\"29\" y=\"73\">Then list the actions, each with its owner and due date.<\/text><text class=\"dg-t\" x=\"29\" y=\"91\">After each item, name the note it came from.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"113\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 116v5M30.0 118h5\"/><rect class=\"dg-p\" x=\"45\" y=\"107\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 113.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"115\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"107\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"115\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"118\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"118\" r=\"2.2\"/><path d=\"M421 124l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":5.09,"outLine":2,"anim":"fade","svg":"<rect x=\"410\" y=\"446\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"410\" y=\"440\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"480\" y=\"486\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(-5.09 107.6) scale(2.1091)\"><clipPath id=\"kc29\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"134\"/><\/clipPath><g clip-path=\"url(#kc29)\"><text class=\"dg-t\" x=\"29\" y=\"55\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">Lead with the decisions.<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><\/g><\/g>"},{"line":3,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(-5.09 107.6) scale(2.1091)\"><clipPath id=\"kc30\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"134\"/><\/clipPath><g clip-path=\"url(#kc30)\"><text class=\"dg-t\" x=\"29\" y=\"73\"><tspan style=\"fill:transparent\">Then <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">list the actions, each with its owner and due date.<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><\/g><\/g>"},{"line":4,"anim":"fade","svg":"<g transform=\"translate(-5.09 107.6) scale(2.1091)\"><clipPath id=\"kc31\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"134\"/><\/clipPath><g clip-path=\"url(#kc31)\"><text class=\"dg-t\" x=\"29\" y=\"91\"><tspan style=\"fill:transparent\">After each item, <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">name the note it came from.<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><\/g><\/g>"}],"title":"Ask for a meeting summary without a skill"},{"id":"summarize-check","lines":[{"caption":"Pause the video now, and send the request."},{"caption":"Look for this: the summary leads with the decisions."},{"caption":"Each action has an owner and a due date."},{"caption":"And each item names the note it came from."},{"caption":"Without a skill, you'd type all those instructions every time."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"232\" y=\"210\" width=\"496\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"272\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"294\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"332\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(125.94 8.3) scale(1.5394)\"><clipPath id=\"kc32\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"330\"/><\/clipPath><g clip-path=\"url(#kc32)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"330\" rx=\"8\"/><rect class=\"dg-b\" x=\"21\" y=\"27\" width=\"24\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-tn\" x=\"255\" y=\"50\" width=\"186\" height=\"30\" rx=\"7\"/><rect class=\"dg-b2\" x=\"267\" y=\"62\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"17\" y=\"256\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"269\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"298\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 301v5M30.0 303h5\"/><rect class=\"dg-p\" x=\"45\" y=\"292\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 298.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"300\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"292\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"300\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"303\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"303\" r=\"2.2\"/><path d=\"M421 309l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"101\" r=\"1.6\"/><rect class=\"dg-b\" x=\"35\" y=\"98\" width=\"220\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"119\" r=\"1.6\"/><rect class=\"dg-b\" x=\"35\" y=\"116\" width=\"190\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"155\" r=\"1.6\"/><rect class=\"dg-b\" x=\"35\" y=\"152\" width=\"150\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"193\" y=\"152\" width=\"40\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"239\" y=\"152\" width=\"48\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"173\" r=\"1.6\"/><rect class=\"dg-b\" x=\"35\" y=\"170\" width=\"130\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"173\" y=\"170\" width=\"40\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"219\" y=\"170\" width=\"48\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"191\" r=\"1.6\"/><rect class=\"dg-b\" x=\"35\" y=\"188\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"153\" y=\"188\" width=\"40\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"199\" y=\"188\" width=\"48\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"263\" y=\"97\" width=\"46\" height=\"9\" rx=\"3\"/><rect class=\"dg-tn\" x=\"233\" y=\"115\" width=\"46\" height=\"9\" rx=\"3\"/><rect class=\"dg-tn\" x=\"295\" y=\"151\" width=\"46\" height=\"9\" rx=\"3\"/><rect class=\"dg-tn\" x=\"275\" y=\"169\" width=\"46\" height=\"9\" rx=\"3\"/><rect class=\"dg-tn\" x=\"255\" y=\"187\" width=\"46\" height=\"9\" rx=\"3\"/><\/g><\/g>"},{"line":1,"plus":1.23,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(125.94 8.3) scale(1.5394)\"><clipPath id=\"kc33\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"330\"/><\/clipPath><g clip-path=\"url(#kc33)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v330h-450zM13 86v44h338v-44z\"/><rect class=\"dg-m\" x=\"17\" y=\"90\" width=\"330\" height=\"36\" rx=\"5\"/><\/g><\/g>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(125.94 8.3) scale(1.5394)\"><clipPath id=\"kc34\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"330\"/><\/clipPath><g clip-path=\"url(#kc34)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v330h-450zM190 149v13h46v-13zM236 149v13h54v-13zM170 167v13h46v-13zM216 167v13h54v-13zM150 185v13h46v-13zM196 185v13h54v-13z\"/><rect class=\"dg-m\" x=\"190\" y=\"149\" width=\"46\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"236\" y=\"149\" width=\"54\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"170\" y=\"167\" width=\"46\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"216\" y=\"167\" width=\"54\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"150\" y=\"185\" width=\"46\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"196\" y=\"185\" width=\"54\" height=\"13\" rx=\"5\"/><\/g><\/g>"},{"line":3,"anim":"fade","svg":"<g transform=\"translate(125.94 8.3) scale(1.5394)\"><clipPath id=\"kc35\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"330\"/><\/clipPath><g clip-path=\"url(#kc35)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v330h-450zM261 95v13h50v-13zM231 113v13h50v-13zM293 149v13h50v-13zM273 167v13h50v-13zM253 185v13h50v-13z\"/><rect class=\"dg-m\" x=\"261\" y=\"95\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"231\" y=\"113\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"293\" y=\"149\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"273\" y=\"167\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"253\" y=\"185\" width=\"50\" height=\"13\" rx=\"5\"/><path d=\"M420.0 150.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: the summary is laid out as you asked"},{"id":"save","lines":[{"caption":"Now have Copilot save those instructions as a skill, named meeting-summary."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."},{"caption":"It says where to put the skill's file: in .github, in the skills-practice folder."},{"caption":"It also says to use the skill whenever you ask to summarize meeting notes."},{"caption":"It also asks Copilot to tell you if the skill already exists, and to change no other file."},{"caption":"In the list on the left, the folders show on one row: .github\\skills\\meeting-summary."},{"caption":"Expand .github until SKILL.md shows, and select it."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc37\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc37)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"176\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"189\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"218\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 221v5M30.0 223h5\"/><rect class=\"dg-p\" x=\"45\" y=\"212\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 218.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"220\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"212\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"220\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"2.2\"/><path d=\"M421 229l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(-5.09 31.67) scale(2.1091)\"><clipPath id=\"kc36\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"206\"/><\/clipPath><g clip-path=\"url(#kc36)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"192\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Save the instructions from my last request as a skill<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">named meeting-summary.<\/text><text class=\"dg-t\" x=\"29\" y=\"73\">Put it in .github/skills/meeting-summary/SKILL.md in the<\/text><text class=\"dg-t\" x=\"29\" y=\"91\">skills-practice folder.<\/text><text class=\"dg-t\" x=\"29\" y=\"109\">Use it whenever I ask to summarize meeting notes.<\/text><text class=\"dg-t\" x=\"29\" y=\"127\">If a skill with that name already exists, don't change<\/text><text class=\"dg-t\" x=\"29\" y=\"145\">it; tell me instead.<\/text><text class=\"dg-t\" x=\"29\" y=\"163\">Add or change no other file.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"185\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 188v5M30.0 190h5\"/><rect class=\"dg-p\" x=\"45\" y=\"179\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 185.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"187\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"179\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"187\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"190\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"190\" r=\"2.2\"/><path d=\"M421 196l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":5.09,"outLine":2,"anim":"fade","svg":"<rect x=\"800\" y=\"446\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"800\" y=\"440\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"870\" y=\"486\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(-5.09 31.67) scale(2.1091)\"><clipPath id=\"kc38\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"206\"/><\/clipPath><g clip-path=\"url(#kc38)\"><text class=\"dg-t\" x=\"29\" y=\"73\"><tspan style=\"fill:transparent\">Put it in <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">.github/skills/meeting-summary/SKILL.md<\/tspan><tspan style=\"fill:transparent\"> in the<\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"91\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">skills-practice folder.<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><\/g><\/g>"},{"line":3,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(-5.09 31.67) scale(2.1091)\"><clipPath id=\"kc39\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"206\"/><\/clipPath><g clip-path=\"url(#kc39)\"><text class=\"dg-t\" x=\"29\" y=\"109\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">Use it whenever I ask to summarize meeting notes.<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><\/g><\/g>"},{"line":4,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(-5.09 31.67) scale(2.1091)\"><clipPath id=\"kc40\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"206\"/><\/clipPath><g clip-path=\"url(#kc40)\"><text class=\"dg-t\" x=\"29\" y=\"127\"><tspan style=\"fill:transparent\">If a skill with that name already exists, <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">don&#x27;t change<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"145\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">it; tell me instead.<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><text class=\"dg-t\" x=\"29\" y=\"163\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">Add or change no other file.<\/tspan><tspan style=\"fill:transparent\"><\/tspan><\/text><\/g><\/g>"},{"line":5,"anim":"fade","svg":"<g transform=\"translate(-81.91 -35.96) scale(2.9419)\"><clipPath id=\"kc41\"><rect x=\"36\" y=\"34\" width=\"310\" height=\"140\"/><\/clipPath><g clip-path=\"url(#kc41)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"210\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"34\" width=\"34\" height=\"180\" rx=\"0\"/><g transform=\"translate(0 0)\"><path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/><circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/><circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/><path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/><path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/><\/g><line class=\"dg-l\" x1=\"341\" y1=\"34\" x2=\"341\" y2=\"214\"/><rect class=\"dg-b\" x=\"51\" y=\"47\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M52.0 71.5l3.7 3.7 3.7 -3.7\"/><text class=\"dg-tb\" x=\"62.1\" y=\"78\" style=\"font-size:12px\">SKILLS-PRACTICE<\/text><path class=\"dg-ic\" d=\"M64.0 93.0l4.0 4.0 4.0 -4.0\"/><text class=\"dg-t\" x=\"75.0\" y=\"100\">.github\\skills\\meeting-summary<\/text><rect class=\"dg-tn\" x=\"42\" y=\"107\" width=\"298\" height=\"21\" rx=\"0\"/><rect class=\"dg-b2\" x=\"75\" y=\"112\" width=\"9\" height=\"11\" rx=\"2\"/><text class=\"dg-t\" x=\"90\" y=\"122\">SKILL.md<\/text><path class=\"dg-ic\" d=\"M65.0 135.0l4.0 4.0 -4.0 4.0\"/><text class=\"dg-t\" x=\"75.0\" y=\"144\">notes<\/text><\/g><\/g>"},{"line":5,"plus":1.72,"outLine":6,"anim":"fade","svg":"<g transform=\"translate(-81.91 -35.96) scale(2.9419)\"><clipPath id=\"kc42\"><rect x=\"36\" y=\"34\" width=\"310\" height=\"140\"/><\/clipPath><g clip-path=\"url(#kc42)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M36 34h310v140h-310zM41 80v30h300v-30z\"/><rect class=\"dg-m\" x=\"45\" y=\"84\" width=\"292\" height=\"22\" rx=\"5\"/><\/g><\/g>"},{"line":6,"anim":"fade","svg":"<g transform=\"translate(-81.91 -35.96) scale(2.9419)\"><clipPath id=\"kc43\"><rect x=\"36\" y=\"34\" width=\"310\" height=\"140\"/><\/clipPath><g clip-path=\"url(#kc43)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M36 34h310v140h-310zM41 102v30h300v-30z\"/><rect class=\"dg-m\" x=\"45\" y=\"106\" width=\"292\" height=\"22\" rx=\"5\"/><\/g><\/g>"}],"title":"Have Copilot save the instructions as a skill"},{"id":"save-check","lines":[{"caption":"Pause the video now, send the request, and open the file."},{"caption":"Look for this: the file holds your instructions."},{"caption":"And a description saying to use the skill when you ask to summarize meeting notes."},{"caption":"This skill is saved in the skills-practice folder, so it works only while that folder is open."},{"caption":"To have a skill work in every folder, ask Copilot to save it in your personal skills folder instead."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"84.5\" y=\"210\" width=\"791\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"124.5\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"146.5\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"184.5\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request, and open the file<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(20 89.61) scale(1.8039)\"><clipPath id=\"kc44\"><rect x=\"0\" y=\"0\" width=\"510\" height=\"200\"/><\/clipPath><g clip-path=\"url(#kc44)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"500\" height=\"190\" rx=\"6\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"498\" height=\"26\" rx=\"5\"/><rect class=\"dg-w\" x=\"6\" y=\"6\" width=\"88\" height=\"26\" style=\"stroke:none\"/><line x1=\"6\" y1=\"31\" x2=\"94\" y2=\"31\" style=\"stroke:var(--accent,#0065b3);stroke-width:2\"/><rect class=\"dg-b\" x=\"17\" y=\"15\" width=\"57\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"24\" y=\"48\" width=\"24\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"24\" y=\"66\" width=\"170\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"24\" y=\"84\" width=\"400\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"24\" y=\"102\" width=\"24\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"24\" y=\"128\" width=\"360\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"24\" y=\"146\" width=\"420\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"24\" y=\"164\" width=\"300\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":1.95,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(20 89.61) scale(1.8039)\"><clipPath id=\"kc45\"><rect x=\"0\" y=\"0\" width=\"510\" height=\"200\"/><\/clipPath><g clip-path=\"url(#kc45)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h500v190h-500zM14 116v62h440v-62z\"/><rect class=\"dg-m\" x=\"18\" y=\"120\" width=\"432\" height=\"54\" rx=\"5\"/><\/g><\/g>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(20 89.61) scale(1.8039)\"><clipPath id=\"kc46\"><rect x=\"0\" y=\"0\" width=\"510\" height=\"200\"/><\/clipPath><g clip-path=\"url(#kc46)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h500v190h-500zM14 74v26h420v-26z\"/><rect class=\"dg-m\" x=\"18\" y=\"78\" width=\"412\" height=\"18\" rx=\"5\"/><path d=\"M450.0 92.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: the skill's file holds your instructions"},{"id":"again","lines":[{"caption":"This time, you ask in one line, and Copilot follows the skill."},{"caption":"At the top of the chat, select the button New Chat (+)."},{"caption":"Then send the one-line request."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."}],"beats":[{"line":0,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc48\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc48)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-tn\" x=\"255\" y=\"50\" width=\"186\" height=\"30\" rx=\"7\"/><rect class=\"dg-b2\" x=\"267\" y=\"62\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"92\" width=\"220\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"108\" width=\"260\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"21\" y=\"124\" width=\"190\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"17\" y=\"176\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"189\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"218\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 221v5M30.0 223h5\"/><rect class=\"dg-p\" x=\"45\" y=\"212\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 218.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"220\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"212\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"220\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"2.2\"/><path d=\"M421 229l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc49\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc49)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v250h-450zM360 12v36h42v-36z\"/><rect class=\"dg-m\" x=\"364\" y=\"16\" width=\"34\" height=\"28\" rx=\"5\"/><\/g><\/g>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc50\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc50)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"176\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"189\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"218\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 221v5M30.0 223h5\"/><rect class=\"dg-p\" x=\"45\" y=\"212\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 218.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"220\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"212\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"220\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"223\" r=\"2.2\"/><path d=\"M421 229l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":3,"anim":"fade","svg":"<g transform=\"translate(-5.09 164.55) scale(2.1091)\"><clipPath id=\"kc47\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"80\"/><\/clipPath><g clip-path=\"url(#kc47)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"66\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Summarize the meeting notes in the notes folder.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"59\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 62v5M30.0 64h5\"/><rect class=\"dg-p\" x=\"45\" y=\"53\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 59.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"61\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"53\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"61\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"64\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"64\" r=\"2.2\"/><path d=\"M421 70l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":3,"plus":5.09,"anim":"fade","svg":"<rect x=\"410\" y=\"406\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"410\" y=\"400\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"480\" y=\"446\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"}],"title":"Ask for the summary again, with the skill"},{"id":"again-check","lines":[{"caption":"Pause the video now, start a new chat, and send the request."},{"caption":"Look for this: the summary leads with the decisions."},{"caption":"Each action has an owner and a due date."},{"caption":"And each item names the note it came from."},{"caption":"It's laid out like the first summary."},{"caption":"If the summary isn't laid out that way, the written steps show what to do."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"61.5\" y=\"210\" width=\"837\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"101.5\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"123.5\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"161.5\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> start a new chat, and send the request<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(125.94 8.3) scale(1.5394)\"><clipPath id=\"kc51\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"330\"/><\/clipPath><g clip-path=\"url(#kc51)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"330\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-tn\" x=\"255\" y=\"50\" width=\"186\" height=\"30\" rx=\"7\"/><rect class=\"dg-b2\" x=\"267\" y=\"62\" width=\"140\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"17\" y=\"256\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"269\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"298\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 301v5M30.0 303h5\"/><rect class=\"dg-p\" x=\"45\" y=\"292\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 298.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"300\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"292\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"300\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"303\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"303\" r=\"2.2\"/><path d=\"M421 309l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"101\" r=\"1.6\"/><rect class=\"dg-b\" x=\"35\" y=\"98\" width=\"220\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"119\" r=\"1.6\"/><rect class=\"dg-b\" x=\"35\" y=\"116\" width=\"190\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"155\" r=\"1.6\"/><rect class=\"dg-b\" x=\"35\" y=\"152\" width=\"150\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"193\" y=\"152\" width=\"40\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"239\" y=\"152\" width=\"48\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"173\" r=\"1.6\"/><rect class=\"dg-b\" x=\"35\" y=\"170\" width=\"130\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"173\" y=\"170\" width=\"40\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"219\" y=\"170\" width=\"48\" height=\"7\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"191\" r=\"1.6\"/><rect class=\"dg-b\" x=\"35\" y=\"188\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"153\" y=\"188\" width=\"40\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"199\" y=\"188\" width=\"48\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"263\" y=\"97\" width=\"46\" height=\"9\" rx=\"3\"/><rect class=\"dg-tn\" x=\"233\" y=\"115\" width=\"46\" height=\"9\" rx=\"3\"/><rect class=\"dg-tn\" x=\"295\" y=\"151\" width=\"46\" height=\"9\" rx=\"3\"/><rect class=\"dg-tn\" x=\"275\" y=\"169\" width=\"46\" height=\"9\" rx=\"3\"/><rect class=\"dg-tn\" x=\"255\" y=\"187\" width=\"46\" height=\"9\" rx=\"3\"/><\/g><\/g>"},{"line":1,"plus":1.23,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(125.94 8.3) scale(1.5394)\"><clipPath id=\"kc52\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"330\"/><\/clipPath><g clip-path=\"url(#kc52)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v330h-450zM13 86v44h338v-44z\"/><rect class=\"dg-m\" x=\"17\" y=\"90\" width=\"330\" height=\"36\" rx=\"5\"/><\/g><\/g>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(125.94 8.3) scale(1.5394)\"><clipPath id=\"kc53\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"330\"/><\/clipPath><g clip-path=\"url(#kc53)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v330h-450zM190 149v13h46v-13zM236 149v13h54v-13zM170 167v13h46v-13zM216 167v13h54v-13zM150 185v13h46v-13zM196 185v13h54v-13z\"/><rect class=\"dg-m\" x=\"190\" y=\"149\" width=\"46\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"236\" y=\"149\" width=\"54\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"170\" y=\"167\" width=\"46\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"216\" y=\"167\" width=\"54\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"150\" y=\"185\" width=\"46\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"196\" y=\"185\" width=\"54\" height=\"13\" rx=\"5\"/><\/g><\/g>"},{"line":3,"anim":"fade","svg":"<g transform=\"translate(125.94 8.3) scale(1.5394)\"><clipPath id=\"kc54\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"330\"/><\/clipPath><g clip-path=\"url(#kc54)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v330h-450zM261 95v13h50v-13zM231 113v13h50v-13zM293 149v13h50v-13zM273 167v13h50v-13zM253 185v13h50v-13z\"/><rect class=\"dg-m\" x=\"261\" y=\"95\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"231\" y=\"113\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"293\" y=\"149\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"273\" y=\"167\" width=\"50\" height=\"13\" rx=\"5\"/><rect class=\"dg-m\" x=\"253\" y=\"185\" width=\"50\" height=\"13\" rx=\"5\"/><path d=\"M420.0 150.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: the same summary from one line"},{"id":"close","lines":[{"caption":"You asked for a summary with every instruction typed out, and had Copilot save those instructions as a skill."},{"caption":"Then you got the same summary from a one-line request."},{"caption":"When you've done the steps, open the written steps and select Continue to complete the unit."}],"beats":[{"line":0,"anim":"up","svg":"<rect x=\"100\" y=\"126\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"172\" y=\"169\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Asked for a summary<\/text><path d=\"M128,157 L135,164 L147,148\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"},{"line":0,"plus":3.26,"anim":"up","svg":"<rect x=\"100\" y=\"221\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"172\" y=\"264\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Had Copilot save those instructions as a skill<\/text><path d=\"M128,252 L135,259 L147,243\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"},{"line":1,"anim":"up","svg":"<rect x=\"100\" y=\"316\" width=\"760\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"172\" y=\"359\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Got the same summary from a one-line request<\/text><path d=\"M128,347 L135,354 L147,338\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"}],"title":"What you did"}];
+
+  function lead(tm, n) {
+    return Math.max(0, tm.starts[n] - Math.min(MAX_LEAD, Math.max(0, tm.pre[n] - 0.05)));
+  }
+
+  var sound = true, audioOK = true;
+
+  var SILENT_CAP = 0.8;
+
+  function silentTiming(tm) {
+    var pre = tm.pre.map(function (x) { return Math.min(x, SILENT_CAP); });
+    var st = [pre[0]];
+    for (var i = 1; i < tm.starts.length; i++) {
+      var spoken = tm.starts[i] - tm.starts[i - 1] - tm.pre[i];
+      st.push(st[i - 1] + spoken + pre[i]);
+    }
+    var last = tm.starts.length - 1;
+    return { dur: st[last] + (tm.dur - tm.starts[last]), starts: st, pre: pre };
+  }
+
+  var starts = [], total = 0;
+
+  function buildTimeline() {
+    starts = [];
+    total = 0;
+    for (var s = 0; s < S.length; s++) {
+      var sc = S[s];
+      var tm = useSound() ? TIMING[sc.id] : silentTiming(TIMING[sc.id]);
+      sc.dur = tm.dur;
+      sc.tm = tm;
+      sc.lineStarts = tm.starts;
+      sc.caption = sc.lines.map(function (l) { return l.caption; }).join(" ");
+      var settled = 0;
+      for (var bi = 0; bi < sc.beats.length; bi++) {
+        var bt = sc.beats[bi];
+
+        bt.at = bt.plus === undefined ? lead(tm, bt.line) : tm.starts[bt.line] + bt.plus;
+        if (bt.outLine !== undefined) bt.out = bt.outPlus === undefined ? lead(tm, bt.outLine) : tm.starts[bt.outLine] + bt.outPlus;
+        if (!bt.held && bt.at > settled) settled = bt.at;
+        if (bt.out !== undefined && bt.out > settled) settled = bt.out;
+      }
+
+      sc.settled = Math.min(settled + RAMP, sc.dur);
+
+      sc.stop = useSound() ? sc.settled : Math.max(sc.settled, sc.dur - 0.05);
+      starts.push(total);
+      total += sc.dur;
+    }
+  }
+  buildTimeline();
+
+  var stage = document.getElementById("stage");
+  var markup = '<rect x="0" y="0" width="960" height="540" fill="' + PAPER + '"/>';
+  for (var sm = 0; sm < S.length; sm++) {
+    markup += '<g class="scene">';
+    for (var bm = 0; bm < S[sm].beats.length; bm++) {
+      var bt2 = S[sm].beats[bm];
+      markup += '<g class="beat" data-at="' + bt2.at + '" data-anim="' + bt2.anim + '"' +
+        (bt2.out === undefined ? "" : ' data-out="' + bt2.out + '"') +
+        (bt2.linear ? ' data-linear=""' : "") + ">" + bt2.svg + "</g>";
+    }
+    markup += "</g>";
+  }
+  stage.innerHTML = markup;
+
+  var sceneEls = stage.querySelectorAll(".scene"), beatEls = [];
+  for (var k = 0; k < sceneEls.length; k++) beatEls.push(sceneEls[k].querySelectorAll(".beat"));
+
+  var clips = [];
+  for (var c = 0; c < S.length; c++) {
+    var clip = new Audio("audio/" + S[c].id + ".mp3");
+    clip.preload = "metadata";
+    clip.addEventListener("error", onAudioLost);
+    clips.push(clip);
+  }
+
+  var compact = false;
+  var t = 0, playing = false, speed = 1, started = false,
+      last = 0, cur = 0, looping = false, seekUntil = 0;
+  var SPEEDS = [0.75, 1, 1.25, 1.5];
+
+  var captionEl = document.getElementById("caption"),
+      captionText = document.getElementById("captiontext"),
+      readout = document.getElementById("readout"),
+      scrub = document.getElementById("scrub"),
+      playbtn = document.getElementById("playbtn"),
+      poster = document.getElementById("poster"),
+      soundBtn = document.getElementById("sound");
+
+  var SPEAKER = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zm2.6 2.2-.9 1.3a3.6 3.6 0 0 1 0 5.8l.9 1.3a5.2 5.2 0 0 0 0-8.4z"/></svg>';
+  var MUTED_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zM10.3 5.7l1.5 1.5 1.5-1.5 1 1-1.5 1.5 1.5 1.5-1 1-1.5-1.5-1.5 1.5-1-1L10.8 8.2 9.3 6.7z"/></svg>';
+
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function mmss(x) {
+    var m = Math.floor(x / 60), ss = Math.floor(x % 60);
+    return m + ":" + (ss < 10 ? "0" : "") + ss;
+  }
+  function sceneAt(time) {
+    for (var i = S.length - 1; i >= 0; i--) if (time >= starts[i]) return i;
+    return 0;
+  }
+  function useSound() { return sound && audioOK; }
+
+  function reflectSound() {
+    var on = useSound();
+    soundBtn.innerHTML = on ? SPEAKER : MUTED_ICON;
+    soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    soundBtn.setAttribute("aria-label", on ? "Narration sound, on"
+      : audioOK ? "Narration sound, off" : "Narration sound, unavailable");
+  }
+
+  function paint(posterMode) {
+    var now = sceneAt(t);
+    for (var i = 0; i < S.length; i++) {
+      var on = i === now;
+      sceneEls[i].style.display = on ? "" : "none";
+      if (!on) continue;
+      var local = t - starts[i];
+      for (var j = 0; j < beatEls[i].length; j++) {
+        var g = beatEls[i][j];
+        var beat = S[i].beats[j];
+
+        var lin = beat.linear;
+        var pin = posterMode || beat.held ? 1 : clamp((local - beat.at) / RAMP, 0, 1);
+        var e = lin ? pin : 1 - Math.pow(1 - pin, 3);
+        if (beat.out !== undefined && !posterMode) {
+          var pout = clamp((local - beat.out) / RAMP, 0, 1);
+          e = e * (1 - (lin ? pout : 1 - Math.pow(1 - pout, 3)));
+        }
+        var off = beat.held ? [0, 0] : ANIM[beat.anim] || ANIM.fade;
+        g.style.opacity = e;
+        g.style.transform = "translate(" + (off[0] * (1 - e)).toFixed(2) + "px," + (off[1] * (1 - e)).toFixed(2) + "px)";
+      }
+    }
+
+    var ln = 0, localT = t - starts[now];
+    for (var li = 0; li < S[now].lines.length; li++) if (localT >= S[now].lineStarts[li] - 0.3) ln = li;
+    captionText.textContent = S[now].lines[ln].caption;
+
+    paintReadout();
+    scrub.value = t >= total ? 1000 : Math.round((starts[now] / total) * 1000);
+
+    scrub.style.setProperty("--fill",
+      "calc(5.5px + " + (scrub.value / 1000) + " * (100% - 11px))");
+    scrub.setAttribute("aria-valuetext", "Scene " + (now + 1) + ", " + mmss(t));
+    if (started) markLine(now, ln);
+  }
+
+  function paintReadout() {
+    var now = sceneAt(t);
+    readout.textContent = (compact ? (now + 1) + "/" + S.length : "Scene " + (now + 1) + " of " + S.length) + " " +
+      String.fromCharCode(183) + " " + mmss(t) + " / " + mmss(total);
+  }
+
+  function stopClips() { for (var i = 0; i < clips.length; i++) clips[i].pause(); }
+
+  function syncClip() {
+    if (!useSound()) { stopClips(); return; }
+    for (var i = 0; i < clips.length; i++) if (i !== cur) clips[i].pause();
+    var clip = clips[cur];
+    clip.playbackRate = speed;
+    var want = clamp(t - starts[cur], 0, S[cur].dur);
+    if (Math.abs(clip.currentTime - want) > 0.25) {
+      try { clip.currentTime = want; seekUntil = performance.now() + 220; } catch (e) {}
+    }
+    if (playing && clip.paused) {
+      var pr = clip.play();
+      if (pr && pr.catch) pr.catch(onAudioLost);
+    }
+    if (!playing && !clip.paused) clip.pause();
+  }
+
+  function setPlaying(on) {
+    playing = on;
+    playbtn.setAttribute("aria-label", on ? "Pause" : "Play");
+    playbtn.innerHTML = on
+      ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 1.5h3.5v13H3.5zm5.5 0h3.5v13H9z"/></svg>'
+      : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>';
+    syncClip();
+    if (on && !looping) { looping = true; last = 0; requestAnimationFrame(step); }
+  }
+
+  function step(now) {
+    if (!playing) { looping = false; return; }
+    if (!last) last = now;
+    var dt = (now - last) / 1000;
+    last = now;
+
+    if (useSound() && !clips[cur].paused && now > seekUntil) {
+      t = starts[cur] + Math.min(clips[cur].currentTime, S[cur].dur);
+    } else {
+      t += dt * speed;
+    }
+
+    if (t >= total - 0.02) { t = total; paint(false); setPlaying(false); looping = false; return; }
+
+    if (!useSound() && t >= starts[cur] + S[cur].stop) {
+      t = starts[cur] + S[cur].stop;
+      paint(false);
+      setPlaying(false);
+      looping = false;
+      return;
+    }
+
+    var next = sceneAt(t);
+    if (next !== cur) { cur = next; syncClip(); }
+    paint(false);
+    requestAnimationFrame(step);
+  }
+
+  function goto(time, keepPlaying) {
+    addressed = -1;
+    t = clamp(time, 0, total);
+    cur = sceneAt(t);
+    if (!keepPlaying) t = starts[cur] + S[cur].settled;
+    if (!started) { started = true; poster.hidden = true; }
+    paint(false);
+    if (keepPlaying) syncClip(); else setPlaying(false);
+
+    if (!keepPlaying) addressed = cur;
+  }
+  function fromTop() {
+    started = true; poster.hidden = true; t = 0; cur = 0; paint(false); setPlaying(true);
+  }
+
+  poster.addEventListener("click", function () { fromTop(); playbtn.focus({ preventScroll: true }); });
+  document.getElementById("replay").addEventListener("click", fromTop);
+  playbtn.addEventListener("click", function () {
+    if (!started || t >= total) { fromTop(); return; }
+
+    if (!playing && addressed === cur) { t = starts[cur]; paint(false); }
+    addressed = -1;
+
+    if (!playing && !useSound() && cur < S.length - 1 && t >= starts[cur] + S[cur].stop - 0.01) {
+      cur += 1; t = starts[cur]; paint(false);
+    }
+    setPlaying(!playing);
+  });
+  document.getElementById("prev").addEventListener("click", function () {
+    var i = sceneAt(t);
+
+    var replayThisScene = playing && useSound() && t - starts[i] >= 1.2;
+    if (!replayThisScene && i > 0) i--;
+    goto(starts[i], playing && useSound());
+  });
+  document.getElementById("next").addEventListener("click", function () {
+    var i = sceneAt(t);
+    goto(i + 1 < S.length ? starts[i + 1] : total,
+         playing && useSound() && i + 1 < S.length);
+  });
+  scrub.addEventListener("input", function () {
+    var want = sceneAt((scrub.value / 1000) * total);
+
+    if (want !== sceneAt(t)) goto(starts[want], playing); else paint(false);
+  });
+
+  scrub.addEventListener("keydown", function (e) {
+    var dir = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1
+      : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    var i = Math.min(S.length - 1, Math.max(0, sceneAt(t) + dir));
+    goto(starts[i], playing);
+  });
+
+  soundBtn.addEventListener("click", function () {
+    if (!audioOK) return;
+    var at = cur;
+    sound = !sound;
+    reflectSound();
+    buildTimeline();
+    renderChrome();
+    cur = at;
+    t = starts[at] + (sound ? 0 : S[at].settled);
+    if (!sound) { stopClips(); last = 0; } else syncClip();
+    fitPlayer();
+    paint(false);
+  });
+  var ccBtn = document.getElementById("cc");
+  ccBtn.addEventListener("click", function () {
+    var on = this.getAttribute("aria-pressed") === "true";
+    this.setAttribute("aria-pressed", on ? "false" : "true");
+    this.setAttribute("aria-label", on ? "CC, captions off" : "CC, captions on");
+    captionEl.hidden = on;
+  });
+  var speedBtn = document.getElementById("speed");
+  speedBtn.addEventListener("click", function () {
+    speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+    speedBtn.textContent = speed + "x";
+    speedBtn.setAttribute("aria-label", speed + "x, playback speed");
+    if (useSound()) clips[cur].playbackRate = speed;
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var tag = e.target && e.target.tagName;
+    if (tag === "TEXTAREA" || (tag === "INPUT" && e.target !== scrub) || (e.target && e.target.isContentEditable)) return;
+    if (e.key === " ") { if (tag === "BUTTON" || tag === "A") return; e.preventDefault(); playbtn.click(); }
+    else if (e.key === "c" || e.key === "C") {
+      if (e.target && e.target.closest && e.target.closest(".player")) { e.preventDefault(); ccBtn.click(); }
+    }
+    else if (e.target === scrub || e.target === tscroll) return;
+    else if (e.key === "ArrowRight") { e.preventDefault(); document.getElementById("next").click(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); document.getElementById("prev").click(); }
+  });
+
+  var ol = document.getElementById("transcript");
+
+  function newChapter(i) { return i > 0 && (S[i].chapter || "") !== (S[i - 1].chapter || ""); }
+
+  function renderChrome() {
+    var tickHtml = "";
+    for (var ti = 1; ti < S.length; ti++) {
+
+      tickHtml += '<i' + (newChapter(ti) ? ' class="ch"' : "") + ' style="left:' +
+        ((starts[ti] / total) * 100).toFixed(2) + '%"></i>';
+    }
+    document.getElementById("ticks").innerHTML = tickHtml;
+    document.getElementById("meta-scenes").textContent = S.length + " scenes";
+    document.getElementById("meta-len").textContent = mmss(total);
+
+    var tr = "";
+    lineEls = [];
+    for (var x = 0; x < S.length; x++) {
+
+      if (S[x].chapter && (x === 0 || newChapter(x))) {
+        tr += '<li class="chap"><p class="chap-h">' + esc(S[x].chapter) + "</p></li>";
+      }
+      tr += '<li class="scn"><p class="scn-h">Scene ' + (x + 1) +
+        (S[x].title ? ": " + esc(S[x].title) : "") +
+        "<span>" + mmss(starts[x]) + "</span></p><ol class=\"lines\">";
+      for (var y = 0; y < S[x].lines.length; y++) {
+        tr += '<li><button class="jump" type="button" data-s="' + x + '" data-l="' + y + '" data-on="false">' +
+          '<span class="tc">' + mmss(starts[x] + S[x].lineStarts[y]) + "</span>" +
+          '<span class="line">' + esc(S[x].lines[y].caption) + "</span></button></li>";
+      }
+      tr += "</ol></li>";
+    }
+    ol.innerHTML = tr;
+    var btns = ol.querySelectorAll(".jump");
+    for (var b = 0; b < btns.length; b++) {
+      var bs = +btns[b].getAttribute("data-s");
+      (lineEls[bs] = lineEls[bs] || []).push(btns[b]);
+    }
+    onLine = null;
+  }
+
+  var lineEls = [], onLine = null, userScrolledAt = -1e9;
+  var tscroll = document.getElementById("p-transcript");
+
+  ["wheel", "touchmove"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function () { userScrolledAt = performance.now(); }, { passive: true });
+  });
+
+  ["keydown", "pointerdown"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function (e) { if (e.target === tscroll) userScrolledAt = performance.now(); });
+  });
+
+  function follow(force) {
+    if (!onLine || tscroll.hidden) return;
+    if (!force && performance.now() - userScrolledAt < 4000) return;
+    var r = onLine.getBoundingClientRect(), sr = tscroll.getBoundingClientRect();
+    if (!sr.height) return;
+    var head = 36;
+    var want = tscroll.scrollTop + (r.top - sr.top) - (sr.height + head - r.height) / 2;
+    want = clamp(want, 0, tscroll.scrollHeight - tscroll.clientHeight);
+    if (Math.abs(want - tscroll.scrollTop) < 2) return;
+    try { tscroll.scrollTo({ top: want, behavior: reduce ? "auto" : "smooth" }); }
+    catch (e) { tscroll.scrollTop = want; }
+  }
+
+  function markLine(s, l) {
+    var el = lineEls[s] && lineEls[s][l];
+    if (!el || el === onLine) return;
+    if (onLine) { onLine.setAttribute("data-on", "false"); onLine.removeAttribute("aria-current"); }
+    onLine = el;
+    el.setAttribute("data-on", "true");
+    el.setAttribute("aria-current", "true");
+    follow(false);
+  }
+
+  function seekLine(s, l) {
+    var sc = S[s];
+    var at = l === 0 ? 0 : Math.max(0, sc.lineStarts[l] - 0.3);
+    t = clamp(starts[s] + at, 0, total);
+    cur = s;
+    addressed = -1;
+    if (!started) { started = true; poster.hidden = true; }
+    userScrolledAt = -1e9;
+
+    if (!useSound() && at >= sc.stop) { paint(false); setPlaying(false); return; }
+    paint(false);
+    setPlaying(true);
+  }
+
+  renderChrome();
+  ol.addEventListener("click", function (e) {
+    var btn = e.target.closest(".jump");
+    if (btn) seekLine(+btn.getAttribute("data-s"), +btn.getAttribute("data-l"));
+  });
+
+  var MAX_PLAYER = 860, MAX_PAGE = 1480;
+  var INKIT = / inkit/.test(document.documentElement.className), kitH = 0, kitTop = 0;
+  function viewH() { return INKIT && kitH ? kitH : window.innerHeight; }
+
+  if (INKIT) Array.prototype.forEach.call(document.querySelectorAll("a[href]"), function (a) {
+    if (a.getAttribute("href").charAt(0) !== "#") a.target = "_parent";
+  });
+  var theaterEl = document.querySelector(".theater"), playerEl = document.querySelector(".player"),
+      consoleEl = document.querySelector(".console"), wrapEl = document.querySelector(".wrap");
+  var WIDE = window.matchMedia ? window.matchMedia("(min-width: 960px)") : { matches: false };
+
+  function longestCaption() {
+    var best = "";
+    for (var i = 0; i < S.length; i++) {
+      var opts = S[i].lines.map(function (l) { return l.caption; });
+      for (var j = 0; j < opts.length; j++) if (opts[j].length > best.length) best = opts[j];
+    }
+    return best;
+  }
+
+  function sizeCaption() {
+    var wasHidden = captionEl.hidden, keep = captionText.textContent;
+    captionEl.hidden = false;
+    captionEl.style.height = "";
+    captionText.textContent = longestCaption();
+
+    var h = Math.min(Math.ceil(captionEl.getBoundingClientRect().height),
+                     Math.max(104, Math.round(viewH() * 0.3)));
+    captionText.textContent = keep;
+    captionEl.style.height = h + "px";
+    captionEl.hidden = wasHidden;
+    return h;
+  }
+
+  function fitPlayer() {
+
+    var bs = getComputedStyle(document.body);
+    var avail = Math.min(MAX_PAGE, document.body.clientWidth -
+      parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight));
+    var wide = WIDE.matches;
+    var gap = wide ? parseFloat(getComputedStyle(theaterEl).columnGap) || 0 : 0;
+    var sw = wide ? Math.round(clamp(avail * 0.3, 320, 400)) : 0;
+    var room0 = avail - (wide ? sw + gap : 0);
+    var w = Math.max(320, Math.min(MAX_PLAYER, room0));
+
+    theaterEl.style.setProperty("--sw", sw + "px");
+    wrapEl.style.setProperty("--tw", avail + "px");
+    for (var pass = 0; pass < 4; pass++) {
+      var px = Math.floor(w);
+      theaterEl.style.setProperty("--pw", px + "px");
+      compact = px < 660;
+      paintReadout();
+      var capH = sizeCaption();
+      var chrome = consoleEl.getBoundingClientRect().height + (captionEl.hidden ? capH : 0);
+      var top = playerEl.getBoundingClientRect().top + window.scrollY + kitTop;
+
+      var room = viewH() - Math.min(top, viewH() * 0.2) - chrome - 16;
+      var whole = viewH() - top - chrome - 16;
+      if (INKIT && kitH) room = whole;
+      w = Math.max(320, Math.min(MAX_PLAYER, room0, room * 16 / 9));
+      if (Math.floor(w) === px) break;
+    }
+    var pw = Math.floor(w);
+
+    if (wide) sw = Math.round(clamp(avail - gap - pw, 320, 460));
+    theaterEl.style.setProperty("--pw", pw + "px");
+    theaterEl.style.setProperty("--sw", sw + "px");
+    wrapEl.style.setProperty("--tw", (wide ? pw + gap + sw : avail) + "px");
+    sizeCaption();
+    follow(true);
+  }
+  function onAudioLost() { audioOK = false; reflectSound(); fitPlayer(); }
+
+  function postHeight() {
+    if (INKIT) window.parent.postMessage({ kitVideoHeight: Math.ceil(document.documentElement.getBoundingClientRect().height) }, "*");
+  }
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!INKIT || e.source !== window.parent || !d || typeof d.kitViewport !== "number") return;
+    kitH = d.kitViewport; kitTop = +d.kitTop || 0;
+    fitPlayer(); postHeight();
+  });
+  fitPlayer();
+  postHeight();
+  window.addEventListener("resize", function () { fitPlayer(); postHeight(); });
+  if (INKIT && window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+  var addressed = -1;
+  function openAddress() {
+    var id = (location.hash || "").replace(/^#/, "");
+    try { id = decodeURIComponent(id); } catch (e) {}
+    for (var i = 0; i < S.length; i++) {
+      if (S[i].id === id) {
+        setPlaying(false);
+        stopClips();
+        goto(starts[i], false);
+        addressed = i;
+        follow(true);
+        return true;
+      }
+    }
+    return false;
+  }
+  window.addEventListener("hashchange", function () {
+    if (openAddress()) return;
+    setPlaying(false); stopClips(); addressed = -1; t = 0; cur = 0; paint(!started);
+  });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPlayer);
+
+  reflectSound();
+  if (!openAddress()) paint(true);
+})();
+</script>
+</html>

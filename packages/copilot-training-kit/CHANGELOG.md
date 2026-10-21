@@ -1,5 +1,36 @@
 # What's new
 
+## 1.7 - 2026-10-20
+
+- Every lesson now has a narrated video beside its written steps, as its own item just before
+  the lesson, from about two and a half to six minutes. Its outline entry reads "Video", each
+  numbered step has a "Watch this step" link to its scene. The video plays on a page of the
+  training, with the outline and breadcrumb, and "Next: Written steps" above it. The steps stay the
+  complete instruction.
+- The home page links to a new overview video of the trainings, about three minutes.
+- Getting started, "Make your first request to Copilot": opening the practice folder now starts
+  with the Restricted Mode bar that VS Code shows by default (**Manage**, then **Trust**), with a
+  drawing of the bar. The question whether you trust the authors is now the exception.
+- The same lesson, "Reading a permission request", says which changes Copilot makes without asking
+  and which it asks about first.
+- Skills, Custom agents and Connecting your tools open their practice folder the same way, with the
+  same drawing. "Have Copilot explain code you didn't write", "On your own work", now says to trust
+  the folder from the Restricted Mode bar.
+
+## 1.6 - 2026-10-20
+
+- The home page now says that the other trainings build on Getting started, and Custom agents also
+  on Skills. It used to say that each training builds on the one before it.
+
+## 1.5 - 2026-10-20
+
+- Every page has a new look that shows where to start reading: the title with the size of the
+  unit or training under it, a unit's steps on one line with a ring at each step, each prompt to
+  copy on its own background with its **Copy** button, and a training's path as a sequence that
+  shows which units you have finished. Text is set in a wider column.
+- The words, units and steps are the same as in 1.4. If you already took a training, there is
+  nothing to do again.
+
 ## 1.4 - 2026-10-07
 
 - Every training has more drawings of VS Code: Open Preview in the menu of a file, New Chat, the

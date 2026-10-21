@@ -1,0 +1,67 @@
+{
+ "format": 1,
+ "lesson": "README.md",
+ "lesson_sha256": "e2737b80d44492fe628be0997b122215fe4177471d791e9b0a6727e405fc19de",
+ "title": "Learn GitHub Copilot in VS Code",
+ "seconds": 153,
+ "back_href": "../../README.html",
+ "scenes": [
+  {
+   "id": "open",
+   "title": "What these trainings are",
+   "step": null
+  },
+  {
+   "id": "at-work",
+   "title": "Copilot at work in VS Code",
+   "step": null
+  },
+  {
+   "id": "permission",
+   "title": "When it asks first",
+   "step": null
+  },
+  {
+   "id": "frame",
+   "title": "Instructions and tools",
+   "step": null
+  },
+  {
+   "id": "getting-started",
+   "title": "Getting started",
+   "step": null
+  },
+  {
+   "id": "skills",
+   "title": "Skills",
+   "step": null
+  },
+  {
+   "id": "agents",
+   "title": "Custom agents",
+   "step": null
+  },
+  {
+   "id": "connecting",
+   "title": "Connecting your tools",
+   "step": null
+  },
+  {
+   "id": "start",
+   "title": "Where to start",
+   "step": null
+  }
+ ],
+ "files": {
+  "audio/agents.mp3": "9d7002f5819c935a72b89ca4aab970245e5d20e1728fd584590e98244c5a225b",
+  "audio/at-work.mp3": "2281b8f130538597854cfbc8bc09800338269203759cc1c2f69622098a79f02f",
+  "audio/connecting.mp3": "7f624c1fec15538b54643acdb0bb83d17edf925d440ca2128b234756614f48d4",
+  "audio/frame.mp3": "ea0d3fd9bee55479a6b8ef5beda9f90324b0381999e8d6500eab75d82af62fa6",
+  "audio/getting-started.mp3": "f547144a1891a75c2fd0dc105abe8d5ef234a91cd527119fcd7ebaa4eda44d2e",
+  "audio/open.mp3": "2ccc277b0bbcbe23aaddd129cf1062dd246b74eddf9c3fc9bb738ecd69483f4a",
+  "audio/permission.mp3": "034d5fd7fb9dcfcc966f7c1d8984be0bd7fb8c74cc7fa5cc24a54f21fcbbedff",
+  "audio/skills.mp3": "0de1ab72c803d45854d5aade8fa6315a5bd63acb79f5888adbe8d21223427506",
+  "audio/start.mp3": "4d6a38ff1c485c231e2204d2096cff49d8f44ba39a6c37ea5d55875e016c953b",
+  "index.html": "7fe298ccec256193f4a1517e8c711f5150d29b91a65957ab5d4e01ab2d441822"
+ }
+}

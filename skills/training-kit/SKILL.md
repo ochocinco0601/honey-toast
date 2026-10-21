@@ -5,7 +5,7 @@ description: Build a self-paced training kit on any subject, for any audience - 
 
 # Building a training kit
 
-Skill version: 1.14 (2026-10-07). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
+Skill version: 1.16 (2026-10-20). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
 
 You build a kit that leaves its learners able to do something in their own work. What they can do
 when they finish is the outcome, and every choice below serves it; the maintainer guide's opening
@@ -340,6 +340,42 @@ review 5 after your change.
 A choice recorded under the kit's "Decisions" that conflicts with what this version changes is
 handled as the guide's "Decisions" says.
 
+What 1.16 changed from 1.15 (a lesson can have a narrated video beside it):
+- No video player is ever built into a kit page.
+- A kit may hold a `videos/` folder of explainer-page packages, one per lesson, made by the
+  explainer skill's publish step. `build_pages.py` checks each package against its
+  `video.json` (pinned SHA-256 of every file, compared by exact name; fields; lesson; the link back
+  to the lesson; step numbers; 50 MB) and copies `videos/` into the pages byte for byte. The
+  checkers and `measure.py` skip it.
+- On the kit's pages, the video is its own item just before its lesson (the outline's first entry
+  for the unit, the unit's card, the previous Continue), each numbered step links to its scene
+  ("Watch this step"), and the home page links to the overview's video.
+- A lesson changed since its video was made only warns, since an assistant without the explainer skill's tools cannot remake a
+  video; its page says so in one line and drops its step links. `--strict` makes that a failure,
+  for a release. The guide's new "Videos" section says all of this.
+- Each video plays inside a page of the kit beside its lesson (`<lesson name>-video.html`), with the
+  outline, the breadcrumb and the way back and on above it; the package page is framed there as
+  `index.html?in=kit` and shows its player alone. The checkers read that page's links only.
+- A kit with no `videos/` folder builds byte for byte as under 1.15.
+- Upgrading from 1.15: replace `build_pages.py`, `check_text.py`, `check_structure.py` and
+  `check_rulings.py` as "Bringing a kit up to this version" says, add `"videos"` to `measure.py`'s
+  skipped folders, and carry the guide's "Videos" section and its `videos/` row across.
+
+What 1.15 changed from 1.14 (the page has an order of attention):
+- `build_pages.py`'s page design is redone so the eye knows where to start: a title block closed by
+  a rule, with the unit's or training's size under the title and the first paragraph set as its
+  summary; a unit's steps drawn as one track with a ring at each step's title (filled for the
+  step being read; still no number on screen); the prompt to copy given its own ground, a chat
+  mark and a Copy button with an icon; a training's path shown as a ringed sequence with a state
+  chip per unit; trainings on the programme's home as cards with a level chip.
+- The text column widens from 720 pixels to 68rem, body text is 17 pixels with a line height of
+  1.7, and the faces are the system's own (Segoe UI Variable on Windows). The guide's "Page design"
+  states the measures.
+- Words, units and steps are unchanged; every check passes as before. The builder wraps each step in
+  a `section class="stepsec"`, and the "Stuck?" row is placed at the end of its own section.
+- Upgrading from 1.14: replace `build_pages.py` as "Bringing a kit up to this version" says and
+  carry the guide's "Page design" section across.
+
 What 1.14 changed from 1.13 (pictures are drawings):
 - Guide, "Pictures": a picture of the tool is a drawing made for the kit from the product's real
   layout (a simplified user interface illustration): what the learner acts on drawn and labelled
@@ -483,7 +519,7 @@ What 1.8 changed from 1.7:
   against the vendor's documentation, never put to the requester.
 - Step 7: reviews run in rounds until one comes back clean; `references/review-checklist.md` runs
   before every "Ready to read", and covers a unit or a line, lesson not mechanism, the example
-  that misinforms, headings and unit titles read cold as a list, and where a created
+  that misinforms, headings and unit titles read alone as a list, and where a created
   customization applies.
 - Pages: worked examples run on practice files the assistant creates, so nothing is downloaded by
   default; requests name their target folder, write nothing else, and are laid out one

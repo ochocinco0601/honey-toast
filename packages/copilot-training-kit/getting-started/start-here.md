@@ -36,13 +36,14 @@ If VS Code doesn't open, no chat appears, or the chat asks you to sign in, see
 
 ### Reading a permission request
 
-Copilot doesn't ask before it creates or edits files in the folder you have open. Before it runs a command that could change something on your computer, it
-asks in the chat and waits.
+By default, Copilot creates and edits files in your open folder without asking. It asks first for
+a few settings files, and for files outside the folder. It also asks before it runs a command that
+could change your computer. When it asks, it waits for you.
 
 ![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](images/permission-request.svg)
 
 - Look at what it's about to do. If it matches what you asked, select **Allow**.
-- If it doesn't, select **Skip**. Skipping is always safe: nothing runs.
+- If it doesn't, select **Skip**. Skip doesn't run the command; Copilot carries on without it.
 
 ## 2. Have Copilot create a practice folder
 
@@ -75,11 +76,10 @@ Copilot works on the files in the folder you open.
 
 1. On the **File** menu, select **Open Folder**.
 2. In Documents, select `copilot-practice`, and then **Select Folder**.
-3. If VS Code asks whether you trust the authors of the files, leave the box about the parent folder unticked,
-   and then select **Yes, I trust the authors**. If a bar at the top says the folder is in Restricted Mode instead, select **Manage**,
-   and then **Trust**.
+3. On the Restricted Mode bar, under the menu bar, select **Manage**. On the **Workspace Trust** page that opens, select **Trust**. If VS Code asks instead whether you trust the authors, leave the box about the parent folder
+   unticked and select **Yes, I trust the authors**.
 
-![Drawing of the dialog that asks whether you trust the authors, with the button to select: Yes, I trust the authors.](images/trust-question.svg)
+![Drawing of the Restricted Mode bar under the menu bar, with Manage outlined.](images/restricted-mode.svg)
 
 Check: the list on the left shows `COPILOT-PRACTICE`, with nothing in it yet.
 

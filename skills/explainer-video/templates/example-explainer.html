@@ -4,15 +4,22 @@
 <title>Example Explainer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-/* Layout: a one-line title, then a 16:9 stage over a console of caption + transport, with the
-   transcript docked beside it; standfirst and note beneath. Fonts are the system's own: nothing is fetched. */
+/* Layout: a video-learning player page. One line of title; the player (stage, caption, transport)
+   with the transcript docked to its right, both sized to the window's height; then a wide reading
+   column (68rem) below, its left edge on the player's, holding what the piece is and how to use it.
+   No web fonts: the page must work offline and on a network that blocks font hosts, so every face is a system stack. */
 :root {
-  --sans: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
-  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
-  --serif: Georgia, serif;
+  /* Type. UI and headings in the platform's own sans (Segoe UI Variable on Windows); timecodes in
+     its monospace, for figures that line up. The stage's drawing uses --sans too. */
+  --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+  --serif: Georgia, "Times New Roman", serif;
 
+  /* Stage tokens: the drawing reads these, and the video file and stills were rendered to match
+     them (SKILL.md, "Drawing"). Change them only with the video. --bg also paints the drawn
+     window's title bar. */
   --bg: #EEEDE8;
-  --surface: #FBFAF7;
   --paper: #FBFAF7;
   --ink: #14171C;
   --muted: #5F646B;
@@ -24,16 +31,23 @@
   --good: #2E7D55;
   --bad: #B33A2E;
 
+  /* Page chrome. */
+  --surface: #FBFAF7;
+  --hover: #E4E5E0;
+  --line-soft: #DEDFDB;
+  --shadow: 0 1px 2px rgb(20 23 28 / .06), 0 8px 28px -12px rgb(20 23 28 / .22);
+
+  /* The player's console is dark in both themes, as video players are. */
   --console-bg: #1B1E23;
   --console-fg: #F2F1ED;
-  --console-dim: #9BA1A8;
-  --console-line: #3A3F46;
+  --console-dim: #A3A9B0;
+  --console-line: #33383F;
+  --console-hover: #2A2F36;
   --track-rest: #666C75;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0E1014;
-    --surface: #171A1F;
     --paper: #1B1F25;
     --ink: #ECEEF1;
     --muted: #99A0A8;
@@ -44,17 +58,21 @@
     --caution-ui: #DFA62E;
     --good: #5FBF8C;
     --bad: #E0847A;
+    --surface: #161A1F;
+    --hover: #20252C;
+    --line-soft: #262B32;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 30px -14px rgb(0 0 0 / .7);
     --console-bg: #111418;
     --console-fg: #ECEEF1;
-    --console-dim: #8F969E;
+    --console-dim: #9AA1A9;
     --console-line: #2B3037;
+    --console-hover: #222830;
     --track-rest: #5E646C;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0E1014;
-  --surface: #171A1F;
   --paper: #1B1F25;
   --ink: #ECEEF1;
   --muted: #99A0A8;
@@ -65,198 +83,251 @@
   --caution-ui: #DFA62E;
   --good: #5FBF8C;
   --bad: #E0847A;
+  --surface: #161A1F;
+  --hover: #20252C;
+  --line-soft: #262B32;
+  --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 30px -14px rgb(0 0 0 / .7);
   --console-bg: #111418;
   --console-fg: #ECEEF1;
-  --console-dim: #8F969E;
+  --console-dim: #9AA1A9;
   --console-line: #2B3037;
+  --console-hover: #222830;
   --track-rest: #5E646C;
   color-scheme: dark;
 }
 
+* { box-sizing: border-box; }
 body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--sans);
   margin: 0;
-  padding-inline: 16px;
-  padding-block: 12px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 64px;
+  -webkit-font-smoothing: antialiased;
 }
-* { box-sizing: border-box; }
-.wrap { max-width: 1480px; margin: 0 auto; }
-/* Reading text keeps a reading measure; only the player and its transcript use the full width. */
-.wrap > *:not(.theater) { max-width: 68rem; margin-inline: auto; }
+/* The page is as wide as the player and its transcript (--tw, set by the script), so the reading
+   column below starts on the player's left edge, as a video page's description does. */
+.wrap { max-width: var(--tw, 1480px); margin: 0 auto; }
 
-/* The theater: a one-line title, then the player with the transcript docked to its right on a wide
-   window (the video-learning player arrangement) or stacked beneath it on a narrow one.
-   The script sets --pw (player width) and --sw (transcript width) from the measured window. */
+/* --- the theater: title line, player, transcript --------------------------------------------- */
+/* The script sets --pw (player width) and --sw (transcript width) from the measured window. */
 .theater {
-  display: grid; justify-content: center; gap: 10px 16px;
+  display: grid; justify-content: center; gap: 12px 20px;
   grid-template-columns: var(--pw, minmax(0, 1fr));
 }
 @media (min-width: 960px) {
   .theater { grid-template-columns: var(--pw, minmax(0, 1fr)) var(--sw, 360px); }
 }
-.head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; min-width: 0; }
-.eyebrow {
-  font-size: 11px; font-weight: 600; letter-spacing: .14em;
-  text-transform: uppercase; color: var(--muted); margin: 0;
+.head {
+  grid-column: 1 / -1; min-width: 0;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 18px;
 }
 h1 {
-  font-family: var(--serif); font-weight: 500;
-  font-size: 21px; line-height: 1.25; margin: 0;
+  font-family: var(--display); font-weight: 650; font-size: 22px; line-height: 1.2;
+  letter-spacing: -.012em; margin: 0; text-wrap: balance;
 }
-.head .stopk { margin-left: auto; }
-.standfirst {
-  color: var(--muted); font-size: 15px; line-height: 1.55;
-  margin: 22px auto 0;
+.meta {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0;
+  font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.meta span + span::before {
+  content: ""; display: inline-block; width: 3px; height: 3px; border-radius: 50%;
+  background: currentColor; vertical-align: middle; margin: 0 14px 0 0; opacity: .7;
+  position: relative; top: -1px;
 }
 
-.player { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); min-width: 0; }
-.stage {
-  position: relative; aspect-ratio: 16 / 9; max-width: 100%;
-  background: var(--paper); border-bottom: 1px solid var(--line);
+/* The player is the one object on the page that gets a card's weight. */
+.player {
+  min-width: 0; border-radius: 12px; overflow: hidden;
+  background: var(--console-bg); box-shadow: var(--shadow);
+  border: 1px solid var(--line);
 }
+.stage { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: var(--paper); }
 .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .stage svg text { font-family: var(--sans); }
 .stage svg text.mono { font-family: var(--mono); }
 .stage svg text.serif { font-family: var(--serif); }
 
 .poster { position: absolute; inset: 0; display: block; border: 0; background: transparent; cursor: pointer; padding: 0; }
-/* `display` on the class outranks the browser's own rule for [hidden], so without this the poster
-   never leaves and its full-bleed button swallows every click on the stage. */
+/* `display` on the class outranks the UA rule for [hidden], so the poster never leaves and its
+   full-bleed button swallows every click on the stage. */
 .poster[hidden] { display: none; }
 /* The stage rule positions every svg inside .stage absolutely; the pill's icon is not the stage. */
-.poster span svg { position: static; inset: auto; width: 13px; height: 13px; }
+.poster span svg { position: static; inset: auto; width: 14px; height: 14px; }
 .poster span {
   position: absolute; left: 50%; top: 79%; transform: translate(-50%, -50%);
-  display: inline-flex; align-items: center; gap: 9px; white-space: nowrap;
-  background: var(--console-bg); color: var(--console-fg);
-  font-size: 14px; font-weight: 600; padding: 11px 20px 11px 17px;
-  border-radius: 999px; box-shadow: 0 2px 14px rgb(0 0 0 / .22);
+  display: inline-flex; align-items: center; gap: 10px; white-space: nowrap;
+  background: var(--ink); color: var(--paper);
+  font-size: 15px; font-weight: 600; padding: 12px 22px 12px 18px;
+  border-radius: 999px; box-shadow: 0 4px 18px rgb(0 0 0 / .28);
+  transition: transform .15s ease;
 }
+.poster:hover span { transform: translate(-50%, -50%) scale(1.04); }
 
 .console { background: var(--console-bg); color: var(--console-fg); }
-.caption { display: flex; gap: 13px; padding: 15px 18px; min-height: 118px; align-items: flex-start; overflow-y: auto; }
+/* The caption is the narration for anyone with the sound off: reading text, set large, with the
+   amber "now" mark the transcript's current line also carries. */
+.caption {
+  display: flex; gap: 14px; padding: 14px 20px 12px; min-height: 104px;
+  align-items: flex-start; overflow-y: auto;
+}
 .caption .rule { flex: 0 0 3px; align-self: stretch; background: var(--caution-ui); border-radius: 2px; }
 .caption p {
-  font-family: var(--serif); font-size: clamp(16px, 2.4vw, 19px);
-  line-height: 1.45; margin: 0; min-width: 0; text-wrap: pretty;
+  font-size: clamp(16px, 1.6vw, 19px); font-weight: 450;
+  line-height: 1.5; margin: 0; min-width: 0; max-width: 62ch; text-wrap: pretty;
 }
 .caption[hidden] { display: none !important; }
 
+/* One row: step controls, the scene bar, the clock, then the settings. */
 .transport {
-  display: flex; align-items: center; gap: 9px;
-  padding: 9px 12px 11px; border-top: 1px solid var(--console-line); flex-wrap: wrap;
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 10px 10px; border-top: 1px solid var(--console-line); flex-wrap: wrap;
 }
+.transport .grp { display: flex; align-items: center; gap: 2px; flex: none; }
 .transport button {
-  background: transparent; border: 1px solid transparent; color: var(--console-fg);
-  border-radius: 6px; cursor: pointer; display: grid; place-items: center;
-  width: 30px; height: 30px; padding: 0; flex: none;
+  background: transparent; border: 0; color: var(--console-fg);
+  border-radius: 8px; cursor: pointer; display: grid; place-items: center;
+  width: 34px; height: 34px; padding: 0; flex: none;
 }
-.transport button:hover { background: rgb(255 255 255 / .09); }
+.transport button:hover { background: var(--console-hover); }
 .transport button:focus-visible, .poster:focus-visible span,
-.tab:focus-visible, .jump:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; }
+.jump:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; }
 .transport button[aria-pressed="false"] { color: var(--console-dim); }
 .transport button.play {
   background: var(--console-fg); color: var(--console-bg);
-  width: 34px; height: 34px; border-radius: 7px;
+  width: 38px; height: 38px; border-radius: 50%; margin-right: 4px;
 }
+.transport button.play:hover { background: var(--console-fg); opacity: .88; }
 .transport button.wide {
-  width: auto; min-width: 34px; height: 30px; padding: 0 8px;
-  font-size: 11px; font-weight: 700; font-family: var(--mono); letter-spacing: .03em;
+  width: auto; min-width: 36px; padding: 0 8px;
+  font-size: 12px; font-weight: 700; font-family: var(--sans); letter-spacing: .02em;
 }
-.transport svg { width: 15px; height: 15px; fill: currentColor; }
+.transport svg { width: 16px; height: 16px; fill: currentColor; }
 
-.track { position: relative; flex: 1 1 150px; min-width: 90px; height: 30px; display: flex; align-items: center; }
-.track input { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; margin: 0; height: 30px; position: relative; z-index: 2; }
+.track { position: relative; flex: 1 1 140px; min-width: 90px; height: 34px; display: flex; align-items: center; margin: 0 8px; }
+.track input { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; margin: 0; height: 34px; position: relative; z-index: 2; cursor: pointer; }
 /* The track fills up to the thumb, so progress is the bar and not just the dot's position.
-   The fill steps with the thumb at each scene boundary rather than running continuously. The
-   filled part and the unplayed groove both keep 3:1 contrast against the console. */
+   The fill steps with the thumb rather than running continuously, so the filled bar always ends
+   on a scene boundary. */
 .track input {
   --fill: 0%;
   --played: linear-gradient(to right, var(--console-fg) var(--fill), var(--track-rest) var(--fill));
 }
-.track input::-webkit-slider-runnable-track { height: 4px; background: var(--played); border-radius: 2px; }
-.track input::-moz-range-track { height: 4px; background: var(--played); border-radius: 2px; }
-.track input::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: var(--console-fg); border: 0; margin-top: -3.5px; }
-.track input::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: var(--console-fg); border: 0; }
+.track input::-webkit-slider-runnable-track { height: 5px; background: var(--played); border-radius: 3px; }
+.track input::-moz-range-track { height: 5px; background: var(--played); border-radius: 3px; }
+.track input::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--console-fg); border: 0; margin-top: -4px; box-shadow: 0 0 0 3px var(--console-bg); }
+.track input::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: var(--console-fg); border: 0; box-shadow: 0 0 0 3px var(--console-bg); }
 .track input:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 1px; border-radius: 4px; }
-.ticks { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
-.ticks i { position: absolute; top: 50%; width: 1px; height: 9px; margin-top: -4.5px; background: var(--console-dim); }
-.readout { font-family: var(--mono); font-size: 11px; color: var(--console-dim); white-space: nowrap; font-variant-numeric: tabular-nums; flex: none; }
+/* Scene boundaries cut the groove, so the bar reads as a sequence of scenes. */
+.ticks { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.ticks i { position: absolute; top: 50%; width: 2px; height: 5px; margin: -2.5px 0 0 -1px; background: var(--console-bg); }
+.readout { font-size: 12.5px; color: var(--console-dim); white-space: nowrap; font-variant-numeric: tabular-nums; flex: none; margin-right: 6px; }
 
-/* The transcript column. On a wide window its contents are taken out of flow, so the grid row is
-   exactly as tall as the player and the column scrolls inside that height. */
+/* --- the transcript ----------------------------------------------------------------------------
+   On a wide window its contents are taken out of flow, so the grid row is exactly as tall as the
+   player and the list scrolls inside that height. */
 .side {
   position: relative; min-width: 0; min-height: 0;
-  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
 }
-.side-in { position: absolute; inset: 0; display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; }
-@media (max-width: 1099.98px) {
+.side-in { position: absolute; inset: 0; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; }
+@media (max-width: 959.98px) {
   .side-in { position: static; }
-  .tpanel { max-height: 24rem; }
+  .tpanel { max-height: 22rem; }
 }
 .panelhead {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: none;
-  padding: 9px 10px 9px 14px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: baseline; gap: 10px; flex: none;
+  padding: 13px 16px 11px; border-bottom: 1px solid var(--line-soft);
 }
-.panelhead h2 { font-size: 13px; font-weight: 600; margin: 0; }
-.panelhead .len { font-family: var(--mono); font-size: 11px; color: var(--muted); }
-.tabs { margin-left: auto; display: flex; gap: 2px; background: var(--bg); border-radius: 7px; padding: 2px; }
-.tab {
-  border: 0; background: transparent; cursor: pointer; font: inherit;
-  font-size: 12px; font-weight: 600; color: var(--muted); padding: 5px 11px; border-radius: 5px;
-}
-.tab[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.panelhead h2 { font-family: var(--display); font-size: 15px; font-weight: 650; margin: 0; }
+.panelhead .how { margin-left: auto; font-size: 12.5px; color: var(--muted); }
 .tpanel {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
-  padding: 0 6px 10px;
+  padding: 0 8px 12px; scrollbar-width: thin;
 }
 .tpanel:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: -2px; }
-#p-summary { padding: 12px 14px 14px; }
-.summary { font-size: 14.5px; line-height: 1.6; margin: 0; }
 
 ol.transcript, ol.lines { list-style: none; margin: 0; padding: 0; }
-ol.lines { display: grid; gap: 1px; }
+ol.lines { display: grid; gap: 2px; }
+.scn + .scn { border-top: 1px solid var(--line-soft); margin-top: 6px; }
 .scn-h {
   position: sticky; top: 0; z-index: 1; background: var(--surface);
-  margin: 0; padding: 10px 9px 5px;
-  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  margin: 0; padding: 12px 10px 6px;
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 12.5px; font-weight: 650; color: var(--ink);
 }
-.scn-h span { font-family: var(--mono); font-weight: 400; letter-spacing: 0; margin-left: 6px; }
+.scn-h span { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
 .jump {
-  display: grid; grid-template-columns: 36px 1fr; gap: 10px; width: 100%;
+  display: grid; grid-template-columns: 38px 1fr; gap: 10px; width: 100%;
   text-align: left; border: 0; background: transparent; font: inherit;
-  cursor: pointer; padding: 6px 9px; border-radius: 6px; color: var(--ink);
+  cursor: pointer; padding: 7px 10px; border-radius: 8px; color: var(--ink);
 }
-.jump:hover { background: var(--bg); }
+.jump:hover { background: var(--hover); }
 .jump:focus-visible { outline-offset: -2px; }
 .jump[data-on="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--caution-ui); }
-.jump .tc { font-family: var(--mono); font-size: 11px; color: var(--muted); padding-top: 3px; font-variant-numeric: tabular-nums; }
-.jump[data-on="true"] .tc { color: var(--ink); }
-.jump[data-on="true"] .line { font-weight: 500; }
-.jump .line { font-size: 14px; line-height: 1.5; min-width: 0; }
+.jump .tc { font-size: 12px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.jump:hover .tc { color: var(--accent); }
+.jump[data-on="true"] .tc { color: var(--ink); font-weight: 600; }
+.jump .line { font-size: 14.5px; line-height: 1.55; min-width: 0; }
 
-.note { margin: 20px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+/* --- below the player: the reading column ------------------------------------------------------ */
+.about {
+  max-width: 68rem; margin: 36px 0 0;
+  display: grid; gap: 14px;
+}
+.about h2 { font-family: var(--display); font-size: 23px; font-weight: 650; margin: 0; letter-spacing: -.005em; }
+.standfirst { font-size: 18px; line-height: 1.5; margin: 0; color: var(--ink); }
+.summary { font-size: 16px; line-height: 1.7; margin: 0; color: var(--ink); }
+.summary b, .parts b { font-weight: 650; }
+.parts { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.parts li { font-size: 16px; line-height: 1.6; padding-left: 18px; position: relative; }
+.parts li::before { content: ""; position: absolute; left: 2px; top: .7em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+.using {
+  margin: 14px 0 0; padding: 18px 20px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line-soft);
+  display: grid; gap: 12px;
+}
+.using h3 { font-size: 14px; font-weight: 650; margin: 0; }
+.keys { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 10px 24px; }
+.keys div { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.keys dt { flex: none; }
+.keys dd { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink); min-width: 0; }
+kbd {
+  display: inline-block; min-width: 26px; padding: 2px 7px; text-align: center;
+  font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
+}
+kbd.arrow { font-size: 15px; line-height: 17px; padding: 1px 6px; }
+.note { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
 .note code { font-family: var(--mono); font-size: .92em; color: var(--ink); }
 .note b { color: var(--ink); font-weight: 600; }
 
-@media (max-width: 700px) { .caption { min-height: 150px; } }
-@media (max-width: 460px) { .caption { min-height: 176px; } .readout { font-size: 10px; } }
+@media (max-width: 700px) { .caption { min-height: 132px; } .meta { font-size: 12.5px; } }
+@media (max-width: 460px) {
+  .caption { min-height: 160px; padding: 12px 14px 10px; }
+  .readout { font-size: 11.5px; }
+  h1 { font-size: 19px; }
+  .standfirst { font-size: 17px; }
+}
+@media (hover: none) and (pointer: coarse) { .keys { display: none; } }
+@media (prefers-reduced-motion: reduce) { .poster span { transition: none; } }
 </style>
 
 <div class="wrap">
  <div class="theater">
   <div class="head">
-    <p class="eyebrow">Explainer</p>
     <h1>Your subject</h1>
+    <p class="meta"><span>Explainer</span><span id="meta-scenes"></span><span id="meta-len"></span></p>
   </div>
 
   <div class="player">
     <div class="stage">
       <svg id="stage" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Animated explainer of your subject. The narration is written out in the transcript."></svg>
       <button class="poster" id="poster" type="button" aria-label="Play the explainer">
-        <span><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>Play explainer</span>
+        <span><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>Play explainer</span>
       </button>
     </div>
 
@@ -266,52 +337,62 @@ ol.lines { display: grid; gap: 1px; }
         <p id="captiontext"></p>
       </div>
       <div class="transport">
-        <button class="play" id="playbtn" type="button" aria-label="Play">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>
-        </button>
-        <button id="replay" type="button" aria-label="Replay from the start">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.6V0L4.4 3 8 6V3.6a4.4 4.4 0 1 1-4.4 4.4h-1A5.4 5.4 0 1 0 8 2.6z"/></svg>
-        </button>
-        <button id="prev" type="button" aria-label="Previous scene">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 2.5v11L4 8z"/></svg>
-        </button>
+        <div class="grp">
+          <button class="play" id="playbtn" type="button" aria-label="Play">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>
+          </button>
+          <button id="prev" type="button" aria-label="Previous scene">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h2v11h-2zM13.5 2.5v11L5.5 8z"/></svg>
+          </button>
+          <button id="next" type="button" aria-label="Next scene">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 2.5h2v11h-2zM2.5 2.5v11L10.5 8z"/></svg>
+          </button>
+        </div>
         <div class="track">
           <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Scene">
           <div class="ticks" id="ticks"></div>
         </div>
-        <button id="next" type="button" aria-label="Next scene">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 2.5v11L12 8z"/></svg>
-        </button>
-        <button id="sound" type="button" aria-label="Narration sound, on"></button>
-        <button class="wide" id="cc" type="button" aria-label="Captions, on" aria-pressed="true">CC</button>
-        <button class="wide" id="speed" type="button" aria-label="Playback speed, 1x">1x</button>
         <span class="readout" id="readout"></span>
+        <div class="grp">
+          <button id="sound" type="button" aria-label="Narration sound, on"></button>
+          <button class="wide" id="cc" type="button" aria-label="Captions, on" aria-pressed="true">CC</button>
+          <button class="wide" id="speed" type="button" aria-label="Playback speed, 1x">1x</button>
+          <button id="replay" type="button" aria-label="Replay from the start">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.6V0L4.4 3 8 6V3.6a4.4 4.4 0 1 1-4.4 4.4h-1A5.4 5.4 0 1 0 8 2.6z"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <aside class="side" aria-label="Transcript">
+  <aside class="side" aria-labelledby="transcript-h">
    <div class="side-in">
     <div class="panelhead">
-      <span class="len" id="len" aria-label="Running time"></span>
-      <div class="tabs" role="tablist">
-        <button class="tab" id="tab-transcript" type="button" role="tab" aria-selected="true" aria-controls="p-transcript">Transcript</button>
-        <button class="tab" id="tab-summary" type="button" role="tab" aria-selected="false" aria-controls="p-summary" tabindex="-1">Summary</button>
-      </div>
+      <h2 id="transcript-h">Transcript</h2>
+      <span class="how">Click a line to play from it</span>
     </div>
-    <div class="tpanel" id="p-transcript" role="tabpanel" aria-labelledby="tab-transcript">
+    <div class="tpanel" id="p-transcript" tabindex="0" aria-label="Transcript lines">
       <ol class="transcript" id="transcript"></ol>
-    </div>
-    <div class="tpanel" id="p-summary" role="tabpanel" aria-labelledby="tab-summary" tabindex="0" hidden>
-      <p class="summary">This example has three scenes: an opening that names the subject and what the viewer will be able to do, a before and after shown in one frame, and a close on the first thing to do. A real piece puts its own summary here, or the job aid's text when there is one.</p>
     </div>
    </div>
   </aside>
  </div>
 
+ <section class="about" aria-labelledby="about-h">
+  <h2 id="about-h">About this explainer</h2>
   <p class="standfirst">An example of the explainer page: replace this line with what the piece is and who it is for.</p>
+  <p class="summary">This example has three scenes: an opening that names the subject and what the viewer will be able to do, a before and after shown in one frame, and a close on the first thing to do. A real piece puts its own summary here, or the job aid's text when there is one.</p>
 
-  <p class="note">The progress bar reports the <b>scene</b>: it holds while a scene plays and steps at the boundary. <b>Sound is optional</b>: turned off, the captions carry the narration, and the piece stops when each scene has finished drawing until you press play.</p>
+  <div class="using">
+   <h3>Using the player</h3>
+   <dl class="keys">
+    <div><dt><kbd>Space</kbd></dt><dd>Play or pause</dd></div>
+    <div><dt><kbd class="arrow">&larr;</kbd> <kbd class="arrow">&rarr;</kbd></dt><dd>Previous or next scene, shown finished</dd></div>
+    <div><dt><kbd>C</kbd></dt><dd>Captions on or off</dd></div>
+   </dl>
+   <p class="note">The progress bar reports the <b>scene</b>: it holds while a scene plays and steps at the boundary. <b>Sound is optional</b>: turned off, the captions carry the narration, and the piece stops when each scene has finished drawing until you press play.</p>
+  </div>
+ </section>
 </div>
 
 <script>
@@ -633,7 +714,7 @@ ol.lines { display: grid; gap: 1px; }
     scrub.style.setProperty("--fill",
       "calc(5.5px + " + (scrub.value / 1000) + " * (100% - 11px))");
     scrub.setAttribute("aria-valuetext", "Scene " + (now + 1) + ", " + mmss(t));
-    markLine(now, ln);
+    if (started) markLine(now, ln);
   }
 
   /* A narrow player shortens the readout so the control bar stays on one row. */
@@ -785,9 +866,16 @@ ol.lines { display: grid; gap: 1px; }
     if (useSound()) clips[cur].playbackRate = speed;
   });
 
+  /* The player's keys work wherever focus is on the page, as a video player's do: after a click
+     on a transcript line or CC, Space must still play and pause rather than press that control
+     again. The scene bar keeps its own arrow keys (above); modified keys are left to the browser. */
   document.addEventListener("keydown", function (e) {
-    if (e.target !== document.body) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var tag = e.target && e.target.tagName;
+    if (tag === "TEXTAREA" || (tag === "INPUT" && e.target !== scrub) || (e.target && e.target.isContentEditable)) return;
     if (e.key === " ") { e.preventDefault(); playbtn.click(); }
+    else if (e.key === "c" || e.key === "C") { e.preventDefault(); ccBtn.click(); }
+    else if (e.target === scrub || e.target === tscroll) return;   /* the bar steps scenes; the transcript scrolls */
     else if (e.key === "ArrowRight") { e.preventDefault(); document.getElementById("next").click(); }
     else if (e.key === "ArrowLeft") { e.preventDefault(); document.getElementById("prev").click(); }
   });
@@ -800,7 +888,8 @@ ol.lines { display: grid; gap: 1px; }
       tickHtml += '<i style="left:' + ((starts[ti] / total) * 100).toFixed(2) + '%"></i>';
     }
     document.getElementById("ticks").innerHTML = tickHtml;
-    document.getElementById("len").textContent = mmss(total);
+    document.getElementById("meta-scenes").textContent = S.length + " scenes";
+    document.getElementById("meta-len").textContent = mmss(total);
 
     /* One entry per spoken line, grouped under its scene, each stamped with where its speech
        begins on the current timeline (sound on and sound off have different clocks). */
@@ -883,38 +972,19 @@ ol.lines { display: grid; gap: 1px; }
     if (btn) seekLine(+btn.getAttribute("data-s"), +btn.getAttribute("data-l"));
   });
 
-  var tabS = document.getElementById("tab-summary"), tabT = document.getElementById("tab-transcript");
-  function pick(summary, focus) {
-    tabS.setAttribute("aria-selected", summary ? "true" : "false");
-    tabT.setAttribute("aria-selected", summary ? "false" : "true");
-    tabS.tabIndex = summary ? 0 : -1;
-    tabT.tabIndex = summary ? -1 : 0;
-    document.getElementById("p-summary").hidden = !summary;
-    document.getElementById("p-transcript").hidden = summary;
-    if (focus) (summary ? tabS : tabT).focus();
-    if (!summary) follow(true);
-  }
-  tabS.addEventListener("click", function () { pick(true, false); });
-  tabT.addEventListener("click", function () { pick(false, false); });
-  [tabS, tabT].forEach(function (el) {
-    el.addEventListener("keydown", function (e) {
-      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-        e.preventDefault();
-        pick(el === tabT, true);
-      }
-    });
-  });
-
   /* The whole player -- picture, caption and controls -- must be on screen at once, and on a wide
      window the transcript beside it. Size it from the space actually left in the window below the
-     player's top edge, not from a CSS guess, so it holds inside any frame. The transcript column
-     takes 30% of the width (320 to 400px) and the picture what is left, never wider than the
-     drawing's own 960px and never narrower than 320px.
+     player's top edge, not from a CSS guess, so it holds inside any viewer frame. The picture is
+     never wider than MAX_PLAYER (a laptop-sized cap, so it never outgrows the screen it is
+     watched on) nor narrower than 320px; the transcript takes what is left, 320 to 460px.
+     The page's own width (--tw) is set to the two together, so the reading column below starts
+     on the player's left edge.
      The caption box is pinned to the height of the longest caption the current mode can show
      (one line spoken with sound; a whole scene muted), so the controls never move and never
      drop below the window as the captions change. */
+  var MAX_PLAYER = 860, MAX_PAGE = 1480;
   var theaterEl = document.querySelector(".theater"), playerEl = document.querySelector(".player"),
-      consoleEl = document.querySelector(".console");
+      consoleEl = document.querySelector(".console"), wrapEl = document.querySelector(".wrap");
   var WIDE = window.matchMedia ? window.matchMedia("(min-width: 960px)") : { matches: false };
 
   function longestCaption() {
@@ -935,7 +1005,7 @@ ol.lines { display: grid; gap: 1px; }
        the window's height the caption scrolls inside itself instead (the transcript beside it
        carries the same text). */
     var h = Math.min(Math.ceil(captionEl.getBoundingClientRect().height),
-                     Math.max(118, Math.round(window.innerHeight * 0.3)));
+                     Math.max(104, Math.round(window.innerHeight * 0.3)));
     captionText.textContent = keep;
     captionEl.style.height = h + "px";
     captionEl.hidden = wasHidden;
@@ -943,14 +1013,19 @@ ol.lines { display: grid; gap: 1px; }
   }
 
   function fitPlayer() {
-    var avail = theaterEl.clientWidth;
+    /* Measured from the body, not the theater: the theater's width is what this sets. */
+    var bs = getComputedStyle(document.body);
+    var avail = Math.min(MAX_PAGE, document.body.clientWidth -
+      parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight));
     var wide = WIDE.matches;
+    var gap = wide ? parseFloat(getComputedStyle(theaterEl).columnGap) || 0 : 0;
     var sw = wide ? Math.round(clamp(avail * 0.3, 320, 400)) : 0;
-    var room0 = avail - (wide ? sw + 16 : 0);
-    var w = Math.max(320, Math.min(960, room0));
+    var room0 = avail - (wide ? sw + gap : 0);
+    var w = Math.max(320, Math.min(MAX_PLAYER, room0));
     /* Repeated until it settles: the caption's height (and whether the control bar wraps)
        depends on the width, and the width on them. */
     theaterEl.style.setProperty("--sw", sw + "px");
+    wrapEl.style.setProperty("--tw", avail + "px");
     for (var pass = 0; pass < 4; pass++) {
       var px = Math.floor(w);
       theaterEl.style.setProperty("--pw", px + "px");
@@ -959,12 +1034,17 @@ ol.lines { display: grid; gap: 1px; }
       var capH = sizeCaption();
       var chrome = consoleEl.getBoundingClientRect().height + (captionEl.hidden ? capH : 0);
       var top = playerEl.getBoundingClientRect().top + window.scrollY;
-      /* 2px of player border, 1px of stage rule, 10px clear below. */
-      var room = window.innerHeight - Math.min(top, window.innerHeight * 0.2) - chrome - 13;
-      w = Math.max(320, Math.min(960, room0, room * 16 / 9));
+      /* 2px of player border and 14px clear below it, for its shadow. */
+      var room = window.innerHeight - Math.min(top, window.innerHeight * 0.2) - chrome - 16;
+      w = Math.max(320, Math.min(MAX_PLAYER, room0, room * 16 / 9));
       if (Math.floor(w) === px) break;
     }
-    theaterEl.style.setProperty("--pw", Math.floor(w) + "px");
+    var pw = Math.floor(w);
+    /* The transcript takes the rest of the row, within reason. */
+    if (wide) sw = Math.round(clamp(avail - gap - pw, 320, 460));
+    theaterEl.style.setProperty("--pw", pw + "px");
+    theaterEl.style.setProperty("--sw", sw + "px");
+    wrapEl.style.setProperty("--tw", (wide ? pw + gap + sw : avail) + "px");
     sizeCaption();
     follow(true);
   }

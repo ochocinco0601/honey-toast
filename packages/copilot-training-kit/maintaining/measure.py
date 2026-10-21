@@ -7,7 +7,7 @@ import re, sys, os, glob
 
 KIT = sys.argv[1] if len(sys.argv) > 1 else "."
 # Folders learners never read: the practice files are not pages, and neither is their note.
-NOT_PAGES = ("facilitator", "maintaining", "read-in-browser", "sample-files")
+NOT_PAGES = ("facilitator", "maintaining", "read-in-browser", "sample-files", "videos")
 TRAINING_FOLDERS = ["getting-started", "skills-in-depth", "agents"]
 
 

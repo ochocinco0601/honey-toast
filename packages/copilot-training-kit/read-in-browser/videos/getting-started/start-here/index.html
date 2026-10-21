@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Make your first request to Copilot</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+
+:root {
+
+  --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+  --serif: Georgia, "Times New Roman", serif;
+}
+
+:root {
+  --bg: #fbfcfd;
+  --bg2: #f1f4f7;
+  --surface: #ffffff;
+  --ink: #16202c;
+  --ink2: #3e4a58;
+  --ink3: #5a6676;
+  --rule: #e0e5eb;
+  --rule2: #c2cad4;
+  --accent: #1659b7;
+  --accent-soft: #e9f0fa;
+  --accent-ink: #ffffff;
+  --ctl: #7b8594;
+  --mark: #b44900;
+  --mark-ink: #ffffff;
+  --good: #2E7D55;
+  --bad: #B33A2E;
+  --shadow: 0 1px 2px rgb(20 23 28 / .06), 0 8px 28px -12px rgb(20 23 28 / .22);
+  --console-bg: #1B1E23;
+  --console-fg: #F2F1ED;
+  --console-dim: #A3A9B0;
+  --console-line: #33383F;
+  --console-hover: #2A2F36;
+  --track-rest: #666C75;
+  --paper: var(--surface);
+  --muted: var(--ink3);
+  --line: var(--rule2);
+  --line-soft: var(--rule);
+  --hover: var(--bg2);
+  --caution: var(--mark);
+  --caution-ui: var(--mark);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b;
+    --bg2: #161b22;
+    --surface: #1a2029;
+    --ink: #e4e8ee;
+    --ink2: #b3bcc8;
+    --ink3: #8e99a7;
+    --rule: #272e38;
+    --rule2: #3b4451;
+    --accent: #80b3ff;
+    --accent-soft: #18263a;
+    --accent-ink: #0c1320;
+    --ctl: #6c7787;
+    --mark: #f08a3c;
+    --mark-ink: #101010;
+    --good: #5FBF8C;
+    --bad: #E0847A;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 30px -14px rgb(0 0 0 / .7);
+    --console-bg: #111418;
+    --console-fg: #ECEEF1;
+    --console-dim: #9AA1A9;
+    --console-line: #2B3037;
+    --console-hover: #222830;
+    --track-rest: #5E646C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b;
+  --bg2: #161b22;
+  --surface: #1a2029;
+  --ink: #e4e8ee;
+  --ink2: #b3bcc8;
+  --ink3: #8e99a7;
+  --rule: #272e38;
+  --rule2: #3b4451;
+  --accent: #80b3ff;
+  --accent-soft: #18263a;
+  --accent-ink: #0c1320;
+  --ctl: #6c7787;
+  --mark: #f08a3c;
+  --mark-ink: #101010;
+  --good: #5FBF8C;
+  --bad: #E0847A;
+  --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 30px -14px rgb(0 0 0 / .7);
+  --console-bg: #111418;
+  --console-fg: #ECEEF1;
+  --console-dim: #9AA1A9;
+  --console-line: #2B3037;
+  --console-hover: #222830;
+  --track-rest: #5E646C;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 64px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: var(--tw, 1480px); margin: 0 auto; }
+
+.theater {
+  display: grid; justify-content: center; gap: 12px 20px;
+  grid-template-columns: var(--pw, minmax(0, 1fr));
+}
+@media (min-width: 960px) {
+  .theater { grid-template-columns: var(--pw, minmax(0, 1fr)) var(--sw, 360px); }
+}
+.head {
+  grid-column: 1 / -1; min-width: 0;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 18px;
+}
+h1 {
+  font-family: var(--display); font-weight: 650; font-size: 22px; line-height: 1.2;
+  letter-spacing: -.012em; margin: 0; text-wrap: balance;
+}
+.meta {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0;
+  font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.meta span + span::before {
+  content: ""; display: inline-block; width: 3px; height: 3px; border-radius: 50%;
+  background: currentColor; vertical-align: middle; margin: 0 14px 0 0; opacity: .7;
+  position: relative; top: -1px;
+}
+
+.player {
+  min-width: 0; border-radius: 12px; overflow: hidden;
+  background: var(--console-bg); box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+.stage { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: var(--paper); }
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage svg text { font-family: var(--sans); }
+.stage svg text.mono { font-family: var(--mono); }
+.stage svg text.serif { font-family: var(--serif); }
+
+.poster { position: absolute; inset: 0; display: block; border: 0; background: transparent; cursor: pointer; padding: 0; }
+
+.poster[hidden] { display: none; }
+
+.poster span svg { position: static; inset: auto; width: 14px; height: 14px; }
+.poster span {
+  position: absolute; left: 50%; top: 79%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 10px; white-space: nowrap;
+  background: var(--ink); color: var(--paper);
+  font-size: 15px; font-weight: 600; padding: 12px 22px 12px 18px;
+  border-radius: 999px; box-shadow: 0 4px 18px rgb(0 0 0 / .28);
+  transition: transform .15s ease;
+}
+.poster:hover span { transform: translate(-50%, -50%) scale(1.04); }
+
+.console { background: var(--console-bg); color: var(--console-fg); }
+
+.caption {
+  display: flex; gap: 14px; padding: 14px 20px 12px; min-height: 104px;
+  align-items: flex-start; overflow-y: auto;
+}
+.caption .rule { flex: 0 0 3px; align-self: stretch; background: var(--caution-ui); border-radius: 2px; }
+.caption p {
+  font-size: clamp(16px, 1.6vw, 19px); font-weight: 450;
+  line-height: 1.5; margin: 0; min-width: 0; max-width: 62ch; text-wrap: pretty;
+}
+.caption[hidden] { display: none !important; }
+
+.transport {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 10px 10px; border-top: 1px solid var(--console-line); flex-wrap: wrap;
+}
+.transport .grp { display: flex; align-items: center; gap: 2px; flex: none; }
+.transport button {
+  background: transparent; border: 0; color: var(--console-fg);
+  border-radius: 8px; cursor: pointer; display: grid; place-items: center;
+  width: 34px; height: 34px; padding: 0; flex: none;
+}
+.transport button:hover { background: var(--console-hover); }
+.transport button:focus-visible, .poster:focus-visible span,
+.jump:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; }
+.transport button[aria-pressed="false"] { color: var(--console-dim); }
+.transport button.play {
+  background: var(--console-fg); color: var(--console-bg);
+  width: 38px; height: 38px; border-radius: 50%; margin-right: 4px;
+}
+.transport button.play:hover { background: var(--console-fg); opacity: .88; }
+.transport button.wide {
+  width: auto; min-width: 36px; padding: 0 8px;
+  font-size: 12px; font-weight: 700; font-family: var(--sans); letter-spacing: .02em;
+}
+.transport svg { width: 16px; height: 16px; fill: currentColor; }
+
+.track { position: relative; flex: 1 1 140px; min-width: 90px; height: 34px; display: flex; align-items: center; margin: 0 8px; }
+.track input { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; margin: 0; height: 34px; position: relative; z-index: 2; cursor: pointer; }
+
+.track input {
+  --fill: 0%;
+  --played: linear-gradient(to right, var(--console-fg) var(--fill), var(--track-rest) var(--fill));
+}
+.track input::-webkit-slider-runnable-track { height: 5px; background: var(--played); border-radius: 3px; }
+.track input::-moz-range-track { height: 5px; background: var(--played); border-radius: 3px; }
+.track input::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--console-fg); border: 0; margin-top: -4px; box-shadow: 0 0 0 3px var(--console-bg); }
+.track input::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: var(--console-fg); border: 0; box-shadow: 0 0 0 3px var(--console-bg); }
+.track input:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 1px; border-radius: 4px; }
+
+.ticks { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.ticks i { position: absolute; top: 50%; width: 2px; height: 5px; margin: -2.5px 0 0 -1px; background: var(--console-bg); }
+.readout { font-size: 12.5px; color: var(--console-dim); white-space: nowrap; font-variant-numeric: tabular-nums; flex: none; margin-right: 6px; }
+
+.side {
+  position: relative; min-width: 0; min-height: 0;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+}
+.side-in { position: absolute; inset: 0; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; }
+@media (max-width: 959.98px) {
+  .side-in { position: static; }
+  .tpanel { max-height: 22rem; }
+}
+.panelhead {
+  display: flex; align-items: baseline; gap: 10px; flex: none;
+  padding: 13px 16px 11px; border-bottom: 1px solid var(--line-soft);
+}
+.panelhead h2 { font-family: var(--display); font-size: 15px; font-weight: 650; margin: 0; }
+.panelhead .how { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+.tpanel {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 8px 12px; scrollbar-width: thin;
+}
+.tpanel:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: -2px; }
+
+ol.transcript, ol.lines { list-style: none; margin: 0; padding: 0; }
+ol.lines { display: grid; gap: 2px; }
+.scn + .scn { border-top: 1px solid var(--line-soft); margin-top: 6px; }
+.scn-h {
+  position: sticky; top: 0; z-index: 1; background: var(--surface);
+  margin: 0; padding: 12px 10px 6px;
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 12.5px; font-weight: 650; color: var(--ink);
+}
+.scn-h span { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.jump {
+  display: grid; grid-template-columns: 38px 1fr; gap: 10px; width: 100%;
+  text-align: left; border: 0; background: transparent; font: inherit;
+  cursor: pointer; padding: 7px 10px; border-radius: 8px; color: var(--ink);
+}
+
+.jump { scroll-margin-top: 36px; }
+.jump:hover { background: var(--hover); }
+.jump:focus-visible { outline-offset: -2px; }
+.jump[data-on="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--caution-ui); }
+.jump .tc { font-size: 12px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.jump:hover .tc { color: var(--accent); }
+.jump[data-on="true"] .tc { color: var(--ink); font-weight: 600; }
+.jump .line { font-size: 14.5px; line-height: 1.55; min-width: 0; }
+
+.about {
+  max-width: 68rem; margin: 36px 0 0;
+  display: grid; gap: 14px;
+}
+.about h2 { font-family: var(--display); font-size: 23px; font-weight: 650; margin: 0; letter-spacing: -.005em; }
+.standfirst { font-size: 18px; line-height: 1.5; margin: 0; color: var(--ink); }
+.summary { font-size: 16px; line-height: 1.7; margin: 0; color: var(--ink); }
+.summary b, .parts b { font-weight: 650; }
+.parts { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.parts li { font-size: 16px; line-height: 1.6; padding-left: 18px; position: relative; }
+.parts li::before { content: ""; position: absolute; left: 2px; top: .7em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+.using {
+  margin: 14px 0 0; padding: 18px 20px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line-soft);
+  display: grid; gap: 12px;
+}
+.using h3 { font-size: 14px; font-weight: 650; margin: 0; }
+.keys { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 10px 24px; }
+.keys div { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.keys dt { flex: none; }
+.keys dd { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink); min-width: 0; }
+kbd {
+  display: inline-block; min-width: 26px; padding: 2px 7px; text-align: center;
+  font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
+}
+kbd.arrow { font-size: 15px; line-height: 17px; padding: 1px 6px; }
+.note { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.note code { font-family: var(--mono); font-size: .92em; color: var(--ink); }
+.note b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 700px) { .caption { min-height: 132px; } .meta { font-size: 12.5px; } }
+@media (max-width: 460px) {
+  .caption { min-height: 160px; padding: 12px 14px 10px; }
+  .readout { font-size: 11.5px; }
+  h1 { font-size: 19px; }
+  .standfirst { font-size: 17px; }
+}
+@media (hover: none) and (pointer: coarse) { .keys { display: none; } }
+@media (prefers-reduced-motion: reduce) { .poster span { transition: none; } }
+
+.lessonlink { margin: 0 0 8px; font-size: 14px; line-height: 1.4; }
+.lessonlink a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.lessonlink a:focus-visible { outline: 2px solid var(--caution-ui); outline-offset: 2px; border-radius: 2px; }
+
+.ticks i.ch { height: 13px; margin-top: -6.5px; width: 3px; margin-left: -1.5px; }
+.scn + .chap { border-top: 1px solid var(--line); margin-top: 6px; }
+.chap-h {
+  margin: 0; padding: 14px 10px 2px;
+  font-family: var(--display); font-size: 13.5px; font-weight: 650; color: var(--accent);
+}
+
+.inkit body { padding-block: 0 16px; }
+.inkit .lessonlink, .inkit .head { display: none; }
+
+.dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
+.dg-c{fill:var(--bg2,#f7f7f7)}
+.dg-l{stroke:var(--rule2,#cdcdcd);stroke-width:1.5;fill:none}
+.dg-b{fill:var(--rule,#e6e6e6)}
+.dg-b2{fill:var(--rule2,#cdcdcd)}
+.dg-tn{fill:var(--accent,#0065b3);fill-opacity:.14}
+.dg-t{fill:var(--ink,#1b1b1b);font-size:13px}
+.dg-tb{fill:var(--ink,#1b1b1b);font-size:13px;font-weight:600}
+.dg-s{fill:var(--ink3,#6b6b6b);font-size:11px;letter-spacing:.06em}
+.dg-n{fill:var(--ink3,#6b6b6b);font-size:13px}
+.dg-ic{fill:none;stroke:var(--ink3,#6b6b6b);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dg-p{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.2}
+.dg-btn{fill:var(--accent,#0065b3)}
+.dg-btnt{fill:var(--accent-ink,#fff);font-size:13px;font-weight:600}
+.dg-btnl{stroke:var(--accent-ink,#fff);stroke-width:1;fill:none}
+.dg-m{fill:none;stroke:var(--mark,#bc4c00);stroke-width:3}
+.dg-mb{fill:var(--mark,#bc4c00)}
+.dg-mt{fill:var(--mark-ink,#fff);font-size:12px;font-weight:600}
+.dg-ml{stroke:var(--mark,#bc4c00);stroke-width:1.5;fill:none}
+.dg-lab{fill:var(--mark,#bc4c00);font-size:14px;font-weight:600}
+.dg-x-req{fill:var(--accent-soft,#eef4fa);stroke:var(--accent,#0065b3)}
+.dg-x-card{fill:var(--bg2,#f7f7f7);stroke:var(--ctl,#767676)}
+.dg-x-hit{fill:var(--bg2,#f7f7f7);stroke:var(--accent,#0065b3);stroke-width:2}
+.dg-x-dim{opacity:.45}
+.dg-x-arrow{stroke:var(--accent,#0065b3);stroke-width:2;fill:none}
+.dg-x-head{fill:var(--accent,#0065b3)}
+.dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
+</style>
+<script>if (/[?&]in=kit(&|$)/.test(location.search) && window.parent !== window) document.documentElement.className += " inkit";</script>
+
+<div class="wrap">
+ <nav class="lessonlink" aria-label="This lesson"><a href="../../../getting-started/start-here.html">Written steps: Make your first request to Copilot <span aria-hidden="true">&rsaquo;</span></a></nav>
+ <div class="theater">
+  <div class="head">
+    <h1>Make your first request to Copilot</h1>
+    <p class="meta"><span>Video</span><span id="meta-scenes"></span><span id="meta-len"></span></p>
+  </div>
+
+  <div class="player">
+    <div class="stage">
+      <svg id="stage" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Animated video: Make your first request to Copilot. The narration is written out in the transcript."></svg>
+      <button class="poster" id="poster" type="button" aria-label="Play video">
+        <span><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>Play video</span>
+      </button>
+    </div>
+
+    <div class="console">
+      <div class="caption" id="caption">
+        <div class="rule"></div>
+        <p id="captiontext"></p>
+      </div>
+      <div class="transport">
+        <div class="grp">
+          <button class="play" id="playbtn" type="button" aria-label="Play">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>
+          </button>
+          <button id="prev" type="button" aria-label="Previous scene">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h2v11h-2zM13.5 2.5v11L5.5 8z"/></svg>
+          </button>
+          <button id="next" type="button" aria-label="Next scene">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 2.5h2v11h-2zM2.5 2.5v11L10.5 8z"/></svg>
+          </button>
+        </div>
+        <div class="track">
+          <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Scene">
+          <div class="ticks" id="ticks"></div>
+        </div>
+        <span class="readout" id="readout"></span>
+        <div class="grp">
+          <button id="sound" type="button" aria-label="Narration sound, on"></button>
+          <button class="wide" id="cc" type="button" aria-label="CC, captions on" aria-pressed="true">CC</button>
+          <button class="wide" id="speed" type="button" aria-label="1x, playback speed">1x</button>
+          <button id="replay" type="button" aria-label="Replay from the start">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.6V0L4.4 3 8 6V3.6a4.4 4.4 0 1 1-4.4 4.4h-1A5.4 5.4 0 1 0 8 2.6z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side" aria-labelledby="transcript-h">
+   <div class="side-in">
+    <div class="panelhead">
+      <h2 id="transcript-h">Transcript</h2>
+      <span class="how">Click a line to play from it</span>
+    </div>
+    <div class="tpanel" id="p-transcript" tabindex="0" aria-label="Transcript lines">
+      <ol class="transcript" id="transcript"></ol>
+    </div>
+   </div>
+  </aside>
+ </div>
+
+ <section class="about" aria-labelledby="about-h">
+  <h2 id="about-h">About this video</h2>
+  <p class="standfirst">The first unit's steps, narrated: open VS Code and the chat, have Copilot create a practice folder, and open it. Pause where the video says, do the step on your computer, then play on.</p>
+  <p class="summary">This video walks through the unit's three written steps. If your screen doesn't match, the written steps say what to do.</p>
+  <ol class="summary">
+    <li>Open VS Code and the chat, and check that the control at the bottom of the chat box says Agent.</li>
+    <li>Have Copilot create a copilot-practice folder in Documents, and check it in File Explorer.</li>
+    <li>Open the folder in VS Code, and trust it.</li>
+  </ol>
+
+  <div class="using">
+   <h3>Using the player</h3>
+   <dl class="keys">
+    <div><dt><kbd>Space</kbd></dt><dd>Play or pause</dd></div>
+    <div><dt><kbd class="arrow">&larr;</kbd> <kbd class="arrow">&rarr;</kbd></dt><dd>Go to the previous or next scene</dd></div>
+    <div><dt><kbd>C</kbd></dt><dd>Captions on or off, when you are using the player</dd></div>
+   </dl>
+   <p class="note">The progress bar moves one scene at a time. With the sound off, read the captions; the video stops after each scene until you press play.</p>
+  </div>
+ </section>
+</div>
+<script>
+(function () {
+  "use strict";
+
+  var PAPER = "var(--paper)";
+
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var RAMP = reduce ? 0.12 : 0.25;
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  var MAX_LEAD = 1.2;
+  var TIMING = {
+    "open": { dur: 19.507, starts: [1.3, 10.148, 13.663], pre: [1.3, 0.4, 0.4] },
+    "open-chat": { dur: 17.112, starts: [1.3, 9.097, 12.292], pre: [1.3, 2.4, 0.4] },
+    "open-chat-window": { dur: 35.672, starts: [1.3, 9.503, 12.42, 18.175, 20.815, 25.759, 30.233], pre: [1.3, 2.4, 0.4, 0.4, 0.4, 0.4, 0.4] },
+    "open-chat-check": { dur: 19.496, starts: [1.3, 6.943, 14.591], pre: [1.3, 2.4, 2.4] },
+    "permission": { dur: 32.088, starts: [1.3, 6.521, 13.039, 17.449, 19.513, 22.836, 25.583], pre: [1.3, 0.4, 2.4, 0.4, 0.4, 0.4, 0.4] },
+    "practice-folder": { dur: 35.4, starts: [1.3, 7.433, 13.593, 21.353, 30.324], pre: [1.3, 2.4, 0.4, 0.4, 2.4] },
+    "practice-folder-check": { dur: 19.453, starts: [1.3, 7.135, 13.865], pre: [1.3, 2.4, 2.4] },
+    "open-folder": { dur: 42.515, starts: [1.3, 10.185, 13.231, 19.577, 26.201, 31.764], pre: [1.3, 2.4, 0.4, 2.4, 2.4, 0.4] },
+    "open-folder-check": { dur: 19.901, starts: [1.3, 6.004, 14.804], pre: [1.3, 2.4, 2.4] },
+    "close": { dur: 14.733, starts: [1.3, 8.761], pre: [1.3, 0.4] }
+  };
+
+  var ANIM = reduce
+    ? { fade: [0, 0], up: [0, 0], right: [0, 0], left: [0, 0] }
+    : { fade: [0, 0], up: [0, 16], right: [-16, 0], left: [16, 0] };
+
+  var S = [{"id":"open","lines":[{"caption":"In this unit, you open VS Code and the chat, have GitHub Copilot create a practice folder, and open the practice folder in VS Code."},{"caption":"Each request is shown on screen, and in the written steps."},{"caption":"Where the video says pause, stop it, do the step on your computer, and then play on."}],"beats":[{"line":0,"anim":"up","svg":"<rect x=\"150\" y=\"136\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"184\" y=\"179\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Open VS Code and the chat<\/text>"},{"line":0,"plus":3.09,"anim":"up","svg":"<rect x=\"150\" y=\"236\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"184\" y=\"279\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Have GitHub Copilot create a practice folder<\/text>"},{"line":0,"plus":5.28,"anim":"up","svg":"<rect x=\"150\" y=\"336\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"184\" y=\"379\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Open the practice folder in VS Code<\/text>"}],"title":"What you'll do"},{"id":"open-chat","lines":[{"caption":"You type your requests to Copilot in the chat, so first, open VS Code and its chat."},{"caption":"Press the Windows key, type code, and press Enter."},{"caption":"When VS Code opens, select the View menu, and then Chat."}],"beats":[{"line":1,"outLine":2,"anim":"fade","svg":"<rect x=\"170\" y=\"202\" width=\"130\" height=\"130\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"170\" y=\"196\" width=\"130\" height=\"130\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><rect x=\"211\" y=\"237\" width=\"22\" height=\"22\" rx=\"2\" fill=\"var(--ink)\"/><rect x=\"211\" y=\"263\" width=\"22\" height=\"22\" rx=\"2\" fill=\"var(--ink)\"/><rect x=\"237\" y=\"237\" width=\"22\" height=\"22\" rx=\"2\" fill=\"var(--ink)\"/><rect x=\"237\" y=\"263\" width=\"22\" height=\"22\" rx=\"2\" fill=\"var(--ink)\"/><rect x=\"360\" y=\"216\" width=\"250\" height=\"90\" rx=\"8\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"394\" y=\"274\" fill=\"var(--ink)\" font-size=\"40\" font-weight=\"400\" text-anchor=\"start\" class=\"mono\">code<\/text><rect x=\"510\" y=\"238\" width=\"3\" height=\"48\" fill=\"var(--ink)\"/><rect x=\"670\" y=\"202\" width=\"170\" height=\"130\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"670\" y=\"196\" width=\"170\" height=\"130\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"755\" y=\"272\" fill=\"var(--ink)\" font-size=\"32\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"},{"line":1,"outLine":2,"anim":"fade","svg":"<rect x=\"162\" y=\"188\" width=\"146\" height=\"152\" rx=\"18\" fill=\"none\" stroke=\"var(--accent)\" stroke-width=\"4\"/>"},{"line":1,"plus":0.89,"outLine":2,"anim":"fade","svg":"<rect x=\"352\" y=\"208\" width=\"266\" height=\"112\" rx=\"18\" fill=\"none\" stroke=\"var(--accent)\" stroke-width=\"4\"/>"},{"line":1,"plus":2.13,"outLine":2,"anim":"fade","svg":"<rect x=\"662\" y=\"188\" width=\"186\" height=\"152\" rx=\"18\" fill=\"none\" stroke=\"var(--accent)\" stroke-width=\"4\"/>"},{"line":2,"anim":"fade","svg":"<g transform=\"translate(17.65 8) scale(1.9265)\"><clipPath id=\"kc1\"><rect x=\"0\" y=\"0\" width=\"480\" height=\"272\"/><\/clipPath><g clip-path=\"url(#kc1)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"470\" height=\"290\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"468\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"52\" y=\"18\" width=\"24\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"88\" y=\"18\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"152\" y=\"18\" width=\"28\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"192\" y=\"18\" width=\"16\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"220\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"254\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"314\" y=\"18\" width=\"26\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M412 20h9M432 15h9v9h-9zM452 15l9 9M461 15l-9 9\"/><\/g><\/g>"},{"line":2,"plus":1.7,"anim":"fade","svg":"<g transform=\"translate(17.65 8) scale(1.9265)\"><clipPath id=\"kc2\"><rect x=\"0\" y=\"0\" width=\"480\" height=\"272\"/><\/clipPath><g clip-path=\"url(#kc2)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"470\" height=\"290\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"468\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"52\" y=\"18\" width=\"24\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"88\" y=\"18\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"146\" y=\"10\" width=\"40\" height=\"22\" rx=\"4\"/><text class=\"dg-t\" x=\"152\" y=\"26\" style=\"font-size:12px\">View<\/text><rect class=\"dg-b\" x=\"192\" y=\"18\" width=\"16\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"220\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"254\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"314\" y=\"18\" width=\"26\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M412 20h9M432 15h9v9h-9zM452 15l9 9M461 15l-9 9\"/><rect class=\"dg-w\" x=\"146\" y=\"34\" width=\"220\" height=\"232\" rx=\"6\"/><rect class=\"dg-b\" x=\"160\" y=\"51\" width=\"96\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"160\" y=\"71\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"154\" y1=\"88\" x2=\"358\" y2=\"88\"/><rect class=\"dg-b\" x=\"160\" y=\"100\" width=\"120\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"160\" y=\"120\" width=\"84\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"160\" y=\"140\" width=\"110\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"154\" y1=\"157\" x2=\"358\" y2=\"157\"/><rect class=\"dg-b\" x=\"160\" y=\"169\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"160\" y=\"189\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"150\" y=\"202\" width=\"212\" height=\"20\" rx=\"4\"/><text class=\"dg-t\" x=\"160\" y=\"217\" style=\"font-size:12px\">Chat<\/text><rect class=\"dg-b\" x=\"160\" y=\"229\" width=\"76\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"160\" y=\"249\" width=\"118\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":2,"plus":2.88,"anim":"fade","svg":"<g transform=\"translate(17.65 8) scale(1.9265)\"><clipPath id=\"kc3\"><rect x=\"0\" y=\"0\" width=\"480\" height=\"272\"/><\/clipPath><g clip-path=\"url(#kc3)\"><rect class=\"dg-m\" x=\"150\" y=\"202\" width=\"212\" height=\"20\" rx=\"5\"/><\/g><\/g>"}],"title":"Open VS Code and the chat"},{"id":"open-chat-window","lines":[{"caption":"This is the VS Code window, drawn as it looks later in this training, with files in the folder."},{"caption":"Gray bars stand for text you don't need to read."},{"caption":"1. On the left is the list headed EXPLORER, which shows a folder's files once you open one."},{"caption":"2. In the middle is the file you select."},{"caption":"3. On the right is the chat, where you type requests and Copilot replies."},{"caption":"4. New Chat (+), at the top of the chat, starts a fresh chat."},{"caption":"5. At the bottom of the chat box is the control that shows Agent."}],"beats":[{"line":0,"anim":"fade","svg":"<g transform=\"translate(66.36 10) scale(1.1818)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"430\" rx=\"8\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"28\" rx=\"7\"/>\n<rect class=\"dg-b\" x=\"20\" y=\"18\" width=\"257\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-p\" x=\"270\" y=\"11\" width=\"160\" height=\"17\" rx=\"4\"/><rect class=\"dg-b\" x=\"280\" y=\"17\" width=\"60\" height=\"5\" rx=\"2\"/>\n<path class=\"dg-ic\" d=\"M630 20h9M652 15h9v9h-9zM674 15l9 9M683 15l-9 9\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"34\" width=\"34\" height=\"380\"/>\n<path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/>\n<circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/>\n<circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/>\n<path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/>\n<path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/>\n<line class=\"dg-l\" x1=\"190\" y1=\"34\" x2=\"190\" y2=\"414\"/>\n<text class=\"dg-s\" x=\"50\" y=\"54\">EXPLORER<\/text>\n<path class=\"dg-ic\" d=\"M51.0 71.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"61\" y=\"71\" width=\"106\" height=\"7\" rx=\"2\"/>\n<path class=\"dg-ic\" d=\"M64.0 91.0l4.0 4.0 -4.0 4.0\"/><rect class=\"dg-b\" x=\"74\" y=\"92\" width=\"36\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-tn\" x=\"41\" y=\"108\" width=\"149\" height=\"20\"/>\n<rect class=\"dg-b2\" x=\"62\" y=\"112\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"77\" y=\"114\" width=\"72\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-c\" x=\"191\" y=\"34\" width=\"263\" height=\"26\"/>\n<rect class=\"dg-w\" x=\"191\" y=\"34\" width=\"100\" height=\"26\" style=\"stroke:none\"/>\n<line x1=\"191\" y1=\"59\" x2=\"291\" y2=\"59\" style=\"stroke:var(--accent,#0065b3);stroke-width:2\"/>\n<rect class=\"dg-b\" x=\"201\" y=\"44\" width=\"72\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M274 44l6 6M280 44l-6 6\"/>\n<g class=\"dg-n\" style=\"font-size:11px\"><text x=\"200\" y=\"84\">1<\/text><text x=\"200\" y=\"102\">2<\/text><text x=\"200\" y=\"120\">3<\/text><text x=\"200\" y=\"138\">4<\/text><text x=\"200\" y=\"156\">5<\/text><rect class=\"dg-b\" x=\"200\" y=\"166\" width=\"12\" height=\"7\" rx=\"2\"/><\/g>\n<rect class=\"dg-b2\" x=\"220\" y=\"77\" width=\"120\" height=\"8\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"113\" width=\"190\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"131\" width=\"160\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"149\" width=\"205\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"167\" width=\"140\" height=\"7\" rx=\"2\"/>\n<line class=\"dg-l\" x1=\"455\" y1=\"34\" x2=\"455\" y2=\"414\"/>\n<text class=\"dg-s\" x=\"471\" y=\"54\">CHAT<\/text><path class=\"dg-ic\" d=\"M616 43v14M609 50h14\"/><path class=\"dg-ic\" d=\"M627 49l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M672 50h.5M678 50h.5M684 50h.5\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"66\" width=\"104\" height=\"6\" rx=\"2\"/>\n<rect class=\"dg-tn\" x=\"520\" y=\"82\" width=\"164\" height=\"42\" rx=\"7\"/>\n<rect class=\"dg-b2\" x=\"532\" y=\"93\" width=\"138\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"532\" y=\"107\" width=\"96\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"140\" width=\"150\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"157\" width=\"205\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"174\" width=\"180\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"191\" width=\"110\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-w\" x=\"463\" y=\"318\" width=\"223\" height=\"66\" rx=\"7\"/>\n<rect class=\"dg-b\" x=\"475\" y=\"331\" width=\"110\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-ic\" x=\"473\" y=\"360\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M478 363v5M476.0 365h5\"/><rect class=\"dg-p\" x=\"491\" y=\"354\" width=\"64\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M503 360.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"514\" y=\"369\" style=\"font-size:12px\">Agent<\/text>\n<rect class=\"dg-p\" x=\"561\" y=\"354\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"569\" y=\"362\" width=\"30\" height=\"5\" rx=\"2\"/>\n<circle class=\"dg-ic\" cx=\"623\" cy=\"365\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"623\" cy=\"365\" r=\"2.2\"/>\n<path d=\"M664 371l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect class=\"dg-b\" x=\"509\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect class=\"dg-b\" x=\"551\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"414\" width=\"688\" height=\"20\"/>\n<rect class=\"dg-b2\" x=\"18\" y=\"421\" width=\"50\" height=\"6\" rx=\"3\"/><rect class=\"dg-b2\" x=\"590\" y=\"421\" width=\"90\" height=\"6\" rx=\"3\"/><\/g>"},{"line":1,"outLine":1,"outPlus":1.4,"anim":"fade","svg":"<g transform=\"translate(66.36 10) scale(1.1818)\"><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"20\" y=\"18\" width=\"257\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"280\" y=\"17\" width=\"60\" height=\"5\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"61\" y=\"71\" width=\"106\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"74\" y=\"92\" width=\"36\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"62\" y=\"112\" width=\"9\" height=\"11\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"77\" y=\"114\" width=\"72\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"201\" y=\"44\" width=\"72\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"200\" y=\"166\" width=\"12\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"220\" y=\"77\" width=\"120\" height=\"8\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"220\" y=\"113\" width=\"190\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"220\" y=\"131\" width=\"160\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"220\" y=\"149\" width=\"205\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"220\" y=\"167\" width=\"140\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"467\" y=\"66\" width=\"104\" height=\"6\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"532\" y=\"93\" width=\"138\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"532\" y=\"107\" width=\"96\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"467\" y=\"140\" width=\"150\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"467\" y=\"157\" width=\"205\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"467\" y=\"174\" width=\"180\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"467\" y=\"191\" width=\"110\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"475\" y=\"331\" width=\"110\" height=\"7\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"569\" y=\"362\" width=\"30\" height=\"5\" rx=\"2\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"467\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"509\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"551\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"18\" y=\"421\" width=\"50\" height=\"6\" rx=\"3\"/><rect style=\"fill:var(--mark);fill-opacity:.55\" x=\"590\" y=\"421\" width=\"90\" height=\"6\" rx=\"3\"/><\/g>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(66.36 10) scale(1.1818)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h690v430h-690zM37 30v388h157v-388z\"/><g transform=\"translate(165 50) scale(1.6) translate(-165 -50)\"><circle class=\"dg-mb\" cx=\"165\" cy=\"50\" r=\"10\"/><text class=\"dg-mt\" x=\"165\" y=\"54\" text-anchor=\"middle\">1<\/text><\/g><\/g><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M239.6 69.7L217.6 69.7\"/><rect x=\"239.6\" y=\"37\" width=\"234.4\" height=\"65.4\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(133.2 -61.6) scale(2.6)\"><clipPath id=\"ki4\"><rect x=\"44\" y=\"41\" width=\"84\" height=\"19\"/><\/clipPath><g clip-path=\"url(#ki4)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"430\" rx=\"8\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"28\" rx=\"7\"/>\n<rect class=\"dg-b\" x=\"20\" y=\"18\" width=\"257\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-p\" x=\"270\" y=\"11\" width=\"160\" height=\"17\" rx=\"4\"/><rect class=\"dg-b\" x=\"280\" y=\"17\" width=\"60\" height=\"5\" rx=\"2\"/>\n<path class=\"dg-ic\" d=\"M630 20h9M652 15h9v9h-9zM674 15l9 9M683 15l-9 9\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"34\" width=\"34\" height=\"380\"/>\n<path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/>\n<circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/>\n<circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/>\n<path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/>\n<path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/>\n<line class=\"dg-l\" x1=\"190\" y1=\"34\" x2=\"190\" y2=\"414\"/>\n<text class=\"dg-s\" x=\"50\" y=\"54\">EXPLORER<\/text>\n<path class=\"dg-ic\" d=\"M51.0 71.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"61\" y=\"71\" width=\"106\" height=\"7\" rx=\"2\"/>\n<path class=\"dg-ic\" d=\"M64.0 91.0l4.0 4.0 -4.0 4.0\"/><rect class=\"dg-b\" x=\"74\" y=\"92\" width=\"36\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-tn\" x=\"41\" y=\"108\" width=\"149\" height=\"20\"/>\n<rect class=\"dg-b2\" x=\"62\" y=\"112\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"77\" y=\"114\" width=\"72\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-c\" x=\"191\" y=\"34\" width=\"263\" height=\"26\"/>\n<rect class=\"dg-w\" x=\"191\" y=\"34\" width=\"100\" height=\"26\" style=\"stroke:none\"/>\n<line x1=\"191\" y1=\"59\" x2=\"291\" y2=\"59\" style=\"stroke:var(--accent,#0065b3);stroke-width:2\"/>\n<rect class=\"dg-b\" x=\"201\" y=\"44\" width=\"72\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M274 44l6 6M280 44l-6 6\"/>\n<g class=\"dg-n\" style=\"font-size:11px\"><text x=\"200\" y=\"84\">1<\/text><text x=\"200\" y=\"102\">2<\/text><text x=\"200\" y=\"120\">3<\/text><text x=\"200\" y=\"138\">4<\/text><text x=\"200\" y=\"156\">5<\/text><rect class=\"dg-b\" x=\"200\" y=\"166\" width=\"12\" height=\"7\" rx=\"2\"/><\/g>\n<rect class=\"dg-b2\" x=\"220\" y=\"77\" width=\"120\" height=\"8\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"113\" width=\"190\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"131\" width=\"160\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"149\" width=\"205\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"167\" width=\"140\" height=\"7\" rx=\"2\"/>\n<line class=\"dg-l\" x1=\"455\" y1=\"34\" x2=\"455\" y2=\"414\"/>\n<text class=\"dg-s\" x=\"471\" y=\"54\">CHAT<\/text><path class=\"dg-ic\" d=\"M616 43v14M609 50h14\"/><path class=\"dg-ic\" d=\"M627 49l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M672 50h.5M678 50h.5M684 50h.5\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"66\" width=\"104\" height=\"6\" rx=\"2\"/>\n<rect class=\"dg-tn\" x=\"520\" y=\"82\" width=\"164\" height=\"42\" rx=\"7\"/>\n<rect class=\"dg-b2\" x=\"532\" y=\"93\" width=\"138\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"532\" y=\"107\" width=\"96\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"140\" width=\"150\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"157\" width=\"205\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"174\" width=\"180\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"191\" width=\"110\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-w\" x=\"463\" y=\"318\" width=\"223\" height=\"66\" rx=\"7\"/>\n<rect class=\"dg-b\" x=\"475\" y=\"331\" width=\"110\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-ic\" x=\"473\" y=\"360\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M478 363v5M476.0 365h5\"/><rect class=\"dg-p\" x=\"491\" y=\"354\" width=\"64\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M503 360.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"514\" y=\"369\" style=\"font-size:12px\">Agent<\/text>\n<rect class=\"dg-p\" x=\"561\" y=\"354\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"569\" y=\"362\" width=\"30\" height=\"5\" rx=\"2\"/>\n<circle class=\"dg-ic\" cx=\"623\" cy=\"365\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"623\" cy=\"365\" r=\"2.2\"/>\n<path d=\"M664 371l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect class=\"dg-b\" x=\"509\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect class=\"dg-b\" x=\"551\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"414\" width=\"688\" height=\"20\"/>\n<rect class=\"dg-b2\" x=\"18\" y=\"421\" width=\"50\" height=\"6\" rx=\"3\"/><rect class=\"dg-b2\" x=\"590\" y=\"421\" width=\"90\" height=\"6\" rx=\"3\"/><\/g><\/g>"},{"line":3,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(66.36 10) scale(1.1818)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h690v430h-690zM187 30v388h271v-388z\"/><g transform=\"translate(430 80) scale(1.6) translate(-430 -80)\"><circle class=\"dg-mb\" cx=\"430\" cy=\"80\" r=\"10\"/><text class=\"dg-mt\" x=\"430\" y=\"84\" text-anchor=\"middle\">2<\/text><\/g><\/g>"},{"line":4,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(66.36 10) scale(1.1818)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h690v430h-690zM451 30v388h247v-388z\"/><g transform=\"translate(522 50) scale(1.6) translate(-522 -50)\"><circle class=\"dg-mb\" cx=\"522\" cy=\"50\" r=\"10\"/><text class=\"dg-mt\" x=\"522\" y=\"54\" text-anchor=\"middle\">3<\/text><\/g><\/g><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M587.6 70.3L607.6 70.3\"/><rect x=\"10\" y=\"23.9\" width=\"577.6\" height=\"92.8\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-1081.2 -52.1) scale(2.4)\"><clipPath id=\"ki5\"><rect x=\"458\" y=\"35\" width=\"234\" height=\"32\"/><\/clipPath><g clip-path=\"url(#ki5)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"430\" rx=\"8\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"28\" rx=\"7\"/>\n<rect class=\"dg-b\" x=\"20\" y=\"18\" width=\"257\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-p\" x=\"270\" y=\"11\" width=\"160\" height=\"17\" rx=\"4\"/><rect class=\"dg-b\" x=\"280\" y=\"17\" width=\"60\" height=\"5\" rx=\"2\"/>\n<path class=\"dg-ic\" d=\"M630 20h9M652 15h9v9h-9zM674 15l9 9M683 15l-9 9\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"34\" width=\"34\" height=\"380\"/>\n<path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/>\n<circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/>\n<circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/>\n<path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/>\n<path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/>\n<line class=\"dg-l\" x1=\"190\" y1=\"34\" x2=\"190\" y2=\"414\"/>\n<text class=\"dg-s\" x=\"50\" y=\"54\">EXPLORER<\/text>\n<path class=\"dg-ic\" d=\"M51.0 71.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"61\" y=\"71\" width=\"106\" height=\"7\" rx=\"2\"/>\n<path class=\"dg-ic\" d=\"M64.0 91.0l4.0 4.0 -4.0 4.0\"/><rect class=\"dg-b\" x=\"74\" y=\"92\" width=\"36\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-tn\" x=\"41\" y=\"108\" width=\"149\" height=\"20\"/>\n<rect class=\"dg-b2\" x=\"62\" y=\"112\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"77\" y=\"114\" width=\"72\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-c\" x=\"191\" y=\"34\" width=\"263\" height=\"26\"/>\n<rect class=\"dg-w\" x=\"191\" y=\"34\" width=\"100\" height=\"26\" style=\"stroke:none\"/>\n<line x1=\"191\" y1=\"59\" x2=\"291\" y2=\"59\" style=\"stroke:var(--accent,#0065b3);stroke-width:2\"/>\n<rect class=\"dg-b\" x=\"201\" y=\"44\" width=\"72\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M274 44l6 6M280 44l-6 6\"/>\n<g class=\"dg-n\" style=\"font-size:11px\"><text x=\"200\" y=\"84\">1<\/text><text x=\"200\" y=\"102\">2<\/text><text x=\"200\" y=\"120\">3<\/text><text x=\"200\" y=\"138\">4<\/text><text x=\"200\" y=\"156\">5<\/text><rect class=\"dg-b\" x=\"200\" y=\"166\" width=\"12\" height=\"7\" rx=\"2\"/><\/g>\n<rect class=\"dg-b2\" x=\"220\" y=\"77\" width=\"120\" height=\"8\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"113\" width=\"190\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"131\" width=\"160\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"149\" width=\"205\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"167\" width=\"140\" height=\"7\" rx=\"2\"/>\n<line class=\"dg-l\" x1=\"455\" y1=\"34\" x2=\"455\" y2=\"414\"/>\n<text class=\"dg-s\" x=\"471\" y=\"54\">CHAT<\/text><path class=\"dg-ic\" d=\"M616 43v14M609 50h14\"/><path class=\"dg-ic\" d=\"M627 49l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M672 50h.5M678 50h.5M684 50h.5\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"66\" width=\"104\" height=\"6\" rx=\"2\"/>\n<rect class=\"dg-tn\" x=\"520\" y=\"82\" width=\"164\" height=\"42\" rx=\"7\"/>\n<rect class=\"dg-b2\" x=\"532\" y=\"93\" width=\"138\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"532\" y=\"107\" width=\"96\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"140\" width=\"150\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"157\" width=\"205\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"174\" width=\"180\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"191\" width=\"110\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-w\" x=\"463\" y=\"318\" width=\"223\" height=\"66\" rx=\"7\"/>\n<rect class=\"dg-b\" x=\"475\" y=\"331\" width=\"110\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-ic\" x=\"473\" y=\"360\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M478 363v5M476.0 365h5\"/><rect class=\"dg-p\" x=\"491\" y=\"354\" width=\"64\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M503 360.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"514\" y=\"369\" style=\"font-size:12px\">Agent<\/text>\n<rect class=\"dg-p\" x=\"561\" y=\"354\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"569\" y=\"362\" width=\"30\" height=\"5\" rx=\"2\"/>\n<circle class=\"dg-ic\" cx=\"623\" cy=\"365\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"623\" cy=\"365\" r=\"2.2\"/>\n<path d=\"M664 371l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect class=\"dg-b\" x=\"509\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect class=\"dg-b\" x=\"551\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"414\" width=\"688\" height=\"20\"/>\n<rect class=\"dg-b2\" x=\"18\" y=\"421\" width=\"50\" height=\"6\" rx=\"3\"/><rect class=\"dg-b2\" x=\"590\" y=\"421\" width=\"90\" height=\"6\" rx=\"3\"/><\/g><\/g>"},{"line":5,"outLine":6,"anim":"fade","svg":"<g transform=\"translate(66.36 10) scale(1.1818)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h690v430h-690zM602 34v34h34v-34z\"/><g transform=\"translate(597 50) scale(1.6) translate(-597 -50)\"><circle class=\"dg-mb\" cx=\"597\" cy=\"50\" r=\"10\"/><text class=\"dg-mt\" x=\"597\" y=\"54\" text-anchor=\"middle\">4<\/text><\/g><\/g><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M587.6 70.3L607.6 70.3\"/><rect x=\"10\" y=\"23.9\" width=\"577.6\" height=\"92.8\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-1081.2 -52.1) scale(2.4)\"><clipPath id=\"ki6\"><rect x=\"458\" y=\"35\" width=\"234\" height=\"32\"/><\/clipPath><g clip-path=\"url(#ki6)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"430\" rx=\"8\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"28\" rx=\"7\"/>\n<rect class=\"dg-b\" x=\"20\" y=\"18\" width=\"257\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-p\" x=\"270\" y=\"11\" width=\"160\" height=\"17\" rx=\"4\"/><rect class=\"dg-b\" x=\"280\" y=\"17\" width=\"60\" height=\"5\" rx=\"2\"/>\n<path class=\"dg-ic\" d=\"M630 20h9M652 15h9v9h-9zM674 15l9 9M683 15l-9 9\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"34\" width=\"34\" height=\"380\"/>\n<path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/>\n<circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/>\n<circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/>\n<path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/>\n<path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/>\n<line class=\"dg-l\" x1=\"190\" y1=\"34\" x2=\"190\" y2=\"414\"/>\n<text class=\"dg-s\" x=\"50\" y=\"54\">EXPLORER<\/text>\n<path class=\"dg-ic\" d=\"M51.0 71.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"61\" y=\"71\" width=\"106\" height=\"7\" rx=\"2\"/>\n<path class=\"dg-ic\" d=\"M64.0 91.0l4.0 4.0 -4.0 4.0\"/><rect class=\"dg-b\" x=\"74\" y=\"92\" width=\"36\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-tn\" x=\"41\" y=\"108\" width=\"149\" height=\"20\"/>\n<rect class=\"dg-b2\" x=\"62\" y=\"112\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"77\" y=\"114\" width=\"72\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-c\" x=\"191\" y=\"34\" width=\"263\" height=\"26\"/>\n<rect class=\"dg-w\" x=\"191\" y=\"34\" width=\"100\" height=\"26\" style=\"stroke:none\"/>\n<line x1=\"191\" y1=\"59\" x2=\"291\" y2=\"59\" style=\"stroke:var(--accent,#0065b3);stroke-width:2\"/>\n<rect class=\"dg-b\" x=\"201\" y=\"44\" width=\"72\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M274 44l6 6M280 44l-6 6\"/>\n<g class=\"dg-n\" style=\"font-size:11px\"><text x=\"200\" y=\"84\">1<\/text><text x=\"200\" y=\"102\">2<\/text><text x=\"200\" y=\"120\">3<\/text><text x=\"200\" y=\"138\">4<\/text><text x=\"200\" y=\"156\">5<\/text><rect class=\"dg-b\" x=\"200\" y=\"166\" width=\"12\" height=\"7\" rx=\"2\"/><\/g>\n<rect class=\"dg-b2\" x=\"220\" y=\"77\" width=\"120\" height=\"8\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"113\" width=\"190\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"131\" width=\"160\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"149\" width=\"205\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"167\" width=\"140\" height=\"7\" rx=\"2\"/>\n<line class=\"dg-l\" x1=\"455\" y1=\"34\" x2=\"455\" y2=\"414\"/>\n<text class=\"dg-s\" x=\"471\" y=\"54\">CHAT<\/text><path class=\"dg-ic\" d=\"M616 43v14M609 50h14\"/><path class=\"dg-ic\" d=\"M627 49l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M672 50h.5M678 50h.5M684 50h.5\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"66\" width=\"104\" height=\"6\" rx=\"2\"/>\n<rect class=\"dg-tn\" x=\"520\" y=\"82\" width=\"164\" height=\"42\" rx=\"7\"/>\n<rect class=\"dg-b2\" x=\"532\" y=\"93\" width=\"138\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"532\" y=\"107\" width=\"96\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"140\" width=\"150\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"157\" width=\"205\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"174\" width=\"180\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"191\" width=\"110\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-w\" x=\"463\" y=\"318\" width=\"223\" height=\"66\" rx=\"7\"/>\n<rect class=\"dg-b\" x=\"475\" y=\"331\" width=\"110\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-ic\" x=\"473\" y=\"360\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M478 363v5M476.0 365h5\"/><rect class=\"dg-p\" x=\"491\" y=\"354\" width=\"64\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M503 360.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"514\" y=\"369\" style=\"font-size:12px\">Agent<\/text>\n<rect class=\"dg-p\" x=\"561\" y=\"354\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"569\" y=\"362\" width=\"30\" height=\"5\" rx=\"2\"/>\n<circle class=\"dg-ic\" cx=\"623\" cy=\"365\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"623\" cy=\"365\" r=\"2.2\"/>\n<path d=\"M664 371l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect class=\"dg-b\" x=\"509\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect class=\"dg-b\" x=\"551\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"414\" width=\"688\" height=\"20\"/>\n<rect class=\"dg-b2\" x=\"18\" y=\"421\" width=\"50\" height=\"6\" rx=\"3\"/><rect class=\"dg-b2\" x=\"590\" y=\"421\" width=\"90\" height=\"6\" rx=\"3\"/>\n<rect class=\"dg-m\" x=\"606\" y=\"38\" width=\"26\" height=\"26\" rx=\"5\"/><\/g><\/g>"},{"line":6,"anim":"fade","svg":"<g transform=\"translate(66.36 10) scale(1.1818)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h690v430h-690zM483 346v38h80v-38z\"/><g transform=\"translate(523 343) scale(1.6) translate(-523 -343)\"><circle class=\"dg-mb\" cx=\"523\" cy=\"343\" r=\"10\"/><text class=\"dg-mt\" x=\"523\" y=\"347\" text-anchor=\"middle\">5<\/text><\/g><\/g><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M596.3 440.2L618.3 440.2\"/><rect x=\"229.9\" y=\"391.4\" width=\"366.4\" height=\"97.6\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-882.9 -433.4) scale(2.4)\"><clipPath id=\"ki7\"><rect x=\"467\" y=\"347\" width=\"146\" height=\"34\"/><\/clipPath><g clip-path=\"url(#ki7)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"430\" rx=\"8\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"28\" rx=\"7\"/>\n<rect class=\"dg-b\" x=\"20\" y=\"18\" width=\"257\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-p\" x=\"270\" y=\"11\" width=\"160\" height=\"17\" rx=\"4\"/><rect class=\"dg-b\" x=\"280\" y=\"17\" width=\"60\" height=\"5\" rx=\"2\"/>\n<path class=\"dg-ic\" d=\"M630 20h9M652 15h9v9h-9zM674 15l9 9M683 15l-9 9\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"34\" width=\"34\" height=\"380\"/>\n<path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/>\n<circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/>\n<circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/>\n<path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/>\n<path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/>\n<line class=\"dg-l\" x1=\"190\" y1=\"34\" x2=\"190\" y2=\"414\"/>\n<text class=\"dg-s\" x=\"50\" y=\"54\">EXPLORER<\/text>\n<path class=\"dg-ic\" d=\"M51.0 71.5l3.7 3.7 3.7 -3.7\"/><rect class=\"dg-b2\" x=\"61\" y=\"71\" width=\"106\" height=\"7\" rx=\"2\"/>\n<path class=\"dg-ic\" d=\"M64.0 91.0l4.0 4.0 -4.0 4.0\"/><rect class=\"dg-b\" x=\"74\" y=\"92\" width=\"36\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-tn\" x=\"41\" y=\"108\" width=\"149\" height=\"20\"/>\n<rect class=\"dg-b2\" x=\"62\" y=\"112\" width=\"9\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"77\" y=\"114\" width=\"72\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-c\" x=\"191\" y=\"34\" width=\"263\" height=\"26\"/>\n<rect class=\"dg-w\" x=\"191\" y=\"34\" width=\"100\" height=\"26\" style=\"stroke:none\"/>\n<line x1=\"191\" y1=\"59\" x2=\"291\" y2=\"59\" style=\"stroke:var(--accent,#0065b3);stroke-width:2\"/>\n<rect class=\"dg-b\" x=\"201\" y=\"44\" width=\"72\" height=\"7\" rx=\"2\"/><path class=\"dg-ic\" d=\"M274 44l6 6M280 44l-6 6\"/>\n<g class=\"dg-n\" style=\"font-size:11px\"><text x=\"200\" y=\"84\">1<\/text><text x=\"200\" y=\"102\">2<\/text><text x=\"200\" y=\"120\">3<\/text><text x=\"200\" y=\"138\">4<\/text><text x=\"200\" y=\"156\">5<\/text><rect class=\"dg-b\" x=\"200\" y=\"166\" width=\"12\" height=\"7\" rx=\"2\"/><\/g>\n<rect class=\"dg-b2\" x=\"220\" y=\"77\" width=\"120\" height=\"8\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"113\" width=\"190\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"131\" width=\"160\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"149\" width=\"205\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"220\" y=\"167\" width=\"140\" height=\"7\" rx=\"2\"/>\n<line class=\"dg-l\" x1=\"455\" y1=\"34\" x2=\"455\" y2=\"414\"/>\n<text class=\"dg-s\" x=\"471\" y=\"54\">CHAT<\/text><path class=\"dg-ic\" d=\"M616 43v14M609 50h14\"/><path class=\"dg-ic\" d=\"M627 49l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"652\" cy=\"50\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M672 50h.5M678 50h.5M684 50h.5\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"66\" width=\"104\" height=\"6\" rx=\"2\"/>\n<rect class=\"dg-tn\" x=\"520\" y=\"82\" width=\"164\" height=\"42\" rx=\"7\"/>\n<rect class=\"dg-b2\" x=\"532\" y=\"93\" width=\"138\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"532\" y=\"107\" width=\"96\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"140\" width=\"150\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"157\" width=\"205\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"174\" width=\"180\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"191\" width=\"110\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-w\" x=\"463\" y=\"318\" width=\"223\" height=\"66\" rx=\"7\"/>\n<rect class=\"dg-b\" x=\"475\" y=\"331\" width=\"110\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-ic\" x=\"473\" y=\"360\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M478 363v5M476.0 365h5\"/><rect class=\"dg-p\" x=\"491\" y=\"354\" width=\"64\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M503 360.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"514\" y=\"369\" style=\"font-size:12px\">Agent<\/text>\n<rect class=\"dg-p\" x=\"561\" y=\"354\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"569\" y=\"362\" width=\"30\" height=\"5\" rx=\"2\"/>\n<circle class=\"dg-ic\" cx=\"623\" cy=\"365\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"623\" cy=\"365\" r=\"2.2\"/>\n<path d=\"M664 371l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/>\n<rect class=\"dg-b\" x=\"467\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect class=\"dg-b\" x=\"509\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/><rect class=\"dg-b\" x=\"551\" y=\"392\" width=\"36\" height=\"10\" rx=\"3\"/>\n<rect class=\"dg-c\" x=\"6\" y=\"414\" width=\"688\" height=\"20\"/>\n<rect class=\"dg-b2\" x=\"18\" y=\"421\" width=\"50\" height=\"6\" rx=\"3\"/><rect class=\"dg-b2\" x=\"590\" y=\"421\" width=\"90\" height=\"6\" rx=\"3\"/>\n<rect class=\"dg-m\" x=\"487\" y=\"350\" width=\"72\" height=\"30\" rx=\"5\"/><\/g><\/g>"}],"title":"The VS Code window"},{"id":"open-chat-check","lines":[{"caption":"Pause the video now, and open VS Code and the chat."},{"caption":"Look for this: the chat is open, and the control at the bottom of the chat box says Agent."},{"caption":"If it says something else, the written steps show how to select Agent."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"162\" y=\"210\" width=\"636\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"202\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"224\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"262\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> open VS Code and the chat<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc8\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc8)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"170\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"183\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"212\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 215v5M30.0 217h5\"/><rect class=\"dg-p\" x=\"45\" y=\"206\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 212.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><text class=\"dg-t\" x=\"68\" y=\"221\" style=\"font-size:12px\">Agent<\/text><rect class=\"dg-p\" x=\"122\" y=\"206\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"214\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"2.2\"/><path d=\"M421 223l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":4.35,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc9\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc9)\"><rect class=\"dg-m\" x=\"41\" y=\"202\" width=\"79\" height=\"30\" rx=\"5\"/><path d=\"M104.0 220.0l4.2 4.2 7.2 -9.6\" style=\"fill:none;stroke:var(--good);stroke-width:2.0;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: the chat says Agent"},{"id":"permission","lines":[{"caption":"By default, Copilot creates and edits files in your open folder without asking."},{"caption":"It asks first for a few settings files, and for files outside the folder."},{"caption":"It also asks before it runs a command that could change your computer."},{"caption":"When it asks, it waits for you."},{"caption":"Look at what it's about to do, and the command it will run."},{"caption":"If it matches what you asked, select Allow."},{"caption":"If it doesn't, select Skip. Skip doesn't run the command; Copilot carries on without it."}],"beats":[{"line":0,"anim":"fade","svg":"<g transform=\"translate(12.87 -2.16) scale(2.031)\"><clipPath id=\"kc10\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"258\"/><\/clipPath><g clip-path=\"url(#kc10)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"336\" rx=\"8\"/>\n<rect class=\"dg-b\" x=\"21\" y=\"27\" width=\"24\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/>\n<rect class=\"dg-tn\" x=\"200\" y=\"50\" width=\"240\" height=\"42\" rx=\"7\"/>\n<rect class=\"dg-b2\" x=\"212\" y=\"61\" width=\"200\" height=\"7\" rx=\"2\"/><rect class=\"dg-b2\" x=\"212\" y=\"75\" width=\"130\" height=\"7\" rx=\"2\"/>\n\n<rect class=\"dg-w\" x=\"17\" y=\"266\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"279\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"308\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 311v5M30.0 313h5\"/><rect class=\"dg-p\" x=\"45\" y=\"302\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 308.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"310\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"302\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"310\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"313\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"313\" r=\"2.2\"/><path d=\"M421 319l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":2,"anim":"fade","svg":"<g transform=\"translate(12.87 -2.16) scale(2.031)\"><clipPath id=\"kc11\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"258\"/><\/clipPath><g clip-path=\"url(#kc11)\"><rect class=\"dg-w\" x=\"20\" y=\"106\" width=\"420\" height=\"150\" rx=\"7\"/>\n<path class=\"dg-ic\" d=\"M38 128l5 5-5 5M48 140h9\"/>\n<rect class=\"dg-b2\" x=\"66\" y=\"129\" width=\"180\" height=\"9\" rx=\"2\"/>\n<rect class=\"dg-c\" x=\"38\" y=\"156\" width=\"384\" height=\"28\" rx=\"4\"/><rect class=\"dg-b2\" x=\"50\" y=\"166\" width=\"210\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-btn\" x=\"38\" y=\"204\" width=\"88\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"52\" y=\"223\">Allow<\/text>\n<line class=\"dg-btnl\" x1=\"100\" y1=\"208\" x2=\"100\" y2=\"228\"/><path class=\"dg-btnl\" d=\"M107 215l5 5 5-5\" style=\"stroke-width:1.6\"/>\n<rect class=\"dg-p\" x=\"134\" y=\"204\" width=\"58\" height=\"28\" rx=\"5\"/><text class=\"dg-t\" x=\"148\" y=\"223\">Skip<\/text><\/g><\/g>"},{"line":4,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(12.87 -2.16) scale(2.031)\"><clipPath id=\"kc12\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"258\"/><\/clipPath><g clip-path=\"url(#kc12)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v336h-450zM30 118v74h400v-74z\"/><rect class=\"dg-m\" x=\"30\" y=\"118\" width=\"400\" height=\"74\" rx=\"5\"/><\/g><\/g>"},{"line":5,"outLine":6,"anim":"fade","svg":"<g transform=\"translate(12.87 -2.16) scale(2.031)\"><clipPath id=\"kc13\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"258\"/><\/clipPath><g clip-path=\"url(#kc13)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v336h-450zM34 200v36h96v-36z\"/><rect class=\"dg-m\" x=\"34\" y=\"200\" width=\"96\" height=\"36\" rx=\"5\"/><\/g><\/g>"},{"line":6,"anim":"fade","svg":"<g transform=\"translate(12.87 -2.16) scale(2.031)\"><clipPath id=\"kc14\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"258\"/><\/clipPath><g clip-path=\"url(#kc14)\"><path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:.78\" d=\"M5 5h450v336h-450zM130 200v36h66v-36z\"/><rect class=\"dg-m\" x=\"130\" y=\"200\" width=\"66\" height=\"36\" rx=\"5\"/><\/g><\/g>"}],"title":"Reading a permission request"},{"id":"practice-folder","lines":[{"caption":"Your first request has Copilot make the folder you practice in."},{"caption":"In the written steps, select Copy beside this request. Paste it into the chat box, and press Enter."},{"caption":"It names the folder, copilot-practice, says to put it in your Documents folder, and tells Copilot to change nothing else."},{"caption":"If a permission request appears, allow it if it looks for your Documents folder or creates copilot-practice there."},{"caption":"Then, in Windows File Explorer, select Documents on the left."}],"beats":[{"line":0,"outLine":1,"anim":"fade","svg":"<g transform=\"translate(12.64 5.84) scale(2.032)\"><clipPath id=\"kc15\"><rect x=\"5\" y=\"5\" width=\"450\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc15)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"450\" height=\"250\" rx=\"8\"/><text class=\"dg-s\" x=\"21\" y=\"34\">CHAT<\/text><path class=\"dg-ic\" d=\"M377 23v14M370 30h14\"/><path class=\"dg-ic\" d=\"M388 29l3 3 3-3\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"6\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"413\" cy=\"30\" r=\"2.2\"/><path class=\"dg-ic\" d=\"M433 30h.5M439 30h.5M445 30h.5\"/><rect class=\"dg-w\" x=\"17\" y=\"170\" width=\"426\" height=\"66\" rx=\"7\"/><rect class=\"dg-b\" x=\"29\" y=\"183\" width=\"110\" height=\"7\" rx=\"2\"/><rect class=\"dg-ic\" x=\"27\" y=\"212\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 215v5M30.0 217h5\"/><rect class=\"dg-p\" x=\"45\" y=\"206\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 212.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"214\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"206\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"214\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"217\" r=\"2.2\"/><path d=\"M421 223l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(-5.09 101.27) scale(2.1091)\"><clipPath id=\"kc16\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"140\"/><\/clipPath><g clip-path=\"url(#kc16)\"><rect class=\"dg-w\" x=\"17\" y=\"17\" width=\"426\" height=\"120\" rx=\"7\"/><text class=\"dg-t\" x=\"29\" y=\"37\">Create a new, empty folder named copilot-practice.<\/text><text class=\"dg-t\" x=\"29\" y=\"55\">Put it in the folder Windows uses as my Documents folder,<\/text><text class=\"dg-t\" x=\"29\" y=\"73\">which may be under OneDrive.<\/text><text class=\"dg-t\" x=\"29\" y=\"91\">Change nothing else on my computer.<\/text><rect class=\"dg-ic\" x=\"27\" y=\"113\" width=\"11\" height=\"11\" rx=\"2\"/><path class=\"dg-ic\" d=\"M32 116v5M30.0 118h5\"/><rect class=\"dg-p\" x=\"45\" y=\"107\" width=\"71\" height=\"22\" rx=\"5\"/><path class=\"dg-ic\" d=\"M57 113.5l4.5 4.5-4.5 4.5-4.5-4.5z\"/><rect class=\"dg-b\" x=\"68\" y=\"115\" width=\"33\" height=\"7\" rx=\"2\"/><rect class=\"dg-p\" x=\"122\" y=\"107\" width=\"48\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"130\" y=\"115\" width=\"30\" height=\"5\" rx=\"2\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"118\" r=\"5\" style=\"stroke-dasharray:2.4 1.6;stroke-width:2.4\"/><circle class=\"dg-ic\" cx=\"184\" cy=\"118\" r=\"2.2\"/><path d=\"M421 124l13-6-13-6v4.5l7 1.5-7 1.5z\" style=\"fill:var(--ink3,#6b6b6b)\"/><\/g><\/g>"},{"line":1,"plus":5.09,"outLine":3,"anim":"fade","svg":"<rect x=\"410\" y=\"416\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--line)\" stroke=\"none\" stroke-width=\"0\"/><rect x=\"410\" y=\"410\" width=\"140\" height=\"72\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"2\"/><text x=\"480\" y=\"456\" fill=\"var(--ink)\" font-size=\"28\" font-weight=\"600\" text-anchor=\"middle\">Enter<\/text>"},{"line":2,"plus":1.05,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(-5.09 101.27) scale(2.1091)\"><clipPath id=\"kc17\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"140\"/><\/clipPath><g clip-path=\"url(#kc17)\"><text class=\"dg-t\" x=\"29\" y=\"37\"><tspan style=\"fill:transparent\">Create a new, empty folder named <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">copilot-practice<\/tspan><tspan style=\"fill:transparent\">.<\/tspan><\/text><\/g><\/g>"},{"line":2,"plus":3.86,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(-5.09 101.27) scale(2.1091)\"><clipPath id=\"kc18\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"140\"/><\/clipPath><g clip-path=\"url(#kc18)\"><text class=\"dg-t\" x=\"29\" y=\"55\"><tspan style=\"fill:transparent\">Put it in the folder Windows uses as my <\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">Documents<\/tspan><tspan style=\"fill:transparent\"> folder,<\/tspan><\/text><\/g><\/g>"},{"line":2,"plus":5.96,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(-5.09 101.27) scale(2.1091)\"><clipPath id=\"kc19\"><rect x=\"10\" y=\"10\" width=\"440\" height=\"140\"/><\/clipPath><g clip-path=\"url(#kc19)\"><text class=\"dg-t\" x=\"29\" y=\"91\"><tspan style=\"fill:transparent\"><\/tspan><tspan style=\"fill:var(--mark);text-decoration:underline;text-decoration-thickness:2px\">Change nothing else<\/tspan><tspan style=\"fill:transparent\"> on my computer.<\/tspan><\/text><\/g><\/g>"},{"line":3,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc20\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc20)\"><rect class=\"dg-w\" x=\"20\" y=\"106\" width=\"420\" height=\"150\" rx=\"7\"/>\n<path class=\"dg-ic\" d=\"M38 128l5 5-5 5M48 140h9\"/>\n<rect class=\"dg-b2\" x=\"66\" y=\"129\" width=\"180\" height=\"9\" rx=\"2\"/>\n<rect class=\"dg-c\" x=\"38\" y=\"156\" width=\"384\" height=\"28\" rx=\"4\"/><rect class=\"dg-b\" x=\"50\" y=\"166\" width=\"34\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"92\" y=\"174\" style=\"font-size:12px\">Documents<\/text><rect class=\"dg-b\" x=\"160\" y=\"166\" width=\"26\" height=\"7\" rx=\"2\"/><text class=\"dg-t\" x=\"194\" y=\"174\" style=\"font-size:12px\">copilot-practice<\/text><rect class=\"dg-b\" x=\"298\" y=\"166\" width=\"60\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-btn\" x=\"38\" y=\"204\" width=\"88\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"52\" y=\"223\">Allow<\/text>\n<line class=\"dg-btnl\" x1=\"100\" y1=\"208\" x2=\"100\" y2=\"228\"/><path class=\"dg-btnl\" d=\"M107 215l5 5 5-5\" style=\"stroke-width:1.6\"/>\n<rect class=\"dg-p\" x=\"134\" y=\"204\" width=\"58\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"148\" y=\"215\" width=\"29\" height=\"7\" rx=\"2\"/><\/g><\/g>"},{"line":3,"plus":1.38,"outLine":4,"anim":"fade","svg":"<g transform=\"translate(-20.46 -123.84) scale(2.1759)\"><clipPath id=\"kc21\"><rect x=\"14\" y=\"100\" width=\"432\" height=\"162\"/><\/clipPath><g clip-path=\"url(#kc21)\"><rect class=\"dg-m\" x=\"34\" y=\"200\" width=\"96\" height=\"36\" rx=\"5\"/><\/g><\/g>"},{"line":4,"anim":"fade","svg":"<g transform=\"translate(66.46 18) scale(1.2923)\"><clipPath id=\"kc22\"><rect x=\"0\" y=\"0\" width=\"640\" height=\"390\"/><\/clipPath><g clip-path=\"url(#kc22)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"380\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"34\" rx=\"7\"/><rect class=\"dg-w\" x=\"14\" y=\"12\" width=\"180\" height=\"28\" rx=\"6\"/><path class=\"dg-ic\" d=\"M24.0 21.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"46\" y=\"23\" width=\"90\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M210 20v10M205 25h10\"/><path class=\"dg-ic\" d=\"M562 22h9M584 17h9v9h-9zM606 17l9 9M615 17l-9 9\"/><line class=\"dg-l\" x1=\"6\" y1=\"76\" x2=\"634\" y2=\"76\"/><rect class=\"dg-p\" x=\"16\" y=\"48\" width=\"60\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"26\" y=\"56\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"92\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"118\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"144\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"170\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"196\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"500\" y=\"56\" width=\"44\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"560\" y=\"56\" width=\"40\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M24 93l-5 5 5 5M19 98h12M48 103l5-5-5-5M53 98H41M66 102v-8M62 98l4-4 4 4\"/><rect class=\"dg-w\" x=\"96\" y=\"86\" width=\"360\" height=\"24\" rx=\"5\"/><path class=\"dg-ic\" d=\"M104.0 92.0h4.8l1.6 1.6h6.4v7.2h-12.8z\"/><rect class=\"dg-b\" x=\"124\" y=\"95\" width=\"120\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"466\" y=\"86\" width=\"160\" height=\"24\" rx=\"5\"/><circle class=\"dg-ic\" cx=\"480\" cy=\"97\" r=\"4\"/><path class=\"dg-ic\" d=\"M483 100l4 4\"/><rect class=\"dg-b\" x=\"494\" y=\"95\" width=\"80\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"118\" x2=\"634\" y2=\"118\"/><line class=\"dg-l\" x1=\"186\" y1=\"118\" x2=\"186\" y2=\"384\"/><rect class=\"dg-b\" x=\"22\" y=\"130\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"133\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"152\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"155\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"178\" x2=\"176\" y2=\"178\"/><rect class=\"dg-b\" x=\"22\" y=\"182\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"185\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"204\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"207\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"221\" width=\"172\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"226\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"236\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"248\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"251\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"270\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"273\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"292\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"295\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"318\" x2=\"176\" y2=\"318\"/><rect class=\"dg-b\" x=\"22\" y=\"322\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"325\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"344\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"347\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"204\" y=\"130\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"400\" y=\"130\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"520\" y=\"130\" width=\"40\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"196\" y1=\"142\" x2=\"626\" y2=\"142\"/><rect class=\"dg-b\" x=\"206\" y=\"154\" width=\"12\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"232\" y=\"155\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"155\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"155\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"206\" y=\"178\" width=\"12\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"232\" y=\"179\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"179\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"179\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"206\" y=\"202\" width=\"12\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"232\" y=\"203\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"203\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"203\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"206\" y=\"226\" width=\"12\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"232\" y=\"227\" width=\"76\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"227\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"227\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"206\" y=\"250\" width=\"12\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"232\" y=\"251\" width=\"110\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"251\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"251\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"200\" y=\"372\" width=\"50\" height=\"5\" rx=\"2\"/><\/g><\/g>"},{"line":4,"plus":1.92,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM70.8 293.7V341.9H310.2V293.7Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M326.2 317.8L304.2 317.8\"/><rect x=\"326.2\" y=\"276.2\" width=\"438.4\" height=\"83.2\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(315 -239) scale(2.4)\"><clipPath id=\"ki23\"><rect x=\"8\" y=\"218\" width=\"176\" height=\"28\"/><\/clipPath><g clip-path=\"url(#ki23)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"380\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"34\" rx=\"7\"/><rect class=\"dg-w\" x=\"14\" y=\"12\" width=\"180\" height=\"28\" rx=\"6\"/><path class=\"dg-ic\" d=\"M24.0 21.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"46\" y=\"23\" width=\"90\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M210 20v10M205 25h10\"/><path class=\"dg-ic\" d=\"M562 22h9M584 17h9v9h-9zM606 17l9 9M615 17l-9 9\"/><line class=\"dg-l\" x1=\"6\" y1=\"76\" x2=\"634\" y2=\"76\"/><rect class=\"dg-p\" x=\"16\" y=\"48\" width=\"60\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"26\" y=\"56\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"92\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"118\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"144\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"170\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"196\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"500\" y=\"56\" width=\"44\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"560\" y=\"56\" width=\"40\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M24 93l-5 5 5 5M19 98h12M48 103l5-5-5-5M53 98H41M66 102v-8M62 98l4-4 4 4\"/><rect class=\"dg-w\" x=\"96\" y=\"86\" width=\"360\" height=\"24\" rx=\"5\"/><path class=\"dg-ic\" d=\"M104.0 92.0h4.8l1.6 1.6h6.4v7.2h-12.8z\"/><rect class=\"dg-b\" x=\"124\" y=\"95\" width=\"120\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"466\" y=\"86\" width=\"160\" height=\"24\" rx=\"5\"/><circle class=\"dg-ic\" cx=\"480\" cy=\"97\" r=\"4\"/><path class=\"dg-ic\" d=\"M483 100l4 4\"/><rect class=\"dg-b\" x=\"494\" y=\"95\" width=\"80\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"118\" x2=\"634\" y2=\"118\"/><line class=\"dg-l\" x1=\"186\" y1=\"118\" x2=\"186\" y2=\"384\"/><rect class=\"dg-b\" x=\"22\" y=\"130\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"133\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"152\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"155\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"178\" x2=\"176\" y2=\"178\"/><rect class=\"dg-b\" x=\"22\" y=\"182\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"185\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"204\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"207\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"221\" width=\"172\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"226\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"236\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"248\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"251\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"270\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"273\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"292\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"295\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"318\" x2=\"176\" y2=\"318\"/><rect class=\"dg-b\" x=\"22\" y=\"322\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"325\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"344\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"347\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"204\" y=\"130\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"400\" y=\"130\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"520\" y=\"130\" width=\"40\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"196\" y1=\"142\" x2=\"626\" y2=\"142\"/><rect class=\"dg-b\" x=\"206\" y=\"154\" width=\"12\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"232\" y=\"155\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"155\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"155\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"206\" y=\"178\" width=\"12\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"232\" y=\"179\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"179\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"179\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"206\" y=\"202\" width=\"12\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"232\" y=\"203\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"203\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"203\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"206\" y=\"226\" width=\"12\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"232\" y=\"227\" width=\"76\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"227\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"227\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"206\" y=\"250\" width=\"12\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"232\" y=\"251\" width=\"110\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"251\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"251\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"200\" y=\"372\" width=\"50\" height=\"5\" rx=\"2\"/><rect class=\"dg-m\" x=\"10\" y=\"221\" width=\"172\" height=\"22\" rx=\"5\"/><\/g><\/g>"}],"title":"Have Copilot create a practice folder"},{"id":"practice-folder-check","lines":[{"caption":"Pause the video now, send the request, and look in Documents."},{"caption":"Look for this: Documents has a copilot-practice folder, and it's empty."},{"caption":"If it isn't there, the written steps give a request that has Copilot put it right."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"53.5\" y=\"110\" width=\"853\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"93.5\" y=\"148\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"115.5\" y=\"148\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"153.5\" y=\"181\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> send the request, and look in Documents<\/text>"},{"line":0,"outLine":1,"anim":"fade","svg":"<rect x=\"80\" y=\"300\" width=\"800\" height=\"150\" rx=\"12\" fill=\"var(--paper)\" stroke=\"var(--muted)\" stroke-width=\"1.6\"/><text x=\"108\" y=\"344\" fill=\"var(--ink)\" font-size=\"23\" font-weight=\"400\" text-anchor=\"start\">Create a new, empty folder named copilot-practice.<\/text><text x=\"108\" y=\"384\" fill=\"var(--ink)\" font-size=\"23\" font-weight=\"400\" text-anchor=\"start\">Put it in the folder Windows uses as my Documents folder, which may be under OneDrive.<\/text><text x=\"108\" y=\"424\" fill=\"var(--ink)\" font-size=\"23\" font-weight=\"400\" text-anchor=\"start\">Change nothing else on my computer.<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(66.46 18) scale(1.2923)\"><clipPath id=\"kc24\"><rect x=\"0\" y=\"0\" width=\"640\" height=\"390\"/><\/clipPath><g clip-path=\"url(#kc24)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"380\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"34\" rx=\"7\"/><rect class=\"dg-w\" x=\"14\" y=\"12\" width=\"180\" height=\"28\" rx=\"6\"/><path class=\"dg-ic\" d=\"M24.0 21.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"46\" y=\"23\" width=\"90\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M210 20v10M205 25h10\"/><path class=\"dg-ic\" d=\"M562 22h9M584 17h9v9h-9zM606 17l9 9M615 17l-9 9\"/><line class=\"dg-l\" x1=\"6\" y1=\"76\" x2=\"634\" y2=\"76\"/><rect class=\"dg-p\" x=\"16\" y=\"48\" width=\"60\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"26\" y=\"56\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"92\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"118\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"144\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"170\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"196\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"500\" y=\"56\" width=\"44\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"560\" y=\"56\" width=\"40\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M24 93l-5 5 5 5M19 98h12M48 103l5-5-5-5M53 98H41M66 102v-8M62 98l4-4 4 4\"/><rect class=\"dg-w\" x=\"96\" y=\"86\" width=\"360\" height=\"24\" rx=\"5\"/><path class=\"dg-ic\" d=\"M104.0 92.0h4.8l1.6 1.6h6.4v7.2h-12.8z\"/><rect class=\"dg-b\" x=\"124\" y=\"95\" width=\"120\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"466\" y=\"86\" width=\"160\" height=\"24\" rx=\"5\"/><circle class=\"dg-ic\" cx=\"480\" cy=\"97\" r=\"4\"/><path class=\"dg-ic\" d=\"M483 100l4 4\"/><rect class=\"dg-b\" x=\"494\" y=\"95\" width=\"80\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"118\" x2=\"634\" y2=\"118\"/><line class=\"dg-l\" x1=\"186\" y1=\"118\" x2=\"186\" y2=\"384\"/><rect class=\"dg-b\" x=\"22\" y=\"130\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"133\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"152\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"155\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"178\" x2=\"176\" y2=\"178\"/><rect class=\"dg-b\" x=\"22\" y=\"182\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"185\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"204\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"207\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"221\" width=\"172\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"226\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"236\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"248\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"251\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"270\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"273\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"292\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"295\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"318\" x2=\"176\" y2=\"318\"/><rect class=\"dg-b\" x=\"22\" y=\"322\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"325\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"344\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"347\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"204\" y=\"130\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"400\" y=\"130\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"520\" y=\"130\" width=\"40\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"196\" y1=\"142\" x2=\"626\" y2=\"142\"/><path class=\"dg-ic\" d=\"M206.0 152.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"232\" y=\"155\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"155\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"155\" width=\"60\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M206.0 176.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"232\" y=\"186\">copilot-practice<\/text><rect class=\"dg-b\" x=\"400\" y=\"179\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"179\" width=\"60\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M206.0 200.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"232\" y=\"203\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"203\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"203\" width=\"60\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M206.0 224.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"232\" y=\"227\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"227\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"227\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"200\" y=\"372\" width=\"50\" height=\"5\" rx=\"2\"/><\/g><\/g>"},{"line":1,"outLine":1,"outPlus":1.81,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM70.8 293.7V341.9H310.2V293.7Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M326.2 317.8L304.2 317.8\"/><rect x=\"326.2\" y=\"276.2\" width=\"438.4\" height=\"83.2\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(315 -239) scale(2.4)\"><clipPath id=\"ki25\"><rect x=\"8\" y=\"218\" width=\"176\" height=\"28\"/><\/clipPath><g clip-path=\"url(#ki25)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"380\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"34\" rx=\"7\"/><rect class=\"dg-w\" x=\"14\" y=\"12\" width=\"180\" height=\"28\" rx=\"6\"/><path class=\"dg-ic\" d=\"M24.0 21.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"46\" y=\"23\" width=\"90\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M210 20v10M205 25h10\"/><path class=\"dg-ic\" d=\"M562 22h9M584 17h9v9h-9zM606 17l9 9M615 17l-9 9\"/><line class=\"dg-l\" x1=\"6\" y1=\"76\" x2=\"634\" y2=\"76\"/><rect class=\"dg-p\" x=\"16\" y=\"48\" width=\"60\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"26\" y=\"56\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"92\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"118\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"144\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"170\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"196\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"500\" y=\"56\" width=\"44\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"560\" y=\"56\" width=\"40\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M24 93l-5 5 5 5M19 98h12M48 103l5-5-5-5M53 98H41M66 102v-8M62 98l4-4 4 4\"/><rect class=\"dg-w\" x=\"96\" y=\"86\" width=\"360\" height=\"24\" rx=\"5\"/><path class=\"dg-ic\" d=\"M104.0 92.0h4.8l1.6 1.6h6.4v7.2h-12.8z\"/><rect class=\"dg-b\" x=\"124\" y=\"95\" width=\"120\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"466\" y=\"86\" width=\"160\" height=\"24\" rx=\"5\"/><circle class=\"dg-ic\" cx=\"480\" cy=\"97\" r=\"4\"/><path class=\"dg-ic\" d=\"M483 100l4 4\"/><rect class=\"dg-b\" x=\"494\" y=\"95\" width=\"80\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"118\" x2=\"634\" y2=\"118\"/><line class=\"dg-l\" x1=\"186\" y1=\"118\" x2=\"186\" y2=\"384\"/><rect class=\"dg-b\" x=\"22\" y=\"130\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"133\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"152\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"155\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"178\" x2=\"176\" y2=\"178\"/><rect class=\"dg-b\" x=\"22\" y=\"182\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"185\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"204\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"207\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"221\" width=\"172\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"226\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"236\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"248\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"251\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"270\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"273\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"292\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"295\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"318\" x2=\"176\" y2=\"318\"/><rect class=\"dg-b\" x=\"22\" y=\"322\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"325\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"344\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"347\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"204\" y=\"130\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"400\" y=\"130\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"520\" y=\"130\" width=\"40\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"196\" y1=\"142\" x2=\"626\" y2=\"142\"/><path class=\"dg-ic\" d=\"M206.0 152.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"232\" y=\"155\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"155\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"155\" width=\"60\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M206.0 176.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"232\" y=\"186\">copilot-practice<\/text><rect class=\"dg-b\" x=\"400\" y=\"179\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"179\" width=\"60\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M206.0 200.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"232\" y=\"203\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"203\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"203\" width=\"60\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M206.0 224.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"232\" y=\"227\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"227\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"227\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"200\" y=\"372\" width=\"50\" height=\"5\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":1.81,"outLine":1,"outPlus":3.62,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM313.8 227.8V276H579V227.8Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M446.4 292L446.4 270\"/><rect x=\"203.2\" y=\"292\" width=\"486.4\" height=\"83.2\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-259.2 -100.8) scale(2.4)\"><clipPath id=\"ki26\"><rect x=\"196\" y=\"167\" width=\"196\" height=\"28\"/><\/clipPath><g clip-path=\"url(#ki26)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"380\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"34\" rx=\"7\"/><rect class=\"dg-w\" x=\"14\" y=\"12\" width=\"180\" height=\"28\" rx=\"6\"/><path class=\"dg-ic\" d=\"M24.0 21.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"46\" y=\"23\" width=\"90\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M210 20v10M205 25h10\"/><path class=\"dg-ic\" d=\"M562 22h9M584 17h9v9h-9zM606 17l9 9M615 17l-9 9\"/><line class=\"dg-l\" x1=\"6\" y1=\"76\" x2=\"634\" y2=\"76\"/><rect class=\"dg-p\" x=\"16\" y=\"48\" width=\"60\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"26\" y=\"56\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"92\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"118\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"144\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"170\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"196\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"500\" y=\"56\" width=\"44\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"560\" y=\"56\" width=\"40\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M24 93l-5 5 5 5M19 98h12M48 103l5-5-5-5M53 98H41M66 102v-8M62 98l4-4 4 4\"/><rect class=\"dg-w\" x=\"96\" y=\"86\" width=\"360\" height=\"24\" rx=\"5\"/><path class=\"dg-ic\" d=\"M104.0 92.0h4.8l1.6 1.6h6.4v7.2h-12.8z\"/><rect class=\"dg-b\" x=\"124\" y=\"95\" width=\"120\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"466\" y=\"86\" width=\"160\" height=\"24\" rx=\"5\"/><circle class=\"dg-ic\" cx=\"480\" cy=\"97\" r=\"4\"/><path class=\"dg-ic\" d=\"M483 100l4 4\"/><rect class=\"dg-b\" x=\"494\" y=\"95\" width=\"80\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"118\" x2=\"634\" y2=\"118\"/><line class=\"dg-l\" x1=\"186\" y1=\"118\" x2=\"186\" y2=\"384\"/><rect class=\"dg-b\" x=\"22\" y=\"130\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"133\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"152\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"155\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"178\" x2=\"176\" y2=\"178\"/><rect class=\"dg-b\" x=\"22\" y=\"182\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"185\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"204\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"207\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"221\" width=\"172\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"226\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"236\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"248\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"251\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"270\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"273\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"292\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"295\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"318\" x2=\"176\" y2=\"318\"/><rect class=\"dg-b\" x=\"22\" y=\"322\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"325\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"344\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"347\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"204\" y=\"130\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"400\" y=\"130\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"520\" y=\"130\" width=\"40\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"196\" y1=\"142\" x2=\"626\" y2=\"142\"/><path class=\"dg-ic\" d=\"M206.0 152.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"232\" y=\"155\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"155\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"155\" width=\"60\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M206.0 176.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"232\" y=\"186\">copilot-practice<\/text><rect class=\"dg-b\" x=\"400\" y=\"179\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"179\" width=\"60\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M206.0 200.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"232\" y=\"203\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"203\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"203\" width=\"60\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M206.0 224.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"232\" y=\"227\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"400\" y=\"227\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"520\" y=\"227\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"200\" y=\"372\" width=\"50\" height=\"5\" rx=\"2\"/><rect class=\"dg-m\" x=\"198\" y=\"170\" width=\"160\" height=\"22\" rx=\"5\"/><path d=\"M366.0 183.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"},{"line":1,"plus":3.62,"anim":"fade","svg":"<g transform=\"translate(66.46 18) scale(1.2923)\"><clipPath id=\"kc27\"><rect x=\"0\" y=\"0\" width=\"640\" height=\"390\"/><\/clipPath><g clip-path=\"url(#kc27)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"380\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"34\" rx=\"7\"/><rect class=\"dg-w\" x=\"14\" y=\"12\" width=\"180\" height=\"28\" rx=\"6\"/><path class=\"dg-ic\" d=\"M24.0 21.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"46\" y=\"23\" width=\"90\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M210 20v10M205 25h10\"/><path class=\"dg-ic\" d=\"M562 22h9M584 17h9v9h-9zM606 17l9 9M615 17l-9 9\"/><line class=\"dg-l\" x1=\"6\" y1=\"76\" x2=\"634\" y2=\"76\"/><rect class=\"dg-p\" x=\"16\" y=\"48\" width=\"60\" height=\"22\" rx=\"5\"/><rect class=\"dg-b\" x=\"26\" y=\"56\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"92\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"118\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"144\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"170\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"196\" y=\"54\" width=\"14\" height=\"10\" rx=\"2\"/><rect class=\"dg-b\" x=\"500\" y=\"56\" width=\"44\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"560\" y=\"56\" width=\"40\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M24 93l-5 5 5 5M19 98h12M48 103l5-5-5-5M53 98H41M66 102v-8M62 98l4-4 4 4\"/><rect class=\"dg-w\" x=\"96\" y=\"86\" width=\"360\" height=\"24\" rx=\"5\"/><path class=\"dg-ic\" d=\"M104.0 92.0h4.8l1.6 1.6h6.4v7.2h-12.8z\"/><rect class=\"dg-b\" x=\"124\" y=\"95\" width=\"120\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"466\" y=\"86\" width=\"160\" height=\"24\" rx=\"5\"/><circle class=\"dg-ic\" cx=\"480\" cy=\"97\" r=\"4\"/><path class=\"dg-ic\" d=\"M483 100l4 4\"/><rect class=\"dg-b\" x=\"494\" y=\"95\" width=\"80\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"118\" x2=\"634\" y2=\"118\"/><line class=\"dg-l\" x1=\"186\" y1=\"118\" x2=\"186\" y2=\"384\"/><rect class=\"dg-b\" x=\"22\" y=\"130\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"133\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"152\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"155\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"178\" x2=\"176\" y2=\"178\"/><rect class=\"dg-b\" x=\"22\" y=\"182\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"185\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"204\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"207\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"22\" y=\"226\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"236\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"248\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"251\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"270\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"273\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"292\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"295\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"318\" x2=\"176\" y2=\"318\"/><rect class=\"dg-b\" x=\"22\" y=\"322\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"325\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"344\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"347\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"204\" y=\"130\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"400\" y=\"130\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"520\" y=\"130\" width=\"40\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"196\" y1=\"142\" x2=\"626\" y2=\"142\"/><rect class=\"dg-b\" x=\"200\" y=\"372\" width=\"50\" height=\"5\" rx=\"2\"/><\/g><\/g>"}],"title":"Check: the folder is in Documents"},{"id":"open-folder","lines":[{"caption":"Copilot works on the files in the folder you open, so next, open copilot-practice in VS Code."},{"caption":"Select the File menu, and then Open Folder."},{"caption":"In Documents, select copilot-practice, and then Select Folder."},{"caption":"The folder opens in Restricted Mode, with a bar at the top that says so."},{"caption":"On the Restricted Mode bar, select Manage. On the Workspace Trust page, select Trust."},{"caption":"If VS Code instead asks whether you trust the authors, leave the box about the parent folder unticked. Then select the button Yes, I trust the authors."}],"beats":[{"line":0,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(17.65 8) scale(1.9265)\"><clipPath id=\"kc28\"><rect x=\"0\" y=\"0\" width=\"480\" height=\"272\"/><\/clipPath><g clip-path=\"url(#kc28)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"470\" height=\"290\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"468\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"52\" y=\"18\" width=\"24\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"88\" y=\"18\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"152\" y=\"18\" width=\"28\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"192\" y=\"18\" width=\"16\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"220\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"254\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"314\" y=\"18\" width=\"26\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M412 20h9M432 15h9v9h-9zM452 15l9 9M461 15l-9 9\"/><\/g><\/g>"},{"line":1,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(17.65 8) scale(1.9265)\"><clipPath id=\"kc29\"><rect x=\"0\" y=\"0\" width=\"480\" height=\"272\"/><\/clipPath><g clip-path=\"url(#kc29)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"470\" height=\"290\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"468\" height=\"30\" rx=\"7\"/><rect class=\"dg-tn\" x=\"12\" y=\"10\" width=\"34\" height=\"22\" rx=\"4\"/><text class=\"dg-t\" x=\"18\" y=\"26\" style=\"font-size:12px\">File<\/text><rect class=\"dg-b\" x=\"52\" y=\"18\" width=\"24\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"88\" y=\"18\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"152\" y=\"18\" width=\"28\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"192\" y=\"18\" width=\"16\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"220\" y=\"18\" width=\"22\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"254\" y=\"18\" width=\"48\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"314\" y=\"18\" width=\"26\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M412 20h9M432 15h9v9h-9zM452 15l9 9M461 15l-9 9\"/><rect class=\"dg-w\" x=\"12\" y=\"34\" width=\"220\" height=\"232\" rx=\"6\"/><rect class=\"dg-b\" x=\"26\" y=\"51\" width=\"96\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"71\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"91\" width=\"120\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"20\" y1=\"108\" x2=\"224\" y2=\"108\"/><rect class=\"dg-b\" x=\"26\" y=\"120\" width=\"84\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"140\" width=\"110\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"16\" y=\"153\" width=\"212\" height=\"20\" rx=\"4\"/><text class=\"dg-t\" x=\"26\" y=\"168\" style=\"font-size:12px\">Open Folder<\/text><rect class=\"dg-b\" x=\"26\" y=\"180\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"200\" width=\"100\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"20\" y1=\"217\" x2=\"224\" y2=\"217\"/><rect class=\"dg-b\" x=\"26\" y=\"229\" width=\"76\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"26\" y=\"249\" width=\"118\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":1,"plus":1.63,"outLine":2,"anim":"fade","svg":"<g transform=\"translate(17.65 8) scale(1.9265)\"><clipPath id=\"kc30\"><rect x=\"0\" y=\"0\" width=\"480\" height=\"272\"/><\/clipPath><g clip-path=\"url(#kc30)\"><rect class=\"dg-m\" x=\"16\" y=\"153\" width=\"212\" height=\"20\" rx=\"5\"/><\/g><\/g>"},{"line":2,"outLine":3,"anim":"fade","svg":"<g transform=\"translate(76.8 18) scale(1.26)\"><clipPath id=\"kc31\"><rect x=\"0\" y=\"0\" width=\"640\" height=\"400\"/><\/clipPath><g clip-path=\"url(#kc31)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"390\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"70\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M610 16l9 9M619 16l-9 9\"/><path class=\"dg-ic\" d=\"M24 51l-5 5 5 5M19 56h12M48 61l5-5-5-5M53 56H41M66 60v-8M62 56l4-4 4 4\"/><rect class=\"dg-w\" x=\"86\" y=\"44\" width=\"380\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"96\" y=\"53\" width=\"130\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"476\" y=\"44\" width=\"150\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"500\" y=\"53\" width=\"80\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"16\" y=\"82\" width=\"54\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"86\" y=\"82\" width=\"60\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"98\" x2=\"634\" y2=\"98\"/><line class=\"dg-l\" x1=\"176\" y1=\"98\" x2=\"176\" y2=\"330\"/><rect class=\"dg-b\" x=\"22\" y=\"110\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"113\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"132\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"135\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"158\" x2=\"166\" y2=\"158\"/><rect class=\"dg-b\" x=\"22\" y=\"162\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"165\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"184\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"187\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"201\" width=\"162\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"206\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"216\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"228\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"231\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"250\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"253\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"272\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"275\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"194\" y=\"112\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"420\" y=\"112\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"186\" y1=\"122\" x2=\"626\" y2=\"122\"/><path class=\"dg-ic\" d=\"M196.0 132.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"135\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"135\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"188\" y=\"150\" width=\"436\" height=\"22\" rx=\"4\"/><path class=\"dg-ic\" d=\"M196.0 156.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"222\" y=\"166\">copilot-practice<\/text><rect class=\"dg-b\" x=\"420\" y=\"159\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 180.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"183\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"183\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 204.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"207\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"207\" width=\"92\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"330\" x2=\"634\" y2=\"330\"/><rect class=\"dg-b\" x=\"24\" y=\"351\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"80\" y=\"340\" width=\"300\" height=\"26\" rx=\"4\"/><text class=\"dg-t\" x=\"90\" y=\"358\">copilot-practice<\/text><rect class=\"dg-btn\" x=\"400\" y=\"340\" width=\"120\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"414\" y=\"359\">Select Folder<\/text><rect class=\"dg-p\" x=\"530\" y=\"340\" width=\"92\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"550\" y=\"351\" width=\"52\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":2,"outLine":2,"outPlus":0.97,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM80.9 261.5V308.8H302V261.5Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M318 285.1L296 285.1\"/><rect x=\"318\" y=\"243.5\" width=\"414.4\" height=\"83.2\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(306.8 -223.7) scale(2.4)\"><clipPath id=\"ki32\"><rect x=\"8\" y=\"198\" width=\"166\" height=\"28\"/><\/clipPath><g clip-path=\"url(#ki32)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"390\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"70\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M610 16l9 9M619 16l-9 9\"/><path class=\"dg-ic\" d=\"M24 51l-5 5 5 5M19 56h12M48 61l5-5-5-5M53 56H41M66 60v-8M62 56l4-4 4 4\"/><rect class=\"dg-w\" x=\"86\" y=\"44\" width=\"380\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"96\" y=\"53\" width=\"130\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"476\" y=\"44\" width=\"150\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"500\" y=\"53\" width=\"80\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"16\" y=\"82\" width=\"54\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"86\" y=\"82\" width=\"60\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"98\" x2=\"634\" y2=\"98\"/><line class=\"dg-l\" x1=\"176\" y1=\"98\" x2=\"176\" y2=\"330\"/><rect class=\"dg-b\" x=\"22\" y=\"110\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"113\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"132\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"135\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"158\" x2=\"166\" y2=\"158\"/><rect class=\"dg-b\" x=\"22\" y=\"162\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"165\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"184\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"187\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"201\" width=\"162\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"206\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"216\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"228\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"231\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"250\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"253\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"272\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"275\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"194\" y=\"112\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"420\" y=\"112\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"186\" y1=\"122\" x2=\"626\" y2=\"122\"/><path class=\"dg-ic\" d=\"M196.0 132.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"135\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"135\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"188\" y=\"150\" width=\"436\" height=\"22\" rx=\"4\"/><path class=\"dg-ic\" d=\"M196.0 156.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"222\" y=\"166\">copilot-practice<\/text><rect class=\"dg-b\" x=\"420\" y=\"159\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 180.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"183\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"183\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 204.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"207\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"207\" width=\"92\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"330\" x2=\"634\" y2=\"330\"/><rect class=\"dg-b\" x=\"24\" y=\"351\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"80\" y=\"340\" width=\"300\" height=\"26\" rx=\"4\"/><text class=\"dg-t\" x=\"90\" y=\"358\">copilot-practice<\/text><rect class=\"dg-btn\" x=\"400\" y=\"340\" width=\"120\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"414\" y=\"359\">Select Folder<\/text><rect class=\"dg-p\" x=\"530\" y=\"340\" width=\"92\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"550\" y=\"351\" width=\"52\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":2,"plus":0.97,"outLine":2,"outPlus":0.53,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM305.2 197.2V244.5H576.7V197.2Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M440.9 260.5L440.9 238.5\"/><rect x=\"185.7\" y=\"260.5\" width=\"510.4\" height=\"83.2\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-252.7 -84.3) scale(2.4)\"><clipPath id=\"ki33\"><rect x=\"186\" y=\"147\" width=\"206\" height=\"28\"/><\/clipPath><g clip-path=\"url(#ki33)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"390\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"70\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M610 16l9 9M619 16l-9 9\"/><path class=\"dg-ic\" d=\"M24 51l-5 5 5 5M19 56h12M48 61l5-5-5-5M53 56H41M66 60v-8M62 56l4-4 4 4\"/><rect class=\"dg-w\" x=\"86\" y=\"44\" width=\"380\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"96\" y=\"53\" width=\"130\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"476\" y=\"44\" width=\"150\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"500\" y=\"53\" width=\"80\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"16\" y=\"82\" width=\"54\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"86\" y=\"82\" width=\"60\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"98\" x2=\"634\" y2=\"98\"/><line class=\"dg-l\" x1=\"176\" y1=\"98\" x2=\"176\" y2=\"330\"/><rect class=\"dg-b\" x=\"22\" y=\"110\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"113\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"132\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"135\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"158\" x2=\"166\" y2=\"158\"/><rect class=\"dg-b\" x=\"22\" y=\"162\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"165\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"184\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"187\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"201\" width=\"162\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"206\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"216\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"228\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"231\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"250\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"253\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"272\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"275\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"194\" y=\"112\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"420\" y=\"112\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"186\" y1=\"122\" x2=\"626\" y2=\"122\"/><path class=\"dg-ic\" d=\"M196.0 132.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"135\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"135\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"188\" y=\"150\" width=\"436\" height=\"22\" rx=\"4\"/><path class=\"dg-ic\" d=\"M196.0 156.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"222\" y=\"166\">copilot-practice<\/text><rect class=\"dg-b\" x=\"420\" y=\"159\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 180.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"183\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"183\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 204.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"207\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"207\" width=\"92\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"330\" x2=\"634\" y2=\"330\"/><rect class=\"dg-b\" x=\"24\" y=\"351\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"80\" y=\"340\" width=\"300\" height=\"26\" rx=\"4\"/><text class=\"dg-t\" x=\"90\" y=\"358\">copilot-practice<\/text><rect class=\"dg-btn\" x=\"400\" y=\"340\" width=\"120\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"414\" y=\"359\">Select Folder<\/text><rect class=\"dg-p\" x=\"530\" y=\"340\" width=\"92\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"550\" y=\"351\" width=\"52\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":2,"plus":0.53,"outLine":3,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM567.2 432.8V495.2H745.6V432.8Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M656.4 416.8L656.4 438.8\"/><rect x=\"490\" y=\"304.8\" width=\"332.8\" height=\"112\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-447.6 -488.8) scale(2.4)\"><clipPath id=\"ki34\"><rect x=\"394\" y=\"334\" width=\"132\" height=\"40\"/><\/clipPath><g clip-path=\"url(#ki34)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"630\" height=\"390\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"628\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"18\" y=\"18\" width=\"70\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M610 16l9 9M619 16l-9 9\"/><path class=\"dg-ic\" d=\"M24 51l-5 5 5 5M19 56h12M48 61l5-5-5-5M53 56H41M66 60v-8M62 56l4-4 4 4\"/><rect class=\"dg-w\" x=\"86\" y=\"44\" width=\"380\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"96\" y=\"53\" width=\"130\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"476\" y=\"44\" width=\"150\" height=\"24\" rx=\"5\"/><rect class=\"dg-b\" x=\"500\" y=\"53\" width=\"80\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"16\" y=\"82\" width=\"54\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"86\" y=\"82\" width=\"60\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"98\" x2=\"634\" y2=\"98\"/><line class=\"dg-l\" x1=\"176\" y1=\"98\" x2=\"176\" y2=\"330\"/><rect class=\"dg-b\" x=\"22\" y=\"110\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"113\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"132\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"135\" width=\"75\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"16\" y1=\"158\" x2=\"166\" y2=\"158\"/><rect class=\"dg-b\" x=\"22\" y=\"162\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"165\" width=\"75\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"184\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"187\" width=\"45\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"10\" y=\"201\" width=\"162\" height=\"22\" rx=\"4\"/><rect class=\"dg-b2\" x=\"22\" y=\"206\" width=\"12\" height=\"12\" rx=\"2\"/><text class=\"dg-t\" x=\"42\" y=\"216\">Documents<\/text><rect class=\"dg-b\" x=\"22\" y=\"228\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"231\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"250\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"253\" width=\"65\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"22\" y=\"272\" width=\"12\" height=\"12\" rx=\"2\"/><rect class=\"dg-b\" x=\"42\" y=\"275\" width=\"70\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"194\" y=\"112\" width=\"60\" height=\"6\" rx=\"2\"/><rect class=\"dg-b2\" x=\"420\" y=\"112\" width=\"70\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"186\" y1=\"122\" x2=\"626\" y2=\"122\"/><path class=\"dg-ic\" d=\"M196.0 132.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"135\" width=\"64\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"135\" width=\"92\" height=\"6\" rx=\"2\"/><rect class=\"dg-tn\" x=\"188\" y=\"150\" width=\"436\" height=\"22\" rx=\"4\"/><path class=\"dg-ic\" d=\"M196.0 156.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><text class=\"dg-t\" x=\"222\" y=\"166\">copilot-practice<\/text><rect class=\"dg-b\" x=\"420\" y=\"159\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 180.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"183\" width=\"90\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"183\" width=\"92\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M196.0 204.0h6.0l2.0 2.0h8.0v9.0h-16.0z\"/><rect class=\"dg-b\" x=\"222\" y=\"207\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"420\" y=\"207\" width=\"92\" height=\"6\" rx=\"2\"/><line class=\"dg-l\" x1=\"6\" y1=\"330\" x2=\"634\" y2=\"330\"/><rect class=\"dg-b\" x=\"24\" y=\"351\" width=\"40\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"80\" y=\"340\" width=\"300\" height=\"26\" rx=\"4\"/><text class=\"dg-t\" x=\"90\" y=\"358\">copilot-practice<\/text><rect class=\"dg-btn\" x=\"400\" y=\"340\" width=\"120\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"414\" y=\"359\">Select Folder<\/text><rect class=\"dg-p\" x=\"530\" y=\"340\" width=\"92\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"550\" y=\"351\" width=\"52\" height=\"6\" rx=\"2\"/><rect class=\"dg-m\" x=\"397\" y=\"337\" width=\"126\" height=\"34\" rx=\"5\"/><\/g><\/g>"},{"line":3,"outLine":4,"outPlus":3.34,"anim":"fade","svg":"<g transform=\"translate(7.25 182.2) scale(1.3507)\"><clipPath id=\"kc35\"><rect x=\"5\" y=\"5\" width=\"690\" height=\"120\"/><\/clipPath><g clip-path=\"url(#kc35)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"200\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"20\" y=\"19\" width=\"257\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"6\" y=\"36\" width=\"688\" height=\"28\" rx=\"0\"/><path class=\"dg-ic\" d=\"M22 41l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10v-5z\"/><text class=\"dg-t\" x=\"38\" y=\"55\" style=\"font-size:12px\">Restricted Mode<\/text><rect class=\"dg-b\" x=\"140\" y=\"49\" width=\"340\" height=\"6\" rx=\"2\"/><text class=\"dg-t\" x=\"500\" y=\"55\" style=\"font-size:12px\">Manage<\/text><line x1=\"500\" y1=\"58\" x2=\"541\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><rect class=\"dg-b\" x=\"560\" y=\"48\" width=\"66\" height=\"7\" rx=\"2\"/><line x1=\"560\" y1=\"58\" x2=\"620\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><path class=\"dg-ic\" d=\"M668 45l8 8M676 45l-8 8\"/><rect class=\"dg-c\" x=\"6\" y=\"64\" width=\"34\" height=\"140\" rx=\"0\"/><g transform=\"translate(0 30)\"><path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/><circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/><circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/><path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/><path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/><\/g><line class=\"dg-l\" x1=\"241\" y1=\"64\" x2=\"241\" y2=\"204\"/><rect class=\"dg-b\" x=\"51\" y=\"77\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M52.0 101.5l3.7 3.7 3.7 -3.7\"/><text class=\"dg-tb\" x=\"62.1\" y=\"108\" style=\"font-size:12px\">COPILOT-PRACTICE<\/text><\/g><\/g>"},{"line":3,"outLine":4,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM17.5 226.2V273.3H202.4V226.2Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M109.9 289.3L109.9 267.3\"/><rect x=\"10\" y=\"289.3\" width=\"323.2\" height=\"78.4\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-10.8 208.5) scale(2.4)\"><clipPath id=\"ki36\"><rect x=\"12\" y=\"37\" width=\"128\" height=\"26\"/><\/clipPath><g clip-path=\"url(#ki36)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"200\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"20\" y=\"19\" width=\"257\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"6\" y=\"36\" width=\"688\" height=\"28\" rx=\"0\"/><path class=\"dg-ic\" d=\"M22 41l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10v-5z\"/><text class=\"dg-t\" x=\"38\" y=\"55\" style=\"font-size:12px\">Restricted Mode<\/text><rect class=\"dg-b\" x=\"140\" y=\"49\" width=\"340\" height=\"6\" rx=\"2\"/><text class=\"dg-t\" x=\"500\" y=\"55\" style=\"font-size:12px\">Manage<\/text><line x1=\"500\" y1=\"58\" x2=\"541\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><rect class=\"dg-b\" x=\"560\" y=\"48\" width=\"66\" height=\"7\" rx=\"2\"/><line x1=\"560\" y1=\"58\" x2=\"620\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><path class=\"dg-ic\" d=\"M668 45l8 8M676 45l-8 8\"/><rect class=\"dg-c\" x=\"6\" y=\"64\" width=\"34\" height=\"140\" rx=\"0\"/><g transform=\"translate(0 30)\"><path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/><circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/><circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/><path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/><path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/><\/g><line class=\"dg-l\" x1=\"241\" y1=\"64\" x2=\"241\" y2=\"204\"/><rect class=\"dg-b\" x=\"51\" y=\"77\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M52.0 101.5l3.7 3.7 3.7 -3.7\"/><text class=\"dg-tb\" x=\"62.1\" y=\"108\" style=\"font-size:12px\">COPILOT-PRACTICE<\/text><\/g><\/g>"},{"line":4,"outLine":4,"outPlus":3.34,"anim":"fade","svg":"<path fill-rule=\"evenodd\" style=\"fill:var(--paper);fill-opacity:0.78\" d=\"M0 0H960V540H0ZM663.1 224.8V276H761.6V224.8Z\"/><path style=\"fill:none;stroke:var(--mark);stroke-width:2\" d=\"M712.3 292L712.3 270\"/><rect x=\"621.1\" y=\"292\" width=\"182.4\" height=\"91.4\" rx=\"10\" style=\"fill:var(--surface);stroke:var(--rule2);stroke-width:2\"/><g transform=\"translate(-644.9 206.4) scale(2.6)\"><clipPath id=\"ki37\"><rect x=\"490\" y=\"36\" width=\"64\" height=\"29\"/><\/clipPath><g clip-path=\"url(#ki37)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"690\" height=\"200\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"688\" height=\"30\" rx=\"7\"/><rect class=\"dg-b\" x=\"20\" y=\"19\" width=\"257\" height=\"7\" rx=\"2\"/><rect class=\"dg-tn\" x=\"6\" y=\"36\" width=\"688\" height=\"28\" rx=\"0\"/><path class=\"dg-ic\" d=\"M22 41l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10v-5z\"/><text class=\"dg-t\" x=\"38\" y=\"55\" style=\"font-size:12px\">Restricted Mode<\/text><rect class=\"dg-b\" x=\"140\" y=\"49\" width=\"340\" height=\"6\" rx=\"2\"/><text class=\"dg-t\" x=\"500\" y=\"55\" style=\"font-size:12px\">Manage<\/text><line x1=\"500\" y1=\"58\" x2=\"541\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><rect class=\"dg-b\" x=\"560\" y=\"48\" width=\"66\" height=\"7\" rx=\"2\"/><line x1=\"560\" y1=\"58\" x2=\"620\" y2=\"58\" style=\"stroke:var(--ink,#1b1b1b);stroke-width:1\"/><path class=\"dg-ic\" d=\"M668 45l8 8M676 45l-8 8\"/><rect class=\"dg-c\" x=\"6\" y=\"64\" width=\"34\" height=\"140\" rx=\"0\"/><g transform=\"translate(0 30)\"><path class=\"dg-ic\" d=\"M17 48h8l4 4v12H17z\"/><circle class=\"dg-ic\" cx=\"22\" cy=\"83\" r=\"5\"/><path class=\"dg-ic\" d=\"M26 87l5 5\"/><circle class=\"dg-ic\" cx=\"19\" cy=\"108\" r=\"2.5\"/><circle class=\"dg-ic\" cx=\"27\" cy=\"116\" r=\"2.5\"/><path class=\"dg-ic\" d=\"M19 111v10M19 118c0-4 8-2 8-4\"/><path class=\"dg-ic\" d=\"M18 136l10 6-10 6z\"/><path class=\"dg-ic\" d=\"M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z\"/><\/g><line class=\"dg-l\" x1=\"241\" y1=\"64\" x2=\"241\" y2=\"204\"/><rect class=\"dg-b\" x=\"51\" y=\"77\" width=\"48\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M52.0 101.5l3.7 3.7 3.7 -3.7\"/><text class=\"dg-tb\" x=\"62.1\" y=\"108\" style=\"font-size:12px\">COPILOT-PRACTICE<\/text><rect class=\"dg-m\" x=\"493\" y=\"39\" width=\"58\" height=\"23\" rx=\"5\"/><\/g><\/g>"},{"line":4,"plus":3.34,"outLine":5,"anim":"fade","svg":"<g transform=\"translate(12.77 8) scale(1.7467)\"><clipPath id=\"kc38\"><rect x=\"0\" y=\"0\" width=\"535\" height=\"300\"/><\/clipPath><g clip-path=\"url(#kc38)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"525\" height=\"290\" rx=\"8\"/><rect class=\"dg-c\" x=\"6\" y=\"6\" width=\"523\" height=\"30\" rx=\"7\"/><rect class=\"dg-w\" x=\"10\" y=\"10\" width=\"150\" height=\"26\" rx=\"4\"/><path class=\"dg-ic\" d=\"M22 15l6 2.5v4.5c0 4-2.5 6.5-6 8-3.5-1.5-6-4-6-8v-4.5z\"/><rect class=\"dg-b\" x=\"36\" y=\"21\" width=\"90\" height=\"6\" rx=\"2\"/><path class=\"dg-ic\" d=\"M44 58l14 6v10c0 9-6 15-14 18-8-3-14-9-14-18v-10z\"/><rect class=\"dg-b2\" x=\"76\" y=\"62\" width=\"220\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"76\" y=\"84\" width=\"380\" height=\"7\" rx=\"2\"/><rect class=\"dg-b\" x=\"76\" y=\"98\" width=\"300\" height=\"7\" rx=\"2\"/><rect class=\"dg-w\" x=\"30\" y=\"124\" width=\"230\" height=\"156\" rx=\"6\"/><rect class=\"dg-b2\" x=\"46\" y=\"140\" width=\"150\" height=\"8\" rx=\"2\"/><rect class=\"dg-b\" x=\"46\" y=\"162\" width=\"170\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"46\" y=\"178\" width=\"148\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"46\" y=\"194\" width=\"126\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"46\" y=\"210\" width=\"170\" height=\"6\" rx=\"2\"/><rect class=\"dg-w\" x=\"275\" y=\"124\" width=\"230\" height=\"156\" rx=\"6\"/><rect class=\"dg-b2\" x=\"291\" y=\"140\" width=\"150\" height=\"8\" rx=\"2\"/><rect class=\"dg-b\" x=\"291\" y=\"162\" width=\"170\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"291\" y=\"178\" width=\"148\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"291\" y=\"194\" width=\"126\" height=\"6\" rx=\"2\"/><rect class=\"dg-b\" x=\"291\" y=\"210\" width=\"170\" height=\"6\" rx=\"2\"/><rect class=\"dg-btn\" x=\"46\" y=\"238\" width=\"80\" height=\"28\" rx=\"5\"/><text class=\"dg-btnt\" x=\"60\" y=\"257\">Trust<\/text><rect class=\"dg-p\" x=\"291\" y=\"238\" width=\"104\" height=\"28\" rx=\"5\"/><rect class=\"dg-b\" x=\"305\" y=\"249\" width=\"76\" height=\"6\" rx=\"2\"/><rect class=\"dg-m\" x=\"42\" y=\"234\" width=\"88\" height=\"36\" rx=\"5\"/><\/g><\/g>"},{"line":5,"anim":"fade","svg":"<g transform=\"translate(14.3 17.74) scale(1.9404)\"><clipPath id=\"kc39\"><rect x=\"5\" y=\"5\" width=\"470\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc39)\"><rect class=\"dg-c\" x=\"5\" y=\"5\" width=\"470\" height=\"250\" rx=\"8\" style=\"stroke:var(--rule2,#cdcdcd);stroke-width:1.5\"/>\n<rect class=\"dg-w\" x=\"30\" y=\"30\" width=\"420\" height=\"190\" rx=\"8\"/>\n<path class=\"dg-ic\" d=\"M60 50l12 5v9c0 8-5 13-12 16-7-3-12-8-12-16v-9z\"/>\n<rect class=\"dg-b2\" x=\"88\" y=\"54\" width=\"250\" height=\"10\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"88\" y=\"80\" width=\"320\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"88\" y=\"95\" width=\"290\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-b\" x=\"88\" y=\"110\" width=\"210\" height=\"7\" rx=\"2\"/>\n<rect class=\"dg-p\" x=\"88\" y=\"124\" width=\"11\" height=\"11\" rx=\"2\"/><rect class=\"dg-b\" x=\"106\" y=\"127\" width=\"230\" height=\"6\" rx=\"2\"/>\n<rect class=\"dg-btn\" x=\"128\" y=\"150\" width=\"172\" height=\"48\" rx=\"5\"/><text class=\"dg-btnt\" x=\"142\" y=\"170\">Yes, I trust the authors<\/text>\n<rect x=\"142\" y=\"180\" width=\"140\" height=\"6\" rx=\"2\" style=\"fill:var(--accent-ink,#fff);fill-opacity:.55\"/>\n<rect class=\"dg-p\" x=\"308\" y=\"150\" width=\"130\" height=\"48\" rx=\"5\"/><rect class=\"dg-b2\" x=\"320\" y=\"163\" width=\"100\" height=\"8\" rx=\"2\"/><rect class=\"dg-b\" x=\"320\" y=\"180\" width=\"90\" height=\"6\" rx=\"2\"/><\/g><\/g>"},{"line":5,"plus":3.36,"outLine":5,"outPlus":6.4,"anim":"fade","svg":"<g transform=\"translate(14.3 17.74) scale(1.9404)\"><clipPath id=\"kc40\"><rect x=\"5\" y=\"5\" width=\"470\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc40)\"><rect class=\"dg-m\" x=\"84\" y=\"120\" width=\"19\" height=\"19\" rx=\"5\"/><\/g><\/g>"},{"line":5,"plus":6.4,"anim":"fade","svg":"<g transform=\"translate(14.3 17.74) scale(1.9404)\"><clipPath id=\"kc41\"><rect x=\"5\" y=\"5\" width=\"470\" height=\"250\"/><\/clipPath><g clip-path=\"url(#kc41)\"><rect class=\"dg-m\" x=\"122\" y=\"144\" width=\"184\" height=\"60\" rx=\"5\"/><\/g><\/g>"}],"title":"Open the practice folder in VS Code"},{"id":"open-folder-check","lines":[{"caption":"Pause the video now, and open the folder."},{"caption":"Look for this: the EXPLORER list on the left shows COPILOT-PRACTICE, with nothing in it yet."},{"caption":"If the list or the chat looks different, the written steps show what to do."}],"beats":[{"line":0,"outLine":1,"anim":"up","svg":"<rect x=\"239.5\" y=\"210\" width=\"481\" height=\"120\" rx=\"14\" fill=\"var(--paper)\" stroke=\"var(--accent)\" stroke-width=\"2.4\"/><rect x=\"279.5\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><rect x=\"301.5\" y=\"248\" width=\"12\" height=\"44\" rx=\"3\" fill=\"var(--accent)\"/><text x=\"339.5\" y=\"281\" fill=\"var(--ink)\" font-size=\"30\" font-weight=\"400\" text-anchor=\"start\"><tspan font-weight=\"700\">Pause:<\/tspan> open the folder<\/text>"},{"line":1,"anim":"fade","svg":"<g transform=\"translate(156 78) scale(2.4)\"><clipPath id=\"kc42\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"160\"/><\/clipPath><g clip-path=\"url(#kc42)\"><rect class=\"dg-w\" x=\"5\" y=\"5\" width=\"260\" height=\"150\" rx=\"8\"/><text class=\"dg-s\" x=\"15\" y=\"25\">EXPLORER<\/text><path class=\"dg-ic\" d=\"M16.0 42.5l3.7 3.7 3.7 -3.7\"/><text class=\"dg-tb\" x=\"26.1\" y=\"49\" style=\"font-size:12px\">COPILOT-PRACTICE<\/text><\/g><\/g>"},{"line":1,"plus":3.02,"anim":"fade","svg":"<g transform=\"translate(156 78) scale(2.4)\"><clipPath id=\"kc43\"><rect x=\"0\" y=\"0\" width=\"270\" height=\"160\"/><\/clipPath><g clip-path=\"url(#kc43)\"><rect class=\"dg-m\" x=\"10\" y=\"34\" width=\"150\" height=\"22\" rx=\"5\"/><path d=\"M170.0 50.0l7.0 7.0 12.0 -16.0\" style=\"fill:none;stroke:var(--good);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round\"/><\/g><\/g>"}],"title":"Check: the folder is open"},{"id":"close","lines":[{"caption":"You opened the chat, had Copilot create a practice folder, checked it in File Explorer, and opened it in VS Code."},{"caption":"When you've done the steps, open the written steps and select Continue to complete the unit."}],"beats":[{"line":0,"anim":"up","svg":"<rect x=\"150\" y=\"96\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"222\" y=\"139\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Opened the chat<\/text><path d=\"M178,127 L185,134 L197,118\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"},{"line":0,"plus":0.93,"anim":"up","svg":"<rect x=\"150\" y=\"191\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"222\" y=\"234\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Had Copilot create a practice folder<\/text><path d=\"M178,222 L185,229 L197,213\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"},{"line":0,"plus":2.86,"anim":"up","svg":"<rect x=\"150\" y=\"286\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"222\" y=\"329\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Checked it in File Explorer<\/text><path d=\"M178,317 L185,324 L197,308\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"},{"line":0,"plus":4.46,"anim":"up","svg":"<rect x=\"150\" y=\"381\" width=\"660\" height=\"64\" rx=\"10\" fill=\"var(--accent-soft)\" stroke=\"var(--accent)\" stroke-width=\"2\"/><text x=\"222\" y=\"424\" fill=\"var(--ink)\" font-size=\"27\" font-weight=\"600\" text-anchor=\"start\">Opened it in VS Code<\/text><path d=\"M178,412 L185,419 L197,403\" fill=\"none\" stroke=\"var(--good)\" stroke-width=\"3.4\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>"}],"title":"What you did"}];
+
+  function lead(tm, n) {
+    return Math.max(0, tm.starts[n] - Math.min(MAX_LEAD, Math.max(0, tm.pre[n] - 0.05)));
+  }
+
+  var sound = true, audioOK = true;
+
+  var SILENT_CAP = 0.8;
+
+  function silentTiming(tm) {
+    var pre = tm.pre.map(function (x) { return Math.min(x, SILENT_CAP); });
+    var st = [pre[0]];
+    for (var i = 1; i < tm.starts.length; i++) {
+      var spoken = tm.starts[i] - tm.starts[i - 1] - tm.pre[i];
+      st.push(st[i - 1] + spoken + pre[i]);
+    }
+    var last = tm.starts.length - 1;
+    return { dur: st[last] + (tm.dur - tm.starts[last]), starts: st, pre: pre };
+  }
+
+  var starts = [], total = 0;
+
+  function buildTimeline() {
+    starts = [];
+    total = 0;
+    for (var s = 0; s < S.length; s++) {
+      var sc = S[s];
+      var tm = useSound() ? TIMING[sc.id] : silentTiming(TIMING[sc.id]);
+      sc.dur = tm.dur;
+      sc.tm = tm;
+      sc.lineStarts = tm.starts;
+      sc.caption = sc.lines.map(function (l) { return l.caption; }).join(" ");
+      var settled = 0;
+      for (var bi = 0; bi < sc.beats.length; bi++) {
+        var bt = sc.beats[bi];
+
+        bt.at = bt.plus === undefined ? lead(tm, bt.line) : tm.starts[bt.line] + bt.plus;
+        if (bt.outLine !== undefined) bt.out = bt.outPlus === undefined ? lead(tm, bt.outLine) : tm.starts[bt.outLine] + bt.outPlus;
+        if (!bt.held && bt.at > settled) settled = bt.at;
+        if (bt.out !== undefined && bt.out > settled) settled = bt.out;
+      }
+
+      sc.settled = Math.min(settled + RAMP, sc.dur);
+
+      sc.stop = useSound() ? sc.settled : Math.max(sc.settled, sc.dur - 0.05);
+      starts.push(total);
+      total += sc.dur;
+    }
+  }
+  buildTimeline();
+
+  var stage = document.getElementById("stage");
+  var markup = '<rect x="0" y="0" width="960" height="540" fill="' + PAPER + '"/>';
+  for (var sm = 0; sm < S.length; sm++) {
+    markup += '<g class="scene">';
+    for (var bm = 0; bm < S[sm].beats.length; bm++) {
+      var bt2 = S[sm].beats[bm];
+      markup += '<g class="beat" data-at="' + bt2.at + '" data-anim="' + bt2.anim + '"' +
+        (bt2.out === undefined ? "" : ' data-out="' + bt2.out + '"') +
+        (bt2.linear ? ' data-linear=""' : "") + ">" + bt2.svg + "</g>";
+    }
+    markup += "</g>";
+  }
+  stage.innerHTML = markup;
+
+  var sceneEls = stage.querySelectorAll(".scene"), beatEls = [];
+  for (var k = 0; k < sceneEls.length; k++) beatEls.push(sceneEls[k].querySelectorAll(".beat"));
+
+  var clips = [];
+  for (var c = 0; c < S.length; c++) {
+    var clip = new Audio("audio/" + S[c].id + ".mp3");
+    clip.preload = "metadata";
+    clip.addEventListener("error", onAudioLost);
+    clips.push(clip);
+  }
+
+  var compact = false;
+  var t = 0, playing = false, speed = 1, started = false,
+      last = 0, cur = 0, looping = false, seekUntil = 0;
+  var SPEEDS = [0.75, 1, 1.25, 1.5];
+
+  var captionEl = document.getElementById("caption"),
+      captionText = document.getElementById("captiontext"),
+      readout = document.getElementById("readout"),
+      scrub = document.getElementById("scrub"),
+      playbtn = document.getElementById("playbtn"),
+      poster = document.getElementById("poster"),
+      soundBtn = document.getElementById("sound");
+
+  var SPEAKER = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zm2.6 2.2-.9 1.3a3.6 3.6 0 0 1 0 5.8l.9 1.3a5.2 5.2 0 0 0 0-8.4z"/></svg>';
+  var MUTED_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 4.4 4.8H1.5v6.4h2.9L8 14.4zM10.3 5.7l1.5 1.5 1.5-1.5 1 1-1.5 1.5 1.5 1.5-1 1-1.5-1.5-1.5 1.5-1-1L10.8 8.2 9.3 6.7z"/></svg>';
+
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function mmss(x) {
+    var m = Math.floor(x / 60), ss = Math.floor(x % 60);
+    return m + ":" + (ss < 10 ? "0" : "") + ss;
+  }
+  function sceneAt(time) {
+    for (var i = S.length - 1; i >= 0; i--) if (time >= starts[i]) return i;
+    return 0;
+  }
+  function useSound() { return sound && audioOK; }
+
+  function reflectSound() {
+    var on = useSound();
+    soundBtn.innerHTML = on ? SPEAKER : MUTED_ICON;
+    soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    soundBtn.setAttribute("aria-label", on ? "Narration sound, on"
+      : audioOK ? "Narration sound, off" : "Narration sound, unavailable");
+  }
+
+  function paint(posterMode) {
+    var now = sceneAt(t);
+    for (var i = 0; i < S.length; i++) {
+      var on = i === now;
+      sceneEls[i].style.display = on ? "" : "none";
+      if (!on) continue;
+      var local = t - starts[i];
+      for (var j = 0; j < beatEls[i].length; j++) {
+        var g = beatEls[i][j];
+        var beat = S[i].beats[j];
+
+        var lin = beat.linear;
+        var pin = posterMode || beat.held ? 1 : clamp((local - beat.at) / RAMP, 0, 1);
+        var e = lin ? pin : 1 - Math.pow(1 - pin, 3);
+        if (beat.out !== undefined && !posterMode) {
+          var pout = clamp((local - beat.out) / RAMP, 0, 1);
+          e = e * (1 - (lin ? pout : 1 - Math.pow(1 - pout, 3)));
+        }
+        var off = beat.held ? [0, 0] : ANIM[beat.anim] || ANIM.fade;
+        g.style.opacity = e;
+        g.style.transform = "translate(" + (off[0] * (1 - e)).toFixed(2) + "px," + (off[1] * (1 - e)).toFixed(2) + "px)";
+      }
+    }
+
+    var ln = 0, localT = t - starts[now];
+    for (var li = 0; li < S[now].lines.length; li++) if (localT >= S[now].lineStarts[li] - 0.3) ln = li;
+    captionText.textContent = S[now].lines[ln].caption;
+
+    paintReadout();
+    scrub.value = t >= total ? 1000 : Math.round((starts[now] / total) * 1000);
+
+    scrub.style.setProperty("--fill",
+      "calc(5.5px + " + (scrub.value / 1000) + " * (100% - 11px))");
+    scrub.setAttribute("aria-valuetext", "Scene " + (now + 1) + ", " + mmss(t));
+    if (started) markLine(now, ln);
+  }
+
+  function paintReadout() {
+    var now = sceneAt(t);
+    readout.textContent = (compact ? (now + 1) + "/" + S.length : "Scene " + (now + 1) + " of " + S.length) + " " +
+      String.fromCharCode(183) + " " + mmss(t) + " / " + mmss(total);
+  }
+
+  function stopClips() { for (var i = 0; i < clips.length; i++) clips[i].pause(); }
+
+  function syncClip() {
+    if (!useSound()) { stopClips(); return; }
+    for (var i = 0; i < clips.length; i++) if (i !== cur) clips[i].pause();
+    var clip = clips[cur];
+    clip.playbackRate = speed;
+    var want = clamp(t - starts[cur], 0, S[cur].dur);
+    if (Math.abs(clip.currentTime - want) > 0.25) {
+      try { clip.currentTime = want; seekUntil = performance.now() + 220; } catch (e) {}
+    }
+    if (playing && clip.paused) {
+      var pr = clip.play();
+      if (pr && pr.catch) pr.catch(onAudioLost);
+    }
+    if (!playing && !clip.paused) clip.pause();
+  }
+
+  function setPlaying(on) {
+    playing = on;
+    playbtn.setAttribute("aria-label", on ? "Pause" : "Play");
+    playbtn.innerHTML = on
+      ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 1.5h3.5v13H3.5zm5.5 0h3.5v13H9z"/></svg>'
+      : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>';
+    syncClip();
+    if (on && !looping) { looping = true; last = 0; requestAnimationFrame(step); }
+  }
+
+  function step(now) {
+    if (!playing) { looping = false; return; }
+    if (!last) last = now;
+    var dt = (now - last) / 1000;
+    last = now;
+
+    if (useSound() && !clips[cur].paused && now > seekUntil) {
+      t = starts[cur] + Math.min(clips[cur].currentTime, S[cur].dur);
+    } else {
+      t += dt * speed;
+    }
+
+    if (t >= total - 0.02) { t = total; paint(false); setPlaying(false); looping = false; return; }
+
+    if (!useSound() && t >= starts[cur] + S[cur].stop) {
+      t = starts[cur] + S[cur].stop;
+      paint(false);
+      setPlaying(false);
+      looping = false;
+      return;
+    }
+
+    var next = sceneAt(t);
+    if (next !== cur) { cur = next; syncClip(); }
+    paint(false);
+    requestAnimationFrame(step);
+  }
+
+  function goto(time, keepPlaying) {
+    addressed = -1;
+    t = clamp(time, 0, total);
+    cur = sceneAt(t);
+    if (!keepPlaying) t = starts[cur] + S[cur].settled;
+    if (!started) { started = true; poster.hidden = true; }
+    paint(false);
+    if (keepPlaying) syncClip(); else setPlaying(false);
+
+    if (!keepPlaying) addressed = cur;
+  }
+  function fromTop() {
+    started = true; poster.hidden = true; t = 0; cur = 0; paint(false); setPlaying(true);
+  }
+
+  poster.addEventListener("click", function () { fromTop(); playbtn.focus({ preventScroll: true }); });
+  document.getElementById("replay").addEventListener("click", fromTop);
+  playbtn.addEventListener("click", function () {
+    if (!started || t >= total) { fromTop(); return; }
+
+    if (!playing && addressed === cur) { t = starts[cur]; paint(false); }
+    addressed = -1;
+
+    if (!playing && !useSound() && cur < S.length - 1 && t >= starts[cur] + S[cur].stop - 0.01) {
+      cur += 1; t = starts[cur]; paint(false);
+    }
+    setPlaying(!playing);
+  });
+  document.getElementById("prev").addEventListener("click", function () {
+    var i = sceneAt(t);
+
+    var replayThisScene = playing && useSound() && t - starts[i] >= 1.2;
+    if (!replayThisScene && i > 0) i--;
+    goto(starts[i], playing && useSound());
+  });
+  document.getElementById("next").addEventListener("click", function () {
+    var i = sceneAt(t);
+    goto(i + 1 < S.length ? starts[i + 1] : total,
+         playing && useSound() && i + 1 < S.length);
+  });
+  scrub.addEventListener("input", function () {
+    var want = sceneAt((scrub.value / 1000) * total);
+
+    if (want !== sceneAt(t)) goto(starts[want], playing); else paint(false);
+  });
+
+  scrub.addEventListener("keydown", function (e) {
+    var dir = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1
+      : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    var i = Math.min(S.length - 1, Math.max(0, sceneAt(t) + dir));
+    goto(starts[i], playing);
+  });
+
+  soundBtn.addEventListener("click", function () {
+    if (!audioOK) return;
+    var at = cur;
+    sound = !sound;
+    reflectSound();
+    buildTimeline();
+    renderChrome();
+    cur = at;
+    t = starts[at] + (sound ? 0 : S[at].settled);
+    if (!sound) { stopClips(); last = 0; } else syncClip();
+    fitPlayer();
+    paint(false);
+  });
+  var ccBtn = document.getElementById("cc");
+  ccBtn.addEventListener("click", function () {
+    var on = this.getAttribute("aria-pressed") === "true";
+    this.setAttribute("aria-pressed", on ? "false" : "true");
+    this.setAttribute("aria-label", on ? "CC, captions off" : "CC, captions on");
+    captionEl.hidden = on;
+  });
+  var speedBtn = document.getElementById("speed");
+  speedBtn.addEventListener("click", function () {
+    speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+    speedBtn.textContent = speed + "x";
+    speedBtn.setAttribute("aria-label", speed + "x, playback speed");
+    if (useSound()) clips[cur].playbackRate = speed;
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var tag = e.target && e.target.tagName;
+    if (tag === "TEXTAREA" || (tag === "INPUT" && e.target !== scrub) || (e.target && e.target.isContentEditable)) return;
+    if (e.key === " ") { if (tag === "BUTTON" || tag === "A") return; e.preventDefault(); playbtn.click(); }
+    else if (e.key === "c" || e.key === "C") {
+      if (e.target && e.target.closest && e.target.closest(".player")) { e.preventDefault(); ccBtn.click(); }
+    }
+    else if (e.target === scrub || e.target === tscroll) return;
+    else if (e.key === "ArrowRight") { e.preventDefault(); document.getElementById("next").click(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); document.getElementById("prev").click(); }
+  });
+
+  var ol = document.getElementById("transcript");
+
+  function newChapter(i) { return i > 0 && (S[i].chapter || "") !== (S[i - 1].chapter || ""); }
+
+  function renderChrome() {
+    var tickHtml = "";
+    for (var ti = 1; ti < S.length; ti++) {
+
+      tickHtml += '<i' + (newChapter(ti) ? ' class="ch"' : "") + ' style="left:' +
+        ((starts[ti] / total) * 100).toFixed(2) + '%"></i>';
+    }
+    document.getElementById("ticks").innerHTML = tickHtml;
+    document.getElementById("meta-scenes").textContent = S.length + " scenes";
+    document.getElementById("meta-len").textContent = mmss(total);
+
+    var tr = "";
+    lineEls = [];
+    for (var x = 0; x < S.length; x++) {
+
+      if (S[x].chapter && (x === 0 || newChapter(x))) {
+        tr += '<li class="chap"><p class="chap-h">' + esc(S[x].chapter) + "</p></li>";
+      }
+      tr += '<li class="scn"><p class="scn-h">Scene ' + (x + 1) +
+        (S[x].title ? ": " + esc(S[x].title) : "") +
+        "<span>" + mmss(starts[x]) + "</span></p><ol class=\"lines\">";
+      for (var y = 0; y < S[x].lines.length; y++) {
+        tr += '<li><button class="jump" type="button" data-s="' + x + '" data-l="' + y + '" data-on="false">' +
+          '<span class="tc">' + mmss(starts[x] + S[x].lineStarts[y]) + "</span>" +
+          '<span class="line">' + esc(S[x].lines[y].caption) + "</span></button></li>";
+      }
+      tr += "</ol></li>";
+    }
+    ol.innerHTML = tr;
+    var btns = ol.querySelectorAll(".jump");
+    for (var b = 0; b < btns.length; b++) {
+      var bs = +btns[b].getAttribute("data-s");
+      (lineEls[bs] = lineEls[bs] || []).push(btns[b]);
+    }
+    onLine = null;
+  }
+
+  var lineEls = [], onLine = null, userScrolledAt = -1e9;
+  var tscroll = document.getElementById("p-transcript");
+
+  ["wheel", "touchmove"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function () { userScrolledAt = performance.now(); }, { passive: true });
+  });
+
+  ["keydown", "pointerdown"].forEach(function (ev) {
+    tscroll.addEventListener(ev, function (e) { if (e.target === tscroll) userScrolledAt = performance.now(); });
+  });
+
+  function follow(force) {
+    if (!onLine || tscroll.hidden) return;
+    if (!force && performance.now() - userScrolledAt < 4000) return;
+    var r = onLine.getBoundingClientRect(), sr = tscroll.getBoundingClientRect();
+    if (!sr.height) return;
+    var head = 36;
+    var want = tscroll.scrollTop + (r.top - sr.top) - (sr.height + head - r.height) / 2;
+    want = clamp(want, 0, tscroll.scrollHeight - tscroll.clientHeight);
+    if (Math.abs(want - tscroll.scrollTop) < 2) return;
+    try { tscroll.scrollTo({ top: want, behavior: reduce ? "auto" : "smooth" }); }
+    catch (e) { tscroll.scrollTop = want; }
+  }
+
+  function markLine(s, l) {
+    var el = lineEls[s] && lineEls[s][l];
+    if (!el || el === onLine) return;
+    if (onLine) { onLine.setAttribute("data-on", "false"); onLine.removeAttribute("aria-current"); }
+    onLine = el;
+    el.setAttribute("data-on", "true");
+    el.setAttribute("aria-current", "true");
+    follow(false);
+  }
+
+  function seekLine(s, l) {
+    var sc = S[s];
+    var at = l === 0 ? 0 : Math.max(0, sc.lineStarts[l] - 0.3);
+    t = clamp(starts[s] + at, 0, total);
+    cur = s;
+    addressed = -1;
+    if (!started) { started = true; poster.hidden = true; }
+    userScrolledAt = -1e9;
+
+    if (!useSound() && at >= sc.stop) { paint(false); setPlaying(false); return; }
+    paint(false);
+    setPlaying(true);
+  }
+
+  renderChrome();
+  ol.addEventListener("click", function (e) {
+    var btn = e.target.closest(".jump");
+    if (btn) seekLine(+btn.getAttribute("data-s"), +btn.getAttribute("data-l"));
+  });
+
+  var MAX_PLAYER = 860, MAX_PAGE = 1480;
+  var INKIT = / inkit/.test(document.documentElement.className), kitH = 0, kitTop = 0;
+  function viewH() { return INKIT && kitH ? kitH : window.innerHeight; }
+
+  if (INKIT) Array.prototype.forEach.call(document.querySelectorAll("a[href]"), function (a) {
+    if (a.getAttribute("href").charAt(0) !== "#") a.target = "_parent";
+  });
+  var theaterEl = document.querySelector(".theater"), playerEl = document.querySelector(".player"),
+      consoleEl = document.querySelector(".console"), wrapEl = document.querySelector(".wrap");
+  var WIDE = window.matchMedia ? window.matchMedia("(min-width: 960px)") : { matches: false };
+
+  function longestCaption() {
+    var best = "";
+    for (var i = 0; i < S.length; i++) {
+      var opts = S[i].lines.map(function (l) { return l.caption; });
+      for (var j = 0; j < opts.length; j++) if (opts[j].length > best.length) best = opts[j];
+    }
+    return best;
+  }
+
+  function sizeCaption() {
+    var wasHidden = captionEl.hidden, keep = captionText.textContent;
+    captionEl.hidden = false;
+    captionEl.style.height = "";
+    captionText.textContent = longestCaption();
+
+    var h = Math.min(Math.ceil(captionEl.getBoundingClientRect().height),
+                     Math.max(104, Math.round(viewH() * 0.3)));
+    captionText.textContent = keep;
+    captionEl.style.height = h + "px";
+    captionEl.hidden = wasHidden;
+    return h;
+  }
+
+  function fitPlayer() {
+
+    var bs = getComputedStyle(document.body);
+    var avail = Math.min(MAX_PAGE, document.body.clientWidth -
+      parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight));
+    var wide = WIDE.matches;
+    var gap = wide ? parseFloat(getComputedStyle(theaterEl).columnGap) || 0 : 0;
+    var sw = wide ? Math.round(clamp(avail * 0.3, 320, 400)) : 0;
+    var room0 = avail - (wide ? sw + gap : 0);
+    var w = Math.max(320, Math.min(MAX_PLAYER, room0));
+
+    theaterEl.style.setProperty("--sw", sw + "px");
+    wrapEl.style.setProperty("--tw", avail + "px");
+    for (var pass = 0; pass < 4; pass++) {
+      var px = Math.floor(w);
+      theaterEl.style.setProperty("--pw", px + "px");
+      compact = px < 660;
+      paintReadout();
+      var capH = sizeCaption();
+      var chrome = consoleEl.getBoundingClientRect().height + (captionEl.hidden ? capH : 0);
+      var top = playerEl.getBoundingClientRect().top + window.scrollY + kitTop;
+
+      var room = viewH() - Math.min(top, viewH() * 0.2) - chrome - 16;
+      var whole = viewH() - top - chrome - 16;
+      if (INKIT && kitH) room = whole;
+      w = Math.max(320, Math.min(MAX_PLAYER, room0, room * 16 / 9));
+      if (Math.floor(w) === px) break;
+    }
+    var pw = Math.floor(w);
+
+    if (wide) sw = Math.round(clamp(avail - gap - pw, 320, 460));
+    theaterEl.style.setProperty("--pw", pw + "px");
+    theaterEl.style.setProperty("--sw", sw + "px");
+    wrapEl.style.setProperty("--tw", (wide ? pw + gap + sw : avail) + "px");
+    sizeCaption();
+    follow(true);
+  }
+  function onAudioLost() { audioOK = false; reflectSound(); fitPlayer(); }
+
+  function postHeight() {
+    if (INKIT) window.parent.postMessage({ kitVideoHeight: Math.ceil(document.documentElement.getBoundingClientRect().height) }, "*");
+  }
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!INKIT || e.source !== window.parent || !d || typeof d.kitViewport !== "number") return;
+    kitH = d.kitViewport; kitTop = +d.kitTop || 0;
+    fitPlayer(); postHeight();
+  });
+  fitPlayer();
+  postHeight();
+  window.addEventListener("resize", function () { fitPlayer(); postHeight(); });
+  if (INKIT && window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+  var addressed = -1;
+  function openAddress() {
+    var id = (location.hash || "").replace(/^#/, "");
+    try { id = decodeURIComponent(id); } catch (e) {}
+    for (var i = 0; i < S.length; i++) {
+      if (S[i].id === id) {
+        setPlaying(false);
+        stopClips();
+        goto(starts[i], false);
+        addressed = i;
+        follow(true);
+        return true;
+      }
+    }
+    return false;
+  }
+  window.addEventListener("hashchange", function () {
+    if (openAddress()) return;
+    setPlaying(false); stopClips(); addressed = -1; t = 0; cur = 0; paint(!started);
+  });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPlayer);
+
+  reflectSound();
+  if (!openAddress()) paint(true);
+})();
+</script>
+</html>

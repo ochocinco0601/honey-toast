@@ -1,4 +1,4 @@
-import io, os, re, sys
+import io, json, os, re, sys
 kit, out = sys.argv[1], sys.argv[2]
 bad = 0
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -11,8 +11,14 @@ def md_for(page):
         return r[:-len("index.html")] + "README.md"
     return r[:-5] + ".md"
 
+# A video's explainer page under videos/ is not a kit page: links into it are checked against its
+# manifest, video.json, whose scene ids are the page's addresses.
+VIDEOS = os.path.normpath(os.path.join(out, "videos"))
+scenes = {}
 pages = {}
-for root, _, fs in os.walk(out):
+for root, dirs, fs in os.walk(out):
+    if os.path.normpath(root) == os.path.normpath(out):
+        dirs[:] = [d for d in dirs if d != "videos"]
     for f in fs:
         if f.endswith(".html"):
             p = os.path.join(root, f)
@@ -22,9 +28,14 @@ for p, full in pages.items():
     h = full.split("<script")[0]
     content = re.split(r'<main id="main"[^>]*>', full, 1)[1].split('<nav class="pager"')[0]
     content = re.sub(r'<details class="toc-inline">.*?</details>', " ", content, flags=re.S)
+    content = re.sub(r'<p class="watch">.*?</p>', " ", content, flags=re.S)
     content = re.sub(r'<p class="kept">.*?</p>', " ", content, flags=re.S)
     content = re.sub(r'<section class="workbook">.*?</section>', " ", content, flags=re.S)
-    md = io.open(os.path.join(kit, md_for(p)), encoding="utf-8").read().replace("\r\n", "\n")
+    # A video's kit page has no markdown of its own: only its links are checked.
+    video_page = 'data-video="1"' in full
+    if video_page:
+        content = ""
+    md = "" if video_page else io.open(os.path.join(kit, md_for(p)), encoding="utf-8").read().replace("\r\n", "\n")
     mdl = md.split("\n")
     # Consecutive "> " lines at the start of a line are one request; an indented one, inside a list, stands alone.
     starts = [i for i, l in enumerate(mdl) if l.startswith("> ") and not (i and mdl[i - 1].startswith("> "))]
@@ -52,6 +63,22 @@ for p, full in pages.items():
             continue
         path, _, anchor = href.partition("#")
         target = os.path.normpath(os.path.join(os.path.dirname(p), path)) if path else p
+        # A video's kit page frames the video's own page: an address on it is one of that video's scenes.
+        frame = re.search(r'<iframe id="vidframe"[^>]* src="([^"?]+)', pages.get(target, ""))
+        if path and frame and 'data-video="1"' in pages[target]:
+            target = os.path.normpath(os.path.join(os.path.dirname(target), frame.group(1)))
+        if target.startswith(VIDEOS + os.sep):
+            manifest = os.path.join(os.path.dirname(target), "video.json")
+            if os.path.basename(target) != "index.html" or not os.path.isfile(target) or not os.path.isfile(manifest):
+                bad += 1
+                print("BROKEN", os.path.relpath(p, out), href)
+                continue
+            if manifest not in scenes:
+                scenes[manifest] = [s.get("id") for s in json.load(io.open(manifest, encoding="utf-8"))["scenes"]]
+            if anchor and anchor not in scenes[manifest]:
+                bad += 1
+                print("ANCHOR", os.path.relpath(p, out), href, "(no scene with that id in its video.json)")
+            continue
         if target not in pages and not (path and not path.endswith(".html") and os.path.isfile(target)):
             bad += 1
             print("BROKEN", os.path.relpath(p, out), href)

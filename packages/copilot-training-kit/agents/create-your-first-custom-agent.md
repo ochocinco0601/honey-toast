@@ -23,11 +23,9 @@ Copilot creates procedures to practice on, in a new folder.
 In the drawings, gray bars stand for text that differs on your screen.
 
 3. On the **File** menu, select **Open Folder**. In the window that opens, go to Documents, the same Documents that File Explorer shows on the left. Select `agents-practice`, and then **Select Folder**.
-4. If VS Code asks whether you trust the authors of the files, leave the box about the parent folder unticked, and then select **Yes, I trust the authors**.
+4. On the Restricted Mode bar, under the menu bar, select **Manage**. On the **Workspace Trust** page that opens, select **Trust**. If VS Code asks instead whether you trust the authors, leave the box about the parent folder unticked and select **Yes, I trust the authors**.
 
-![Drawing of the dialog that asks whether you trust the authors, with the button to select: Yes, I trust the authors.](../getting-started/images/trust-question.svg)
-
-5. If a bar at the top says the folder is in Restricted Mode, select **Manage**, and then **Trust**.
+![Drawing of the Restricted Mode bar under the menu bar, with Manage outlined.](../getting-started/images/restricted-mode.svg)
 
 Check: the list on the left shows `AGENTS-PRACTICE`, with `procedures` in it, and a control at the bottom of the chat box shows **Agent**.
 
@@ -50,7 +48,9 @@ You describe the role, and Copilot writes the custom agent's file.
 > If that file already exists, don't change it; tell me instead.
 > Add or change no other file.
 
-2. If a permission request appears, allow it if it creates only that file.
+2. Copilot asks before it changes a file in `.github/agents`, unless you've chosen to allow all.
+   When the permission request appears, if it creates only that file, select its first button, **Allow Once** or
+   **Allow in this Session**.
 3. In the list on the left, expand `.github` until `procedure-reviewer.agent.md` shows, and select it.
 
 ![Drawing of the list on the left: .github\agents on one row, and procedure-reviewer.agent.md under it.](images/agent-file.svg)

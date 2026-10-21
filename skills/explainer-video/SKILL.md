@@ -1,6 +1,6 @@
 ---
 name: explainer-video
-description: Make a short explainer (90 seconds to 2 minutes, 3 at the outside) on any subject - clean shapes and text drawn by code, narrated, as a video file rendered with Manim, a scene-addressable page played in a browser, or both from one script. Triggers on "make an explainer video", "make a video explaining X", "explain this as a video", "overview video", "intro video for a training or course", "3b1b style video", "animated explainer", "narrated video", "explainer page", or a request to change, fix or rebuild an existing explainer. Not for screen-recorded demos or long training videos.
+description: Make a short explainer (90 seconds to 2 minutes, 3 at the outside) on any subject - clean shapes and text drawn by code, narrated, as a video file rendered with Manim, a scene-addressable page played in a browser, or both from one script. Triggers on "make an explainer video", "make a video explaining X", "explain this as a video", "overview video", "intro video for a training or course", "3b1b style video", "animated explainer", "narrated video", "explainer page", or a request to change, fix or rebuild an existing explainer; also a training kit's lesson videos (a narrated companion page per lesson, in chapters past six minutes), made in a set from data by one builder. Not for screen-recorded demos.
 ---
 
 # Explainer
@@ -18,13 +18,21 @@ minutes long. Built for one viewer; cheap enough to throw away.
 | `stops.md` | the three stops, building and checking a stop page, delivery and when the piece is done | at stage 6 (stage 3 reads its "Building a stop page") |
 | `build-page.md` | building and operating the page form, its screen contract and gotchas | at stage 8, for a page or both; step 1 at stage 3; step 7 (the screen contract) for any Stop 3 page |
 | `build-video.md` | building the video file form, and both forms from one script | at stage 8, for a video file or both |
-| `templates/` | the scripts and starting files every piece copies (stage 3) | at stage 3 |
+| `builder/` | the page form's builder: page, audio, timing check and package, made from a piece's data | at stage 3 |
+| `templates/` | the stop pages' scripts and the video file form's scripts and starting files (stage 3) | at stage 3 |
 
-**The templates** are a working three-scene example: `narration.json` (script and brief),
-`example-explainer.html` (the page player), `scene.py` (the same scenes in Manim), the build and
-check scripts, and `stop2.json` / `stop3.json` (the text of the stop pages). Every script runs
-from the piece's own folder and reads the piece's files beside it; none needs editing for a new
-piece. What a piece replaces is its scenes, its text and its brief.
+**The builder** makes the page form from a piece's data folder: `narration.json` (script, brief and
+the `page` block) and `scenes.py` (what is drawn, and when). `builder/explainer.py` says what each
+data file holds; `builder/examples/overview/` (a short piece) and `builder/examples/lesson-demo/`
+(a lesson video drawn from a training kit's own drawing parts) are working examples. Nothing in the
+builder is copied or edited for a piece.
+
+**The templates** are a working three-scene example for the video file form and the stop pages:
+`narration.json` (script and brief), `example-explainer.html` (the page player it was drawn on),
+`scene.py` (the same scenes in Manim), the build and check scripts, and `stop2.json` /
+`stop3.json` (the text of the stop pages). Every script runs from the piece's own folder and reads
+the piece's files beside it; none needs editing for a new piece. What a piece replaces is its
+scenes, its text and its brief.
 
 ## The stages
 
@@ -35,7 +43,7 @@ Do them in this order. The sections below say how for stages 0–5 and 7–8; `s
 | 0 | Find the source; pick the purpose; make the piece's folder (below) | `NOTES.md` with the start time and Stop 1's budget | — |
 | 1 | The opening message | the message | **wait for their answers** |
 | 2 | Whether an explainer is the fix | the Fix line | *no explainer* or *not yet*: tell them, and stop |
-| 3 | Copy the templates; the brief, and the job aid if one is due | `narration.json` `brief`; `job-aid.md` | — |
+| 3 | The piece's data folder (no scripts for a page); the brief, and the job aid if one is due | `narration.json` `brief`; `job-aid.md` | — |
 | 4 | The first-moment walk | `WALK.md` | every gap sorted into the brief |
 | 5 | The scene list | `narration.json` scenes, one line each | **Set A** passes |
 | 6 | **Stop 1: the story** | the stop page | its review; **wait** |
@@ -248,8 +256,8 @@ work go on from stage 2.
 
 **The job aid.** One page, readable without having watched, in the order the viewer works. The
 purpose file says what goes on it. It is `job-aid.md` in the piece's folder. A page carries the same
-text in its Summary panel, below the player; a video file is sent with the sheet beside it
-(`build_publish.py` copies `job-aid.md` into the package). With no piece made, it goes in a
+text in its Summary, in the reading column below the player; a video file is sent with the sheet beside it
+(the video file's `build_publish.py` copies `job-aid.md` into its package). With no piece made, it goes in a
 `<subject>-job-aid/` folder beside the explainers, with the Fix line in a `FIX.md` beside it, never
 on the sheet, whose reader is the viewer. When the piece is made later, move the sheet into the
 piece's folder and delete the old folder.
@@ -274,16 +282,18 @@ lines the purpose file adds.
 - **Source.** What the piece was made from, and its version (a commit or a version line), so a later
   reader can tell when the piece has gone stale.
 
-**Copy the templates into the piece's folder first.** From this skill's `templates/` folder copy
-`narration.json`, `build_audio.py`, `check_timing.py`, `build_stop.py`, `build_stop3.py`,
-`build_publish.py`, `stop2.json`, `stop3.json` and `.gitignore`; for a video file or both, also
-`scene.py` and `build.py`; for a page or both, `example-explainer.html` is copied at stage 8
-(`build-page.md`), because the build checks a page's captions against the script. Then replace
-`narration.json`'s contents, keeping its shape (`title`, `name`, `about`, `brief`, `voice`, `speed`,
-`scenes`, `head`, `gap`, `tail`): `title` is the piece's title, `name` the file name of the video
-and captions files, `about` one sentence for the package's README. Put the brief at its top as
-`brief`, one key per line above and per purpose line (`fix`, `viewer`, `scope`, `where_it_plays`,
-`must`, `source`, then the purpose's), so it travels with the script.
+**The piece's folder holds data; the builder holds the code.** For the page form, start the folder
+from `builder/examples/overview/narration.json` (a short piece) or
+`builder/examples/lesson-demo/narration.json` (a lesson video): replace its contents, keeping its
+shape (`head`, `gap`, `tail`, `voice`, `speed`, `page`, `brief`, `scenes`), and put the brief at its
+top as `brief`, one key per line above and per purpose line (`fix`, `viewer`, `scope`,
+`where_it_plays`, `must`, `source`, then the purpose's), so it travels with the script. Copy no
+scripts for the page form. For the stop pages, copy `build_stop.py`, `build_stop3.py`, `stop2.json`
+and `stop3.json` from this skill's `templates/` (`stops.md`, "Building a stop page"). For a video
+file or both, copy from `templates/` also `narration.json`'s video keys (`title`, the piece's
+title; `name`, the file name of the video and captions files; `about`, one sentence for the
+package's README), `build_audio.py`, `check_timing.py`, `scene.py`, `build.py`, `build_publish.py`
+and `.gitignore` (`build-video.md`).
 
 Without a brief, every component check can pass a piece that teaches how the subject is designed
 rather than the viewer's turns in it, and a piece can pass its own review while its brief leaves out
@@ -333,7 +343,9 @@ review, put every line through the first rule yourself. The purpose file adds it
 
 **One idea per scene. Six to ten scenes. Ninety seconds to two minutes, three at the outside.**
 Over that, cut a scene. Not the pauses, not the voice speed: a scene. If nothing can be cut, the
-subject is two explainers.
+subject is two explainers. **A lesson video is the exception** (`"kind": "lesson"`): still one idea
+per scene, but one scene per numbered step of the lesson's main path, with its length set by that
+path, and chapters of about six minutes past six minutes ("The budget in words").
 
 **Every line tells the viewer something specific.** The test, for each line: what does the viewer
 know after hearing it that they did not know before? A line whose answer is "nothing specific" is
@@ -405,10 +417,17 @@ it is spoken. The reviewers read them with the line.
 **The budget in words, so it can be checked before anything is drawn.** At Kokoro `af_heart`, speed
 1.0, and these pauses, speech runs about 3.35 words a second and silence takes about a third of the
 runtime. So **two minutes buys roughly 255 spoken words** and three buys about 385.
-`build_audio.py` counts before it speaks: over 255 it says so, over 385 it refuses, and either way
-it lists each scene's words and points at the brief to choose the cut. Run it with `--count` at
-stage 7, before Set B (`python build_audio.py --count`, which needs no speech engine), so a cut is
-reviewed once rather than after the reviews passed. Change the voice or its speed and these move:
+The builder's `build_audio.py` counts before it speaks: over 255 it says so, over 385 it refuses,
+and either way it lists each scene's words and points at the brief to choose the cut. Run it with
+`--count` at stage 7, before Set B (`python <skill>/builder/build_audio.py <folder> --count`,
+which needs no speech engine), so a cut is reviewed once rather than after the reviews passed.
+Making a set of lesson videos: brief each helper with `lesson-brief.md`, which carries the
+standing rules for a set's lesson videos.
+
+**A lesson video** (`"kind": "lesson"` in the `page` block: a training's companion video that
+narrates one lesson's main path, one scene per numbered step) has no ceiling. Past about six minutes
+(765 words) it is split into chapters, a `chapter` on each scene, and the build warns for each
+chapter over that, by words and then by measured length (Guo, Kim and Rubin, 2014). Change the voice or its speed and these move:
 remeasure on one built piece and change `TARGET, CEILING` there. A first cut over the budget is the
 moment to cut, which is far cheaper than cutting after the pictures exist; with
 nothing counting, nothing stops a two-minute piece from shipping at three.
@@ -482,8 +501,15 @@ read better than morphing text.
 
 - **The brief and the budget are held by reviewers and a word count, not by watching.** No agent
   can watch a timed piece; reviewers read the transcript and the stage text.
-- **The page's scenes are hand-written** in `<subject>-explainer.html`, beside the same lines in
-  `narration.json`; `build_audio.py` writes the timing into the page and refuses if a caption has
-  drifted, but the drawing is kept in step by you, and for both forms so is `scene.py`.
+- **The page is built from data; the video file's scenes are still hand-written** in `scene.py`.
+  The builder writes the page from `narration.json` and `scenes.py` and refuses if a caption has
+  drifted, but for both forms the drawing in `scene.py` is kept in step with `scenes.py` by you.
+- **The stop scripts and the video file's scripts are copied per piece** (`stops.md`;
+  `build-video.md`). The page form's page, audio, timing check and package are the builder's
+  (`build-page.md`).
+- **Lesson videos are reviewed per training, not per video.** A training kit's lesson videos are
+  made in a set from its lessons, so the three stops become one review of the training's set: the
+  set's reviews (`reviews.md`) run on every video in it, and the person sees the set once, in the
+  kit.
 - **Trying the piece on real viewers is outside this skill.** Its cold readers (`reviews.md`, Set C)
   are stand-ins, not viewers.

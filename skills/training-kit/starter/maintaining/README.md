@@ -167,6 +167,7 @@ screen label that contains one, such as **Open Preview** when "Preview" is a glo
 | `CHANGELOG.md` | What's new: the kit's versions, newest first. The kit's version is its newest entry |
 | `sample-files/` | The reference copy of the made-up practice files the requests on the path have the assistant create; for maintainers, not built into pages or downloaded |
 | `facilitator/` | For maintainers; not built into pages. `claims.md` is the claims register (every factual sentence and its source), and `BLANKS.md` is generated |
+| `videos/` | A lesson's narrated video, one package per lesson, made with the explainer skill's builder; copied into the pages whole (see "Videos") |
 | `read-in-browser/` | The web pages for the whole kit. **Generated: never edit them.** Change the markdown and build |
 | `maintaining/` | This guide, the page builder and its checks, and the drawings: `drawings.py` holds the parts every drawing is made from, and `make_drawings.py` the tool's own parts and each drawing (see "Pictures"). `build_pages.py` starts with the settings you change |
 
@@ -233,7 +234,8 @@ is `yes` with the commit, or `open`.
 
 ## Page design
 
-Decided, and implemented by the builder; keep it rather than redesigning it. Every page has:
+Decided, and implemented by the builder; a change to it is made in the starter's `build_pages.py`,
+measured as below, and carried to every kit. Every page has:
 
 - **A course outline on the left:** first, under "Trainings", every training in the kit, one row
   each with its level and progress and the current one marked, on every page, so a learner always
@@ -243,14 +245,26 @@ Decided, and implemented by the builder; keep it rather than redesigning it. Eve
   current unit opened to its steps with a marker on the step being read, and the training's
   recipes. Help pages are in a short "More" list at the bottom. Below a narrow width it folds behind an "Outline" button.
 - **A breadcrumb across the top:** the kit, the training, the page, and the unit number.
-- **Under a unit's title:** its time and number of steps, once.
-- **At the end of each unit:** a "Next unit" block with a Continue button.
+- **An opening block:** the title, and under it, once, a unit's time and number of steps, or a
+  training's level, units and time; a rule closes the block, and the paragraph after it is set
+  larger as the page's summary.
+- **Steps on a track:** each numbered step and what follows it, to the next heading of its level,
+  is one section on a line down the left of the text, with a ring at the step's title. The ring of
+  the step being read fills, as its marker in the outline does. No number shows: numbers belong to
+  the actions inside a step and to the units. At phone width the line folds away and the ring sits
+  beside the title.
+- **A prompt to copy is the most distinct object on the page:** its own tinted ground and edge, a
+  chat mark, and a Copy button; an example to write from, or a prompt not supplied yet, has a dashed
+  edge and no ground, since there is nothing to copy.
+- **At the end of each unit:** a framed "Next unit" block with a Continue button.
 - **Always in view:** the outline and the breadcrumb stay on screen as the page scrolls; progress
   never scrolls away. The breadcrumb carries a thin progress line.
 - **Nothing that repeats them:** no "On this page" list and no right-hand rail on unit pages; the
   outline already lists the unit's steps.
-- **Coming back:** the training's home page marks each unit Completed, In progress or Not started.
-  It lists the units once, each with what it does and its time, and has no separate start box.
+- **Coming back:** the training's home page lists the units once as a sequence, each with the
+  outline's ring, what it does and its time, and a chip saying Completed (ring filled green),
+  In progress or Not started. It has no separate start box. The programme's home shows each
+  training as a card with its level as a chip, two to a row on a wide screen.
 - **Light and dark:** pages follow the reader's system theme, with a switch in the header.
 - **The learner's notes:** a box under each note's question, a line saying the answer is kept in
   this browser and is also in the workbook, and the workbook page itself, which prints without the
@@ -268,24 +282,26 @@ turns reading into bookkeeping and pulls the eye from the instruction, while a u
 thing a learner returns to. The outline, the breadcrumb and the training's home count completed
 units only.
 
-**The look is quiet,** so that nothing on the page is louder than the step the learner is doing.
-One accent colour marks links and where the learner is; green appears only on a completed unit. A
-check is its text led by a bold "Check:" with a thin rule beside it, not a coloured panel.
-Outline rows are one line each and wrap when a name is long,
-and steps are separated by space, not lines. The look meets measured standards, not a judgement by eye: text meets
-WCAG 2.2 AA contrast (4.5:1) and every edge or mark that carries meaning 3:1, in light and dark;
-seven type sizes and spacing on a 4-pixel grid; every click target at least 24 pixels; and each
-step of a unit fits on one screen, beside another window too.
+**The page has one order of attention:** the title block first, then each step on its track,
+then, inside a step, the prompt to copy. Everything else is quiet. One accent colour marks links,
+where the learner is and what to copy; neutrals are cool greys; green appears only on a completed
+unit; the warning colour only on the rare "Important:" label. A check is its text led by a bold
+"Check:" with a thin rule beside it, not a coloured panel. Outline rows are one line each and wrap
+when a name is long. Faces are the system's own (Segoe UI Variable on Windows), so nothing is
+downloaded. The look meets measured standards, not a judgement by eye: text meets WCAG 2.2 AA
+contrast (4.5:1) and every edge or mark that carries meaning (the rings and step markers, the
+Copy button's edge, a Check's rule, an answer box's edge) 3:1, in light and dark, while the track
+line and card edges only connect or group and stay lighter; seven type
+sizes (13, 14, 16, 17, 19, 24 and 36 pixels at the default zoom); space between blocks in steps
+of 4 pixels; every click target at least 24 pixels; and each step of a unit fits on one screen,
+beside another window too.
 
-**The text column is 720 pixels,** as wide as the breadcrumb, about 100 characters a line. This
-is wider than the usual reading measure of 60 to 75 characters on purpose: a column that narrow
-leaves a wide screen mostly empty and makes a unit feel sparse, and the published trainings use
-800 (VS Code docs) to about 880 (Microsoft Learn). **Lines and paragraphs are set as those
-trainings set them,** measured 2026-10-05: body text at the browser's default size, so it follows
-each reader's zoom; a line height of 1.6 (VS Code docs 1.6, Learn 1.75); 16 pixels between
-paragraphs and around lists (both).
-If you change the look in `build_pages.py`, measure
-these again.
+**The text column is wide: up to 68rem (1088 pixels),** as wide as the breadcrumb, filling the
+space beside the outline on a 1440-pixel screen. A narrow reading measure leaves a wide screen
+mostly empty and makes a unit feel sparse. Body text is 17 pixels at the default zoom, set in rem so it follows each
+reader's zoom, with a line height of 1.7 to carry the long line; 16 pixels between paragraphs and
+around lists. A drawing is at most 56rem wide so that its labels stay at reading size. If you
+change the look in `build_pages.py`, measure these again.
 
 ## How a page is written
 
@@ -701,6 +717,57 @@ they practise in. Keep the markdown and the rebuilt pages together in the same c
 
 Without Python, you can still change the markdown, but the web pages will not show it. Say so when
 you hand the work over.
+
+## Videos
+
+A lesson can have a narrated video beside it: the lesson's main path, spoken over drawn screens,
+on its own explainer page with a player, the transcript and captions. The written steps stay the
+complete instruction; the video is a second way through the same material. A video is never built
+into a lesson page.
+
+**A package.** Each video is one folder, made by the explainer skill's publish step and never
+edited by hand:
+
+- `index.html`, the explainer page; `audio/<scene>.mp3`, one file per scene;
+- `video.json`, the manifest: the lesson it narrates (its place in the kit), the lesson's content
+  hash when the video was made, the video's title and length in seconds, the link back to the
+  lesson's page, its scenes in play order (each with an id and the number of the lesson step it
+  narrates, or none), and the SHA-256 of every other file in the folder.
+
+**Where it goes.** `videos/<training folder>/<lesson name>/` for a lesson, such as
+`videos/getting-started/start-here/`; `videos/overview/` for the programme's overview, whose lesson
+is `README.md`. A kit with no `videos/` folder builds as it would without this section.
+
+**What the build does with it.** The build copies `videos/` whole into `read-in-browser/videos/`,
+byte for byte, and the checks and `measure.py` skip it: an explainer page is never read as a kit
+page. Then, on the kit's pages:
+
+- each video gets a page of the kit beside its lesson, `<lesson name>-video.html` (the overview's is
+  `overview-video.html`): the outline, the breadcrumb, a row with the way back and "Next: Written
+  steps" above the video, the video's own page in a frame, and the pager below. Every link to a
+  video goes to this page, and its `#<scene id>` is passed into the frame;
+- the video is its own item just before its lesson: the first entry in the unit's list in the
+  outline ("Video · 3 min"), the length on the unit's card, and the previous unit's Continue
+  goes to the video, whose link to the written steps is the way on. Progress counts units as
+  before; watching adds nothing;
+- each numbered step heading gets "Watch this step", opening the video at the first scene that
+  narrates that step. A step no scene narrates gets no link, and the build warns;
+- the home page links to the overview's video under its title.
+
+The build stops and says which package and why when a file's hash does not match, a listed file is
+missing or a file is not listed (names are compared exactly, letter case included, as a web server
+compares them), the manifest does not parse or lacks a field, the lesson is not in the kit, the
+folder is not the lesson's, the link back does not open the lesson's page or the page itself does not carry that link, a scene names a step
+the lesson does not have, or the package is over 50 MB.
+
+**Videos are made only where the explainer skill's tools are installed.** An assistant without
+them can edit a lesson but cannot remake its video. So editing a lesson never fails
+the build. When a lesson has changed since its video was made (its content hash differs), the build
+warns "The video for ... was made from an earlier version of the lesson" and names any step
+the video narrates that the lesson no longer has. Until the video is remade, the lesson's page says
+so in one line under its title, tells the learner to follow the written steps where they differ,
+and has no "Watch this step" links; the video stays in the path. Before a release, build
+with `python maintaining/build_pages.py --strict`, which fails on any stale video.
 
 ## Versions
 

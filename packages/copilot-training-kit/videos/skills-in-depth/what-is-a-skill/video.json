@@ -1,0 +1,55 @@
+{
+ "format": 1,
+ "lesson": "skills-in-depth/what-is-a-skill.md",
+ "lesson_sha256": "dc1023c9d964e357d074c575a038d8fa7c38cc9754dc73f87b463e1a6575e030",
+ "title": "What is a skill?",
+ "seconds": 220,
+ "back_href": "../../../skills-in-depth/what-is-a-skill.html",
+ "scenes": [
+  {
+   "id": "open",
+   "title": "What you'll learn",
+   "step": null
+  },
+  {
+   "id": "why",
+   "title": "Why use a skill",
+   "step": null
+  },
+  {
+   "id": "looks",
+   "title": "What a skill looks like",
+   "step": null
+  },
+  {
+   "id": "uses",
+   "title": "How Copilot uses a skill",
+   "step": null
+  },
+  {
+   "id": "where",
+   "title": "Where a skill works",
+   "step": null
+  },
+  {
+   "id": "instructions",
+   "title": "Skills and custom instructions",
+   "step": null
+  },
+  {
+   "id": "close",
+   "title": "What you learned",
+   "step": null
+  }
+ ],
+ "files": {
+  "audio/close.mp3": "31efbf89a085fc190f55c92db515ca314e7700062cf0719722428e13fbdb143f",
+  "audio/instructions.mp3": "276a7832134dde8ed8694c1f51e71f6c5c2866e4abc6e7b08f103fa0a499795c",
+  "audio/looks.mp3": "efc3b74e64226445a0b001a00600132314f4128c55e587b579185aff05c6126b",
+  "audio/open.mp3": "4922d993bcf207defc34ea868f49ef914252cf0e456f5b5998738273f6cda049",
+  "audio/uses.mp3": "2cfd9a8fefdd7f184f1661cccd1f864a55e04cbffaf9910b7f3c51dc7fbd8eac",
+  "audio/where.mp3": "f0180a1da8b3f5944399d80bae63bee82f6ee3b549c103f77a2b55ce8c4263d5",
+  "audio/why.mp3": "d44cfe539ad87f0cbbfb8919d979f88ffaad5ebd967cceb3284787c85b81f8ac",
+  "index.html": "0bfd51ce18c42a8720c34f212a8787d5262c70630d491bc67cc6dbd5463dc4e5"
+ }
+}

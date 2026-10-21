@@ -1,0 +1,91 @@
+{
+ "format": 1,
+ "lesson": "agents/create-your-first-custom-agent.md",
+ "lesson_sha256": "88a18a92502542178a924b42a3d0722a40d306e11e6db7cebef232ca3525a335",
+ "title": "Create your first custom agent",
+ "seconds": 327,
+ "back_href": "../../../agents/create-your-first-custom-agent.html",
+ "scenes": [
+  {
+   "id": "open",
+   "title": "What you'll do",
+   "step": null
+  },
+  {
+   "id": "procedures",
+   "title": "Have Copilot create practice procedures",
+   "step": 1
+  },
+  {
+   "id": "open-folder",
+   "title": "Open the folder and trust it",
+   "step": 1
+  },
+  {
+   "id": "procedures-check",
+   "title": "Check: the folder is open, the chat says Agent",
+   "step": 1
+  },
+  {
+   "id": "reviewer",
+   "title": "Have Copilot create the Procedure reviewer",
+   "step": 2
+  },
+  {
+   "id": "reviewer-check",
+   "title": "Check: the file's name and tools lines",
+   "step": 2
+  },
+  {
+   "id": "select",
+   "title": "Select the Procedure reviewer",
+   "step": 3
+  },
+  {
+   "id": "select-check",
+   "title": "Check: the control shows Procedure reviewer",
+   "step": 3
+  },
+  {
+   "id": "check",
+   "title": "Have the Procedure reviewer check the procedures",
+   "step": 4
+  },
+  {
+   "id": "check-check",
+   "title": "Check: quoted steps, each with its file",
+   "step": 4
+  },
+  {
+   "id": "change",
+   "title": "Ask the Procedure reviewer to change a procedure",
+   "step": 5
+  },
+  {
+   "id": "change-check",
+   "title": "Check: the step is unchanged",
+   "step": 5
+  },
+  {
+   "id": "close",
+   "title": "What you did",
+   "step": null
+  }
+ ],
+ "files": {
+  "audio/change-check.mp3": "642738c6a1837f92d0883d2b47a9a10e12075038659c852eeaa9ca9af621d27b",
+  "audio/change.mp3": "2290352ffba1331fef256e09e86adcc9c9fe33fa848169a83cf118b80894197d",
+  "audio/check-check.mp3": "bc1ca12c761d1a7a6b83b89c4ff70c351ee2e1cb73cdf1ba348a2e92616269a1",
+  "audio/check.mp3": "321ccff43bbfffe78505dd20b72436fae00e8893df5373170abef9631051070d",
+  "audio/close.mp3": "3a0ee1617b92983cef889f5f6dbba78b7395f74c68ea565d7f06d2d4cee75de2",
+  "audio/open-folder.mp3": "b723062340e00af2892fc61327bce3c08684c14fde0067e011e069b87ee1b7d0",
+  "audio/open.mp3": "1344c3136807094fa1de8cf00df9d862840e8bfe2e8e4cdb506979a508eeaa98",
+  "audio/procedures-check.mp3": "0a8a7fabe39b90b3d81fedef288d8c3f14f03d605e2e89123ef9faf7fd6e1723",
+  "audio/procedures.mp3": "d994a10e22d620ff621d9d0c88807fe732409873018813d9618896d24f6dd226",
+  "audio/reviewer-check.mp3": "f58aa49e0ca30833dd714883768b1557d7b095004b01aaf2b6bd960664b26f4c",
+  "audio/reviewer.mp3": "878107817b98de4297ecbd5910eb6558e3d698cdddb7a92b84ab757b26f3c5c8",
+  "audio/select-check.mp3": "cc507ab0b51af505e0bb698f8c2eec7bf187aeec23e824de8c969f55e696deaf",
+  "audio/select.mp3": "2b30b7eb47ed24bfef0b60022807a343fbcaa7c62d0e98f69c84cfeaa35be219",
+  "index.html": "39fd74053cfbbb440edcae6ec3a5256aef89a1a9c01553e1983f540be7e3d071"
+ }
+}

@@ -5,7 +5,7 @@ words, and it reads your documents, writes new files and runs commands. It asks 
 command that could change something. You can undo the edits it makes to your files.
 
 These trainings teach you to direct it. You don't need to write code. Start with Getting started;
-each training builds on the one before it.
+the other trainings build on it, and Custom agents also builds on Skills.
 
 ## The trainings
 

@@ -1,304 +1,368 @@
 <!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.
      Source: skills-in-depth/README.md
      Build: python maintaining/build_pages.py, from the kit's folder (see maintaining/README.md)
-     Built by the training-kit skill, version 1.14
+     Built by the training-kit skill, version 1.16
 -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Skills</title>
 <style>
-/* One accent (links and where you are), neutrals for everything else, and green only as the small
-   mark on a completed unit. Nothing on the page is louder than the step the reader is doing. */
-:root{--bg:#ffffff;--bg2:#f7f7f7;--surface:#ffffff;--ink:#1b1b1b;--ink2:#4f4f4f;--ink3:#6b6b6b;
---rule:#e6e6e6;--rule2:#cdcdcd;--accent:#0065b3;--accent-ink:#ffffff;--accent-soft:#eef4fa;--ok:#107c10;--ok-ink:#ffffff;
---ctl:#8a8a8a;--blank:#f0f0f0;--code:#f4f4f4;--focus:#0065b3;--mark:#bc4c00;--mark-ink:#ffffff;
---shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.06)}
+/* A learning site's page: a course outline on the left, a wide reading column, and in it one clear
+   order of attention - the page's title, then each step on a track, then the prompt the learner copies.
+   One accent (links, where you are, what to copy); cool neutrals for everything else; green only as
+   the mark of a completed unit. Colours are tokens, defined for light and redefined for dark. */
+:root{--bg:#fbfcfd;--bg2:#f1f4f7;--surface:#ffffff;--ink:#16202c;--ink2:#3e4a58;--ink3:#5a6676;
+--rule:#e0e5eb;--rule2:#c2cad4;--accent:#1659b7;--accent-ink:#ffffff;--accent-soft:#e9f0fa;--ok:#17763a;--ok-ink:#ffffff;
+--ctl:#7b8594;--blank:#edf0f4;--code:#edf1f5;--focus:#1659b7;--mark:#b44900;--mark-ink:#ffffff;
+--prompt:#eaf1fc;--prompt-edge:#8fb0de;
+--shadow:0 1px 2px rgba(22,32,44,.06),0 6px 20px rgba(22,32,44,.08)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
---bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;--rule:#303030;--rule2:#4a4a4a;
---accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}}
-:root[data-theme="dark"]{--bg:#171717;--bg2:#1e1e1e;--surface:#1f1f1f;--ink:#e6e6e6;--ink2:#bdbdbd;--ink3:#9c9c9c;
---rule:#303030;--rule2:#4a4a4a;--accent:#75b6e7;--accent-ink:#101010;--accent-soft:#1c2630;--ok:#74c474;--ok-ink:#101010;
---ctl:#737373;--blank:#262626;--code:#232323;--focus:#75b6e7;--mark:#f08a3c;--mark-ink:#101010;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.35)}
-:root[data-theme="dark"]{color-scheme:dark}:root[data-theme="light"]{color-scheme:light}
-:root{--side:var(--bg2);--cur:var(--accent-soft);--field:var(--ctl);--okink:var(--ok-ink);--hdr:52px;--crb:42px}
+--bg:#11151b;--bg2:#161b22;--surface:#1a2029;--ink:#e4e8ee;--ink2:#b3bcc8;--ink3:#8e99a7;--rule:#272e38;--rule2:#3b4451;
+--accent:#80b3ff;--accent-ink:#0c1320;--accent-soft:#18263a;--ok:#5cbf74;--ok-ink:#0c1320;
+--ctl:#6c7787;--blank:#1f262f;--code:#1f2630;--focus:#80b3ff;--mark:#f08a3c;--mark-ink:#101010;
+--prompt:#142033;--prompt-edge:#33507a;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11151b;--bg2:#161b22;--surface:#1a2029;--ink:#e4e8ee;--ink2:#b3bcc8;--ink3:#8e99a7;
+--rule:#272e38;--rule2:#3b4451;--accent:#80b3ff;--accent-ink:#0c1320;--accent-soft:#18263a;--ok:#5cbf74;--ok-ink:#0c1320;
+--ctl:#6c7787;--blank:#1f262f;--code:#1f2630;--focus:#80b3ff;--mark:#f08a3c;--mark-ink:#101010;
+--prompt:#142033;--prompt-edge:#33507a;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+/* type: the system's own faces, no download. Seven sizes: .8125 .875 1 1.0625 (body) 1.1875 1.5 2.25rem */
+:root{--side:var(--bg2);--cur:var(--accent-soft);--field:var(--ctl);--okink:var(--ok-ink);--hdr:56px;--crb:44px;--col:68rem;
+--f-display:"Segoe UI Variable Display","Segoe UI",SegoeUI,-apple-system,BlinkMacSystemFont,"Helvetica Neue",system-ui,sans-serif;
+--f-text:"Segoe UI Variable Text","Segoe UI",SegoeUI,-apple-system,BlinkMacSystemFont,"Helvetica Neue",system-ui,sans-serif;
+--f-mono:"Cascadia Mono",ui-monospace,Consolas,"SF Mono",Menlo,monospace;
+--i-chat:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4h0A2.5 2.5 0 0 1 4 13.5z' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M8 9h8M8 12h5' stroke='black' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+--i-copy:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='5.5' y='5.5' width='8' height='8' rx='1.5' fill='none' stroke='black' stroke-width='1.5'/%3E%3Cpath d='M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5' fill='none' stroke='black' stroke-width='1.5'/%3E%3C/svg%3E");
+--i-clock:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.25' fill='none' stroke='black' stroke-width='1.5'/%3E%3Cpath d='M8 4.5V8l2.5 1.5' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+--i-pen:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 5l4 4L9 19H5v-4z' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E")}
 *{box-sizing:border-box}
-html{scroll-padding-top:calc(var(--hdr) + var(--crb) + 14px);-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);
-font:1rem/1.65 "Segoe UI",SegoeUI,-apple-system,BlinkMacSystemFont,"Helvetica Neue",system-ui,sans-serif}
-a{color:var(--accent);text-underline-offset:2px}
+html{scroll-padding-top:calc(var(--hdr) + var(--crb) + 16px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.6 var(--f-text)}
+a{color:var(--accent);text-underline-offset:3px;text-decoration-thickness:1px}
 a:hover{text-decoration-thickness:2px}
-:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:2px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:3px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.skip{position:absolute;left:-999px;top:8px;background:var(--surface);padding:6px 10px;z-index:40}
+.skip{position:absolute;left:-999px;top:8px;background:var(--surface);padding:6px 12px;z-index:40}
 .skip:focus{left:8px}
-/* site header: the programme's name and search, and nothing louder */
-.site{position:sticky;top:0;z-index:30;height:var(--hdr);display:flex;align-items:center;gap:14px;padding:0 20px;
+/* site header: the programme's mark and name, search, and the theme switch */
+.site{position:sticky;top:0;z-index:30;height:var(--hdr);display:flex;align-items:center;gap:16px;padding:0 20px;
 background:var(--surface);border-bottom:1px solid var(--rule)}
-.brand{font-weight:600;font-size:1rem;color:var(--ink2);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.brand:hover{color:var(--ink)}
-.menu{display:none;align-items:center;gap:6px;font:inherit;font-size:.875rem;padding:5px 10px;border:1px solid var(--ctl);
-border-radius:4px;background:var(--surface);color:var(--ink2);cursor:pointer;flex:none}
-.search{position:relative;margin-left:auto;width:min(280px,42vw);flex:none}
-.search input{width:100%;height:32px;padding:0 10px 0 30px;font:inherit;font-size:.875rem;color:var(--ink);
-background:var(--bg2);border:1px solid var(--ctl);border-radius:4px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0;font:600 1rem/1.2 var(--f-display);color:var(--ink);text-decoration:none}
+.brand span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand svg{flex:none;width:28px;height:28px;border-radius:8px;background:var(--accent);color:var(--accent-ink)}
+.brand:hover span{text-decoration:underline;text-underline-offset:3px}
+.menu{display:none;align-items:center;gap:8px;font:inherit;font-size:.875rem;font-weight:600;min-height:36px;padding:4px 12px;
+border:1px solid var(--rule2);border-radius:8px;background:var(--surface);color:var(--ink);cursor:pointer;flex:none}
+.menu:hover{border-color:var(--ctl)}
+.search{position:relative;margin-left:auto;width:min(320px,42vw);flex:none}
+.search input{width:100%;height:36px;padding:0 12px 0 34px;font:inherit;font-size:.875rem;color:var(--ink);
+background:var(--bg2);border:1px solid var(--rule2);border-radius:8px}
 .search input::placeholder{color:var(--ink3);opacity:1}
-.search input:hover{border-color:var(--ink3)}
-.search svg{position:absolute;left:10px;top:9px;width:14px;height:14px;color:var(--ink3)}
-.results{position:absolute;right:0;top:38px;width:min(460px,92vw);max-height:70vh;overflow:auto;margin:0;padding:6px;
-list-style:none;z-index:30;background:var(--surface);border:1px solid var(--rule);border-radius:6px;box-shadow:var(--shadow)}
+.search input:hover{border-color:var(--ctl)}
+.search input:focus{background:var(--surface)}
+.search svg{position:absolute;left:12px;top:11px;width:14px;height:14px;color:var(--ink3)}
+.results{position:absolute;right:0;top:44px;width:min(480px,92vw);max-height:70vh;overflow:auto;margin:0;padding:8px;
+list-style:none;z-index:30;background:var(--surface);border:1px solid var(--rule);border-radius:10px;box-shadow:var(--shadow)}
 .results li{margin:0}
-.results li a{display:block;padding:7px 10px;line-height:1.4;border-radius:4px;color:var(--ink);text-decoration:none}
+.results li a{display:block;padding:8px 12px;line-height:1.4;border-radius:6px;color:var(--ink);text-decoration:none}
 .results li a:hover,.results li a:focus{background:var(--accent-soft)}
 .results .rt{font-weight:600;font-size:.875rem}
-.results .rs{font-size:.8rem;color:var(--ink2)}
-.results .none{padding:7px 10px;color:var(--ink2);font-size:.875rem}
-.iconbtn{flex:none;width:32px;height:32px;display:grid;place-items:center;border:1px solid transparent;border-radius:4px;
-background:none;color:var(--ink3);cursor:pointer}
+.results .rs{font-size:.8125rem;color:var(--ink2)}
+.results .none{padding:8px 12px;color:var(--ink2);font-size:.875rem}
+.iconbtn{flex:none;width:36px;height:36px;display:grid;place-items:center;border:1px solid transparent;border-radius:8px;
+background:none;color:var(--ink2);cursor:pointer}
 .iconbtn:hover{background:var(--bg2);color:var(--ink)}
-.iconbtn svg{width:17px;height:17px}
+.iconbtn svg{width:18px;height:18px}
 /* page grid: outline | page */
-.layout{display:grid;grid-template-columns:280px minmax(0,1fr)}
-.content{--gut:clamp(24px,4.5vw,72px);min-width:0}
-/* the outline: one line per unit, a ring that fills when the unit is complete, and space rather than lines */
+.layout{display:grid;grid-template-columns:288px minmax(0,1fr)}
+.content{--gut:clamp(24px,3vw,40px);min-width:0}
+/* the outline: every training, then the current one's units, each one line with a ring that fills when complete */
 .side{position:sticky;top:var(--hdr);align-self:start;height:calc(100vh - var(--hdr));overflow:auto;padding:0 0 32px;
 background:var(--side);border-right:1px solid var(--rule);font-size:.875rem;line-height:1.4}
 .side ol,.side ul{list-style:none;margin:0;padding:0}
 .side li{margin:0}
 .otop{padding:20px 20px 4px}
 .otop .omh{margin:0}
-.side .otrains{padding:0 10px 12px}
-.otrow{display:flex;align-items:baseline;gap:8px;min-height:36px;padding:7px 10px;border-radius:6px;color:var(--ink);text-decoration:none}
-.otrow:hover{background:var(--cur)}
+.side .otrains{padding:0 12px 12px}
+.otrow{display:flex;align-items:baseline;gap:8px;min-height:36px;padding:8px 8px;border-radius:8px;color:var(--ink);text-decoration:none}
+.otrow:hover{background:var(--surface)}
 .otrow .oname{font-weight:500}
-.olevel{margin-left:auto;font-size:.8rem;color:var(--ink3);white-space:nowrap;text-align:right}
-.otrow[aria-current]{background:var(--cur);box-shadow:inset 3px 0 0 var(--accent)}
+.olevel{margin-left:auto;font-size:.8125rem;color:var(--ink3);white-space:nowrap;text-align:right}
+.otrow[aria-current]{background:var(--surface);box-shadow:0 0 0 1px var(--rule)}
 .otrow[aria-current] .oname{color:var(--accent);font-weight:600}
 .ou.later .otrow{color:var(--ink3)}
 .ocur{border-top:1px solid var(--rule);margin-top:4px}
-.ohead{padding:16px 20px 4px}
+.ohead{padding:20px 20px 4px}
 .side .oextras{padding:0 20px 8px}
-.oextras a{display:flex;align-items:center;gap:8px;min-height:36px;padding:6px 10px;margin:0 -10px;border-radius:6px;
+.oextras a{display:flex;align-items:center;gap:8px;min-height:36px;padding:8px 8px;margin:0 -8px;border-radius:8px;
 color:var(--ink2);font-size:.875rem;text-decoration:none}
-.oextras a:hover{background:var(--cur);color:var(--ink)}
+.oextras a:hover{background:var(--surface);color:var(--ink)}
 .oextras a[aria-current]{color:var(--accent);font-weight:600}
-.oextras .cnt{margin-left:auto;font-size:.8rem;color:var(--ink3)}
+.oextras .cnt{margin-left:auto;font-size:.8125rem;color:var(--ink3)}
 .orec .ohd>a{flex:1;min-width:0}
-.orec .otoggle{margin-right:-10px}
+.orec .otoggle{margin-right:-8px}
 .oextras .osteps{padding:0 0 4px}
-.oextras a.ostep{margin:0;padding:6px 10px 6px 4px;align-items:flex-start}
+.oextras a.ostep{margin:0;padding:8px 8px 8px 4px;align-items:flex-start}
 .oextras a.ostep[aria-current] .odot{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 2px var(--side)}
-.otitle{display:block;font-size:1rem;font-weight:600;color:var(--ink);text-decoration:none;line-height:1.3}
+.otitle{display:block;font:600 1rem/1.3 var(--f-display);color:var(--ink);text-decoration:none}
 .otitle:hover{text-decoration:underline}
 .otitle[aria-current]{color:var(--accent)}
-.ototal{margin:2px 0 0;font-size:.8125rem;color:var(--ink3)}
-.obar{height:3px;border-radius:2px;background:var(--rule);overflow:hidden;margin:12px 0 6px}
-.obar span{display:block;height:100%;width:0;background:var(--ink);transition:width .3s}
-.opct{margin:0;font-size:.8rem;color:var(--ink3)}
+.ototal{margin:4px 0 0;font-size:.8125rem;color:var(--ink3)}
+.obar{height:4px;border-radius:2px;background:var(--rule);overflow:hidden;margin:12px 0 8px}
+.obar span{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+.opct{margin:0;font-size:.8125rem;color:var(--ink3)}
 .opct:empty{display:none}
-.ounits{padding:10px 0 6px}
+.ounits{padding:8px 0}
 .ohd{display:flex;align-items:center}
 .orow{flex:1;min-width:0;display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 4px 8px 20px;
 color:var(--ink);text-decoration:none}
 .orow:hover .oname{text-decoration:underline}
 .orow[aria-current] .oname{color:var(--accent)}
-.oring{flex:none;position:relative;width:22px;height:22px}
-.oring svg{display:block;width:22px;height:22px}
+.ou.current>.ohd{background:var(--surface);box-shadow:inset 0 1px 0 var(--rule),inset 0 -1px 0 var(--rule)}
+.oring{flex:none;position:relative;width:24px;height:24px}
+.oring svg{display:block;width:24px;height:24px}
 .oring .trk{fill:none;stroke:var(--ctl);stroke-width:2.5}
-.oring .arc{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-linecap:round;transition:stroke-dasharray .3s}
-.oring .n{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:600;color:var(--ink3)}
+.oring .arc{fill:none;stroke:var(--ok);stroke-width:2.5;stroke-linecap:round;transition:stroke-dasharray .3s}
+.oring .n{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.8125rem;font-weight:600;color:var(--ink2)}
+.ou.current .oring .trk{stroke:var(--accent)}
+.ou.current .oring .n{color:var(--accent)}
 .oring.full{border-radius:50%;background:var(--ok)}
 .oring.full svg{display:none}
-.oring.full .n{color:var(--okink)}
+.oring.full .n,.ou.current .oring.full .n{color:var(--okink)}
 .ou.later .oring{opacity:.55}
 .otext{display:flex;flex-direction:column;min-width:0}
 .oname{font-weight:500;line-height:1.35;overflow-wrap:anywhere}
 .otime{display:block;font-size:.8125rem;font-weight:400;color:var(--ink3);line-height:1.35}
 .ou.current .oname{font-weight:600}
 .ometa{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.otoggle{flex:none;width:36px;height:36px;margin-right:10px;display:flex;align-items:center;justify-content:center;
-border:0;border-radius:6px;background:none;color:var(--ink3);cursor:pointer;opacity:.8}
-.otoggle:hover{background:var(--cur);color:var(--ink);opacity:1}
+.otoggle{flex:none;width:36px;height:36px;margin-right:12px;display:flex;align-items:center;justify-content:center;
+border:0;border-radius:8px;background:none;color:var(--ink3);cursor:pointer}
+.otoggle:hover{background:var(--cur);color:var(--ink)}
 .otoggle svg{width:14px;height:14px;transition:transform .15s}
 .ou.open .otoggle svg{transform:rotate(180deg)}
 .osteps{display:none;padding:0 12px 8px 0}
 .ou.open .osteps{display:block}
-.ostep{position:relative;display:flex;align-items:flex-start;gap:12px;min-height:36px;padding:7px 10px 7px 24px;
-border-radius:0 6px 6px 0;color:var(--ink2);text-decoration:none;font-size:.875rem}
+.ou.current .osteps{background:var(--surface);box-shadow:inset 0 -1px 0 var(--rule)}
+.ostep{position:relative;display:flex;align-items:flex-start;gap:12px;min-height:36px;padding:8px 12px 8px 24px;
+border-radius:0 8px 8px 0;color:var(--ink2);text-decoration:none;font-size:.875rem}
 .ostep:hover{color:var(--ink)}
 .ostep:hover .olab{text-decoration:underline}
-.odot{flex:none;position:relative;width:12px;height:12px;margin:4px 5px 0;border-radius:50%;border:1.5px solid var(--field);
+.odot{flex:none;position:relative;width:12px;height:12px;margin:4px 6px 0;border-radius:50%;border:1.5px solid var(--field);
 background:var(--side)}
+.ou.current .odot{background:var(--surface)}
 .ostep.here{color:var(--accent);font-weight:600}
-.ostep.here .odot{border-color:var(--accent)}
-.ostep.here .odot{background:var(--accent);box-shadow:inset 0 0 0 2px var(--side)}
-.content pre.file{margin:16px 0;padding:14px 16px;overflow-x:auto;background:var(--bg2);border:1px solid var(--rule);border-radius:8px;font:.875rem/1.55 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
-.content pre.file code{background:none;padding:0;font:inherit}
-.content .callout{margin:20px 0;padding:12px 16px;border:1px solid var(--accent);border-left-width:4px;border-radius:6px;background:var(--bg2)}
-.content .callout p{margin:0}
-.content .callout .lbl{color:var(--accent)}
-.omore{margin:18px 20px 0;padding-top:14px;border-top:1px solid var(--rule)}
-.omh{margin:0 0 4px;font-size:.8rem;font-weight:600;color:var(--ink3)}
-.omore a{display:flex;align-items:center;gap:8px;min-height:36px;padding:6px 10px;margin:0 -10px;border-radius:6px;
+.ostep.here .odot,.ou.current .ostep.here .odot{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 2px var(--surface)}
+.omore{margin:20px 20px 0;padding-top:16px;border-top:1px solid var(--rule)}
+.omh{margin:0 0 4px;font-size:.8125rem;font-weight:600;color:var(--ink3)}
+.omore a{display:flex;align-items:center;gap:8px;min-height:36px;padding:8px 8px;margin:0 -8px;border-radius:8px;
 color:var(--ink2);font-size:.875rem;text-decoration:none}
-.omore a:hover{background:var(--cur);color:var(--ink)}
+.omore a:hover{background:var(--surface);color:var(--ink)}
 .omore a[aria-current]{color:var(--accent);font-weight:600}
-.omore .cnt{margin-left:auto;font-size:.8rem;color:var(--ink3)}
+.omore .cnt{margin-left:auto;font-size:.8125rem;color:var(--ink3)}
 .oclose{display:none}
 .scrim{display:none}
-/* breadcrumb strip: where you are, in the page's quietest voice */
+/* breadcrumb strip: where you are, quietly, with the training's progress as a thin line along its foot */
 .crumbs{position:sticky;top:var(--hdr);z-index:18;background:var(--bg);border-bottom:1px solid var(--rule)}
-.crumbs .in{max-width:720px;margin:0 var(--gut);height:var(--crb);display:flex;align-items:center;gap:12px}
-.crumbs ol{display:flex;align-items:center;min-width:0;flex:1;margin:0;padding:0;list-style:none;font-size:.8rem}
+.crumbs .in{max-width:var(--col);margin:0 var(--gut);height:var(--crb);display:flex;align-items:center;gap:12px}
+.crumbs ol{display:flex;align-items:center;min-width:0;flex:1;margin:0;padding:0;list-style:none;font-size:.8125rem}
 .crumbs li{display:flex;align-items:center;min-width:0;margin:0;white-space:nowrap}
 .crumbs li a,.crumbs li span{overflow:hidden;text-overflow:ellipsis}
-.crumbs li a{color:var(--ink2);text-decoration:underline;text-decoration-color:var(--ink3);text-underline-offset:3px}
-.crumbs li a:hover{color:var(--accent);text-decoration-color:currentColor}
-.crumbs li+li::before{content:"";flex:none;width:5px;height:5px;margin:0 9px 0 7px;border-right:1px solid var(--ink3);
-border-top:1px solid var(--ink3);transform:rotate(45deg)}
-.crumbs li[aria-current] span{color:var(--ink3)}
-.unitpos{flex:none;font-size:.8rem;color:var(--ink3);white-space:nowrap}
+.crumbs li a{color:var(--ink2);text-decoration:none}
+.crumbs li a:hover{color:var(--accent);text-decoration:underline}
+.crumbs li+li::before{content:"";flex:none;width:5px;height:5px;margin:0 10px 0 8px;border-right:1.5px solid var(--ctl);
+border-top:1.5px solid var(--ctl);transform:rotate(45deg)}
+.crumbs li[aria-current] span{color:var(--ink);font-weight:600}
+.unitpos{flex:none;font-size:.8125rem;font-weight:600;color:var(--ink2);white-space:nowrap;padding:2px 10px;border-radius:999px;background:var(--bg2);border:1px solid var(--rule)}
+.unitpos.all{color:var(--ok);border-color:var(--ok)}
 .unitpos .short{display:none}
 .line{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:transparent}
-.line span{display:block;height:100%;width:0;background:var(--ink3);transition:width .3s}
-/* the page */
-main{max-width:720px;margin:0 var(--gut);padding:32px 0 72px;line-height:1.6}
-main h1{font-size:2rem;line-height:1.25;font-weight:600;letter-spacing:-.01em;margin:8px 0 4px}
-main p.unit{margin:0 0 16px;font-size:.875rem;color:var(--ink3)}
-main > h1 + p:not(.unit),main > p.unit + p{font-size:1.0625rem}
-main h2{font-size:1.4rem;line-height:1.3;font-weight:600;margin:40px 0 8px}
-main h3{font-size:1.125rem;line-height:1.35;font-weight:600;margin:24px 0 8px}
-/* steps: a quiet number, then space; no rule between them */
-main h2.step{display:flex;gap:12px;align-items:baseline;margin-top:40px}
-main h3.step{display:flex;gap:10px;align-items:baseline}
-.step .n{flex:none;display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:13px;
-font-size:.8rem;font-weight:600;border:1.5px solid var(--ctl);color:var(--ink2);transform:translateY(-3px)}
-h3.step .n{min-width:22px;height:22px;font-size:.8rem}
+.line span{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+/* the page: a wide column, set in the body size; the title block opens it */
+main{max-width:var(--col);margin:0 var(--gut);padding:40px 0 80px;font-size:1.0625rem;line-height:1.7}
+.pagehead{margin:0 0 24px;padding:0 0 24px;border-bottom:1px solid var(--rule)}
+main h1{font:650 2.25rem/1.15 var(--f-display);letter-spacing:-.02em;margin:0;text-wrap:balance;color:var(--ink)}
+main p.unit{display:flex;align-items:center;gap:8px;margin:12px 0 0;font-size:.875rem;line-height:1.4;color:var(--ink2)}
+main p.unit::before{content:"";flex:none;width:16px;height:16px;background:var(--ink3);-webkit-mask:var(--i-clock) center/contain no-repeat;mask:var(--i-clock) center/contain no-repeat}
+main p.unit[data-kind="course"]::before{display:none}
+main p.unit .lvl{padding:2px 10px;border-radius:999px;font-size:.8125rem;font-weight:600;line-height:1.5;background:var(--bg2);color:var(--ink2);border:1px solid var(--rule)}
+/* the opening paragraph reads as the page's summary */
+.pagehead + p,.pagehead + details + p{font-size:1.1875rem;line-height:1.6;color:var(--ink2);margin:0 0 8px}
+main h2{font:600 1.5rem/1.3 var(--f-display);letter-spacing:-.01em;margin:48px 0 12px;text-wrap:balance}
+main h3{font:600 1.1875rem/1.35 var(--f-display);margin:32px 0 8px;text-wrap:balance}
+/* steps: one track down the page, a marker at each step heading, no number on screen (numbers belong
+   to the actions inside a step and to the units in the outline); the marker of the step being read fills */
+.stepsec{position:relative;margin:48px 0 0;padding:0 0 0 48px}
+.stepsec::before{content:"";position:absolute;left:11px;top:36px;bottom:0;width:2px;border-radius:1px;background:var(--rule2)}
+.stepsec:has(+ .stepsec)::before{bottom:-44px}
+main .stepsec > h2.step{margin-top:0}
+main h2.step{position:relative}
+main h2.step::before{content:"";position:absolute;left:-48px;top:4px;width:24px;height:24px;border-radius:50%;
+border:2px solid var(--ctl);background:var(--bg)}
+.stepsec.here > h2.step::before{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 4px var(--bg)}
+main h3.step{position:relative}
 main p{margin:16px 0}
-main ul,main ol{padding-left:22px;margin:16px 0}
-main li{margin:6px 0}
+main ul,main ol{padding-left:24px;margin:16px 0}
+main li{margin:8px 0;padding-left:4px}
+main ol > li::marker{font-weight:600;color:var(--ink2)}
 .gap{height:8px}
-code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:.875em;font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
-kbd{border:1px solid var(--field);border-radius:3px;padding:0 4px;font-size:.85em;font-family:inherit}
-main img{max-width:100%;height:auto;border:1px solid var(--rule);border-radius:6px}
-main .drawing{display:block;border:1px solid var(--rule);border-radius:6px;padding:8px;font-family:inherit}
+code{background:var(--code);border-radius:4px;padding:1px 6px;font-size:.875em;font-family:var(--f-mono);overflow-wrap:anywhere}
+kbd{border:1px solid var(--field);border-bottom-width:2px;border-radius:4px;padding:0 4px;font-size:.85em;font-family:inherit}
+main img{max-width:100%;height:auto;border:1px solid var(--rule);border-radius:8px}
+main .drawing{display:block;max-width:56rem;margin:20px 0;border:0;padding:0;font-family:inherit}
 main .drawing svg{display:block;max-width:100%;height:auto}
-/* a glossary word: a faint underline, the text's own colour */
-a.gl{color:inherit;text-decoration:underline;text-decoration-color:var(--rule2);text-decoration-thickness:1px;
+main pre.file{margin:20px 0;padding:16px;overflow-x:auto;background:var(--code);border:1px solid var(--rule);border-radius:10px;
+font:.875rem/1.6 var(--f-mono);white-space:pre-wrap;overflow-wrap:anywhere}
+main pre.file code{background:none;padding:0;font:inherit}
+/* a glossary word: a faint dotted underline, the text's own colour */
+a.gl{color:inherit;text-decoration:underline dotted;text-decoration-color:var(--ctl);text-decoration-thickness:1px;
 text-underline-offset:4px;cursor:help}
 a.gl:hover{color:var(--accent);text-decoration-color:var(--accent)}
 /* a blank still to fill: marked as unfinished by a light ground and a dotted line, not a box */
-.org{background:var(--blank);border-bottom:1px dotted var(--ink3);padding:0 3px;color:var(--ink2);
+.org{background:var(--blank);border-bottom:1px dotted var(--ink3);padding:0 4px;color:var(--ink2);
 -webkit-box-decoration-break:clone;box-decoration-break:clone}
-/* a Check: a short label in the body's colour, set off by a thin rule */
-.check{margin:12px 0;padding:0 0 0 16px;border-left:2px solid var(--ctl)}
+/* what the learner copies: the one object on the page with its own ground, edge and button, marked
+   with a chat glyph because it goes into the chat */
+.prompt{position:relative;margin:20px 0;padding:16px 16px 16px 56px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-start;
+background:var(--prompt);border:1px solid var(--prompt-edge);border-radius:12px}
+.prompt::before{content:"";position:absolute;left:18px;top:18px;width:22px;height:22px;background:var(--accent);
+-webkit-mask:var(--i-chat) center/contain no-repeat;mask:var(--i-chat) center/contain no-repeat}
+.prompt .t{flex:1 1 280px;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;color:var(--ink)}
+.prompt .lab{flex-basis:100%;margin:0;font-size:.875rem;font-weight:600;line-height:1.5;color:var(--accent)}
+/* an example to write from, or a prompt not supplied yet: nothing to copy, so no ground and a dashed edge */
+.prompt.frame,.prompt.orgprompt{background:transparent;border-style:dashed;border-color:var(--rule2)}
+.prompt.frame::before,.prompt.orgprompt::before{background:var(--ink3);-webkit-mask-image:var(--i-pen);mask-image:var(--i-pen)}
+.prompt.frame .lab,.prompt.orgprompt .lab{color:var(--ink2)}
+button.copy{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:.875rem;font-weight:600;line-height:1.2;
+min-height:32px;padding:6px 14px;cursor:pointer;border:1px solid var(--accent);background:var(--surface);color:var(--accent);border-radius:8px}
+.prompt button.copy::before{content:"";flex:none;width:14px;height:14px;background:currentColor;
+-webkit-mask:var(--i-copy) center/contain no-repeat;mask:var(--i-copy) center/contain no-repeat}
+button.copy:hover{background:var(--accent);color:var(--accent-ink)}
+button.copy.ok,button.copy.ok:hover{border-color:var(--ok);background:var(--surface);color:var(--ok)}
+/* a Check: a short bold label in the body's colour, set off by a thin rule */
+.check{margin:16px 0;padding:2px 0 2px 16px;border-left:3px solid var(--ctl)}
 .check p{margin:0}
 .check .lbl{font-weight:600;cursor:help}
-.example{margin:12px 0;padding:12px 16px;border-radius:6px;background:var(--bg2)}
-.example .tag{margin:0 0 4px;font-size:.8rem;font-weight:600;color:var(--ink2)}
+.example{margin:16px 0;padding:12px 16px;border-radius:8px;background:var(--bg2)}
+.example .tag{margin:0 0 4px;font-size:.8125rem;font-weight:600;color:var(--ink2)}
 .example p{margin:0}
 .example p.tag{margin:0 0 4px}
+/* Important: rare by design; a framed note with its label in the warning colour */
+main .callout{margin:20px 0;padding:12px 16px;border:1px solid var(--rule2);border-radius:10px;background:var(--surface)}
+main .callout p{margin:0}
+main .callout .lbl{color:var(--mark)}
 .question{font-weight:600}
-details.answer{margin:12px 0;border:1px solid var(--ctl);border-radius:6px;background:var(--surface)}
-details.answer summary{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;list-style:none;
-font-weight:500;color:var(--accent)}
+details.answer{margin:16px 0;border:1px solid var(--ctl);border-radius:10px;background:var(--surface)}
+details.answer summary{display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 16px;cursor:pointer;list-style:none;
+font-weight:600;color:var(--accent)}
 details.answer summary::-webkit-details-marker{display:none}
-details.answer summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+details.answer summary::before{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;
 transform:rotate(-45deg);transition:transform .15s}
 details.answer[open] summary::before{transform:rotate(45deg)}
 details.answer[open] summary{border-bottom:1px solid var(--rule)}
-details.answer .a{padding:4px 14px 10px}
-details.more{margin:8px 0}
-details.more summary{display:inline-flex;align-items:center;gap:8px;cursor:pointer;list-style:none;font-size:.9375rem;
+details.answer .a{padding:4px 16px 12px}
+details.more{margin:12px 0}
+details.more summary{display:inline-flex;align-items:center;gap:8px;min-height:32px;cursor:pointer;list-style:none;font-size:1rem;
 font-weight:500;color:var(--accent)}
 details.more summary::-webkit-details-marker{display:none}
-details.more summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+details.more summary::before{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;
 transform:rotate(-45deg);transition:transform .15s}
 details.more[open] summary::before{transform:rotate(45deg)}
-details.more .m{margin-top:6px;padding-left:14px;border-left:2px solid var(--rule)}
-.prompt{margin:16px 0;background:var(--code);border-radius:6px;
-padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-start}
-.prompt .t{flex:1 1 260px;white-space:pre-wrap;overflow-wrap:anywhere}
-.prompt .lab{flex-basis:100%;margin:0;font-size:.8rem;font-weight:600;color:var(--ink2)}
-.prompt.orgprompt{background:var(--blank)}
-.prompt.frame{background:var(--code)}
-button.copy{font:inherit;font-size:.8rem;font-weight:500;padding:3px 12px;cursor:pointer;border:1px solid var(--ctl);
-background:var(--surface);color:var(--ink2);border-radius:4px}
-button.copy:hover{border-color:var(--ink3);color:var(--ink)}
-button.copy.ok{border-color:var(--ok);color:var(--ok)}
-.tw{overflow-x:auto;margin:16px 0}
-/* tables: rules between rows only */
-table{border-collapse:collapse;width:100%;font-size:1rem}
-th,td{border:0;border-bottom:1px solid var(--rule);padding:6px 12px 6px 0;text-align:left;vertical-align:top}
-thead th{border-bottom:1px solid var(--rule2);font-weight:600;font-size:.875rem;color:var(--ink2)}
+details.more .m{margin-top:8px;padding-left:16px;border-left:2px solid var(--rule)}
+.tw{overflow-x:auto;margin:20px 0;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
+/* tables: a header band, then rules between rows only */
+table{border-collapse:collapse;width:100%;font-size:1rem;line-height:1.55}
+th,td{border:0;border-bottom:1px solid var(--rule);padding:10px 16px;text-align:left;vertical-align:top}
+tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
+thead th{background:var(--bg2);border-bottom:1px solid var(--rule2);font-weight:600;font-size:.875rem;color:var(--ink2)}
 tbody th{font-weight:600}
-.toc-inline{margin:4px 0 18px;padding:8px 14px;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
-.toc-inline summary{cursor:pointer;font-weight:600;font-size:.875rem}
-.toc-inline ul{list-style:none;margin:6px 0 2px;padding:0}.toc-inline li{margin:3px 0}
-.toc-inline li.l3{padding-left:14px}.toc-inline a{text-decoration:none}
+.toc-inline{margin:0 0 24px;padding:8px 16px;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
+.toc-inline summary{cursor:pointer;font-weight:600;font-size:.875rem;min-height:28px;display:flex;align-items:center}
+.toc-inline ul{list-style:none;margin:8px 0 4px;padding:0;font-size:.875rem}.toc-inline li{margin:4px 0;padding:0}
+.toc-inline li.l3{padding-left:16px}.toc-inline a{text-decoration:none}
+.toc-inline a:hover{text-decoration:underline}
 /* a step's footer, where offered: the quiet "stuck" link. Steps are never ticked; a unit is completed by its Continue button */
-.steprow{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:8px 0 0}
-button.stuck{font:inherit;font-size:.8rem;padding:4px 0;border:0;background:none;color:var(--ink2);cursor:pointer;
-text-decoration:underline;text-decoration-color:var(--ink3);text-underline-offset:3px;text-align:left}
+.steprow{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:12px 0 0}
+button.stuck{font:inherit;font-size:.875rem;min-height:28px;padding:4px 0;border:0;background:none;color:var(--ink2);cursor:pointer;
+text-decoration:underline;text-decoration-color:var(--ctl);text-underline-offset:3px;text-align:left}
 button.stuck:hover{color:var(--accent);text-decoration-color:currentColor}
 button.stuck.ok{color:var(--ok);text-decoration:none;font-weight:600}
-/* what comes next */
-.pager{margin:48px 0 0}
-.nextunit{padding:24px 0 0;border-top:1px solid var(--rule)}
-.nextunit .lbl{margin:0 0 4px;font-size:.8rem;color:var(--ink3)}
-.nextunit h2{margin:0 0 16px;font-size:1.2rem;border:0;padding:0}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border-radius:4px;font-weight:600;text-decoration:none;
-background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent)}
-.btn:hover{filter:brightness(1.08);text-decoration:none}
-.btn svg{width:14px;height:14px}
-.nextrow{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center}
+/* what comes next: the end of a unit is one framed block with the Continue button */
+.pager{margin:56px 0 0}
+.nextunit{padding:24px 28px;border:1px solid var(--rule);border-radius:14px;background:var(--surface);box-shadow:var(--shadow)}
+.nextunit .lbl{margin:0 0 4px;font-size:.875rem;color:var(--ink2)}
+main .nextunit h2{margin:0 0 20px;font-size:1.5rem;border:0;padding:0}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 22px;border-radius:8px;font-weight:600;font-size:1rem;line-height:1.2;
+text-decoration:none;background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent)}
+.btn:hover{filter:brightness(1.1);text-decoration:none}
+.btn svg{width:16px;height:16px}
+.nextrow{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:center}
 .nextrow .prev,.nextrow .next{font-size:.875rem;color:var(--ink2);text-decoration:none}
 .nextrow .prev:hover,.nextrow .next:hover{color:var(--accent);text-decoration:underline}
 .nextrow.quiet{padding-top:20px;border-top:1px solid var(--rule)}
 .nextrow.quiet .next{margin-left:auto;font-weight:600;color:var(--accent)}
-.pagefoot{max-width:720px;margin:-40px var(--gut) 0;padding:14px 0 32px;display:flex;flex-wrap:wrap;gap:4px 18px;
-font-size:.8rem;color:var(--ink3)}
+.pagefoot{max-width:var(--col);margin:-48px var(--gut) 0;padding:16px 0 32px;display:flex;flex-wrap:wrap;gap:4px 20px;
+font-size:.8125rem;color:var(--ink3)}
 .pagefoot a{margin-left:auto;color:var(--ink3);text-decoration:none}
 .pagefoot a:hover{color:var(--accent);text-decoration:underline}
-.nudge{margin:14px 0 0;font-size:.8rem;color:var(--ink3)}
+.nudge{margin:16px 0 0;font-size:.875rem;color:var(--ink2)}
 .nudge:empty{display:none}
-button.undo{font:inherit;font-size:inherit;padding:2px 0;margin-left:4px;border:0;background:none;color:var(--ink3);cursor:pointer;
-text-decoration:underline;text-decoration-color:var(--rule2);text-underline-offset:3px}
+button.undo{font:inherit;font-size:inherit;padding:2px 0;margin-left:4px;border:0;background:none;color:var(--ink2);cursor:pointer;
+text-decoration:underline;text-decoration-color:var(--ctl);text-underline-offset:3px}
 button.undo:hover{color:var(--accent);text-decoration-color:currentColor}
-/* a training's home: progress and resume; the programme's list of trainings */
-.course{margin:20px 0 8px;padding:16px 20px 8px;border:1px solid var(--rule);border-radius:8px;background:var(--surface)}
-.course .meta{margin:0;font-size:.875rem;color:var(--ink2)}
-.overall{display:flex;align-items:center;gap:12px;margin:10px 0 0;font-size:.875rem;color:var(--ink2)}
-#overall{white-space:nowrap}
-.bar{flex:0 1 260px;min-width:80px;height:4px;border-radius:2px;background:var(--rule);overflow:hidden}
-.bar span{display:block;height:100%;width:0;background:var(--ink)}
-.cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:16px 0 10px}
-.cta span{color:var(--ink2);font-size:.875rem}
-.units{list-style:none;padding:0;margin:12px 0;display:grid;gap:10px}
+/* the programme's home: its trainings as cards, two to a row, each with its level as a chip */
+.units{list-style:none;padding:0;margin:16px 0}
 main .units{padding-left:0}
-.unitcard{position:relative;margin:0;padding:12px 16px;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
-.unitcard:hover{border-color:var(--rule2)}
-.unitcard a{font-weight:600;font-size:1rem;text-decoration:none}
-.unitcard a::after{content:"";position:absolute;inset:0}
-.unitcard .un{display:block;font-size:.8rem;color:var(--ink3)}
-.unitcard .uo{margin:4px 0;color:var(--ink2);font-size:1rem}
-.unitcard .um{margin:2px 0 0;font-size:.8rem;color:var(--ink3)}
-.unitcard .us{margin:0;font-size:.8rem;color:var(--ink3)}
-.unitcard.done .us{color:var(--ok)}
-/* widths: below about 1000px the outline folds behind the Outline button */
+ul.units{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,26rem),1fr));gap:16px}
+.traincard{position:relative;margin:0;padding:20px 24px;border:1px solid var(--rule);border-radius:12px;background:var(--surface);
+display:flex;flex-direction:column;align-items:flex-start}
+.traincard:hover{border-color:var(--accent)}
+.traincard a{font:600 1.1875rem/1.3 var(--f-display);text-decoration:none;color:var(--ink)}
+.traincard:hover a{color:var(--accent)}
+.traincard a::after{content:"";position:absolute;inset:0;border-radius:12px}
+.traincard .un{display:inline-block;margin:0 0 8px;padding:2px 10px;border-radius:999px;font-size:.8125rem;font-weight:600;line-height:1.5;
+background:var(--bg2);color:var(--ink2);border:1px solid var(--rule)}
+.traincard .uo{margin:8px 0 12px;color:var(--ink2);font-size:1rem;line-height:1.6}
+.traincard .um{margin:auto 0 0;font-size:.8125rem;color:var(--ink3)}
+.traincard .us{margin:12px 0 0;padding:2px 10px;border-radius:999px;border:1px solid var(--rule2);
+font-size:.8125rem;font-weight:600;line-height:1.5;color:var(--ink2)}
+.traincard.going .us{border-color:var(--prompt-edge);background:var(--accent-soft);color:var(--accent)}
+.traincard.done .us{border-color:var(--ok);color:var(--ok)}
+/* a training's home: the path as a sequence - each unit's ring (the outline's ring) on one track, its
+   state as a chip: not started, in progress, completed */
+ol.units{display:grid;gap:0;margin:20px 0 8px}
+.unitcard:not(.traincard){position:relative;margin:0;display:grid;grid-template-columns:36px minmax(0,1fr);column-gap:20px;padding:16px 16px 20px 12px;border-radius:12px}
+.unitcard:not(.traincard):hover{background:var(--surface);box-shadow:0 0 0 1px var(--rule)}
+.unitcard:not(.traincard)::before{content:"";position:absolute;left:29px;top:56px;bottom:-16px;width:2px;background:var(--rule2)}
+.unitcard:not(.traincard):last-child::before{display:none}
+.unitcard > *{grid-column:2}
+.uring{grid-column:1;grid-row:1 / span 4;position:relative;z-index:1;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;
+border:2px solid var(--ctl);background:var(--bg);font-size:.875rem;font-weight:600;color:var(--ink2)}
+.unitcard.going .uring{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.unitcard.done .uring{border-color:var(--ok);background:var(--ok);color:var(--ok-ink);font-size:0}
+.unitcard.done .uring::after{content:"\2713";font-size:1rem}
+.unitcard:not(.traincard) .un{display:block;font-size:.8125rem;color:var(--ink3);line-height:1.5}
+.unitcard:not(.traincard) a{font:600 1.1875rem/1.35 var(--f-display);text-decoration:none;color:var(--ink)}
+.unitcard:not(.traincard):hover a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px}
+.unitcard:not(.traincard) a::after{content:"";position:absolute;inset:0;border-radius:12px}
+.unitcard:not(.traincard) .uo{margin:4px 0 0;color:var(--ink2);font-size:1rem;line-height:1.6}
+.unitcard:not(.traincard) .us{justify-self:start;margin:12px 0 0;padding:2px 10px;border-radius:999px;border:1px solid var(--rule2);
+font-size:.8125rem;font-weight:600;line-height:1.5;color:var(--ink2);background:var(--surface)}
+.unitcard:not(.traincard).going .us{border-color:var(--prompt-edge);background:var(--accent-soft);color:var(--accent)}
+.unitcard:not(.traincard).done .us{border-color:var(--ok);color:var(--ok)}
+/* widths: below 1000px the outline folds behind the Outline button */
 @media (max-width:999.98px){
 .menu{display:inline-flex}
 .layout{grid-template-columns:minmax(0,1fr)}
 .side{position:fixed;left:0;top:var(--hdr);z-index:25;width:min(320px,88vw);transform:translateX(-105%);visibility:hidden;
 transition:transform .2s,visibility .2s;box-shadow:4px 0 16px rgba(0,0,0,.15)}
 body.nav-open .side{transform:none;visibility:visible;transition:transform .2s}
-.scrim{display:block;position:fixed;inset:var(--hdr) 0 0;z-index:24;background:rgba(0,0,0,.35);opacity:0;visibility:hidden;
+.scrim{display:block;position:fixed;inset:var(--hdr) 0 0;z-index:24;background:rgba(0,0,0,.4);opacity:0;visibility:hidden;
 transition:opacity .2s,visibility .2s}
 body.nav-open .scrim{opacity:1;visibility:visible}
 .otop{position:relative;padding-right:56px;min-height:40px}
-.oclose{display:flex;position:absolute;right:10px;top:8px;width:40px;height:40px;align-items:center;justify-content:center;
-border:0;border-radius:6px;background:none;color:var(--ink2);cursor:pointer;font-size:1.4rem;line-height:1}
+.oclose{display:flex;position:absolute;right:12px;top:8px;width:40px;height:40px;align-items:center;justify-content:center;
+border:0;border-radius:8px;background:none;color:var(--ink2);cursor:pointer;font-size:1.5rem;line-height:1}
 .oclose:hover{background:var(--cur);color:var(--ink)}
 }
 @media (max-width:900px){.crumbs li.prog{display:none}.crumbs li.prog+li::before{display:none}
@@ -306,45 +370,72 @@ border:0;border-radius:6px;background:none;color:var(--ink2);cursor:pointer;font
 @media (max-width:680px){
 .site{gap:8px;padding:0 12px}
 .search{width:auto;flex:1}
-.results{position:fixed;left:8px;right:8px;top:calc(var(--hdr) - 6px);width:auto}
+.results{position:fixed;left:8px;right:8px;top:calc(var(--hdr) - 4px);width:auto}
 .content{--gut:16px}
-main h1{font-size:1.65rem}
-main h2{font-size:1.25rem;margin-top:32px}
-main h2.step{margin-top:32px}
-main{padding-top:20px}
+main{padding-top:24px;font-size:1rem}
+main h1{font-size:1.5rem}
+main h2{font-size:1.1875rem;margin-top:36px}
+.pagehead + p,.pagehead + details + p{font-size:1.0625rem}
+/* at phone width the text keeps the whole column: the track folds away and the marker sits beside the step's title */
+.stepsec{margin-top:36px;padding-left:0}
+.stepsec::before{display:none}
+main h2.step{padding-left:32px}
+main h2.step::before{left:0;top:3px;width:20px;height:20px}
+.prompt{padding:12px 12px 12px 44px}
+.prompt::before{left:14px;top:15px;width:18px;height:18px}
+/* a long prompt keeps its Copy button on the first screen: the button sits at the top right, the text below it */
+.prompt:has(> button.copy){padding:56px 16px 16px}
+.prompt:has(> button.copy)::before{left:16px;top:20px}
+.prompt:has(> button.copy) > button.copy{position:absolute;top:10px;right:12px}
+/* the current page's name is the title just below; the breadcrumb keeps the way back */
+.crumbs li:not(.prog) + li[aria-current]{display:none}
+.nextunit{padding:20px}
+main .nextunit h2{font-size:1.1875rem}
+.unitcard:not(.traincard){column-gap:16px;padding:12px 8px 16px 4px}
+.unitcard:not(.traincard)::before{left:21px}
+.unitcard:not(.traincard) a,.traincard a{font-size:1.0625rem}
+.traincard{padding:16px 20px}
 }
-@media (max-width:420px){.brand{display:none}}
+@media (max-width:420px){.brand span{display:none}}
 @media (forced-colors:active){.org{border-color:CanvasText}.line span,.obar span{background:Highlight}
 .check{border-color:CanvasText}.ostep.here,.omore a[aria-current],.oextras a[aria-current="page"]{outline:2px solid CanvasText}.oring .arc{stroke:CanvasText}
-.odot{forced-color-adjust:none}}
+.odot,main h2.step::before,.uring{forced-color-adjust:none}
+.prompt::before,main p.unit::before,.prompt button.copy::before{forced-color-adjust:none;background:CanvasText}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 /* notes the learner writes, and how sure they are of each objective: kept in this browser, gathered in the workbook */
-.note{margin:12px 0}
-.note > label{display:block;margin:0 0 6px}
-.note textarea{display:block;width:100%;min-height:76px;padding:8px 10px;font:inherit;line-height:1.5;color:var(--ink);
-background:var(--bg);border:1px solid var(--field);border-radius:4px;resize:vertical}
+.note{margin:16px 0}
+.note > label{display:block;margin:0 0 8px;font-weight:500}
+.note textarea{display:block;width:100%;min-height:76px;padding:8px 12px;font:inherit;line-height:1.5;color:var(--ink);
+background:var(--surface);border:1px solid var(--field);border-radius:8px;resize:vertical}
 .note textarea:hover{border-color:var(--ink3)}
-.kept{margin:4px 0 0;font-size:.8rem;color:var(--ink3)}
-main ul.rates{list-style:none;padding:0;margin:12px 0}
+.kept{margin:4px 0 0;font-size:.8125rem;color:var(--ink3)}
+main ul.rates{list-style:none;padding:0;margin:16px 0}
 .rate{margin:0 0 4px}
-.rate fieldset{margin:0;padding:8px 0;border:0;border-bottom:1px solid var(--rule)}
+main li.rate{padding-left:0}
+.rate fieldset{margin:0;padding:8px 0 12px;border:0;border-bottom:1px solid var(--rule)}
 .rate legend{padding:0;margin:0 0 4px}
 .rate .opts{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:.875rem;color:var(--ink2)}
-.rate .opts label{display:inline-flex;align-items:center;gap:6px;min-height:28px;cursor:pointer}
+.rate .opts label{display:inline-flex;align-items:center;gap:8px;min-height:28px;cursor:pointer}
 .rate input{width:16px;height:16px;margin:0;accent-color:var(--accent)}
 .wbacts{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;margin:20px 0 8px}
 .wbacts button.btn{font:inherit;font-weight:600;cursor:pointer}
-.wbacts button.copy{font-size:.875rem;padding:7px 14px}
+.wbacts button.copy{font-size:.875rem;padding:8px 14px}
 .workbook h3 a{color:inherit;text-decoration:none}
 .workbook h3 a:hover{color:var(--accent);text-decoration:underline}
 @media print{.site,.side,.scrim,.crumbs,.pager,.pagefoot,.steprow,.wbacts,.kept,.skip{display:none!important}
-.layout{display:block}main{max-width:none;margin:0;padding:0}
+.layout{display:block}main{max-width:none;margin:0;padding:0}.stepsec{padding-left:0}.stepsec::before,main h2.step::before{display:none}
 .note textarea{border:0;padding:0;min-height:0;resize:none;overflow:visible}}
+/* videos: "Watch this step" under a step's heading, and the home page's link to the overview */
+main p.watch{margin:4px 0 12px;font-size:.875rem;line-height:1.4}
+main p.watch a{text-decoration:none}
+main p.watch a:hover{text-decoration:underline}
+.pagehead p.watch{margin:8px 0 0}
+.pagehead p.stalevideo{margin:8px 0 0;font-size:.875rem;color:var(--ink2)}
 </style></head><body data-root="../" data-training="skills-in-depth" data-outline="skills-in-depth">
 <a class="skip" href="#main">Skip to the page</a>
 <header class="site">
 <button id="menu" class="menu" type="button" aria-controls="side" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Outline</button>
-<a class="brand" href="../README.html">GitHub Copilot training</a>
+<a class="brand" href="../README.html"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M8 19h4v-4h4v-4h4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>GitHub Copilot training</span></a>
 <div class="search" role="search"><label class="sr" for="q">Search the trainings</label>
 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
 <input id="q" type="search" placeholder="Search" autocomplete="off" aria-controls="results">
@@ -352,22 +443,24 @@ main ul.rates{list-style:none;padding:0;margin:12px 0}
 <button id="theme" class="iconbtn" type="button" aria-label="Switch to dark theme" title="Switch between light and dark"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 0 0 14z" fill="currentColor"/></svg></button>
 </header>
 <div class="layout">
-<nav id="side" class="side" aria-label="Course outline"><div class="otop"><p class="omh" id="oth">Trainings</p><button class="oclose" id="oclose" type="button" aria-label="Close the outline">&times;</button></div><ol class="otrains" aria-labelledby="oth"><li class="ot ou" data-t="getting-started"><a class="otrow" href="../getting-started/index.html"><span class="oname">Getting started</span><span class="sr">, </span><span class="olevel">Beginner<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="skills-in-depth"><a class="otrow" href="index.html" aria-current="true"><span class="oname">Skills</span><span class="sr">, </span><span class="olevel">Intermediate<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="agents"><a class="otrow" href="../agents/index.html"><span class="oname">Custom agents</span><span class="sr">, </span><span class="olevel">Advanced<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="connecting"><a class="otrow" href="../connecting/index.html"><span class="oname">Connecting your tools</span><span class="sr">, </span><span class="olevel">Intermediate<span class="oprog" data-base=""></span></span></a></li></ol><div class="ocur"><div class="ohead"><a class="otitle" href="index.html" aria-current="page">Skills</a><p class="ototal">2 units &middot; about 15 minutes</p><div class="obar" aria-hidden="true"><span id="obar"></span></div><p class="opct" id="opct"></p></div><ol class="ounits" aria-label="Units in Skills"><li class="ou" data-u="skills-in-depth/what-is-a-skill.html"><div class="ohd"><a class="orow" href="what-is-a-skill.html"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">1</span></span><span class="otext" title="Unit 1 · about five minutes"><span class="oname">What is a skill?</span><span class="otime" aria-hidden="true">About five minutes</span><span class="ometa">Unit 1 &middot; about five minutes<span class="oprog" data-base=""></span></span></span></a></div></li><li class="ou" data-u="skills-in-depth/create-your-first-skill.html"><div class="ohd"><a class="orow" href="create-your-first-skill.html"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">2</span></span><span class="otext" title="Unit 2 · about 10 minutes · 4 steps"><span class="oname">Create your first skill</span><span class="otime" aria-hidden="true">About 10 minutes</span><span class="ometa">Unit 2 &middot; about 10 minutes<span class="oprog" data-base=" &middot; 4 steps"> &middot; 4 steps</span></span></span></a><button class="otoggle" type="button" aria-expanded="false" aria-controls="os2"><span class="sr">Steps in unit 2</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os2" aria-label="Steps in unit 2"><li><a class="ostep" href="create-your-first-skill.html#1-have-copilot-create-practice-meeting-notes" data-id="1-have-copilot-create-practice-meeting-notes"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot create practice meeting notes</span></a></li><li><a class="ostep" href="create-your-first-skill.html#2-ask-for-a-meeting-summary-without-a-skill" data-id="2-ask-for-a-meeting-summary-without-a-skill"><span class="odot" aria-hidden="true"></span><span class="olab">Ask for a meeting summary without a skill</span></a></li><li><a class="ostep" href="create-your-first-skill.html#3-have-copilot-save-the-summary-instructions-as-a-skill" data-id="3-have-copilot-save-the-summary-instructions-as-a-skill"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot save the summary instructions as a skill</span></a></li><li><a class="ostep" href="create-your-first-skill.html#4-ask-for-the-summary-again-with-the-skill" data-id="4-ask-for-the-summary-again-with-the-skill"><span class="odot" aria-hidden="true"></span><span class="olab">Ask for the summary again, with the skill</span></a></li></ol></li></ol></div><div class="omore"><p class="omh" id="omh">More</p><ul aria-labelledby="omh"><li><a href="../troubleshooting.html">Help</a></li><li><a href="../glossary.html">Glossary</a></li><li><a href="../CHANGELOG.html">What&#x27;s new</a></li></ul></div></nav><div class="scrim" id="scrim" aria-hidden="true"></div>
+<nav id="side" class="side" aria-label="Course outline"><div class="otop"><p class="omh" id="oth">Trainings</p><button class="oclose" id="oclose" type="button" aria-label="Close the outline">&times;</button></div><ol class="otrains" aria-labelledby="oth"><li class="ot ou" data-t="getting-started"><a class="otrow" href="../getting-started/index.html"><span class="oname">Getting started</span><span class="sr">, </span><span class="olevel">Beginner<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="skills-in-depth"><a class="otrow" href="index.html" aria-current="true"><span class="oname">Skills</span><span class="sr">, </span><span class="olevel">Intermediate<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="agents"><a class="otrow" href="../agents/index.html"><span class="oname">Custom agents</span><span class="sr">, </span><span class="olevel">Advanced<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="connecting"><a class="otrow" href="../connecting/index.html"><span class="oname">Connecting your tools</span><span class="sr">, </span><span class="olevel">Intermediate<span class="oprog" data-base=""></span></span></a></li></ol><div class="ocur"><div class="ohead"><a class="otitle" href="index.html" aria-current="page">Skills</a><p class="ototal">2 units &middot; about 15 minutes</p><div class="obar" aria-hidden="true"><span id="obar"></span></div><p class="opct" id="opct"></p></div><ol class="ounits" aria-label="Units in Skills"><li class="ou" data-u="skills-in-depth/what-is-a-skill.html"><div class="ohd"><a class="orow" href="what-is-a-skill.html"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">1</span></span><span class="otext" title="Unit 1 · about five minutes"><span class="oname">What is a skill?</span><span class="otime" aria-hidden="true">About five minutes</span><span class="ometa">Unit 1 &middot; about five minutes<span class="oprog" data-base=""></span></span></span></a><button class="otoggle" type="button" aria-expanded="false" aria-controls="os1"><span class="sr">Steps in unit 1</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os1" aria-label="Steps in unit 1"><li><a class="ostep" href="what-is-a-skill-video.html"><span class="odot" aria-hidden="true"></span><span class="olab">Video &middot; 4 min</span></a></li></ol></li><li class="ou" data-u="skills-in-depth/create-your-first-skill.html"><div class="ohd"><a class="orow" href="create-your-first-skill.html"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">2</span></span><span class="otext" title="Unit 2 · about 10 minutes · 4 steps"><span class="oname">Create your first skill</span><span class="otime" aria-hidden="true">About 10 minutes</span><span class="ometa">Unit 2 &middot; about 10 minutes<span class="oprog" data-base=" &middot; 4 steps"> &middot; 4 steps</span></span></span></a><button class="otoggle" type="button" aria-expanded="false" aria-controls="os2"><span class="sr">Steps in unit 2</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os2" aria-label="Steps in unit 2"><li><a class="ostep" href="create-your-first-skill-video.html"><span class="odot" aria-hidden="true"></span><span class="olab">Video &middot; 5 min</span></a></li><li><a class="ostep" href="create-your-first-skill.html#1-have-copilot-create-practice-meeting-notes" data-id="1-have-copilot-create-practice-meeting-notes"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot create practice meeting notes</span></a></li><li><a class="ostep" href="create-your-first-skill.html#2-ask-for-a-meeting-summary-without-a-skill" data-id="2-ask-for-a-meeting-summary-without-a-skill"><span class="odot" aria-hidden="true"></span><span class="olab">Ask for a meeting summary without a skill</span></a></li><li><a class="ostep" href="create-your-first-skill.html#3-have-copilot-save-the-summary-instructions-as-a-skill" data-id="3-have-copilot-save-the-summary-instructions-as-a-skill"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot save the summary instructions as a skill</span></a></li><li><a class="ostep" href="create-your-first-skill.html#4-ask-for-the-summary-again-with-the-skill" data-id="4-ask-for-the-summary-again-with-the-skill"><span class="odot" aria-hidden="true"></span><span class="olab">Ask for the summary again, with the skill</span></a></li></ol></li></ol></div><div class="omore"><p class="omh" id="omh">More</p><ul aria-labelledby="omh"><li><a href="../troubleshooting.html">Help</a></li><li><a href="../glossary.html">Glossary</a></li><li><a href="../CHANGELOG.html">What&#x27;s new</a></li></ul></div></nav><div class="scrim" id="scrim" aria-hidden="true"></div>
 <div class="content">
 <nav class="crumbs" aria-label="Breadcrumb"><div class="in"><ol><li class="prog"><a href="../README.html">GitHub Copilot training</a></li><li aria-current="page"><span>Skills</span></li></ol></div><div class="line" aria-hidden="true"><span id="line"></span></div></nav>
 <main id="main" data-steps="0" data-page="Skills" data-stuck-from="1" data-kit-open="0" data-stuck="1" data-program="GitHub Copilot training" data-assistant="Copilot" data-chat="the chat box">
-<h1>Skills</h1>
+<header class="pagehead"><h1>Skills</h1>
+<p class="unit" data-kind="course"><span class="lvl">Intermediate</span> &middot; 2 units &middot; About 15 minutes</p>
+</header>
 <p>In this training, you learn what a <a class="gl" href="../glossary.html#skill" title="Saved instructions for one kind of task, which Copilot follows when you ask for that task. A skill in a folder works while that folder is open; one in your personal skills folder works in every folder">skill</a> is and create one. A skill is a saved set of instructions for a task you repeat; Copilot follows them when you ask for that task.</p>
 <h2 id="what-you-will-be-able-to-do">What you will be able to do</h2>
 <ul><li>Say what a skill is, and how Copilot decides to use one.</li><li>Create a skill, and have Copilot use it without naming it.</li></ul>
 <h2 id="before-you-start">Before you start</h2>
 <ul><li>You have finished <a href="../getting-started/index.html">Getting started</a>.</li><li>VS Code is open, with the chat set to <b>Agent</b>.</li></ul>
 <h2 id="the-path">The path</h2>
-<ol class="units"><li class="unitcard" data-u="skills-in-depth/what-is-a-skill.html"><span class="un">Unit 1 &middot; about five minutes</span><a href="what-is-a-skill.html">What is a skill?</a><p class="uo">What a skill is for, what one looks like, and how Copilot uses it.</p><p class="us">Not started</p></li><li class="unitcard" data-u="skills-in-depth/create-your-first-skill.html"><span class="un">Unit 2 &middot; about 10 minutes</span><a href="create-your-first-skill.html">Create your first skill</a><p class="uo">Ask for a meeting summary with every instruction typed out, have Copilot save them as a skill, and get the same summary by asking in one line.</p><p class="us">Not started</p></li></ol>
+<ol class="units"><li class="unitcard" data-u="skills-in-depth/what-is-a-skill.html"><span class="uring" aria-hidden="true">1</span><span class="un">Unit 1 &middot; about five minutes, plus a 4-minute video</span><a href="what-is-a-skill.html">What is a skill?</a><p class="uo">What a skill is for, what one looks like, and how Copilot uses it.</p><p class="us">Not started</p></li><li class="unitcard" data-u="skills-in-depth/create-your-first-skill.html"><span class="uring" aria-hidden="true">2</span><span class="un">Unit 2 &middot; about 10 minutes, plus a 5-minute video</span><a href="create-your-first-skill.html">Create your first skill</a><p class="uo">Ask for a meeting summary with every instruction typed out, have Copilot save them as a skill, and get the same summary by asking in one line.</p><p class="us">Not started</p></li></ol>
 
-<nav class="pager" aria-label="Previous and next page"><div class="nextrow quiet"><a class="prev" href="../README.html">&lsaquo; All trainings</a><a class="next" id="pager-next" href="what-is-a-skill.html">Next: What is a skill? &rsaquo;</a></div></nav>
+<nav class="pager" aria-label="Previous and next page"><div class="nextrow quiet"><a class="prev" href="../README.html">&lsaquo; All trainings</a><a class="next" id="pager-next" href="what-is-a-skill-video.html">Next: What is a skill? &rsaquo;</a></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-05</span><a href="../CHANGELOG.html">Version 1.4</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-05</span><a href="../CHANGELOG.html">Version 1.7</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>
@@ -447,7 +540,12 @@ if(main.getAttribute("data-stuck")==="1") steps.forEach(function(h){
     copyText(s,q);
   });
   row.appendChild(s);
-  (next||pagerEl).insertAdjacentElement("beforebegin",row);
+  /* the row ends its own step: before the next heading when it is in the same step section,
+     otherwise at the end of the section the step heading sits in */
+  var box_=h.parentNode;
+  if(next&&next.parentNode===box_) next.insertAdjacentElement("beforebegin",row);
+  else if(box_.classList.contains("stepsec")) box_.appendChild(row);
+  else (next||pagerEl).insertAdjacentElement("beforebegin",row);
 });
 /* progress, kept in this browser only: which units are complete ("kit.complete.<page>") and the last
    page and step read in each training ("kit.last.<training home>"). An earlier build's per-step
@@ -580,8 +678,10 @@ function paintUnitCards(){
     pnext(ROOT+lb.u,lb.name);
   }else if(li_>=0||s.done){
     var k=todo.filter(function(k){return k>li_;})[0]; if(k===undefined) k=todo[0];
-    go("Continue with unit "+(k+1),ROOT+T.units[k].u,"Next: "+T.units[k].name);
-    pnext(ROOT+T.units[k].u,T.units[k].name);
+    /* a unit not yet opened starts at its video, when it has one */
+    var nu=T.units[k], nh=ROOT+(nu.v||nu.u);
+    go("Continue with unit "+(k+1),nh,"Next: "+nu.name);
+    pnext(nh,nu.name);
   }else if(ctaStart) go(ctaStart.t,ctaStart.h,ctaStart.n);
   /* a training's home has no start button (its first unit card is the way in): with nothing done,
      there is nothing to repaint, and going on matters, since the outline and search are set up below */
@@ -662,6 +762,9 @@ function markHere(){
   if(window.scrollY<=4){at=hereHeads[0];reached=false;}
   hereLinks.forEach(function(a){var on=a.getAttribute("data-id")===at.id;a.classList.toggle("here",on);
     if(on) a.setAttribute("aria-current","location"); else a.removeAttribute("aria-current");});
+  /* the step track's marker for the same step fills, so the page and the outline agree */
+  var atSec=at.closest(".stepsec");
+  [].forEach.call(main.querySelectorAll(".stepsec"),function(sec){sec.classList.toggle("here",sec===atSec);});
   /* remember the step being read, so the training's home can pick up there */
   var h=reached?at.id:"";
   if(HERE&&h!==hereSaved){hereSaved=h;putLast(T,HERE.u,h);}

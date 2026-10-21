@@ -16,18 +16,21 @@ Copilot creates meeting notes to practice on, in a new folder for this training.
 > Each note lists what was decided, and the actions with an owner and a due date.
 > Add or change no other file.
 
-2. If a permission request appears, allow it if it matches what you asked.
+2. If a permission request appears, allow it if it looks for your Documents folder or creates
+   `skills-practice` and its notes there.
 
 ![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](../getting-started/images/permission-request.svg)
 
 In the drawings, gray bars stand for text that differs on your screen.
 
-3. On the **File** menu, select **Open Folder**. In the window that opens, go to Documents, the same Documents that File Explorer shows on the left. Select `skills-practice`, and then **Select Folder**.
-4. If VS Code asks whether you trust the authors of the files, leave the box about the parent folder unticked,
-   and then select **Yes, I trust the authors**. If a bar at the top says the folder is in Restricted Mode instead, select **Manage**,
-   and then **Trust**.
+Let Copilot finish before you go on: Open Folder replaces this window.
 
-![Drawing of the dialog that asks whether you trust the authors, with the button to select: Yes, I trust the authors.](../getting-started/images/trust-question.svg)
+3. On the **File** menu, select **Open Folder**. In the window that opens, go to Documents, the same Documents that File Explorer shows on the left. Select `skills-practice`, and then **Select Folder**.
+4. On the Restricted Mode bar, under the menu bar, select **Manage**. On the **Workspace Trust** page that opens, select **Trust**.
+   If VS Code asks instead whether you trust the authors, leave the box about the parent folder
+   unticked and select **Yes, I trust the authors**.
+
+![Drawing of the Restricted Mode bar under the menu bar, with Manage outlined.](../getting-started/images/restricted-mode.svg)
 
 Check: the list on the left shows `SKILLS-PRACTICE`, with `notes` in it, and a control at the bottom of the chat box says **Agent**.
 

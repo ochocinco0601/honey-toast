@@ -15,7 +15,7 @@ EXEMPT = []  # pages not yet rebuilt, such as "getting-started/old-unit.md"
 TOOL = ""
 TOOL_RULES = {"NAME": "copilot", "EXTENSION": "copilot", "KEEPUNDO": "copilot", "ADDTOCHAT": "copilot",
               "YOURPLAN": "copilot"}
-NOT_LEARNER = ("maintaining", "facilitator", "read-in-browser", "sample-files")
+NOT_LEARNER = ("maintaining", "facilitator", "read-in-browser", "sample-files", "videos")
 
 
 def ruled_pages(kit):

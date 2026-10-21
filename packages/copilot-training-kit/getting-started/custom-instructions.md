@@ -40,7 +40,7 @@ on your computer.
 
 ## 3. Ask for the summary again, and compare
 
-A new chat starts without the first answer, so any difference comes from the instructions.
+A new chat starts without the first answer, so the first summary can't shape the second; the instructions still apply.
 
 1. At the top of the chat, select **New Chat** (+).
 

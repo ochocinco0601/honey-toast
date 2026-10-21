@@ -44,7 +44,8 @@ You can also run a skill by name: type `/` in the chat box, and select the skill
 
 A skill saved in a folder works only while that folder is open in VS Code, and anyone who opens
 that folder has it. A skill saved in your personal skills folder works in every folder you open,
-for you only. Copilot saves a skill in either place when you ask.
+for you only. When you ask, Copilot saves a skill in the open folder. Your personal skills folder
+is outside the open folder, so Copilot asks before it saves one there.
 
 ![Diagram: a skill saved in a folder works only while that folder is open; one in your personal skills folder works in every folder.](images/where-a-skill-works.svg)
 
@@ -52,8 +53,8 @@ for you only. Copilot saves a skill in either place when you ask.
 
 In the Getting started unit [Give Copilot custom instructions for a folder](../getting-started/custom-instructions.md), you saved rules for summaries as custom
 instructions. Copilot read them with every request while the folder was open. Instructions saved
-as a skill are read only when you ask for that task. That means they never change Copilot's
-answers to anything else, and you can keep one skill for each task you repeat.
+as a skill are read only when you ask for that task. That means they don't shape Copilot's
+answers to other requests, and you can keep one skill for each task you repeat.
 
 ![Diagram: custom instructions are read with every request in the folder; a skill only with the request that matches it.](images/instructions-or-skill.svg)
 

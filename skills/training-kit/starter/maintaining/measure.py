@@ -8,7 +8,7 @@ import re, sys, os, glob
 KIT = sys.argv[1] if len(sys.argv) > 1 else "."
 # Every markdown page in the kit except the folders learners never read. The practice files in
 # sample-files are not pages: a skill's SKILL.md or a practice note is not measured against a budget.
-SKIP = ("facilitator/", "maintaining/", "read-in-browser/", "sample-files/")
+SKIP = ("facilitator/", "maintaining/", "read-in-browser/", "sample-files/", "videos/")
 PAGES = sorted(
     rel for rel in (
         os.path.relpath(p, KIT).replace(os.sep, "/")

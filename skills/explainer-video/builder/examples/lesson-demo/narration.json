@@ -1,0 +1,49 @@
+{
+ "voice": "af_heart",
+ "speed": 1.0,
+ "head": 1.3,
+ "gap": 0.4,
+ "tail": 1.3,
+ "page": {
+  "kind": "lesson",
+  "title": "Builder demonstration: a lesson video",
+  "standfirst": "A test piece for the builder: chapters, step numbers, the scene address and the kit's drawing parts. It is not a lesson's video.",
+  "summary_html": "  <p class=\"summary\">Two chapters, three scenes. The screens are the training kit's own drawing parts, placed on the stage one part per beat.</p>",
+  "lesson": "getting-started/start-here.md",
+  "back_href": "../../../getting-started/start-here.html",
+  "kit": "packages/copilot-training-kit"
+ },
+ "brief": {
+  "purpose": "A fixture for the builder, not a piece for viewers."
+ },
+ "scenes": [
+  {
+   "id": "open",
+   "title": "What you'll do",
+   "chapter": "Open the chat",
+   "step": null,
+   "lines": [
+    {"say": "In this video you open the chat in V S Code and make your first request.", "caption": "In this video you open the chat in VS Code and make your first request."}
+   ]
+  },
+  {
+   "id": "open-chat",
+   "title": "Open the chat",
+   "chapter": "Open the chat",
+   "step": 1,
+   "lines": [
+    {"say": "This is the V S Code window, with your files on the left.", "caption": "This is the VS Code window, with your files on the left.", "pause": 2.4},
+    {"say": "The chat is on the right, and this is where you type.", "caption": "The chat is on the right, and this is where you type."}
+   ]
+  },
+  {
+   "id": "request",
+   "title": "Make a request",
+   "chapter": "Your first request",
+   "step": 2,
+   "lines": [
+    {"say": "Type your request in the chat box, and press Enter.", "caption": "Type your request in the chat box, and press Enter."}
+   ]
+  }
+ ]
+}

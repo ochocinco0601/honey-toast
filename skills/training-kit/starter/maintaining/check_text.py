@@ -31,11 +31,17 @@ def md_text(t):
         lines.append(s)
     return re.sub(r"\s+", "", " ".join(lines))
 
-for root, _, fs in os.walk(out):
+for root, dirs, fs in os.walk(out):
+    # A video's explainer page under videos/ is not a kit page: the build checks it against its manifest.
+    if os.path.normpath(root) == os.path.normpath(out):
+        dirs[:] = [d for d in dirs if d != "videos"]
     for f in fs:
         if not f.endswith(".html"):
             continue
         page = os.path.join(root, f)
+        # A video's kit page frames the video and has no markdown of its own; check_structure checks its links.
+        if 'data-video="1"' in io.open(page, encoding="utf-8").read():
+            continue
         md = os.path.join(kit, os.path.relpath(page, out))[:-5] + ".md"
         if f == "index.html":
             md = os.path.join(os.path.dirname(md), "README.md")
@@ -75,6 +81,8 @@ for root, _, fs in os.walk(out):
         body = re.sub(r'<p class="lab">.*?</p>', " ", body, flags=re.S)
         body = re.sub(r'<p class="cta">.*?</p>', " ", body, flags=re.S)
         body = re.sub(r'<p class="unit"[^>]*>.*?</p>', " ", body, flags=re.S)
+        # A lesson's video: "Watch this step" links, the home page's overview link, the stale line.
+        body = re.sub(r'<p class="(?:watch|stalevideo)">.*?</p>', " ", body, flags=re.S)
         body = re.sub(r'<summary>.*?</summary>', " ", body, flags=re.S)
         body = re.sub(r'<nav class="foot"[^>]*>.*?</nav>', " ", body, flags=re.S)
         body = re.sub(r'<div id="say".*?</div>', " ", body, flags=re.S)

@@ -1,0 +1,79 @@
+{
+ "format": 1,
+ "lesson": "connecting/connect-to-github.md",
+ "lesson_sha256": "04dfc30e2d6e9703764ff25da4f1e6a71a275813247b90ae9fefe6f329f90e89",
+ "title": "Connect Copilot to GitHub",
+ "seconds": 366,
+ "back_href": "../../../connecting/connect-to-github.html",
+ "scenes": [
+  {
+   "id": "open",
+   "title": "What you'll do",
+   "step": null
+  },
+  {
+   "id": "connection",
+   "title": "What a connection gives Copilot",
+   "step": null
+  },
+  {
+   "id": "folder",
+   "title": "Have Copilot create a practice folder",
+   "step": 1
+  },
+  {
+   "id": "open-folder",
+   "title": "Open the practice folder in VS Code",
+   "step": 1
+  },
+  {
+   "id": "folder-check",
+   "title": "Check: the folder is open, and the chat shows Agent",
+   "step": 1
+  },
+  {
+   "id": "add",
+   "title": "Have Copilot add the GitHub connection",
+   "step": 2
+  },
+  {
+   "id": "start",
+   "title": "Start the connection",
+   "step": 2
+  },
+  {
+   "id": "start-check",
+   "title": "Check: the line above github says Running",
+   "step": 2
+  },
+  {
+   "id": "ask",
+   "title": "Ask a question that uses the connection",
+   "step": 3
+  },
+  {
+   "id": "ask-check",
+   "title": "Check: Ran List commits, and the newest commit",
+   "step": 3
+  },
+  {
+   "id": "close",
+   "title": "What you did",
+   "step": null
+  }
+ ],
+ "files": {
+  "audio/add.mp3": "ed45413f9ccc504391f711b134eca27b180af08ae5a8c086dfd8c33ec714a2b0",
+  "audio/ask-check.mp3": "7bea794f8c78f42bd5874e86dba56230448bf69545186bffbcc520eecd579722",
+  "audio/ask.mp3": "fb521afd4b038e8db9294983a75786b991cfdac64b6a6f24c2dc042e8856c2c5",
+  "audio/close.mp3": "a20e5e387eb8c32cc1c61b5fb69b4bfd0595ed53eb6d71d6d7401f9454275745",
+  "audio/connection.mp3": "3957b737176023021597e58cb69ca844681b78374cd49a47e243d1464e026b3e",
+  "audio/folder-check.mp3": "b4a59eb0f0fd4025ca6a803d5625a1428ae1b72927bf69ee410a5be5597b213f",
+  "audio/folder.mp3": "b29a7c74d4cb5eb3ff3daeea2e43bee3f79ad958fb4f72a5d5ee4cc25e213e5b",
+  "audio/open-folder.mp3": "2d13c7981f92b7d180ed25b108c127fd1290c31d1423cc3c44f0d296f0004d09",
+  "audio/open.mp3": "77280fc1e37700262b1a1007cbec0bd7133ec3251b938f6b292b45d486da6606",
+  "audio/start-check.mp3": "a8d277f4ce4670acd1f77ee011d68316725eb54de544603a843deef65a2bcccd",
+  "audio/start.mp3": "f7525af0532fa65e7482ab93ea58dd409e7fba5c0c993925f9975aa5c901740c",
+  "index.html": "b2389ae6d3d749958064a8b346f33d978db91b40ac062476223b3814731d2906"
+ }
+}
