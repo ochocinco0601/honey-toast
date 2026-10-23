@@ -1,5 +1,18 @@
 # What's new
 
+## 1.8 - 2026-10-22
+
+- Lessons show one step at a time, with Back and Next at its end and its place in the lesson above it.
+  "What is a skill?" and "What is a custom agent?" show one part at a time the same way.
+- Each step is one numbered list: a request to copy and a drawing sit under the action they belong
+  to. The result to look for is marked with a green tick.
+- Every lesson has "Watch the video" under its title. The overview video is first in the outline,
+  and the home page's way on starts with it.
+- "Make your first request to Copilot": the drawing of VS Code now names its parts on the drawing.
+  Reading a permission request moved to the step where the first request appears.
+- The videos follow these changes. Nothing you do in a lesson has changed, so if you already took a
+  training there is no need to take it again.
+
 ## 1.7 - 2026-10-20
 
 - Every lesson now has a narrated video beside its written steps, as its own item just before

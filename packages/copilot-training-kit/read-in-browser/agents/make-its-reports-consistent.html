@@ -239,7 +239,7 @@ min-height:32px;padding:6px 14px;cursor:pointer;border:1px solid var(--accent);b
 -webkit-mask:var(--i-copy) center/contain no-repeat;mask:var(--i-copy) center/contain no-repeat}
 button.copy:hover{background:var(--accent);color:var(--accent-ink)}
 button.copy.ok,button.copy.ok:hover{border-color:var(--ok);background:var(--surface);color:var(--ok)}
-/* a Check: a short bold label in the body's colour, set off by a thin rule */
+/* a Check: base style; inside a step it is led by a green tick instead of the rule (see below) */
 .check{margin:16px 0;padding:2px 0 2px 16px;border-left:3px solid var(--ctl)}
 .check p{margin:0}
 .check .lbl{font-weight:600;cursor:help}
@@ -277,7 +277,10 @@ tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
 thead th{background:var(--bg2);border-bottom:1px solid var(--rule2);font-weight:600;font-size:.875rem;color:var(--ink2)}
 tbody th{font-weight:600}
 .toc-inline{margin:0 0 24px;padding:8px 16px;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
-.toc-inline summary{cursor:pointer;font-weight:600;font-size:.875rem;min-height:28px;display:flex;align-items:center}
+.toc-inline summary{cursor:pointer;font-weight:600;font-size:.875rem;min-height:28px;display:flex;align-items:center;gap:8px;list-style:none}
+.toc-inline summary::-webkit-details-marker{display:none}
+.toc-inline summary::before{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg)}
+.toc-inline[open] summary::before{transform:rotate(45deg)}
 .toc-inline ul{list-style:none;margin:8px 0 4px;padding:0;font-size:.875rem}.toc-inline li{margin:4px 0;padding:0}
 .toc-inline li.l3{padding-left:16px}.toc-inline a{text-decoration:none}
 .toc-inline a:hover{text-decoration:underline}
@@ -287,6 +290,50 @@ button.stuck{font:inherit;font-size:.875rem;min-height:28px;padding:4px 0;border
 text-decoration:underline;text-decoration-color:var(--ctl);text-underline-offset:3px;text-align:left}
 button.stuck:hover{color:var(--accent);text-decoration-color:currentColor}
 button.stuck.ok{color:var(--ok);text-decoration:none;font-weight:600}
+/* a step's spacing scale, by proximity: 8px inside a group, 32px between its groups (do, see, check), 96px between steps */
+.stepsec{margin-top:96px}
+.stepsec:has(+ .stepsec)::before{bottom:-92px}
+main .stepsec > *{margin-top:8px;margin-bottom:0}
+main .stepsec > h2.step{margin-top:0}
+main .stepsec > p + p{margin-top:12px}
+main .stepsec li{margin:4px 0}
+main .stepsec > p:has(> .drawing){margin-top:32px}
+main .stepsec > p:has(> .drawing) > .drawing{margin:0}
+main .stepsec > .check{margin-top:32px}
+main .stepsec > .check + details.more{margin-top:12px}
+main .stepsec > p:has(> .drawing) + ol,main .stepsec > p:has(> .drawing) + p + ol{margin-top:32px}
+main .stepsec > .check + p:has(> .drawing){margin-top:12px}
+main .stepsec > .prompt,main .stepsec > .prompt + ol{margin-top:16px}
+main .stepsec > h3{margin-top:48px}
+/* one meaning per treatment: numerals are actions, orange points inside a drawing, green is a result,
+   a fold-out is grey and quiet, an alert is never orange */
+main .stepsec ol > li::marker{color:var(--accent);font-weight:700}
+main li .fig{display:block;margin:12px 0 0}
+main li .fig .drawing{margin:0}
+main li .cap{display:block;margin:8px 0 0;font-size:.9375rem;line-height:1.55;color:var(--ink2)}
+main li .fig + .gap,main li .cap + .gap{display:none}
+main li .prompt{margin:12px 0 0}
+main .stepsec li > ul{margin:8px 0 0}
+main .check{border-left:0;padding:0 0 0 28px;position:relative}
+main .check::before{content:"\2713";position:absolute;left:2px;top:0;color:var(--ok);font-weight:700}
+main .check .lbl{color:var(--ok)}
+details.more .m{border-left:0;padding-left:24px}
+main .callout .lbl{color:var(--ink)}
+main .stepsec > .check + .callout{margin-top:24px}
+main.paged h2.step::before{display:none}
+main.paged .stepsec{padding-left:0}
+main .stepsec > h3 + *{margin-top:8px}
+main .stepsec > .steprow{margin-top:16px}
+/* one step at a time: where the learner is, then the step, then the way on */
+main.paged .stepsec{margin-top:32px}
+main.paged .stepsec::before{display:none}
+main.paged .stepsec > p.stepof{margin:0 0 8px;font-size:.875rem;font-weight:600;letter-spacing:.02em;color:var(--ink2)}
+main.paged .stepsec > p.stepof + h2.step{margin-top:0}
+main.paged .stepsec > nav.stepnav{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;margin-top:48px;padding-top:24px;border-top:1px solid var(--rule)}
+nav.stepnav .stepnext{margin-left:auto}
+main.paged h2.step:focus{outline:none}
+nav.stepnav .stepback{font-weight:600;text-decoration:none}
+nav.stepnav .stepback:hover{text-decoration:underline}
 /* what comes next: the end of a unit is one framed block with the Continue button */
 .pager{margin:56px 0 0}
 .nextunit{padding:24px 28px;border:1px solid var(--rule);border-radius:14px;background:var(--surface);box-shadow:var(--shadow)}
@@ -368,6 +415,10 @@ border:0;border-radius:8px;background:none;color:var(--ink2);cursor:pointer;font
 @media (max-width:900px){.crumbs li.prog{display:none}.crumbs li.prog+li::before{display:none}
 .unitpos .long{display:none}.unitpos .short{display:inline}}
 @media (max-width:680px){
+/* a drawing's labels stay readable on a phone: it keeps a working width and scrolls inside its own frame */
+main .drawing{overflow-x:auto;-webkit-overflow-scrolling:touch}
+main .drawing svg{min-width:560px}
+main .scrollhint{display:block;margin:4px 0 0;font-size:.8125rem;color:var(--ink2)}
 .site{gap:8px;padding:0 12px}
 .search{width:auto;flex:1}
 .results{position:fixed;left:8px;right:8px;top:calc(var(--hdr) - 4px);width:auto}
@@ -377,7 +428,7 @@ main h1{font-size:1.5rem}
 main h2{font-size:1.1875rem;margin-top:36px}
 .pagehead + p,.pagehead + details + p{font-size:1.0625rem}
 /* at phone width the text keeps the whole column: the track folds away and the marker sits beside the step's title */
-.stepsec{margin-top:36px;padding-left:0}
+.stepsec{margin-top:64px;padding-left:0}
 .stepsec::before{display:none}
 main h2.step{padding-left:32px}
 main h2.step::before{left:0;top:3px;width:20px;height:20px}
@@ -422,14 +473,27 @@ main li.rate{padding-left:0}
 .wbacts button.copy{font-size:.875rem;padding:8px 14px}
 .workbook h3 a{color:inherit;text-decoration:none}
 .workbook h3 a:hover{color:var(--accent);text-decoration:underline}
-@media print{.site,.side,.scrim,.crumbs,.pager,.pagefoot,.steprow,.wbacts,.kept,.skip{display:none!important}
+@media print{.site,.side,.scrim,.crumbs,.pager,.pagefoot,.steprow,.wbacts,.kept,.skip,.stepnav,.stepof{display:none!important}
+main.paged > [hidden]{display:block!important}
 .layout{display:block}main{max-width:none;margin:0;padding:0}.stepsec{padding-left:0}.stepsec::before,main h2.step::before{display:none}
 .note textarea{border:0;padding:0;min-height:0;resize:none;overflow:visible}}
-/* videos: "Watch this step" under a step's heading, and the home page's link to the overview */
+/* videos: the "Watch the video" button under a page's title */
 main p.watch{margin:4px 0 12px;font-size:.875rem;line-height:1.4}
 main p.watch a{text-decoration:none}
 main p.watch a:hover{text-decoration:underline}
+main .stepsec > p.watch{margin:12px 0 0}
+main .stepsec > p.watch + *{margin-top:24px}
+main .pagehead p.watch{margin:16px 0 0}
+main .stepsec > p.watch a,main .pagehead p.watch a{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:6px 16px;border:1px solid var(--accent);
+border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:.9375rem;font-weight:600}
+main .stepsec > p.watch a:hover,main .pagehead p.watch a:hover{text-decoration:none;background:var(--accent);color:var(--accent-ink)}
 .pagehead p.watch{margin:8px 0 0}
+.vidinline{margin:16px 0 8px;border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--surface)}
+.vidinline .vidframe{display:block;width:100%;height:600px;border:0}
+.vidinline .vidbar{display:flex;justify-content:flex-end;padding:8px 12px;border-top:1px solid var(--rule)}
+.vidinline .vidclose{font:inherit;font-size:.9375rem;font-weight:600;min-height:36px;padding:6px 16px;border:1px solid var(--rule2);
+border-radius:8px;background:var(--bg);color:var(--ink);cursor:pointer}
+.vidinline .vidclose:hover{border-color:var(--accent);color:var(--accent)}
 .pagehead p.stalevideo{margin:8px 0 0;font-size:.875rem;color:var(--ink2)}
 </style></head><body data-root="../" data-training="agents" data-outline="agents">
 <a class="skip" href="#main">Skip to the page</a>
@@ -443,18 +507,18 @@ main p.watch a:hover{text-decoration:underline}
 <button id="theme" class="iconbtn" type="button" aria-label="Switch to dark theme" title="Switch between light and dark"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 0 0 14z" fill="currentColor"/></svg></button>
 </header>
 <div class="layout">
-<nav id="side" class="side" aria-label="Course outline"><div class="otop"><p class="omh" id="oth">Trainings</p><button class="oclose" id="oclose" type="button" aria-label="Close the outline">&times;</button></div><ol class="otrains" aria-labelledby="oth"><li class="ot ou" data-t="getting-started"><a class="otrow" href="../getting-started/index.html"><span class="oname">Getting started</span><span class="sr">, </span><span class="olevel">Beginner<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="skills-in-depth"><a class="otrow" href="../skills-in-depth/index.html"><span class="oname">Skills</span><span class="sr">, </span><span class="olevel">Intermediate<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="agents"><a class="otrow" href="index.html" aria-current="true"><span class="oname">Custom agents</span><span class="sr">, </span><span class="olevel">Advanced<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="connecting"><a class="otrow" href="../connecting/index.html"><span class="oname">Connecting your tools</span><span class="sr">, </span><span class="olevel">Intermediate<span class="oprog" data-base=""></span></span></a></li></ol><div class="ocur"><div class="ohead"><a class="otitle" href="index.html">Custom agents</a><p class="ototal">3 units &middot; about 25 minutes</p><div class="obar" aria-hidden="true"><span id="obar"></span></div><p class="opct" id="opct"></p></div><ol class="ounits" aria-label="Units in Custom agents"><li class="ou" data-u="agents/what-is-a-custom-agent.html"><div class="ohd"><a class="orow" href="what-is-a-custom-agent.html"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">1</span></span><span class="otext" title="Unit 1 · about five minutes"><span class="oname">What is a custom agent?</span><span class="otime" aria-hidden="true">About five minutes</span><span class="ometa">Unit 1 &middot; about five minutes<span class="oprog" data-base=""></span></span></span></a><button class="otoggle" type="button" aria-expanded="false" aria-controls="os1"><span class="sr">Steps in unit 1</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os1" aria-label="Steps in unit 1"><li><a class="ostep" href="what-is-a-custom-agent-video.html"><span class="odot" aria-hidden="true"></span><span class="olab">Video &middot; 5 min</span></a></li></ol></li><li class="ou" data-u="agents/create-your-first-custom-agent.html"><div class="ohd"><a class="orow" href="create-your-first-custom-agent.html"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">2</span></span><span class="otext" title="Unit 2 · about 10 minutes · 5 steps"><span class="oname">Create your first custom agent</span><span class="otime" aria-hidden="true">About 10 minutes</span><span class="ometa">Unit 2 &middot; about 10 minutes<span class="oprog" data-base=" &middot; 5 steps"> &middot; 5 steps</span></span></span></a><button class="otoggle" type="button" aria-expanded="false" aria-controls="os2"><span class="sr">Steps in unit 2</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os2" aria-label="Steps in unit 2"><li><a class="ostep" href="create-your-first-custom-agent-video.html"><span class="odot" aria-hidden="true"></span><span class="olab">Video &middot; 5 min</span></a></li><li><a class="ostep" href="create-your-first-custom-agent.html#1-have-copilot-create-practice-procedures" data-id="1-have-copilot-create-practice-procedures"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot create practice procedures</span></a></li><li><a class="ostep" href="create-your-first-custom-agent.html#2-have-copilot-create-the-procedure-reviewer" data-id="2-have-copilot-create-the-procedure-reviewer"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot create the Procedure reviewer</span></a></li><li><a class="ostep" href="create-your-first-custom-agent.html#3-select-the-procedure-reviewer" data-id="3-select-the-procedure-reviewer"><span class="odot" aria-hidden="true"></span><span class="olab">Select the Procedure reviewer</span></a></li><li><a class="ostep" href="create-your-first-custom-agent.html#4-have-the-procedure-reviewer-check-the-procedures" data-id="4-have-the-procedure-reviewer-check-the-procedures"><span class="odot" aria-hidden="true"></span><span class="olab">Have the Procedure reviewer check the procedures</span></a></li><li><a class="ostep" href="create-your-first-custom-agent.html#5-ask-the-procedure-reviewer-to-change-a-procedure" data-id="5-ask-the-procedure-reviewer-to-change-a-procedure"><span class="odot" aria-hidden="true"></span><span class="olab">Ask the Procedure reviewer to change a procedure</span></a></li></ol></li><li class="ou current open" data-u="agents/make-its-reports-consistent.html"><div class="ohd"><a class="orow" href="make-its-reports-consistent.html" aria-current="page"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">3</span></span><span class="otext" title="Unit 3 · about 10 minutes · 3 steps"><span class="oname">Make a custom agent&#x27;s reports consistent</span><span class="otime" aria-hidden="true">About 10 minutes</span><span class="ometa">Unit 3 &middot; about 10 minutes<span class="oprog" data-base=" &middot; 3 steps"> &middot; 3 steps</span></span></span></a><button class="otoggle" type="button" aria-expanded="true" aria-controls="os3"><span class="sr">Steps in unit 3</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os3" aria-label="Steps in unit 3"><li><a class="ostep" href="make-its-reports-consistent-video.html"><span class="odot" aria-hidden="true"></span><span class="olab">Video &middot; 4 min</span></a></li><li><a class="ostep" href="#1-have-copilot-add-a-report-layout-to-the-procedure-reviewer" data-id="1-have-copilot-add-a-report-layout-to-the-procedure-reviewer"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot add a report layout to the Procedure reviewer</span></a></li><li><a class="ostep" href="#2-have-the-procedure-reviewer-check-the-procedures" data-id="2-have-the-procedure-reviewer-check-the-procedures"><span class="odot" aria-hidden="true"></span><span class="olab">Have the Procedure reviewer check the procedures</span></a></li><li><a class="ostep" href="#3-ask-the-procedure-reviewer-in-other-words-and-compare-the-layout" data-id="3-ask-the-procedure-reviewer-in-other-words-and-compare-the-layout"><span class="odot" aria-hidden="true"></span><span class="olab">Ask the Procedure reviewer in other words, and compare the layout</span></a></li></ol></li></ol><ul class="oextras"><li class="ou orec"><div class="ohd"><a href="how-to/index.html">Practice recipes<span class="cnt"><span class="sr">, </span>1</span></a><button class="otoggle" type="button" aria-expanded="false" aria-controls="orec"><span class="sr">Recipes in Custom agents</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="orec" aria-label="Recipes in Custom agents"><li><a class="ostep" href="how-to/hand-a-review-to-agent.html"><span class="odot" aria-hidden="true"></span><span class="olab">Hand a review to Agent to fix</span></a></li></ol></li></ul></div><div class="omore"><p class="omh" id="omh">More</p><ul aria-labelledby="omh"><li><a href="../troubleshooting.html">Help</a></li><li><a href="../glossary.html">Glossary</a></li><li><a href="../CHANGELOG.html">What&#x27;s new</a></li></ul></div></nav><div class="scrim" id="scrim" aria-hidden="true"></div>
+<nav id="side" class="side" aria-label="Course outline"><div class="otop"><p class="omh" id="oth">Trainings</p><button class="oclose" id="oclose" type="button" aria-label="Close the outline">&times;</button></div><ol class="otrains" aria-labelledby="oth"><li class="ot ou" data-t=""><a class="otrow" href="../README.html#video"><span class="oname">Overview</span><span class="sr">, </span><span class="olevel">Video &middot; 3 min</span></a></li><li class="ot ou" data-t="getting-started"><a class="otrow" href="../getting-started/index.html"><span class="oname">Getting started</span><span class="sr">, </span><span class="olevel">Beginner<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="skills-in-depth"><a class="otrow" href="../skills-in-depth/index.html"><span class="oname">Skills</span><span class="sr">, </span><span class="olevel">Intermediate<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="agents"><a class="otrow" href="index.html" aria-current="true"><span class="oname">Custom agents</span><span class="sr">, </span><span class="olevel">Advanced<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="connecting"><a class="otrow" href="../connecting/index.html"><span class="oname">Connecting your tools</span><span class="sr">, </span><span class="olevel">Intermediate<span class="oprog" data-base=""></span></span></a></li></ol><div class="ocur"><div class="ohead"><a class="otitle" href="index.html">Custom agents</a><p class="ototal">3 units &middot; about 25 minutes</p><div class="obar" aria-hidden="true"><span id="obar"></span></div><p class="opct" id="opct"></p></div><ol class="ounits" aria-label="Units in Custom agents"><li class="ou" data-u="agents/what-is-a-custom-agent.html"><div class="ohd"><a class="orow" href="what-is-a-custom-agent.html"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">1</span></span><span class="otext" title="Unit 1 · about five minutes"><span class="oname">What is a custom agent?</span><span class="otime" aria-hidden="true">About five minutes</span><span class="ometa">Unit 1 &middot; about five minutes<span class="oprog" data-base=""></span></span></span></a><button class="otoggle" type="button" aria-expanded="false" aria-controls="os1"><span class="sr">Steps in unit 1</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os1" aria-label="Steps in unit 1"><li><a class="ostep" href="what-is-a-custom-agent.html#video"><span class="odot" aria-hidden="true"></span><span class="olab">Video &middot; 5 min</span></a></li></ol></li><li class="ou" data-u="agents/create-your-first-custom-agent.html"><div class="ohd"><a class="orow" href="create-your-first-custom-agent.html"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">2</span></span><span class="otext" title="Unit 2 · about 10 minutes · 5 steps"><span class="oname">Create your first custom agent</span><span class="otime" aria-hidden="true">About 10 minutes</span><span class="ometa">Unit 2 &middot; about 10 minutes<span class="oprog" data-base=" &middot; 5 steps"> &middot; 5 steps</span></span></span></a><button class="otoggle" type="button" aria-expanded="false" aria-controls="os2"><span class="sr">Steps in unit 2</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os2" aria-label="Steps in unit 2"><li><a class="ostep" href="create-your-first-custom-agent.html#video"><span class="odot" aria-hidden="true"></span><span class="olab">Video &middot; 5 min</span></a></li><li><a class="ostep" href="create-your-first-custom-agent.html#1-have-copilot-create-practice-procedures" data-id="1-have-copilot-create-practice-procedures"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot create practice procedures</span></a></li><li><a class="ostep" href="create-your-first-custom-agent.html#2-have-copilot-create-the-procedure-reviewer" data-id="2-have-copilot-create-the-procedure-reviewer"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot create the Procedure reviewer</span></a></li><li><a class="ostep" href="create-your-first-custom-agent.html#3-select-the-procedure-reviewer" data-id="3-select-the-procedure-reviewer"><span class="odot" aria-hidden="true"></span><span class="olab">Select the Procedure reviewer</span></a></li><li><a class="ostep" href="create-your-first-custom-agent.html#4-have-the-procedure-reviewer-check-the-procedures" data-id="4-have-the-procedure-reviewer-check-the-procedures"><span class="odot" aria-hidden="true"></span><span class="olab">Have the Procedure reviewer check the procedures</span></a></li><li><a class="ostep" href="create-your-first-custom-agent.html#5-ask-the-procedure-reviewer-to-change-a-procedure" data-id="5-ask-the-procedure-reviewer-to-change-a-procedure"><span class="odot" aria-hidden="true"></span><span class="olab">Ask the Procedure reviewer to change a procedure</span></a></li></ol></li><li class="ou current open" data-u="agents/make-its-reports-consistent.html"><div class="ohd"><a class="orow" href="make-its-reports-consistent.html" aria-current="page"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">3</span></span><span class="otext" title="Unit 3 · about 10 minutes · 3 steps"><span class="oname">Make a custom agent&#x27;s reports consistent</span><span class="otime" aria-hidden="true">About 10 minutes</span><span class="ometa">Unit 3 &middot; about 10 minutes<span class="oprog" data-base=" &middot; 3 steps"> &middot; 3 steps</span></span></span></a><button class="otoggle" type="button" aria-expanded="true" aria-controls="os3"><span class="sr">Steps in unit 3</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os3" aria-label="Steps in unit 3"><li><a class="ostep" href="make-its-reports-consistent.html#video"><span class="odot" aria-hidden="true"></span><span class="olab">Video &middot; 4 min</span></a></li><li><a class="ostep" href="#1-have-copilot-add-a-report-layout-to-the-procedure-reviewer" data-id="1-have-copilot-add-a-report-layout-to-the-procedure-reviewer"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot add a report layout to the Procedure reviewer</span></a></li><li><a class="ostep" href="#2-have-the-procedure-reviewer-check-the-procedures" data-id="2-have-the-procedure-reviewer-check-the-procedures"><span class="odot" aria-hidden="true"></span><span class="olab">Have the Procedure reviewer check the procedures</span></a></li><li><a class="ostep" href="#3-ask-the-procedure-reviewer-in-other-words-and-compare-the-layout" data-id="3-ask-the-procedure-reviewer-in-other-words-and-compare-the-layout"><span class="odot" aria-hidden="true"></span><span class="olab">Ask the Procedure reviewer in other words, and compare the layout</span></a></li></ol></li></ol><ul class="oextras"><li class="ou orec"><div class="ohd"><a href="how-to/index.html">Practice recipes<span class="cnt"><span class="sr">, </span>1</span></a><button class="otoggle" type="button" aria-expanded="false" aria-controls="orec"><span class="sr">Recipes in Custom agents</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="orec" aria-label="Recipes in Custom agents"><li><a class="ostep" href="how-to/hand-a-review-to-agent.html"><span class="odot" aria-hidden="true"></span><span class="olab">Hand a review to Agent to fix</span></a></li></ol></li></ul></div><div class="omore"><p class="omh" id="omh">More</p><ul aria-labelledby="omh"><li><a href="../troubleshooting.html">Help</a></li><li><a href="../glossary.html">Glossary</a></li><li><a href="../CHANGELOG.html">What&#x27;s new</a></li></ul></div></nav><div class="scrim" id="scrim" aria-hidden="true"></div>
 <div class="content">
 <nav class="crumbs" aria-label="Breadcrumb"><div class="in"><ol><li class="prog"><a href="../README.html">GitHub Copilot training</a></li><li><a href="index.html">Custom agents</a></li><li aria-current="page"><span>Make a custom agent&#x27;s reports consistent</span></li></ol><span class="unitpos" id="unitpos"><span class="long" id="upos-long">Unit 3 of 3</span><span class="short" id="upos-short">Unit 3 of 3</span></span></div><div class="line" aria-hidden="true"><span id="line"></span></div></nav>
 <main id="main" data-steps="1" data-page="Make a custom agent&#x27;s reports consistent" data-stuck-from="1" data-kit-open="0" data-stuck="1" data-program="GitHub Copilot training" data-assistant="Copilot" data-chat="the chat box">
 <header class="pagehead"><h1>Make a custom agent's reports consistent</h1>
 <p class="unit">About 10 minutes &middot; 3 steps</p>
+<p class="watch" id="video"><a href="make-its-reports-consistent-video.html" data-play="../videos/agents/make-its-reports-consistent/index.html?in=kit"><span aria-hidden="true">&#9654;</span> Watch the video &middot; 4 min</a></p>
 </header>
 <p>A report laid out the same way every time is quicker to read and to check. In this unit, you have Copilot add a report layout to the Procedure reviewer's instructions. Then you ask for two reviews in different words and get the same layout. Start with the agents-practice folder open, as <a href="create-your-first-custom-agent.html">Create your first custom agent</a> left it.</p>
-<section class="stepsec"><h2 id="1-have-copilot-add-a-report-layout-to-the-procedure-reviewer" class="step"><span class="sr">1. </span><span class="tt">Have Copilot add a report layout to the Procedure reviewer</span></h2><p class="watch"><a href="make-its-reports-consistent-video.html#layout"><span aria-hidden="true">&#9654;</span> Watch this step</a></p>
+<section class="stepsec"><h2 id="1-have-copilot-add-a-report-layout-to-the-procedure-reviewer" class="step"><span class="sr">1. </span><span class="tt">Have Copilot add a report layout to the Procedure reviewer</span></h2>
 <p>The reviewer can't change its own file, so you use <b>Agent</b>.</p>
-<ol><li>At the top of the chat, select <b>New Chat</b> (+).</li><li>At the bottom of the chat box, select the control that shows <b>Procedure reviewer</b>, and then select <b>Agent</b>.</li></ol>
-<p><span class="drawing" data-src="images/back-to-agent.svg" role="img" aria-label="Drawing of the list of agents, open above the control that shows Procedure reviewer, with Agent outlined."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 380" role="presentation">
+<ol><li>At the top of the chat, select <b>New Chat</b> (+).</li><li>At the bottom of the chat box, select the control that shows <b>Procedure reviewer</b>, and then select <b>Agent</b>.<div class="gap"></div><span class="fig"><span class="drawing" data-src="images/back-to-agent.svg" role="img" aria-label="Drawing of the list of agents, open above the control that shows Procedure reviewer, with Agent outlined."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 380" role="presentation">
 
 <style>
 .dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
@@ -487,27 +551,22 @@ main p.watch a:hover{text-decoration:underline}
 .dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
 </style>
 <rect class="dg-w" x="5" y="5" width="420" height="370" rx="8"/><text class="dg-s" x="21" y="34">CHAT</text><path class="dg-ic" d="M347 23v14M340 30h14"/><path class="dg-ic" d="M358 29l3 3 3-3"/><circle class="dg-ic" cx="383" cy="30" r="6" style="stroke-dasharray:2.4 1.6;stroke-width:2.4"/><circle class="dg-ic" cx="383" cy="30" r="2.2"/><path class="dg-ic" d="M403 30h.5M409 30h.5M415 30h.5"/><rect class="dg-b" x="21" y="56" width="180" height="7" rx="2"/><rect class="dg-b" x="21" y="73" width="240" height="7" rx="2"/><rect class="dg-w" x="21" y="100" width="230" height="168" rx="6"/><path class="dg-ic" d="M38 119 l5 5 -5 5 -5 -5z"/><text class="dg-t" x="51" y="129">Agent</text><rect class="dg-b2" x="34" y="148" width="9" height="9" rx="2"/><rect class="dg-b" x="51" y="149" width="70" height="7" rx="2"/><rect class="dg-b2" x="34" y="172" width="9" height="9" rx="2"/><rect class="dg-b" x="51" y="173" width="56" height="7" rx="2"/><line class="dg-l" x1="29" y1="194" x2="243" y2="194"/><rect class="dg-tn" x="22" y="202" width="228" height="28" rx="0"/><path class="dg-ic" d="M34 216l3 3 6-7"/><text class="dg-t" x="51" y="221">Procedure reviewer</text><line class="dg-l" x1="29" y1="232" x2="243" y2="232"/><rect class="dg-b" x="51" y="245" width="90" height="7" rx="2"/><rect class="dg-w" x="17" y="280" width="396" height="66" rx="7"/><rect class="dg-b" x="29" y="293" width="110" height="7" rx="2"/><rect class="dg-ic" x="27" y="322" width="11" height="11" rx="2"/><path class="dg-ic" d="M32 325v5M30.0 327h5"/><rect class="dg-p" x="45" y="316" width="146" height="22" rx="5"/><text class="dg-t" x="55" y="331" style="font-size:12px">Procedure reviewer</text><rect class="dg-p" x="197" y="316" width="48" height="22" rx="5"/><rect class="dg-b" x="205" y="324" width="30" height="5" rx="2"/><circle class="dg-ic" cx="259" cy="327" r="5" style="stroke-dasharray:2.4 1.6;stroke-width:2.4"/><circle class="dg-ic" cx="259" cy="327" r="2.2"/><path d="M391 333l13-6-13-6v4.5l7 1.5-7 1.5z" style="fill:var(--ink3,#6b6b6b)"/><rect class="dg-m" x="27" y="110" width="214" height="26" rx="4"/><rect class="dg-m" x="40" y="311" width="158" height="30" rx="5"/><path class="dg-ml" d="M241 123L441 123"/><text class="dg-lab" x="447" y="128">Agent</text><path class="dg-ml" d="M121 342L121 360L441 360"/><text class="dg-lab" x="447" y="356">The control that shows</text><text class="dg-lab" x="447" y="374">Procedure reviewer</text>
-</svg></span></p>
-<ol start="3"><li>Enter:</li></ol>
-<div class="prompt"><div class="t">In the agents-practice folder, open .github/agents/procedure-reviewer.agent.md.
+</svg></span></span></li><li>Enter:<div class="gap"></div><div class="prompt"><div class="t">In the agents-practice folder, open .github/agents/procedure-reviewer.agent.md.
 At the end of its instructions, add this report layout:
 - A heading "Procedures checked", then the file name of each procedure checked.
 - A heading "Unclear steps", then a table with the columns Procedure, Step and Why.
 - A heading "Missing steps", then one line for each missing step, naming its procedure, or "None" if there are none.
-Add or change no other file.</div><button class="copy" type="button" aria-label="Copy: In the agents-practice folder, open…">Copy</button></div>
-<ol start="4"><li>If a <a class="gl" href="../glossary.html#permission-request" title="Allow and Skip buttons in a reply, asking whether Copilot may run a command. How to read one: Reading a permission request">permission request</a> appears, allow it if it changes only that file.</li><li>In the list on the left, select <code>procedure-reviewer.agent.md</code>.</li></ol>
+Add or change no other file.</div><button class="copy" type="button" aria-label="Copy: In the agents-practice folder, open…">Copy</button></div></li><li>If a <a class="gl" href="../glossary.html#permission-request" title="Allow and Skip buttons in a reply, asking whether Copilot may run a command. How to read one: Reading a permission request">permission request</a> appears, allow it if it changes only that file.</li><li>In the list on the left, select <code>procedure-reviewer.agent.md</code>.</li></ol>
 <div class="check"><p><b class="lbl">Check:</b> the instructions end with the three headings in that order, and the <code>tools</code> line still lists <code>read</code> and <code>search</code> only.</p></div>
 </section>
-<section class="stepsec"><h2 id="2-have-the-procedure-reviewer-check-the-procedures" class="step"><span class="sr">2. </span><span class="tt">Have the Procedure reviewer check the procedures</span></h2><p class="watch"><a href="make-its-reports-consistent-video.html#review"><span aria-hidden="true">&#9654;</span> Watch this step</a></p>
+<section class="stepsec"><h2 id="2-have-the-procedure-reviewer-check-the-procedures" class="step"><span class="sr">2. </span><span class="tt">Have the Procedure reviewer check the procedures</span></h2>
 <p>A <a class="gl" href="../glossary.html#custom-agent" title="An agent set up for one role, with its own instructions, the tools it may use and, if you choose, its AI model. You select it in the chat box">custom agent</a>'s instructions apply to every request while it's selected.</p>
-<ol><li>Select <b>New Chat</b> (+).</li><li>At the bottom of the chat box, select the control that shows <b>Agent</b>, and then select <b>Procedure reviewer</b>.</li><li>Enter:</li></ol>
-<div class="prompt"><div class="t">Check the procedures in the procedures folder.</div><button class="copy" type="button" aria-label="Copy: Check the procedures in the procedures…">Copy</button></div>
+<ol><li>Select <b>New Chat</b> (+).</li><li>At the bottom of the chat box, select the control that shows <b>Agent</b>, and then select <b>Procedure reviewer</b>.</li><li>Enter:<div class="gap"></div><div class="prompt"><div class="t">Check the procedures in the procedures folder.</div><button class="copy" type="button" aria-label="Copy: Check the procedures in the procedures…">Copy</button></div></li></ol>
 <div class="check"><p><b class="lbl">Check:</b> the reply has the headings Procedures checked, Unclear steps and Missing steps, in that order, with a table of Procedure, Step and Why under Unclear steps.</p></div>
 </section>
-<section class="stepsec"><h2 id="3-ask-the-procedure-reviewer-in-other-words-and-compare-the-layout" class="step"><span class="sr">3. </span><span class="tt">Ask the Procedure reviewer in other words, and compare the layout</span></h2><p class="watch"><a href="make-its-reports-consistent-video.html#reword"><span aria-hidden="true">&#9654;</span> Watch this step</a></p>
+<section class="stepsec"><h2 id="3-ask-the-procedure-reviewer-in-other-words-and-compare-the-layout" class="step"><span class="sr">3. </span><span class="tt">Ask the Procedure reviewer in other words, and compare the layout</span></h2>
 <p>The layout comes from the custom agent, not your wording.</p>
-<ol><li>Select <b>New Chat</b> (+), and select <b>Procedure reviewer</b> again if the control doesn't show it.</li><li>Enter:</li></ol>
-<div class="prompt"><div class="t">Which steps in the procedures folder would confuse someone doing them for the first time?</div><button class="copy" type="button" aria-label="Copy: Which steps in the procedures folder…">Copy</button></div>
+<ol><li>Select <b>New Chat</b> (+), and select <b>Procedure reviewer</b> again if the control doesn't show it.</li><li>Enter:<div class="gap"></div><div class="prompt"><div class="t">Which steps in the procedures folder would confuse someone doing them for the first time?</div><button class="copy" type="button" aria-label="Copy: Which steps in the procedures folder…">Copy</button></div></li></ol>
 <div class="check"><p><b class="lbl">Check:</b> the reply has the same three headings in the same order, and the same table columns. Open the file named in one table row, and find the step it quotes.</p></div>
 <details class="more"><summary>If the layout differs</summary><div class="m">
 <p>Copilot may not have used the custom agent's instructions. Check that the control shows <b>Procedure reviewer</b>. To have Copilot find out why and fix the file, select the control, then <b>Agent</b>, and enter:</p>
@@ -524,7 +583,7 @@ Add or change no other file.</div><button class="copy" type="button" aria-label=
 <p>Source: <a href="https://code.visualstudio.com/docs/agent-customization/custom-agents" target="_blank" rel="noopener">Custom agents in VS Code</a>, Microsoft.</p>
 <nav class="pager" aria-label="What comes next"><div class="nextunit"><p class="lbl">End of the path</p><h2>Custom agents</h2><div class="nextrow"><a class="btn" href="index.html" data-complete="1">Back to the training<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a><a class="prev" href="create-your-first-custom-agent.html">&lsaquo; Previous unit: Create your first custom agent</a></div><p class="lbl">Optional: <a href="how-to/index.html">Practice recipes</a>, new tasks that use what this training taught</p><p class="nudge" id="nudge" aria-live="polite" data-btn="Back to the training"></p></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-07</span><a href="../CHANGELOG.html">Version 1.7</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-22</span><a href="../CHANGELOG.html">Version 1.8</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>
@@ -742,8 +801,7 @@ function paintUnitCards(){
     pnext(ROOT+lb.u,lb.name);
   }else if(li_>=0||s.done){
     var k=todo.filter(function(k){return k>li_;})[0]; if(k===undefined) k=todo[0];
-    /* a unit not yet opened starts at its video, when it has one */
-    var nu=T.units[k], nh=ROOT+(nu.v||nu.u);
+    var nu=T.units[k], nh=ROOT+nu.u;
     go("Continue with unit "+(k+1),nh,"Next: "+nu.name);
     pnext(nh,nu.name);
   }else if(ctaStart) go(ctaStart.t,ctaStart.h,ctaStart.n);
@@ -817,8 +875,79 @@ document.getElementById("oclose").addEventListener("click",function(){closeNav()
 var hereLinks=[].slice.call(document.querySelectorAll(".ou.current .ostep"));
 var hereHeads=hereLinks.map(function(a){return document.getElementById(a.getAttribute("data-id"));}).filter(Boolean);
 var hereSaved="";
+/* a unit with two or more steps shows one step at a time, with Back and Next at its end, as a codelab
+   does; the title stays, the opening paragraph shows with step 1 and the unit's ending with the last.
+   Without the script every step shows, as before. */
+/* a unit that explains rather than does (no numbered steps) shows one section at a time the same way */
+var PART=false;
+if(isUnit&&!main.querySelector(".stepsec")){
+  var h2s=[].filter.call(main.children,function(e){return e.tagName==="H2"&&e.id;});
+  if(h2s.length>2){
+    PART=true;
+    h2s.forEach(function(h){
+      var sec=document.createElement("section"); sec.className="stepsec"; main.insertBefore(sec,h);
+      var n=h;
+      while(n&&(n===h||!(n.tagName==="H2"||n.tagName==="NAV"||n.classList.contains("pager")||n.classList.contains("pagefoot")))){
+        var nx=n.nextElementSibling; sec.appendChild(n); n=nx;
+      }
+      h.classList.add("step");
+    });
+  }
+}
+var steps=isUnit?[].slice.call(main.querySelectorAll(".stepsec")):[];
+var PAGED=steps.length>1, stepAt=0;
+function stepOf(id){
+  var t=null; try{t=id&&document.getElementById(id);}catch(e){}
+  if(!t||!main.contains(t)||t.closest(".pagehead")) return -1;
+  var s=t.closest(".stepsec"); if(s) return steps.indexOf(s);
+  /* the opening goes with step 1, the unit's ending with the last step */
+  return steps[0].compareDocumentPosition(t)&Node.DOCUMENT_POSITION_PRECEDING?0:steps.length-1;
+}
+function showStep(i,scroll){
+  stepAt=i;
+  var before=true, after=false;
+  [].forEach.call(main.children,function(el){
+    if(el.classList.contains("stepsec")){before=false;el.hidden=el!==steps[i];if(el===steps[steps.length-1]) after=true;return;}
+    if(el.classList.contains("pagehead")) return;
+    if(before) el.hidden=i!==0; else if(after) el.hidden=i!==steps.length-1;
+  });
+  if(scroll){window.scrollTo(0,0);var h=steps[i].querySelector("h2.step");h.setAttribute("tabindex","-1");h.focus({preventScroll:true});}
+  markHere(); scrollHints();
+}
+if(PAGED){
+  main.classList.add("paged");
+  steps.forEach(function(sec,i){
+    var h=sec.querySelector("h2.step"), lab=document.createElement("p");
+    lab.className="stepof"; lab.textContent=(PART?"Part ":"Step ")+(i+1)+" of "+steps.length; sec.insertBefore(lab,sec.firstChild);
+    var nav=document.createElement("nav"); nav.className="stepnav"; nav.setAttribute("aria-label","Steps");
+    function link(j,cls,text){var a=document.createElement("a");a.className=cls;a.href="#"+steps[j].querySelector("h2.step").id;a.innerHTML=text;return a;}
+    if(i>0) nav.appendChild(link(i-1,"stepback","&lsaquo; Back"));
+    if(i<steps.length-1){var nh=steps[i+1].querySelector("h2.step"), nt=nh.querySelector(".tt")||nh;
+      nav.appendChild(link(i+1,"btn stepnext","Next: "+esc(nt.textContent)+" &rsaquo;"));}
+    if(nav.children.length) sec.appendChild(nav);
+  });
+  window.addEventListener("hashchange",function(){
+    var id=decodeURIComponent(location.hash.slice(1));
+    if(!id){showStep(0,true);return;}
+    var j=stepOf(id);
+    if(j<0) return;
+    var t=document.getElementById(id), top=t.matches("h2.step");
+    showStep(j,top);
+    if(!top) t.scrollIntoView();
+  });
+  var j0=stepOf(decodeURIComponent(location.hash.slice(1)));
+  showStep(j0<0?0:j0,false);
+}
 function markHere(){
   if(!hereHeads.length) return;
+  if(PAGED){
+    var cur=steps[stepAt].querySelector("h2.step");
+    hereLinks.forEach(function(a){var on=a.getAttribute("data-id")===cur.id;a.classList.toggle("here",on);
+      if(on) a.setAttribute("aria-current","location"); else a.removeAttribute("aria-current");});
+    steps.forEach(function(sec,i){sec.classList.toggle("here",i===stepAt);});
+    var hp=stepAt?cur.id:""; if(HERE&&hp!==hereSaved){hereSaved=hp;putLast(T,HERE.u,hp);}
+    return;
+  }
   var at=hereHeads[0], lim=window.innerHeight*0.35, reached=false;
   hereHeads.forEach(function(h){if(h.getBoundingClientRect().top<=lim){at=h;reached=true;}});
   if(window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-4){at=hereHeads[hereHeads.length-1];reached=true;}
@@ -850,6 +979,45 @@ function toTop(){
 }
 try{history.scrollRestoration="manual";}catch(e){}
 toTop(); window.addEventListener("load",toTop); window.addEventListener("pageshow",toTop);
+/* a video opens in place under its link and closes again; the page around it stays where it was */
+var vbox=null;
+function closeVideo(){if(!vbox) return;
+  /* so a link to #video opens it again */
+  if(location.hash==="#video"){try{history.replaceState(null,"",location.pathname+location.search);}catch(e){}}
+  var a=vbox.previousElementSibling&&vbox.previousElementSibling.querySelector("a[data-play]");
+  vbox.remove(); vbox=null; if(a){a.setAttribute("aria-expanded","false"); a.focus();}}
+function openVideo(a){
+  var p=a.closest("p.watch"); if(vbox&&vbox.previousElementSibling===p){closeVideo();return;}
+  closeVideo();
+  vbox=document.createElement("div"); vbox.className="vidinline";
+  var bar=document.createElement("div"); bar.className="vidbar";
+  var x=document.createElement("button"); x.type="button"; x.className="vidclose"; x.textContent="Close video";
+  x.addEventListener("click",closeVideo); bar.appendChild(x);
+  var f=document.createElement("iframe"); f.className="vidframe"; f.title="Video"; f.src=a.getAttribute("data-play");
+  f.setAttribute("allow","autoplay");
+  vbox.appendChild(f); vbox.appendChild(bar); p.parentNode.insertBefore(vbox,p.nextSibling);
+  a.setAttribute("aria-expanded","true");
+  function post(){try{f.contentWindow.postMessage({kitViewport:window.innerHeight,kitTop:f.getBoundingClientRect().top+window.scrollY},"*");}catch(e){}}
+  f.addEventListener("load",post);
+}
+window.addEventListener("message",function(e){
+  if(!vbox||!e.data||typeof e.data.kitVideoHeight!=="number") return;
+  var f=vbox.querySelector("iframe"); if(e.source===f.contentWindow) f.style.height=Math.max(420,e.data.kitVideoHeight)+"px";});
+[].forEach.call(document.querySelectorAll("a[data-play]"),function(a){
+  a.setAttribute("aria-expanded","false");
+  a.addEventListener("click",function(e){e.preventDefault();openVideo(a);});});
+function videoHash(){if(location.hash==="#video"){var a=document.querySelector(".pagehead a[data-play]"); if(a&&!vbox) openVideo(a);}}
+videoHash(); window.addEventListener("hashchange",videoHash);
+/* a link to #video while that is already the address still opens the video */
+[].forEach.call(document.querySelectorAll('a[href$="#video"]'),function(l){
+  l.addEventListener("click",function(){if(l.pathname===location.pathname&&location.hash==="#video") setTimeout(videoHash,0);});});
+/* on a narrow screen a drawing keeps its size and scrolls inside its box: say so under it */
+function scrollHints(){[].forEach.call(document.querySelectorAll("main .drawing"),function(d){
+  var h=d.nextElementSibling&&d.nextElementSibling.classList.contains("scrollhint")?d.nextElementSibling:null;
+  var wide=d.scrollWidth>d.clientWidth+2;
+  if(wide&&!h){h=document.createElement("span");h.className="scrollhint";h.textContent="Scroll sideways to see the whole drawing ›";d.parentNode.insertBefore(h,d.nextSibling);}
+  else if(!wide&&h) h.remove();});}
+scrollHints(); window.addEventListener("resize",scrollHints); window.addEventListener("load",scrollHints);
 /* search over every page of the kit */
 var q=document.getElementById("q"), res=document.getElementById("results");
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}

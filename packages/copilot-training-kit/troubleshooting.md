@@ -83,7 +83,7 @@ If you can't tell whether the command matches what you asked for, select **Skip*
 > What command did you want to run, and which files and folders would it have changed?
 > Don't run it.
 
-More on reading one: [Reading a permission request](getting-started/start-here.md#reading-a-permission-request).
+More on reading one: [Reading a permission request](getting-started/start-here.md#2-have-copilot-create-a-practice-folder).
 
 ### Copilot asks you a question, or offers choices
 

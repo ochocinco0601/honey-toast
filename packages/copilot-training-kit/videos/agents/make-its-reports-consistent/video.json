@@ -1,7 +1,7 @@
 {
  "format": 1,
  "lesson": "agents/make-its-reports-consistent.md",
- "lesson_sha256": "f1839d66c5d7ab56e2b2f6130f68366db47c53d0dc0f31b20ac05b868fdc1b05",
+ "lesson_sha256": "c4a8c57d84673ef1987e2dbbaa7c347252b1db1d0ccb2c6037a64980d7f31ea1",
  "title": "Make a custom agent's reports consistent",
  "seconds": 249,
  "back_href": "../../../agents/make-its-reports-consistent.html",
@@ -48,7 +48,7 @@
   }
  ],
  "files": {
-  "audio/close.mp3": "57e52e2f9511b33d24ae3e617ae2a320d98686ff92d9d9a50814d32f4bccb437",
+  "audio/close.mp3": "12cdb8cd6995f184b311a9562a74ac5e9956c09d42682f5875526bb87db17732",
   "audio/layout-check.mp3": "e4ba768d2c4ddced264225c2ab87fab00bbf50fb8380b4d07bd2d6591358a0bb",
   "audio/layout.mp3": "05fb1e6d3f7508d01a8045bdae4c81ba4a2bca1e855852765a8bf81fee892232",
   "audio/open.mp3": "8854583c6d4ccddd68b0aff3d8dba4586184825b14825b03a1e0f55cbf2cf5a1",
@@ -56,6 +56,6 @@
   "audio/review.mp3": "7d2a88b54c2b05843cd0e2305eab049de4f0c2fe3741fdad0b83ab8d0703d067",
   "audio/reword-check.mp3": "884bb5b1fa511e9b0ee3373bd3460713006ed1ba8c27906b63e9cfd32dc468a5",
   "audio/reword.mp3": "ef8df690a9704f1c3c8749dd399d19f7a0d13a55473f234ffa30c66d858ac16b",
-  "index.html": "e4b93c2a04f765137df920716a550526792bf15b077dccb1e59d7445d70bfb0d"
+  "index.html": "79f9a02b9a2db01c5985c61c0fac14eacc1999635a2c6ae1309ae5669583a6ed"
  }
 }

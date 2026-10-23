@@ -11,10 +11,10 @@ You need an application to ask about, so Copilot makes one.
 
 1. In the chat box, enter:
 
-> In the copilot-practice folder, create a folder named tip-calculator.
-> In it, make a small web page that works out a tip from a bill and a percentage: index.html, style.css and script.js.
-> Keep the code short and plain.
-> Change nothing else.
+   > In the copilot-practice folder, create a folder named tip-calculator.
+   > In it, make a small web page that works out a tip from a bill and a percentage: index.html, style.css and script.js.
+   > Keep the code short and plain.
+   > Change nothing else.
 
 2. In the list on the left, open `tip-calculator`.
 
@@ -32,8 +32,8 @@ Start by asking, in plain words, what the application does.
 
 1. Enter:
 
-> Explain the application in the tip-calculator folder for someone who doesn't write code.
-> Say what it does, and what each file is for.
+   > Explain the application in the tip-calculator folder for someone who doesn't write code.
+   > Say what it does, and what each file is for.
 
 Check: the reply names all three files, each with what it's for.
 
@@ -43,9 +43,9 @@ Ask for the file and the line numbers, and you can go straight to the code.
 
 1. Enter:
 
-> Read the files in the tip-calculator folder.
-> Tell me where the tip is worked out.
-> Name the file and the line numbers, and quote those lines.
+   > Read the files in the tip-calculator folder.
+   > Tell me where the tip is worked out.
+   > Name the file and the line numbers, and quote those lines.
 
 2. In the list on the left, select the file it names. It opens in the middle of the window, with line numbers
    down its left edge.

@@ -76,7 +76,9 @@ commands from the folder that holds your pieces, and give a kit's path relative 
    design is a change to the template, reviewed as one, and every video takes it at its next build.
    Its parts, top to bottom:
    - **The lesson link** (when the `page` block has `back_href`): one strip above the title,
-     "Written steps: <title> &rsaquo;", or "Back to the trainings &rsaquo;" for an overview.
+     "Written steps: <title> &rsaquo;", or "Back to the trainings &rsaquo;" for an overview. It
+     serves a package opened on its own. Inside a kit (`?in=kit`) the page hides the strip and the
+     title line, and the kit opens the player in place on the lesson page.
    - **One title line:** the `<h1>` and, beside it, a quiet meta line (Video, the scene count
      and the running time, both filled by the script).
    - **The player**, the one element with a card's weight (radius and shadow): the stage, then a

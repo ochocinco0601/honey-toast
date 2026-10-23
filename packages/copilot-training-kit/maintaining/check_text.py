@@ -82,7 +82,7 @@ for root, dirs, fs in os.walk(out):
         body = re.sub(r'<p class="cta">.*?</p>', " ", body, flags=re.S)
         body = re.sub(r'<p class="unit"[^>]*>.*?</p>', " ", body, flags=re.S)
         # A lesson's video: "Watch this step" links, the home page's overview link, the stale line.
-        body = re.sub(r'<p class="(?:watch|stalevideo)">.*?</p>', " ", body, flags=re.S)
+        body = re.sub(r'<p class="(?:watch|stalevideo)"[^>]*>.*?</p>', " ", body, flags=re.S)
         body = re.sub(r'<summary>.*?</summary>', " ", body, flags=re.S)
         body = re.sub(r'<nav class="foot"[^>]*>.*?</nav>', " ", body, flags=re.S)
         body = re.sub(r'<div id="say".*?</div>', " ", body, flags=re.S)

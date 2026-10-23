@@ -10,15 +10,9 @@ You type your requests to Copilot in the chat.
 1. Press the Windows key, type `code`, and press Enter.
 2. On the **View** menu, select **Chat**.
 
-![Drawing of the VS Code window: the list on the left, a file open in the middle, and the chat on the right.](images/vs-code-window.svg)
+   ![Drawing of the VS Code window, labelled: your folder's files, the file you select, the chat, New Chat and the Agent control.](images/vs-code-window.svg)
 
-- 1: the list on the left, headed **EXPLORER**, which shows a folder's files once you open one.
-- 2: the file you select, shown in the middle.
-- 3: the chat, where you type requests and Copilot replies.
-- 4: **New Chat** (+), which starts a fresh chat.
-- 5: the control that shows **Agent**, at the bottom of the chat box.
-
-The drawing shows VS Code later in this training, with files in the folder. In the drawings, gray bars stand for text that differs on your screen.
+   The drawing shows VS Code later in this training, with files in the folder. Gray bars stand for text that differs on your screen. **New Chat** starts a fresh chat.
 
 Check: the chat is open, and a control at the bottom of the chat box says **Agent**.
 
@@ -34,32 +28,31 @@ If VS Code doesn't open, no chat appears, or the chat asks you to sign in, see
 [Getting set up](../troubleshooting.md#getting-set-up).
 <!-- /more -->
 
-### Reading a permission request
-
-By default, Copilot creates and edits files in your open folder without asking. It asks first for
-a few settings files, and for files outside the folder. It also asks before it runs a command that
-could change your computer. When it asks, it waits for you.
-
-![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](images/permission-request.svg)
-
-- Look at what it's about to do. If it matches what you asked, select **Allow**.
-- If it doesn't, select **Skip**. Skip doesn't run the command; Copilot carries on without it.
-
 ## 2. Have Copilot create a practice folder
 
 Your first request: Copilot makes the folder you practice in.
 
 1. In the chat box, enter:
 
-> Create a new, empty folder named copilot-practice.
-> Put it in the folder Windows uses as my Documents folder, which may be under OneDrive.
-> Change nothing else on my computer.
+   > Create a new, empty folder named copilot-practice.
+   > Put it in the folder Windows uses as my Documents folder, which may be under OneDrive.
+   > Change nothing else on my computer.
 
 2. If a permission request appears, allow it if it looks for your Documents folder or creates
-   `copilot-practice` there.
+   `copilot-practice` there. If it doesn't, select **Skip**. Skip doesn't run the command; Copilot
+   carries on without it. When it asks, it waits for you.
+
+   ![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](images/permission-request.svg)
+
 3. In Windows File Explorer, select **Documents** on the left.
 
 Check: Documents has a `copilot-practice` folder, and it's empty.
+
+<!-- more: When Copilot asks before it acts -->
+By default, Copilot creates and edits files in your open folder without asking. It asks first for
+a few settings files, and for files outside the folder. It also asks before it runs a command that
+could change your computer.
+<!-- /more -->
 
 <!-- more: If you can't find the folder -->
 If Documents has no copilot-practice folder, tell Copilot:
@@ -79,7 +72,7 @@ Copilot works on the files in the folder you open.
 3. On the Restricted Mode bar, under the menu bar, select **Manage**. On the **Workspace Trust** page that opens, select **Trust**. If VS Code asks instead whether you trust the authors, leave the box about the parent folder
    unticked and select **Yes, I trust the authors**.
 
-![Drawing of the Restricted Mode bar under the menu bar, with Manage outlined.](images/restricted-mode.svg)
+   ![Drawing of the Restricted Mode bar under the menu bar, with Manage outlined.](images/restricted-mode.svg)
 
 Check: the list on the left shows `COPILOT-PRACTICE`, with nothing in it yet.
 

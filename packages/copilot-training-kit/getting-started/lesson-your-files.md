@@ -9,16 +9,16 @@ Start with the practice folder open and the chat set to **Agent**, as at the end
 
 1. In the chat box, enter:
 
-> In the copilot-practice folder, create a folder named notes.
-> In it, write three short, made-up notes from a weekly team meeting.
-> Each note lists what was decided, and the actions with an owner and a due date.
-> Then create actions.md beside the notes folder: a bulleted list of every action, with its owner, its due date and the note it came from.
-> Add or change no other file.
+   > In the copilot-practice folder, create a folder named notes.
+   > In it, write three short, made-up notes from a weekly team meeting.
+   > Each note lists what was decided, and the actions with an owner and a due date.
+   > Then create actions.md beside the notes folder: a bulleted list of every action, with its owner, its due date and the note it came from.
+   > Add or change no other file.
 
 2. If a permission request appears, allow it if it matches what you asked.
 3. In the list on the left, right-click `actions.md` and select **Open Preview**.
 
-![Drawing of the menu for actions.md in the list on the left, with Open Preview near the top.](images/open-preview.svg)
+   ![Drawing of the menu for actions.md in the list on the left, with Open Preview near the top.](images/open-preview.svg)
 
 Check: `notes` holds three files, and `actions.md` lists actions, each with an owner, a due date
 and the note it came from.
@@ -35,7 +35,7 @@ A follow-up builds on the last request, so it can be short.
 
 1. Enter:
 
-> Make the actions in actions.md a table, sorted by due date.
+   > Make the actions in actions.md a table, sorted by due date.
 
 Check: the preview of `actions.md` shows a table, earliest due date first.
 
@@ -46,7 +46,7 @@ Restore Checkpoint undoes the edits Copilot made with a request, so it's safe to
 1. In the chat, hover over your last request, the one about the table, and select **Restore
    Checkpoint**.
 
-![Drawing of the chat. Hovering over your last request shows Restore Checkpoint above it.](images/restore-checkpoint.svg)
+   ![Drawing of the chat. Hovering over your last request shows Restore Checkpoint above it.](images/restore-checkpoint.svg)
 
 2. If a dialog asks whether to undo your last edit, select **Yes**.
 

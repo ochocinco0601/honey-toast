@@ -383,11 +383,18 @@ measured as below, and carried to every kit. Every page has:
 - **An opening block:** the title, and under it, once, a unit's time and number of steps, or a
   training's level, units and time; a rule closes the block, and the paragraph after it is set
   larger as the page's summary.
-- **Steps on a track:** each numbered step and what follows it, to the next heading of its level,
-  is one section on a line down the left of the text, with a ring at the step's title. The ring of
+- **Steps on a track, where every step shows** (without the page's script, and in print): each
+  numbered step and what follows it, to the next heading of its level, is one section on a line
+  down the left of the text, with a ring at the step's title. The ring of
   the step being read fills, as its marker in the outline does. No number shows: numbers belong to
   the actions inside a step and to the units. At phone width the line folds away and the ring sits
   beside the title.
+- **One step at a time:** a unit with two or more steps shows one step at a time, as a codelab
+  does: "Step 2 of 4" above the step's title, then the step, then Back and "Next: <next step's
+  title>" at its end. The opening paragraph shows with step 1 and the unit's ending with the last.
+  A unit that explains rather than does (no numbered steps, three or more sections) shows one
+  section at a time the same way ("Part 1 of 3"). The track and its rings are not drawn here: the
+  outline's marker shows where the learner is.
 - **A prompt to copy is the most distinct object on the page:** its own tinted ground and edge, a
   chat mark, and a Copy button; an example to write from, or a prompt not supplied yet, has a dashed
   edge and no ground, since there is nothing to copy.
@@ -401,7 +408,7 @@ measured as below, and carried to every kit. Every page has:
   In progress or Not started. It has no separate start box. The programme's home shows each
   training as a card with its level as a chip, two to a row on a wide screen.
 - **Light and dark:** pages follow the reader's system theme, with a switch in the header.
-- **The learner's notes,** where a page has notes: a box under each note's question, a line saying the answer is kept in
+- **The learner's notes:** a box under each note's question, a line saying the answer is kept in
   this browser and is also in the workbook, and the workbook page itself, which prints without the
   outline, header and buttons.
 
@@ -420,22 +427,36 @@ units only.
 **The page has one order of attention:** the title block first, then each step on its track,
 then, inside a step, the prompt to copy. Everything else is quiet. One accent colour marks links,
 where the learner is and what to copy; neutrals are cool greys; green appears only on a completed
-unit; the warning colour only on the rare "Important:" label. A check is its text led by a bold
-"Check:" with a thin rule beside it, not a coloured panel. Outline rows are one line each and wrap
+unit and on a check's tick; the warning colour only on the rare "Important:" label. A check is its
+text led by a green tick and a bold "Check:", not a coloured panel. Outline rows are one line each and wrap
 when a name is long. Faces are the system's own (Segoe UI Variable on Windows), so nothing is
 downloaded. The look meets measured standards, not a judgement by eye: text meets WCAG 2.2 AA
 contrast (4.5:1) and every edge or mark that carries meaning (the rings and step markers, the
-Copy button's edge, a Check's rule, an answer box's edge) 3:1, in light and dark, while the track
-line and card edges only connect or group and stay lighter; seven type
-sizes (13, 14, 16, 17, 19, 24 and 36 pixels at the default zoom); space between blocks in steps
+Copy button's edge, a Check's tick, an answer box's edge) 3:1, in light and dark, while the track
+line and card edges only connect or group and stay lighter; eight type
+sizes (13, 14, 15, 16, 17, 19, 24 and 36 pixels at the default zoom, 15 for a drawing's caption); space between blocks in steps
 of 4 pixels; every click target at least 24 pixels; and each step of a unit fits on one screen,
 beside another window too.
+
+**Space groups a step into chunks,** so the learner sees what belongs together before reading it
+(proximity, the first of the Gestalt grouping principles). Even spacing between every line makes
+the eye scan everything as one run. Inside a step the scale is 8 pixels within a group (12 for a
+drawing or prompt under its action), 32 between its groups (what to do, a drawing, the check) and
+96 between steps when every step shows; a step's fold-outs sit 12 under its check. A drawing and
+the action it belongs to are one group.
+
+**One meaning per visual treatment,** so the learner does not decode a new mark at every line.
+Numerals are the actions, in the accent colour. Orange marks a point inside a drawing. Green is a
+result to look for. A fold-out is grey and quiet, and its label still reads as something to open.
+An alert is never orange. A step uses as few kinds of element as it can: never a numbered list
+inside a numbered action, and never a badge, a ruled panel, a fold-out and a divider where an
+action and a check would do.
 
 **The text column is wide: up to 68rem (1088 pixels),** as wide as the breadcrumb, filling the
 space beside the outline on a 1440-pixel screen. A narrow reading measure leaves a wide screen
 mostly empty and makes a unit feel sparse. Body text is 17 pixels at the default zoom, set in rem so it follows each
 reader's zoom, with a line height of 1.7 to carry the long line; 16 pixels between paragraphs and
-around lists. A drawing is at most 56rem wide so that its labels stay at reading size. If you
+around lists outside a step, and the scale above inside one. A drawing is at most 56rem wide so that its labels stay at reading size. If you
 change the look in `build_pages.py`, measure these again.
 
 ## How a page is written
@@ -566,9 +587,12 @@ Write a unit the way the published hands-on exercises do. The training-kit skill
   in `check_rulings.py` is set).
 - **Each step opens** with one sentence saying why the learner does it.
 - **Then numbered actions,** one action to a number, in the order the learner does them: where,
-  then what. A label on the screen is in bold.
-- **What the learner should see** follows the action as its own sentence, indented under it.
-  The step's `Check:` comes after the actions.
+  then what. A label on the screen is in bold. A step has one numbered list.
+- **What belongs to an action is indented under it:** the prompt the action sends, the drawing
+  that shows where to act, and what the learner should see, each as its own block. The sentence
+  right under a drawing is set as its caption. Nothing an action needs sits between two actions
+  or after the list.
+- **The step's `Check:` comes after the actions.**
 - **Every sentence reads right the first time,** said aloud to the audience as the settings state
   it. A sentence that carries a condition, a result and an exception at once is split into
   sentences, never shortened.
@@ -873,17 +897,39 @@ is `README.md`. A kit with no `videos/` folder builds as it would without this s
 byte for byte, and the checks and `measure.py` skip it: an explainer page is never read as a kit
 page. Then, on the kit's pages:
 
-- each video gets a page of the kit beside its lesson, `<lesson name>-video.html` (the overview's is
-  `overview-video.html`): the outline, the breadcrumb, a row with the way back and "Next: Written
-  steps" above the video, the video's own page in a frame, and the pager below. Every link to a
-  video goes to this page, and its `#<scene id>` is passed into the frame;
-- the video is its own item just before its lesson: the first entry in the unit's list in the
-  outline ("Video · 3 min"), the length on the unit's card, and the previous unit's Continue
-  goes to the video, whose link to the written steps is the way on. Progress counts units as
-  before; watching adds nothing;
-- each numbered step heading gets "Watch this step", opening the video at the first scene that
-  narrates that step. A step no scene narrates gets no link, and the build warns;
-- the home page links to the overview's video under its title.
+- **A lesson has one video, and it opens in place.** Under the lesson's title, one button,
+  "Watch the video · 4 min", opens the player right there, under the button, with a Close video
+  button below it; closing it or scrolling on leaves the learner where they were. A video never
+  takes the learner to another page: a new page loses their place in the lesson, and the lesson
+  is where they go back to. There are no per-step video links: two ways into the same video on
+  one page make the learner ask how they differ.
+- **The player shows only the player.** No text about how to use it, and nothing under it but
+  the Close button.
+- **A lesson opens with its video closed,** including from the previous unit's Continue, which
+  says the unit has a video ("Next unit: 3 of 5 · with a 4-minute video"). The outline's first
+  entry for the unit ("Video · 4 min") and any link ending in `#video` open the lesson with its
+  video open. Progress counts units as before; watching adds nothing.
+- A video closes with "When you've done the steps, select the button at the end of the written
+  steps to complete the unit.", or, for a unit with no numbered steps, "When you've watched this,
+  select Continue at the end of the page to complete the unit."
+- **The overview is the path's first stop.** It is first in the outline ("Overview · Video ·
+  3 min"), the home page's way on starts with it ("Start with the overview video"), and it opens
+  in place on the home page under the title.
+- Without the page's script, the button links to `<lesson name>-video.html` (the overview's is
+  `overview-video.html`), a kit page with the outline, the breadcrumb, the video in a frame and a
+  way on to the written steps.
+
+**Which lessons get a video is decided when the path is designed,** not after the pages are
+built, in the table below, one row per unit on every path. A unit the learner must operate the
+tool in, or that carries an idea best seen moving, has one by default; a unit without one says
+why. Making the videos is separate work from the pages, and can follow them.
+
+In this kit every unit on a path has one video; the practice recipes have none yet.
+
+**The overview video introduces the programme to someone who knows nothing about it yet:** what
+it is, why it matters in their work, what they will be able to do, and how the path is laid out,
+as the Introduction unit does. It never opens on a step of the first example: a learner dropped
+into an example with no context does not know what it is an example of.
 
 The build stops and says which package and why when a file's hash does not match, a listed file is
 missing or a file is not listed (names are compared exactly, letter case included, as a web server
@@ -896,8 +942,8 @@ them can edit a lesson but cannot remake its video. So editing a lesson never fa
 the build. When a lesson has changed since its video was made (its content hash differs), the build
 warns "The video for ... was made from an earlier version of the lesson" and names any step
 the video narrates that the lesson no longer has. Until the video is remade, the lesson's page says
-so in one line under its title, tells the learner to follow the written steps where they differ,
-and has no "Watch this step" links; the video stays in the path. Before a release, build
+so in one line under its title and tells the learner to follow the written steps where they
+differ; the video stays in reach. Before a release, build
 with `python maintaining/build_pages.py --strict`, which fails on any stale video.
 
 ## Versions

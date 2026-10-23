@@ -11,7 +11,7 @@ You'll compare this answer with the next one.
 
 1. In the chat box, enter:
 
-> Summarize the meeting notes in the notes folder of the copilot-practice folder.
+   > Summarize the meeting notes in the notes folder of the copilot-practice folder.
 
 Check: the chat shows a summary of the notes. Look at what comes first, and whether each item
 names the note it came from.
@@ -20,13 +20,13 @@ names the note it came from.
 
 1. Enter:
 
-> In the copilot-practice folder, create .github/copilot-instructions.md describing this work:
-> - The notes folder holds a team's weekly meeting notes.
-> - The people who read summaries of them are busy and not technical.
-> - They only need what they must act on: lead with the actions, grouped by owner, then one line of decisions.
-> - After each item, name the note it came from.
-> If that file already exists, don't change it; tell me instead.
-> Add or change no other file.
+   > In the copilot-practice folder, create .github/copilot-instructions.md describing this work:
+   > - The notes folder holds a team's weekly meeting notes.
+   > - The people who read summaries of them are busy and not technical.
+   > - They only need what they must act on: lead with the actions, grouped by owner, then one line of decisions.
+   > - After each item, name the note it came from.
+   > If that file already exists, don't change it; tell me instead.
+   > Add or change no other file.
 
 2. In the list on the left, open `.github` and select `copilot-instructions.md`.
 
@@ -44,11 +44,11 @@ A new chat starts without the first answer, so the first summary can't shape the
 
 1. At the top of the chat, select **New Chat** (+).
 
-![Drawing of the top of the chat, with New Chat (+) outlined.](images/new-chat.svg)
+   ![Drawing of the top of the chat, with New Chat (+) outlined.](images/new-chat.svg)
 
 2. Enter the same request as before:
 
-> Summarize the meeting notes in the notes folder of the copilot-practice folder.
+   > Summarize the meeting notes in the notes folder of the copilot-practice folder.
 
 Check: the new summary leads with the actions, grouped by owner, then one line of decisions, and
 names the note behind each item.
@@ -65,7 +65,7 @@ Left in place, these instructions shape every later answer in this folder, so re
 
 1. Enter:
 
-> Delete the .github folder in the copilot-practice folder, and nothing else.
+   > Delete the .github folder in the copilot-practice folder, and nothing else.
 
 2. If a permission request appears, allow it if it deletes only that folder.
 

@@ -254,6 +254,8 @@ kbd.arrow { font-size: 15px; line-height: 17px; padding: 1px 6px; }
    ways on, so the page drops its own and shows the player alone. */
 .inkit body { padding-block: 0 16px; }
 .inkit .lessonlink, .inkit .head { display: none; }
+/* inside a training's page the player and transcript are the whole view: the page around it already says what the video is */
+.inkit .about { display: none; }
 {{KIT_STYLE}}
 </style>
 <script>if (/[?&]in=kit(&|$)/.test(location.search) && window.parent !== window) document.documentElement.className += " inkit";</script>
@@ -655,7 +657,7 @@ kbd.arrow { font-size: 15px; line-height: 17px; padding: 1px 6px; }
        pointer event, so only a change of scene moves the clock. */
     if (want !== sceneAt(t)) goto(starts[want], playing); else paint(false);
   });
-  /* One arrow press is 0.13s, which can never cross a scene, so step scenes instead. */
+  /* One arrow press is a thousandth of the video, which can never cross a scene, so step scenes instead. */
   scrub.addEventListener("keydown", function (e) {
     var dir = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1
       : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;

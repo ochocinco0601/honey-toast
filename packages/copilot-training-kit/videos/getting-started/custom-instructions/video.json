@@ -1,7 +1,7 @@
 {
  "format": 1,
  "lesson": "getting-started/custom-instructions.md",
- "lesson_sha256": "0a35b37113c0f366e63ff7c917bcc15f0dc021a214f25f27e3320d6d5bdecc7a",
+ "lesson_sha256": "e3de10df506ff50669c0fe5e43682a388b1b9963e63aa202405deef29da4c518",
  "title": "Give Copilot custom instructions for a folder",
  "seconds": 219,
  "back_href": "../../../getting-started/custom-instructions.html",
@@ -58,7 +58,7 @@
   }
  ],
  "files": {
-  "audio/close.mp3": "ab910343eb2e1853575617218cecf411de9fe9e0b99c32563ef93750c971b525",
+  "audio/close.mp3": "0e9f5661ed85d247c97414ae9765f02e57f09c2a27252942646087b14afd41b1",
   "audio/compare-check.mp3": "7dc4f9dbfc5606b06814002b0eef0559e9017aed8ea2b7b8d6b192db51fe7913",
   "audio/compare.mp3": "05a10f10632f050677e4268d2676d6941f47fbd5ec622a282b5ec3a87f97529b",
   "audio/delete-check.mp3": "e3612927b23d6a8c8fa24eb3f6a206a26ceb90ed3666881d18537425695b50a2",
@@ -68,6 +68,6 @@
   "audio/open.mp3": "aa2e172fc094a8151bd89449b314c37a9d4830829a5e12d3e30be3cd6c46ca20",
   "audio/summarize-check.mp3": "8ccec35dc50f1e62918cffab8ca4d8a9d70eccd16d07528db1d79bcc026a0818",
   "audio/summarize.mp3": "82f29e05bdb7bfc85d06b80b190a774542e06b160b9c6db4c21c16ff9e4faacd",
-  "index.html": "ae6e606d3eec0b746879e381656587ef8f612c5d91494659a2484bddbcf18b87"
+  "index.html": "219b346cd8a62ddd736d7f53e16ad677f7d86dcc2ea3b6df98ac68cd84093f75"
  }
 }

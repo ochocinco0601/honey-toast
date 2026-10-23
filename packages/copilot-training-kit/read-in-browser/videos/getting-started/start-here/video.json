@@ -1,9 +1,9 @@
 {
  "format": 1,
  "lesson": "getting-started/start-here.md",
- "lesson_sha256": "d25c63a0bcd13a38fa6c4988394bcbed91dab7f431405c0482f9e70e9e733e57",
+ "lesson_sha256": "734217676f1a03f6fd6acb77370a3e7fb6782a2f0b1eccf4a85a1179bb806440",
  "title": "Make your first request to Copilot",
- "seconds": 256,
+ "seconds": 249,
  "back_href": "../../../getting-started/start-here.html",
  "scenes": [
   {
@@ -27,13 +27,13 @@
    "step": 1
   },
   {
-   "id": "permission",
-   "title": "Reading a permission request",
-   "step": 1
-  },
-  {
    "id": "practice-folder",
    "title": "Have Copilot create a practice folder",
+   "step": 2
+  },
+  {
+   "id": "permission",
+   "title": "Answer a permission request",
    "step": 2
   },
   {
@@ -58,16 +58,16 @@
   }
  ],
  "files": {
-  "audio/close.mp3": "38bdc23c8ecfd64e1243f2775bec60c405b07300420b95df84146f87f76c5664",
+  "audio/close.mp3": "63e123a72a0ee1d4dad3c38d8271b80ed7842f69e58cba946f2d83a0027ca217",
   "audio/open-chat-check.mp3": "062d6e00bf94f0c22f0002033afdb624af8e2339ccb184741d4acb52363bcf3e",
-  "audio/open-chat-window.mp3": "c946bf632cb8121a7db1a87c830d77bcdbfdcf5b5d78f2397f79ad81a5f00375",
+  "audio/open-chat-window.mp3": "a485b296dac3da394ee5d764baf50df87d4721796a3751d7577b8a9498fa0d61",
   "audio/open-chat.mp3": "86eb8ad23769cfc3f6612054f8dd14f352872af5b4caac49cc924c38c8426f25",
   "audio/open-folder-check.mp3": "fa54df5f542aed42858b36028c7720963333d8ffaf2b9e0a7f74ab257c593bfb",
   "audio/open-folder.mp3": "cc3cd4f9adbeb5acc1e928f5908077c60b3cd3adcbc395c91a7b25e2e6696e0f",
   "audio/open.mp3": "c5b1e182256063a419d8cbffc9ba47df44616bdb43502c00055f778428fb9184",
-  "audio/permission.mp3": "7d2f04e21ee966fa45c1afcd4785eeb465b4252a40469222bf2acbb3a77e9970",
-  "audio/practice-folder-check.mp3": "0c88e66268ef296d5b05248f16debfc089db35317fb634c6f0eb2be2bb08d638",
-  "audio/practice-folder.mp3": "4df070332a1ebfcd583391a744066c21378ee85da49bc99cb41a18459b30e18c",
-  "index.html": "5c62ecb90ac5163f5148b85fbea6b74a19592a3454ada1abc33615db19ecd455"
+  "audio/permission.mp3": "62ae43d474d7dc5975301189137bca7ac9968fb37d8403d998037314bc30dc46",
+  "audio/practice-folder-check.mp3": "e44acc228f4b1b008d6219c9378c64aa337ffc9ab69785258cee2d955edfaf0e",
+  "audio/practice-folder.mp3": "499f91b3aeccd1a7a3590e8fd4629eac11821e70fe19c408a554f2440527dcbe",
+  "index.html": "6befe7c9d793b0b60dc082259d2497344d04034c73fa7a164f0705e9bd855b31"
  }
 }

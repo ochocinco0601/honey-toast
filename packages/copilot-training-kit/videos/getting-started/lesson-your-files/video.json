@@ -1,7 +1,7 @@
 {
  "format": 1,
  "lesson": "getting-started/lesson-your-files.md",
- "lesson_sha256": "4d3a665650aab61d940a9eba4f61ea0b6a577938e115c146b6513d9f9bd9ff4b",
+ "lesson_sha256": "36055cf84bbebbf8e38cd14d5c66cbf1fb8181a97939a490047aa3ed3eff8eae",
  "title": "Change Copilot's work, then undo it",
  "seconds": 160,
  "back_href": "../../../getting-started/lesson-your-files.html",
@@ -48,7 +48,7 @@
   }
  ],
  "files": {
-  "audio/close.mp3": "b792a3c07f5cc0ddba08d944a87434585f07d38b3096b08866a4f1993332ce04",
+  "audio/close.mp3": "10b7af65512f45f86d8d7f8634b507b6535c273068770ef0f38745f52c8a5525",
   "audio/notes-check.mp3": "42e7fc4052c17942e31faf8aa86dd11e94e0bfb3514185a60b37d6bae2817bf5",
   "audio/notes.mp3": "df6188b02279363c25265393cd4ad9d7450e85b2c320aa9dd0afa9780745d212",
   "audio/open.mp3": "609cea711c2b4353ffcb5fb168a1ae4437ad88e646cb2c710c5c2f513f0ea9d7",
@@ -56,6 +56,6 @@
   "audio/table.mp3": "e91da12e6a2f7782ec716271142b7ddf600e896b80d78a7425401331ec40a1d2",
   "audio/undo-check.mp3": "628032bd970fa8e3d80c3b6507cde6ec35baa1f46a0407c322333cb1ef548c01",
   "audio/undo.mp3": "558783b094cf8e1af2954757033a6002f1c26f9e7059508f7562c95a2a135d33",
-  "index.html": "3fa60b4c92376099942faff4913da32e5212f0745c03d1e2e985eaba6192abdc"
+  "index.html": "ab55f7d47c1604e7d9fae4a3457c6ede5de55bb45917516a70583cbab601b976"
  }
 }

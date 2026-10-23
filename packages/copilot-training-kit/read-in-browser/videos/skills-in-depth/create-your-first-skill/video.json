@@ -1,9 +1,9 @@
 {
  "format": 1,
  "lesson": "skills-in-depth/create-your-first-skill.md",
- "lesson_sha256": "0a909f83176c74948989830b6298c539a42507d6f0954ff01634f620cc5940dd",
+ "lesson_sha256": "06a2d204c2378366919ea9fee5675a87d69af7d3d07360a59582eed4af58375e",
  "title": "Create your first skill",
- "seconds": 304,
+ "seconds": 308,
  "back_href": "../../../skills-in-depth/create-your-first-skill.html",
  "scenes": [
   {
@@ -65,15 +65,15 @@
  "files": {
   "audio/again-check.mp3": "6ec941000dbb39ea78021bfc18f20b5bc804c3b7d9e8b61464ae64453fe41c08",
   "audio/again.mp3": "d89fbdd57389d92d6d37adf2b257dbc0f1c4b9f17257c4c08892f806ba4e1a6a",
-  "audio/close.mp3": "f8d3207092ed068061d947e3b956fde7bbaaf4935045c84a9917518ed7b0b3ba",
+  "audio/close.mp3": "8e5c8c88c8030661cdbbb9bcf7444c4a4959251153a7364b6a78a89a1d2a274f",
   "audio/notes-check.mp3": "ce88d73c094394831c1b5e5aa87a759589be5a71560b4c613e265f26af626cb2",
   "audio/notes.mp3": "916b6d046e17674a41dd44ed6cbb635d9e97ecc882416a99ea7aec91339cc930",
-  "audio/open-folder.mp3": "87054075f76589c01d8af6ba0881cd1779e8828e12ccb507b0d1b5f6e7d7711d",
+  "audio/open-folder.mp3": "e2b269602cd8d2f6217027ca14807337dd85f85b8197eead946fabecc2b10345",
   "audio/open.mp3": "c3aa1b287ce12cf89267769ffe4f5e633d30b810ba49f5825985f0edfa1b58ea",
   "audio/save-check.mp3": "7e3b99ef42254dd02343665edf65d164756f7bc4e99e9b56caedd3ec1c30d186",
   "audio/save.mp3": "b104918c4fe92ae5ee33874e162faba7f8a303f0dbec1d2ae592e0ed3947e017",
   "audio/summarize-check.mp3": "8c562dfa273e17f91277331af33c57c1a8a9bb95edb1bab72b301a338416c7d8",
   "audio/summarize.mp3": "6954b4262d24164db7b317ae8e3ba3b880be1b2c229149b4bc4ed57d30311964",
-  "index.html": "e635bc8eaf349beeccbce5a2d5847236a5006c966dc8ac6eab315629c7d88df4"
+  "index.html": "1ece72378d2f3abd93364f8674919f67d3cb2ac2fbdd0be50082b4d67e9f8f74"
  }
 }

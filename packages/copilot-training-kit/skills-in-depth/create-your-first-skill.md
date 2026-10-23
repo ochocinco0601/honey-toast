@@ -10,27 +10,25 @@ Copilot creates meeting notes to practice on, in a new folder for this training.
 
 1. In the chat box, enter:
 
-> Create a new folder named skills-practice in the folder Windows uses as my Documents folder, which may be under OneDrive.
-> If that folder already exists, don't change it; tell me instead.
-> In it, create a folder named notes with three short, made-up notes from a weekly team meeting.
-> Each note lists what was decided, and the actions with an owner and a due date.
-> Add or change no other file.
+   > Create a new folder named skills-practice in the folder Windows uses as my Documents folder, which may be under OneDrive.
+   > If that folder already exists, don't change it; tell me instead.
+   > In it, create a folder named notes with three short, made-up notes from a weekly team meeting.
+   > Each note lists what was decided, and the actions with an owner and a due date.
+   > Add or change no other file.
 
 2. If a permission request appears, allow it if it looks for your Documents folder or creates
    `skills-practice` and its notes there.
 
-![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](../getting-started/images/permission-request.svg)
+   ![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](../getting-started/images/permission-request.svg)
 
-In the drawings, gray bars stand for text that differs on your screen.
+   In the drawings, gray bars stand for text that differs on your screen.
 
-Let Copilot finish before you go on: Open Folder replaces this window.
-
-3. On the **File** menu, select **Open Folder**. In the window that opens, go to Documents, the same Documents that File Explorer shows on the left. Select `skills-practice`, and then **Select Folder**.
+3. Let Copilot finish before you go on: Open Folder replaces this window. On the **File** menu, select **Open Folder**. In the window that opens, go to Documents, the same Documents that File Explorer shows on the left. Select `skills-practice`, and then **Select Folder**.
 4. On the Restricted Mode bar, under the menu bar, select **Manage**. On the **Workspace Trust** page that opens, select **Trust**.
    If VS Code asks instead whether you trust the authors, leave the box about the parent folder
    unticked and select **Yes, I trust the authors**.
 
-![Drawing of the Restricted Mode bar under the menu bar, with Manage outlined.](../getting-started/images/restricted-mode.svg)
+   ![Drawing of the Restricted Mode bar under the menu bar, with Manage outlined.](../getting-started/images/restricted-mode.svg)
 
 Check: the list on the left shows `SKILLS-PRACTICE`, with `notes` in it, and a control at the bottom of the chat box says **Agent**.
 
@@ -44,10 +42,10 @@ To get a summary the way you want it, you type out every instruction.
 
 1. Enter:
 
-> Summarize the meeting notes in the notes folder.
-> Lead with the decisions.
-> Then list the actions, each with its owner and due date.
-> After each item, name the note it came from.
+   > Summarize the meeting notes in the notes folder.
+   > Lead with the decisions.
+   > Then list the actions, each with its owner and due date.
+   > After each item, name the note it came from.
 
 Check: the summary leads with the decisions, gives each action an owner and a due date, and names
 the note behind each item. Without a skill, you'd type all those instructions every time.
@@ -59,15 +57,15 @@ them again.
 
 1. Enter:
 
-> Save the instructions from my last request as a skill named meeting-summary.
-> Put it in .github/skills/meeting-summary/SKILL.md in the skills-practice folder.
-> Use it whenever I ask to summarize meeting notes.
-> If a skill with that name already exists, don't change it; tell me instead.
-> Add or change no other file.
+   > Save the instructions from my last request as a skill named meeting-summary.
+   > Put it in .github/skills/meeting-summary/SKILL.md in the skills-practice folder.
+   > Use it whenever I ask to summarize meeting notes.
+   > If a skill with that name already exists, don't change it; tell me instead.
+   > Add or change no other file.
 
 2. In the list on the left, expand `.github` until `SKILL.md` shows, and select it.
 
-![Drawing of the list on the left: .github\skills\meeting-summary on one row, and SKILL.md under it.](images/skill-file.svg)
+   ![Drawing of the list on the left: .github\skills\meeting-summary on one row, and SKILL.md under it.](images/skill-file.svg)
 
 Check: the file holds your instructions, and a description saying to use the skill when you ask to
 summarize meeting notes.
@@ -82,11 +80,11 @@ This time you ask in one line, and Copilot follows the skill.
 
 1. Select **New Chat** (+).
 
-![Drawing of the top of the chat, with New Chat (+) outlined.](../getting-started/images/new-chat.svg)
+   ![Drawing of the top of the chat, with New Chat (+) outlined.](../getting-started/images/new-chat.svg)
 
 2. Enter:
 
-> Summarize the meeting notes in the notes folder.
+   > Summarize the meeting notes in the notes folder.
 
 Check: the summary leads with the decisions, gives each action an owner and a due date, and names
 the note behind each item, like the one you typed out in full.

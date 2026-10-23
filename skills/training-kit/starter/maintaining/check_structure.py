@@ -28,7 +28,7 @@ for p, full in pages.items():
     h = full.split("<script")[0]
     content = re.split(r'<main id="main"[^>]*>', full, 1)[1].split('<nav class="pager"')[0]
     content = re.sub(r'<details class="toc-inline">.*?</details>', " ", content, flags=re.S)
-    content = re.sub(r'<p class="watch">.*?</p>', " ", content, flags=re.S)
+    content = re.sub(r'<p class="watch"[^>]*>.*?</p>', " ", content, flags=re.S)
     content = re.sub(r'<p class="kept">.*?</p>', " ", content, flags=re.S)
     content = re.sub(r'<section class="workbook">.*?</section>', " ", content, flags=re.S)
     # A video's kit page has no markdown of its own: only its links are checked.
@@ -37,9 +37,11 @@ for p, full in pages.items():
         content = ""
     md = "" if video_page else io.open(os.path.join(kit, md_for(p)), encoding="utf-8").read().replace("\r\n", "\n")
     mdl = md.split("\n")
-    # Consecutive "> " lines at the start of a line are one request; an indented one, inside a list, stands alone.
+    # Consecutive "> " lines are one request, at the start of a line or indented inside an action.
     starts = [i for i, l in enumerate(mdl) if l.startswith("> ") and not (i and mdl[i - 1].startswith("> "))]
-    want_prompts = len(starts) + len([l for l in mdl if l.startswith(" ") and l.lstrip().startswith("> ")])
+    nested = [i for i, l in enumerate(mdl) if l.startswith(" ") and l.lstrip().startswith("> ")
+              and not (i and mdl[i - 1].startswith(" ") and mdl[i - 1].lstrip().startswith("> "))]
+    want_prompts = len(starts) + len(nested)
     # A request is short lines, one instruction each, so the learner can read what it asks.
     for i in (starts if md_for(p).replace(os.sep, "/") in RULED else []):
         block = []

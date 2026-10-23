@@ -16,10 +16,10 @@ Five of the notices give the same phone number, so you know how many files shoul
    then select **Agent**.
 2. In the chat box, enter:
 
-> In the copilot-practice folder, create a folder named notices.
-> In it, write eight short, made-up notices to staff about office services.
-> In five of them, give the service desk's phone number as 555-0100.
-> Add or change no other file.
+   > In the copilot-practice folder, create a folder named notices.
+   > In it, write eight short, made-up notices to staff about office services.
+   > In five of them, give the service desk's phone number as 555-0100.
+   > Add or change no other file.
 
 Check: `notices` holds eight files. If it holds a different number, expect that number below.
 
@@ -29,8 +29,8 @@ Seeing which files a change touches lets you catch a wrong match before anything
 
 1. Enter:
 
-> In the notices folder of the copilot-practice folder, list each file that gives the phone number 555-0100, with the sentence it's in.
-> Don't change any file yet.
+   > In the notices folder of the copilot-practice folder, list each file that gives the phone number 555-0100, with the sentence it's in.
+   > Don't change any file yet.
 
 Check: the reply lists five files. If it lists a different number of files, expect that number below.
 
@@ -40,11 +40,11 @@ Working on copies leaves the originals as they were.
 
 1. Enter:
 
-> In the copilot-practice folder, create a folder named notices-updated.
-> Copy every file from the notices folder into it.
-> In the copies, replace 555-0100 with 555-0199, and change nothing else in them.
-> Tell me how many files you copied and how many you changed.
-> Add or change no other file.
+   > In the copilot-practice folder, create a folder named notices-updated.
+   > Copy every file from the notices folder into it.
+   > In the copies, replace 555-0100 with 555-0199, and change nothing else in them.
+   > Tell me how many files you copied and how many you changed.
+   > Add or change no other file.
 
 2. If a permission request appears, allow it if it copies files from `notices` and changes only
    files in `notices-updated`.

@@ -239,7 +239,7 @@ min-height:32px;padding:6px 14px;cursor:pointer;border:1px solid var(--accent);b
 -webkit-mask:var(--i-copy) center/contain no-repeat;mask:var(--i-copy) center/contain no-repeat}
 button.copy:hover{background:var(--accent);color:var(--accent-ink)}
 button.copy.ok,button.copy.ok:hover{border-color:var(--ok);background:var(--surface);color:var(--ok)}
-/* a Check: a short bold label in the body's colour, set off by a thin rule */
+/* a Check: base style; inside a step it is led by a green tick instead of the rule (see below) */
 .check{margin:16px 0;padding:2px 0 2px 16px;border-left:3px solid var(--ctl)}
 .check p{margin:0}
 .check .lbl{font-weight:600;cursor:help}
@@ -277,7 +277,10 @@ tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
 thead th{background:var(--bg2);border-bottom:1px solid var(--rule2);font-weight:600;font-size:.875rem;color:var(--ink2)}
 tbody th{font-weight:600}
 .toc-inline{margin:0 0 24px;padding:8px 16px;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
-.toc-inline summary{cursor:pointer;font-weight:600;font-size:.875rem;min-height:28px;display:flex;align-items:center}
+.toc-inline summary{cursor:pointer;font-weight:600;font-size:.875rem;min-height:28px;display:flex;align-items:center;gap:8px;list-style:none}
+.toc-inline summary::-webkit-details-marker{display:none}
+.toc-inline summary::before{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg)}
+.toc-inline[open] summary::before{transform:rotate(45deg)}
 .toc-inline ul{list-style:none;margin:8px 0 4px;padding:0;font-size:.875rem}.toc-inline li{margin:4px 0;padding:0}
 .toc-inline li.l3{padding-left:16px}.toc-inline a{text-decoration:none}
 .toc-inline a:hover{text-decoration:underline}
@@ -287,6 +290,50 @@ button.stuck{font:inherit;font-size:.875rem;min-height:28px;padding:4px 0;border
 text-decoration:underline;text-decoration-color:var(--ctl);text-underline-offset:3px;text-align:left}
 button.stuck:hover{color:var(--accent);text-decoration-color:currentColor}
 button.stuck.ok{color:var(--ok);text-decoration:none;font-weight:600}
+/* a step's spacing scale, by proximity: 8px inside a group, 32px between its groups (do, see, check), 96px between steps */
+.stepsec{margin-top:96px}
+.stepsec:has(+ .stepsec)::before{bottom:-92px}
+main .stepsec > *{margin-top:8px;margin-bottom:0}
+main .stepsec > h2.step{margin-top:0}
+main .stepsec > p + p{margin-top:12px}
+main .stepsec li{margin:4px 0}
+main .stepsec > p:has(> .drawing){margin-top:32px}
+main .stepsec > p:has(> .drawing) > .drawing{margin:0}
+main .stepsec > .check{margin-top:32px}
+main .stepsec > .check + details.more{margin-top:12px}
+main .stepsec > p:has(> .drawing) + ol,main .stepsec > p:has(> .drawing) + p + ol{margin-top:32px}
+main .stepsec > .check + p:has(> .drawing){margin-top:12px}
+main .stepsec > .prompt,main .stepsec > .prompt + ol{margin-top:16px}
+main .stepsec > h3{margin-top:48px}
+/* one meaning per treatment: numerals are actions, orange points inside a drawing, green is a result,
+   a fold-out is grey and quiet, an alert is never orange */
+main .stepsec ol > li::marker{color:var(--accent);font-weight:700}
+main li .fig{display:block;margin:12px 0 0}
+main li .fig .drawing{margin:0}
+main li .cap{display:block;margin:8px 0 0;font-size:.9375rem;line-height:1.55;color:var(--ink2)}
+main li .fig + .gap,main li .cap + .gap{display:none}
+main li .prompt{margin:12px 0 0}
+main .stepsec li > ul{margin:8px 0 0}
+main .check{border-left:0;padding:0 0 0 28px;position:relative}
+main .check::before{content:"\2713";position:absolute;left:2px;top:0;color:var(--ok);font-weight:700}
+main .check .lbl{color:var(--ok)}
+details.more .m{border-left:0;padding-left:24px}
+main .callout .lbl{color:var(--ink)}
+main .stepsec > .check + .callout{margin-top:24px}
+main.paged h2.step::before{display:none}
+main.paged .stepsec{padding-left:0}
+main .stepsec > h3 + *{margin-top:8px}
+main .stepsec > .steprow{margin-top:16px}
+/* one step at a time: where the learner is, then the step, then the way on */
+main.paged .stepsec{margin-top:32px}
+main.paged .stepsec::before{display:none}
+main.paged .stepsec > p.stepof{margin:0 0 8px;font-size:.875rem;font-weight:600;letter-spacing:.02em;color:var(--ink2)}
+main.paged .stepsec > p.stepof + h2.step{margin-top:0}
+main.paged .stepsec > nav.stepnav{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;margin-top:48px;padding-top:24px;border-top:1px solid var(--rule)}
+nav.stepnav .stepnext{margin-left:auto}
+main.paged h2.step:focus{outline:none}
+nav.stepnav .stepback{font-weight:600;text-decoration:none}
+nav.stepnav .stepback:hover{text-decoration:underline}
 /* what comes next: the end of a unit is one framed block with the Continue button */
 .pager{margin:56px 0 0}
 .nextunit{padding:24px 28px;border:1px solid var(--rule);border-radius:14px;background:var(--surface);box-shadow:var(--shadow)}
@@ -368,6 +415,10 @@ border:0;border-radius:8px;background:none;color:var(--ink2);cursor:pointer;font
 @media (max-width:900px){.crumbs li.prog{display:none}.crumbs li.prog+li::before{display:none}
 .unitpos .long{display:none}.unitpos .short{display:inline}}
 @media (max-width:680px){
+/* a drawing's labels stay readable on a phone: it keeps a working width and scrolls inside its own frame */
+main .drawing{overflow-x:auto;-webkit-overflow-scrolling:touch}
+main .drawing svg{min-width:560px}
+main .scrollhint{display:block;margin:4px 0 0;font-size:.8125rem;color:var(--ink2)}
 .site{gap:8px;padding:0 12px}
 .search{width:auto;flex:1}
 .results{position:fixed;left:8px;right:8px;top:calc(var(--hdr) - 4px);width:auto}
@@ -377,7 +428,7 @@ main h1{font-size:1.5rem}
 main h2{font-size:1.1875rem;margin-top:36px}
 .pagehead + p,.pagehead + details + p{font-size:1.0625rem}
 /* at phone width the text keeps the whole column: the track folds away and the marker sits beside the step's title */
-.stepsec{margin-top:36px;padding-left:0}
+.stepsec{margin-top:64px;padding-left:0}
 .stepsec::before{display:none}
 main h2.step{padding-left:32px}
 main h2.step::before{left:0;top:3px;width:20px;height:20px}
@@ -422,14 +473,27 @@ main li.rate{padding-left:0}
 .wbacts button.copy{font-size:.875rem;padding:8px 14px}
 .workbook h3 a{color:inherit;text-decoration:none}
 .workbook h3 a:hover{color:var(--accent);text-decoration:underline}
-@media print{.site,.side,.scrim,.crumbs,.pager,.pagefoot,.steprow,.wbacts,.kept,.skip{display:none!important}
+@media print{.site,.side,.scrim,.crumbs,.pager,.pagefoot,.steprow,.wbacts,.kept,.skip,.stepnav,.stepof{display:none!important}
+main.paged > [hidden]{display:block!important}
 .layout{display:block}main{max-width:none;margin:0;padding:0}.stepsec{padding-left:0}.stepsec::before,main h2.step::before{display:none}
 .note textarea{border:0;padding:0;min-height:0;resize:none;overflow:visible}}
-/* videos: "Watch this step" under a step's heading, and the home page's link to the overview */
+/* videos: the "Watch the video" button under a page's title */
 main p.watch{margin:4px 0 12px;font-size:.875rem;line-height:1.4}
 main p.watch a{text-decoration:none}
 main p.watch a:hover{text-decoration:underline}
+main .stepsec > p.watch{margin:12px 0 0}
+main .stepsec > p.watch + *{margin-top:24px}
+main .pagehead p.watch{margin:16px 0 0}
+main .stepsec > p.watch a,main .pagehead p.watch a{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:6px 16px;border:1px solid var(--accent);
+border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:.9375rem;font-weight:600}
+main .stepsec > p.watch a:hover,main .pagehead p.watch a:hover{text-decoration:none;background:var(--accent);color:var(--accent-ink)}
 .pagehead p.watch{margin:8px 0 0}
+.vidinline{margin:16px 0 8px;border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--surface)}
+.vidinline .vidframe{display:block;width:100%;height:600px;border:0}
+.vidinline .vidbar{display:flex;justify-content:flex-end;padding:8px 12px;border-top:1px solid var(--rule)}
+.vidinline .vidclose{font:inherit;font-size:.9375rem;font-weight:600;min-height:36px;padding:6px 16px;border:1px solid var(--rule2);
+border-radius:8px;background:var(--bg);color:var(--ink);cursor:pointer}
+.vidinline .vidclose:hover{border-color:var(--accent);color:var(--accent)}
 .pagehead p.stalevideo{margin:8px 0 0;font-size:.875rem;color:var(--ink2)}
 </style></head><body data-root="../" data-training="skills-in-depth" data-outline="skills-in-depth">
 <a class="skip" href="#main">Skip to the page</a>
@@ -443,24 +507,22 @@ main p.watch a:hover{text-decoration:underline}
 <button id="theme" class="iconbtn" type="button" aria-label="Switch to dark theme" title="Switch between light and dark"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 0 0 14z" fill="currentColor"/></svg></button>
 </header>
 <div class="layout">
-<nav id="side" class="side" aria-label="Course outline"><div class="otop"><p class="omh" id="oth">Trainings</p><button class="oclose" id="oclose" type="button" aria-label="Close the outline">&times;</button></div><ol class="otrains" aria-labelledby="oth"><li class="ot ou" data-t="getting-started"><a class="otrow" href="../getting-started/index.html"><span class="oname">Getting started</span><span class="sr">, </span><span class="olevel">Beginner<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="skills-in-depth"><a class="otrow" href="index.html" aria-current="true"><span class="oname">Skills</span><span class="sr">, </span><span class="olevel">Intermediate<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="agents"><a class="otrow" href="../agents/index.html"><span class="oname">Custom agents</span><span class="sr">, </span><span class="olevel">Advanced<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="connecting"><a class="otrow" href="../connecting/index.html"><span class="oname">Connecting your tools</span><span class="sr">, </span><span class="olevel">Intermediate<span class="oprog" data-base=""></span></span></a></li></ol><div class="ocur"><div class="ohead"><a class="otitle" href="index.html">Skills</a><p class="ototal">2 units &middot; about 15 minutes</p><div class="obar" aria-hidden="true"><span id="obar"></span></div><p class="opct" id="opct"></p></div><ol class="ounits" aria-label="Units in Skills"><li class="ou" data-u="skills-in-depth/what-is-a-skill.html"><div class="ohd"><a class="orow" href="what-is-a-skill.html"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">1</span></span><span class="otext" title="Unit 1 · about five minutes"><span class="oname">What is a skill?</span><span class="otime" aria-hidden="true">About five minutes</span><span class="ometa">Unit 1 &middot; about five minutes<span class="oprog" data-base=""></span></span></span></a><button class="otoggle" type="button" aria-expanded="false" aria-controls="os1"><span class="sr">Steps in unit 1</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os1" aria-label="Steps in unit 1"><li><a class="ostep" href="what-is-a-skill-video.html"><span class="odot" aria-hidden="true"></span><span class="olab">Video &middot; 4 min</span></a></li></ol></li><li class="ou current open" data-u="skills-in-depth/create-your-first-skill.html"><div class="ohd"><a class="orow" href="create-your-first-skill.html" aria-current="page"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">2</span></span><span class="otext" title="Unit 2 · about 10 minutes · 4 steps"><span class="oname">Create your first skill</span><span class="otime" aria-hidden="true">About 10 minutes</span><span class="ometa">Unit 2 &middot; about 10 minutes<span class="oprog" data-base=" &middot; 4 steps"> &middot; 4 steps</span></span></span></a><button class="otoggle" type="button" aria-expanded="true" aria-controls="os2"><span class="sr">Steps in unit 2</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os2" aria-label="Steps in unit 2"><li><a class="ostep" href="create-your-first-skill-video.html"><span class="odot" aria-hidden="true"></span><span class="olab">Video &middot; 5 min</span></a></li><li><a class="ostep" href="#1-have-copilot-create-practice-meeting-notes" data-id="1-have-copilot-create-practice-meeting-notes"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot create practice meeting notes</span></a></li><li><a class="ostep" href="#2-ask-for-a-meeting-summary-without-a-skill" data-id="2-ask-for-a-meeting-summary-without-a-skill"><span class="odot" aria-hidden="true"></span><span class="olab">Ask for a meeting summary without a skill</span></a></li><li><a class="ostep" href="#3-have-copilot-save-the-summary-instructions-as-a-skill" data-id="3-have-copilot-save-the-summary-instructions-as-a-skill"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot save the summary instructions as a skill</span></a></li><li><a class="ostep" href="#4-ask-for-the-summary-again-with-the-skill" data-id="4-ask-for-the-summary-again-with-the-skill"><span class="odot" aria-hidden="true"></span><span class="olab">Ask for the summary again, with the skill</span></a></li></ol></li></ol></div><div class="omore"><p class="omh" id="omh">More</p><ul aria-labelledby="omh"><li><a href="../troubleshooting.html">Help</a></li><li><a href="../glossary.html">Glossary</a></li><li><a href="../CHANGELOG.html">What&#x27;s new</a></li></ul></div></nav><div class="scrim" id="scrim" aria-hidden="true"></div>
+<nav id="side" class="side" aria-label="Course outline"><div class="otop"><p class="omh" id="oth">Trainings</p><button class="oclose" id="oclose" type="button" aria-label="Close the outline">&times;</button></div><ol class="otrains" aria-labelledby="oth"><li class="ot ou" data-t=""><a class="otrow" href="../README.html#video"><span class="oname">Overview</span><span class="sr">, </span><span class="olevel">Video &middot; 3 min</span></a></li><li class="ot ou" data-t="getting-started"><a class="otrow" href="../getting-started/index.html"><span class="oname">Getting started</span><span class="sr">, </span><span class="olevel">Beginner<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="skills-in-depth"><a class="otrow" href="index.html" aria-current="true"><span class="oname">Skills</span><span class="sr">, </span><span class="olevel">Intermediate<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="agents"><a class="otrow" href="../agents/index.html"><span class="oname">Custom agents</span><span class="sr">, </span><span class="olevel">Advanced<span class="oprog" data-base=""></span></span></a></li><li class="ot ou" data-t="connecting"><a class="otrow" href="../connecting/index.html"><span class="oname">Connecting your tools</span><span class="sr">, </span><span class="olevel">Intermediate<span class="oprog" data-base=""></span></span></a></li></ol><div class="ocur"><div class="ohead"><a class="otitle" href="index.html">Skills</a><p class="ototal">2 units &middot; about 15 minutes</p><div class="obar" aria-hidden="true"><span id="obar"></span></div><p class="opct" id="opct"></p></div><ol class="ounits" aria-label="Units in Skills"><li class="ou" data-u="skills-in-depth/what-is-a-skill.html"><div class="ohd"><a class="orow" href="what-is-a-skill.html"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">1</span></span><span class="otext" title="Unit 1 · about five minutes"><span class="oname">What is a skill?</span><span class="otime" aria-hidden="true">About five minutes</span><span class="ometa">Unit 1 &middot; about five minutes<span class="oprog" data-base=""></span></span></span></a><button class="otoggle" type="button" aria-expanded="false" aria-controls="os1"><span class="sr">Steps in unit 1</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os1" aria-label="Steps in unit 1"><li><a class="ostep" href="what-is-a-skill.html#video"><span class="odot" aria-hidden="true"></span><span class="olab">Video &middot; 4 min</span></a></li></ol></li><li class="ou current open" data-u="skills-in-depth/create-your-first-skill.html"><div class="ohd"><a class="orow" href="create-your-first-skill.html" aria-current="page"><span class="oring" aria-hidden="true"><svg viewBox="0 0 32 32"><circle class="trk" cx="16" cy="16" r="13"/><circle class="arc" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="0 82" style="display:none"/></svg><span class="n">2</span></span><span class="otext" title="Unit 2 · about 10 minutes · 4 steps"><span class="oname">Create your first skill</span><span class="otime" aria-hidden="true">About 10 minutes</span><span class="ometa">Unit 2 &middot; about 10 minutes<span class="oprog" data-base=" &middot; 4 steps"> &middot; 4 steps</span></span></span></a><button class="otoggle" type="button" aria-expanded="true" aria-controls="os2"><span class="sr">Steps in unit 2</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><ol class="osteps" id="os2" aria-label="Steps in unit 2"><li><a class="ostep" href="create-your-first-skill.html#video"><span class="odot" aria-hidden="true"></span><span class="olab">Video &middot; 5 min</span></a></li><li><a class="ostep" href="#1-have-copilot-create-practice-meeting-notes" data-id="1-have-copilot-create-practice-meeting-notes"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot create practice meeting notes</span></a></li><li><a class="ostep" href="#2-ask-for-a-meeting-summary-without-a-skill" data-id="2-ask-for-a-meeting-summary-without-a-skill"><span class="odot" aria-hidden="true"></span><span class="olab">Ask for a meeting summary without a skill</span></a></li><li><a class="ostep" href="#3-have-copilot-save-the-summary-instructions-as-a-skill" data-id="3-have-copilot-save-the-summary-instructions-as-a-skill"><span class="odot" aria-hidden="true"></span><span class="olab">Have Copilot save the summary instructions as a skill</span></a></li><li><a class="ostep" href="#4-ask-for-the-summary-again-with-the-skill" data-id="4-ask-for-the-summary-again-with-the-skill"><span class="odot" aria-hidden="true"></span><span class="olab">Ask for the summary again, with the skill</span></a></li></ol></li></ol></div><div class="omore"><p class="omh" id="omh">More</p><ul aria-labelledby="omh"><li><a href="../troubleshooting.html">Help</a></li><li><a href="../glossary.html">Glossary</a></li><li><a href="../CHANGELOG.html">What&#x27;s new</a></li></ul></div></nav><div class="scrim" id="scrim" aria-hidden="true"></div>
 <div class="content">
 <nav class="crumbs" aria-label="Breadcrumb"><div class="in"><ol><li class="prog"><a href="../README.html">GitHub Copilot training</a></li><li><a href="index.html">Skills</a></li><li aria-current="page"><span>Create your first skill</span></li></ol><span class="unitpos" id="unitpos"><span class="long" id="upos-long">Unit 2 of 2</span><span class="short" id="upos-short">Unit 2 of 2</span></span></div><div class="line" aria-hidden="true"><span id="line"></span></div></nav>
 <main id="main" data-steps="1" data-page="Create your first skill" data-stuck-from="1" data-kit-open="0" data-stuck="1" data-program="GitHub Copilot training" data-assistant="Copilot" data-chat="the chat box">
 <header class="pagehead"><h1>Create your first skill</h1>
 <p class="unit">About 10 minutes &middot; 4 steps</p>
+<p class="watch" id="video"><a href="create-your-first-skill-video.html" data-play="../videos/skills-in-depth/create-your-first-skill/index.html?in=kit"><span aria-hidden="true">&#9654;</span> Watch the video &middot; 5 min</a></p>
 </header>
 <p>A <a class="gl" href="../glossary.html#skill" title="Saved instructions for one kind of task, which Copilot follows when you ask for that task. A skill in a folder works while that folder is open; one in your personal skills folder works in every folder">skill</a> saves your instructions for a task, so you don't type them again. In this unit, you ask for a meeting summary with every instruction typed out, and have Copilot save those instructions as a skill. Then you get the same summary by asking in one line.</p>
-<section class="stepsec"><h2 id="1-have-copilot-create-practice-meeting-notes" class="step"><span class="sr">1. </span><span class="tt">Have Copilot create practice meeting notes</span></h2><p class="watch"><a href="create-your-first-skill-video.html#notes"><span aria-hidden="true">&#9654;</span> Watch this step</a></p>
+<section class="stepsec"><h2 id="1-have-copilot-create-practice-meeting-notes" class="step"><span class="sr">1. </span><span class="tt">Have Copilot create practice meeting notes</span></h2>
 <p>Copilot creates meeting notes to practice on, in a new folder for this training.</p>
-<ol><li>In the chat box, enter:</li></ol>
-<div class="prompt"><div class="t">Create a new folder named skills-practice in the folder Windows uses as my Documents folder, which may be under OneDrive.
+<ol><li>In the chat box, enter:<div class="gap"></div><div class="prompt"><div class="t">Create a new folder named skills-practice in the folder Windows uses as my Documents folder, which may be under OneDrive.
 If that folder already exists, don't change it; tell me instead.
 In it, create a folder named notes with three short, made-up notes from a weekly team meeting.
 Each note lists what was decided, and the actions with an owner and a due date.
-Add or change no other file.</div><button class="copy" type="button" aria-label="Copy: Create a new folder named…">Copy</button></div>
-<ol start="2"><li>If a <a class="gl" href="../glossary.html#permission-request" title="Allow and Skip buttons in a reply, asking whether Copilot may run a command. How to read one: Reading a permission request">permission request</a> appears, allow it if it looks for your Documents folder or creates <code>skills-practice</code> and its notes there.</li></ol>
-<p><span class="drawing" data-src="../getting-started/images/permission-request.svg" role="img" aria-label="Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 346" role="presentation">
+Add or change no other file.</div><button class="copy" type="button" aria-label="Copy: Create a new folder named…">Copy</button></div></li><li>If a <a class="gl" href="../glossary.html#permission-request" title="Allow and Skip buttons in a reply, asking whether Copilot may run a command. How to read one: Reading a permission request">permission request</a> appears, allow it if it looks for your Documents folder or creates <code>skills-practice</code> and its notes there.<div class="gap"></div><span class="fig"><span class="drawing" data-src="../getting-started/images/permission-request.svg" role="img" aria-label="Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 346" role="presentation">
 
 <style>
 .dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
@@ -508,11 +570,7 @@ Add or change no other file.</div><button class="copy" type="button" aria-label=
 <rect class="dg-m" x="30" y="198" width="168" height="40" rx="5"/>
 <path class="dg-ml" d="M430 155h36"/><text class="dg-lab" x="472" y="151">What Copilot will do:</text><text class="dg-lab" x="472" y="169">the command it runs</text>
 <path class="dg-ml" d="M198 218h268"/><text class="dg-lab" x="472" y="223">Allow runs it; Skip doesn't</text>
-</svg></span></p>
-<p>In the drawings, gray bars stand for text that differs on your screen.</p>
-<p>Let Copilot finish before you go on: Open Folder replaces this window.</p>
-<ol start="3"><li>On the <b>File</b> menu, select <b>Open Folder</b>. In the window that opens, go to Documents, the same Documents that File Explorer shows on the left. Select <code>skills-practice</code>, and then <b>Select Folder</b>.</li><li>On the Restricted Mode bar, under the menu bar, select <b>Manage</b>. On the <b>Workspace Trust</b> page that opens, select <b>Trust</b>. If VS Code asks instead whether you trust the authors, leave the box about the parent folder unticked and select <b>Yes, I trust the authors</b>.</li></ol>
-<p><span class="drawing" data-src="../getting-started/images/restricted-mode.svg" role="img" aria-label="Drawing of the Restricted Mode bar under the menu bar, with Manage outlined."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 210" role="presentation">
+</svg></span></span><div class="gap"></div><span class="cap">In the drawings, gray bars stand for text that differs on your screen.</span></li><li>Let Copilot finish before you go on: Open Folder replaces this window. On the <b>File</b> menu, select <b>Open Folder</b>. In the window that opens, go to Documents, the same Documents that File Explorer shows on the left. Select <code>skills-practice</code>, and then <b>Select Folder</b>.</li><li>On the Restricted Mode bar, under the menu bar, select <b>Manage</b>. On the <b>Workspace Trust</b> page that opens, select <b>Trust</b>. If VS Code asks instead whether you trust the authors, leave the box about the parent folder unticked and select <b>Yes, I trust the authors</b>.<div class="gap"></div><span class="fig"><span class="drawing" data-src="../getting-started/images/restricted-mode.svg" role="img" aria-label="Drawing of the Restricted Mode bar under the menu bar, with Manage outlined."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 210" role="presentation">
 
 <style>
 .dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
@@ -544,32 +602,28 @@ Add or change no other file.</div><button class="copy" type="button" aria-label=
 .dg-x-faint{stroke:var(--ctl,#767676);stroke-width:1.5;fill:none;stroke-dasharray:4 4}
 .dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
 </style>
-<rect class="dg-w" x="5" y="5" width="690" height="200" rx="8"/><rect class="dg-c" x="6" y="6" width="688" height="30" rx="7"/><text class="dg-t" x="20" y="26" style="font-size:12px">File   Edit   Selection   View   Go   …</text><rect class="dg-tn" x="6" y="36" width="688" height="28" rx="0"/><path class="dg-ic" d="M22 41l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10v-5z"/><text class="dg-t" x="38" y="55" style="font-size:12px">Restricted Mode is intended for safe code browsing. Trust this folder to…</text><text class="dg-t" x="500" y="55" style="font-size:12px">Manage</text><line x1="500" y1="58" x2="541" y2="58" style="stroke:var(--ink,#1b1b1b);stroke-width:1"/><text class="dg-t" x="560" y="55" style="font-size:12px">Learn More</text><line x1="560" y1="58" x2="620" y2="58" style="stroke:var(--ink,#1b1b1b);stroke-width:1"/><path class="dg-ic" d="M668 45l8 8M676 45l-8 8"/><rect class="dg-c" x="6" y="64" width="34" height="140" rx="0"/><g transform="translate(0 30)"><path class="dg-ic" d="M17 48h8l4 4v12H17z"/><circle class="dg-ic" cx="22" cy="83" r="5"/><path class="dg-ic" d="M26 87l5 5"/><circle class="dg-ic" cx="19" cy="108" r="2.5"/><circle class="dg-ic" cx="27" cy="116" r="2.5"/><path class="dg-ic" d="M19 111v10M19 118c0-4 8-2 8-4"/><path class="dg-ic" d="M18 136l10 6-10 6z"/><path class="dg-ic" d="M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z"/></g><line class="dg-l" x1="241" y1="64" x2="241" y2="204"/><text class="dg-s" x="51" y="84">EXPLORER</text><text class="dg-tb" x="51" y="108" style="font-size:12px">⌄ COPILOT-PRACTICE</text><rect class="dg-m" x="493" y="39" width="58" height="23" rx="5"/><path class="dg-ml" d="M522 62L522 110L530 110"/><text class="dg-lab" x="536" y="115">Select Manage</text>
-</svg></span></p>
+<rect class="dg-w" x="5" y="5" width="690" height="200" rx="8"/><rect class="dg-c" x="6" y="6" width="688" height="30" rx="7"/><text class="dg-t" x="20" y="26" style="font-size:12px">File   Edit   Selection   View   Go   …</text><rect class="dg-tn" x="6" y="36" width="688" height="28" rx="0"/><path class="dg-ic" d="M22 41l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10v-5z"/><text class="dg-t" x="38" y="55" style="font-size:12px">Restricted Mode is intended for safe code browsing. Trust this folder to…</text><text class="dg-t" x="500" y="55" style="font-size:12px">Manage</text><line x1="500" y1="58" x2="541" y2="58" style="stroke:var(--ink,#1b1b1b);stroke-width:1"/><text class="dg-t" x="560" y="55" style="font-size:12px">Learn More</text><line x1="560" y1="58" x2="620" y2="58" style="stroke:var(--ink,#1b1b1b);stroke-width:1"/><path class="dg-ic" d="M668 45l8 8M676 45l-8 8"/><rect class="dg-c" x="6" y="64" width="34" height="140" rx="0"/><g transform="translate(0 30)"><path class="dg-ic" d="M17 48h8l4 4v12H17z"/><circle class="dg-ic" cx="22" cy="83" r="5"/><path class="dg-ic" d="M26 87l5 5"/><circle class="dg-ic" cx="19" cy="108" r="2.5"/><circle class="dg-ic" cx="27" cy="116" r="2.5"/><path class="dg-ic" d="M19 111v10M19 118c0-4 8-2 8-4"/><path class="dg-ic" d="M18 136l10 6-10 6z"/><path class="dg-ic" d="M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z"/></g><line class="dg-l" x1="241" y1="64" x2="241" y2="204"/><text class="dg-s" x="51" y="84">EXPLORER</text><text class="dg-tb" x="51" y="108" style="font-size:12px">⌄ </text><rect class="dg-b2" x="64" y="100" width="110" height="8" rx="2"/><rect class="dg-m" x="493" y="39" width="58" height="23" rx="5"/><path class="dg-ml" d="M522 62L522 110L530 110"/><text class="dg-lab" x="536" y="115">Select Manage</text>
+</svg></span></span></li></ol>
 <div class="check"><p><b class="lbl">Check:</b> the list on the left shows <code>SKILLS-PRACTICE</code>, with <code>notes</code> in it, and a control at the bottom of the chat box says <b>Agent</b>.</p></div>
 <details class="more"><summary>If no control shows Agent</summary><div class="m">
 <p>If no control there says <b>Agent</b>, or the controls show only icons, select the chat box, hold down Ctrl, and press the period key (.). The list of agents opens, with the selected agent highlighted. Select <b>Agent</b>.</p>
 </div></details>
 </section>
-<section class="stepsec"><h2 id="2-ask-for-a-meeting-summary-without-a-skill" class="step"><span class="sr">2. </span><span class="tt">Ask for a meeting summary without a skill</span></h2><p class="watch"><a href="create-your-first-skill-video.html#summarize"><span aria-hidden="true">&#9654;</span> Watch this step</a></p>
+<section class="stepsec"><h2 id="2-ask-for-a-meeting-summary-without-a-skill" class="step"><span class="sr">2. </span><span class="tt">Ask for a meeting summary without a skill</span></h2>
 <p>To get a summary the way you want it, you type out every instruction.</p>
-<ol><li>Enter:</li></ol>
-<div class="prompt"><div class="t">Summarize the meeting notes in the notes folder.
+<ol><li>Enter:<div class="gap"></div><div class="prompt"><div class="t">Summarize the meeting notes in the notes folder.
 Lead with the decisions.
 Then list the actions, each with its owner and due date.
-After each item, name the note it came from.</div><button class="copy" type="button" aria-label="Copy: Summarize the meeting notes in the…">Copy</button></div>
+After each item, name the note it came from.</div><button class="copy" type="button" aria-label="Copy: Summarize the meeting notes in the…">Copy</button></div></li></ol>
 <div class="check"><p><b class="lbl">Check:</b> the summary leads with the decisions, gives each action an owner and a due date, and names the note behind each item. Without a skill, you'd type all those instructions every time.</p></div>
 </section>
-<section class="stepsec"><h2 id="3-have-copilot-save-the-summary-instructions-as-a-skill" class="step"><span class="sr">3. </span><span class="tt">Have Copilot save the summary instructions as a skill</span></h2><p class="watch"><a href="create-your-first-skill-video.html#save"><span aria-hidden="true">&#9654;</span> Watch this step</a></p>
+<section class="stepsec"><h2 id="3-have-copilot-save-the-summary-instructions-as-a-skill" class="step"><span class="sr">3. </span><span class="tt">Have Copilot save the summary instructions as a skill</span></h2>
 <p>Saved as a skill, these instructions are used when you ask for a meeting summary, without typing them again.</p>
-<ol><li>Enter:</li></ol>
-<div class="prompt"><div class="t">Save the instructions from my last request as a skill named meeting-summary.
+<ol><li>Enter:<div class="gap"></div><div class="prompt"><div class="t">Save the instructions from my last request as a skill named meeting-summary.
 Put it in .github/skills/meeting-summary/SKILL.md in the skills-practice folder.
 Use it whenever I ask to summarize meeting notes.
 If a skill with that name already exists, don't change it; tell me instead.
-Add or change no other file.</div><button class="copy" type="button" aria-label="Copy: Save the instructions from my last…">Copy</button></div>
-<ol start="2"><li>In the list on the left, expand <code>.github</code> until <code>SKILL.md</code> shows, and select it.</li></ol>
-<p><span class="drawing" data-src="images/skill-file.svg" role="img" aria-label="Drawing of the list on the left: .github\skills\meeting-summary on one row, and SKILL.md under it."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 220" role="presentation">
+Add or change no other file.</div><button class="copy" type="button" aria-label="Copy: Save the instructions from my last…">Copy</button></div></li><li>In the list on the left, expand <code>.github</code> until <code>SKILL.md</code> shows, and select it.<div class="gap"></div><span class="fig"><span class="drawing" data-src="images/skill-file.svg" role="img" aria-label="Drawing of the list on the left: .github\skills\meeting-summary on one row, and SKILL.md under it."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 220" role="presentation">
 
 <style>
 .dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
@@ -602,14 +656,13 @@ Add or change no other file.</div><button class="copy" type="button" aria-label=
 .dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
 </style>
 <rect class="dg-w" x="5" y="5" width="690" height="210" rx="8"/><rect class="dg-c" x="6" y="34" width="34" height="180" rx="0"/><g transform="translate(0 0)"><path class="dg-ic" d="M17 48h8l4 4v12H17z"/><circle class="dg-ic" cx="22" cy="83" r="5"/><path class="dg-ic" d="M26 87l5 5"/><circle class="dg-ic" cx="19" cy="108" r="2.5"/><circle class="dg-ic" cx="27" cy="116" r="2.5"/><path class="dg-ic" d="M19 111v10M19 118c0-4 8-2 8-4"/><path class="dg-ic" d="M18 136l10 6-10 6z"/><path class="dg-ic" d="M16 162h6v6h-6zM25 162h6v6h-6zM16 171h6v6h-6zM27 170l4 4-4 4-4-4z"/></g><line class="dg-l" x1="341" y1="34" x2="341" y2="214"/><text class="dg-s" x="51" y="54">EXPLORER</text><text class="dg-tb" x="51" y="78" style="font-size:12px">⌄ SKILLS-PRACTICE</text><text class="dg-t" x="63" y="100">⌄ .github\skills\meeting-summary</text><rect class="dg-tn" x="42" y="107" width="298" height="21" rx="0"/><rect class="dg-b2" x="75" y="112" width="9" height="11" rx="2"/><text class="dg-t" x="90" y="122">SKILL.md</text><text class="dg-t" x="63" y="144">› notes</text><rect class="dg-m" x="47" y="83" width="288" height="47" rx="5"/><path class="dg-ml" d="M335 106L420 106"/><text class="dg-lab" x="426" y="101">Expand .github until SKILL.md</text><text class="dg-lab" x="426" y="119">shows, then select it</text>
-</svg></span></p>
+</svg></span></span></li></ol>
 <div class="check"><p><b class="lbl">Check:</b> the file holds your instructions, and a description saying to use the skill when you ask to summarize meeting notes.</p></div>
 <div class="callout" role="note"><p><b class="lbl">Important:</b> this skill is saved in the skills-practice folder, so it works only while that folder is open in VS Code. To have a skill work in every folder, ask Copilot to save it in your personal skills folder instead.</p></div>
 </section>
-<section class="stepsec"><h2 id="4-ask-for-the-summary-again-with-the-skill" class="step"><span class="sr">4. </span><span class="tt">Ask for the summary again, with the skill</span></h2><p class="watch"><a href="create-your-first-skill-video.html#again"><span aria-hidden="true">&#9654;</span> Watch this step</a></p>
+<section class="stepsec"><h2 id="4-ask-for-the-summary-again-with-the-skill" class="step"><span class="sr">4. </span><span class="tt">Ask for the summary again, with the skill</span></h2>
 <p>This time you ask in one line, and Copilot follows the skill.</p>
-<ol><li>Select <b>New Chat</b> (+).</li></ol>
-<p><span class="drawing" data-src="../getting-started/images/new-chat.svg" role="img" aria-label="Drawing of the top of the chat, with New Chat (+) outlined."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 260" role="presentation">
+<ol><li>Select <b>New Chat</b> (+).<div class="gap"></div><span class="fig"><span class="drawing" data-src="../getting-started/images/new-chat.svg" role="img" aria-label="Drawing of the top of the chat, with New Chat (+) outlined."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 260" role="presentation">
 
 <style>
 .dg-w{fill:var(--surface,#fff);stroke:var(--rule2,#cdcdcd);stroke-width:1.5}
@@ -642,9 +695,7 @@ Add or change no other file.</div><button class="copy" type="button" aria-label=
 .dg-x-cap{fill:var(--ink2,#505050);font-size:13px}
 </style>
 <rect class="dg-w" x="5" y="5" width="450" height="250" rx="8"/><text class="dg-s" x="21" y="34">CHAT</text><path class="dg-ic" d="M377 23v14M370 30h14"/><path class="dg-ic" d="M388 29l3 3 3-3"/><circle class="dg-ic" cx="413" cy="30" r="6" style="stroke-dasharray:2.4 1.6;stroke-width:2.4"/><circle class="dg-ic" cx="413" cy="30" r="2.2"/><path class="dg-ic" d="M433 30h.5M439 30h.5M445 30h.5"/><rect class="dg-tn" x="255" y="50" width="186" height="30" rx="7"/><rect class="dg-b2" x="267" y="62" width="140" height="7" rx="2"/><rect class="dg-b" x="21" y="92" width="220" height="7" rx="2"/><rect class="dg-b" x="21" y="108" width="260" height="7" rx="2"/><rect class="dg-b" x="21" y="124" width="190" height="7" rx="2"/><rect class="dg-w" x="17" y="176" width="426" height="66" rx="7"/><rect class="dg-b" x="29" y="189" width="110" height="7" rx="2"/><rect class="dg-ic" x="27" y="218" width="11" height="11" rx="2"/><path class="dg-ic" d="M32 221v5M30.0 223h5"/><rect class="dg-p" x="45" y="212" width="71" height="22" rx="5"/><path class="dg-ic" d="M57 218.5l4.5 4.5-4.5 4.5-4.5-4.5z"/><text class="dg-t" x="68" y="227" style="font-size:12px">Agent</text><rect class="dg-p" x="122" y="212" width="48" height="22" rx="5"/><rect class="dg-b" x="130" y="220" width="30" height="5" rx="2"/><circle class="dg-ic" cx="184" cy="223" r="5" style="stroke-dasharray:2.4 1.6;stroke-width:2.4"/><circle class="dg-ic" cx="184" cy="223" r="2.2"/><path d="M421 229l13-6-13-6v4.5l7 1.5-7 1.5z" style="fill:var(--ink3,#6b6b6b)"/><rect class="dg-m" x="364" y="16" width="34" height="28" rx="5"/><path class="dg-ml" d="M381 16L381 10L480 10"/><text class="dg-lab" x="486" y="15">New Chat (+)</text>
-</svg></span></p>
-<ol start="2"><li>Enter:</li></ol>
-<div class="prompt"><div class="t">Summarize the meeting notes in the notes folder.</div><button class="copy" type="button" aria-label="Copy: Summarize the meeting notes in the…">Copy</button></div>
+</svg></span></span></li><li>Enter:<div class="gap"></div><div class="prompt"><div class="t">Summarize the meeting notes in the notes folder.</div><button class="copy" type="button" aria-label="Copy: Summarize the meeting notes in the…">Copy</button></div></li></ol>
 <div class="check"><p><b class="lbl">Check:</b> the summary leads with the decisions, gives each action an owner and a due date, and names the note behind each item, like the one you typed out in full.</p></div>
 <details class="more"><summary>If the summary isn&#x27;t laid out that way</summary><div class="m">
 <p>Copilot doesn't use a skill for every request that could match its description. Run it by name instead: type <code>/meet</code>, select <b>meeting-summary</b>, then type <code>the notes folder</code> and press Enter. To have Copilot find out why and fix the skill, send:</p>
@@ -660,7 +711,7 @@ Tell…">Copy</button></div>
 <p>Source: <a href="https://code.visualstudio.com/docs/agent-customization/agent-skills" target="_blank" rel="noopener">Use Agent Skills in VS Code</a>, Microsoft.</p>
 <nav class="pager" aria-label="What comes next"><div class="nextunit"><p class="lbl">End of the path</p><h2>Skills</h2><div class="nextrow"><a class="btn" href="index.html" data-complete="1">Back to the training<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a><a class="prev" href="what-is-a-skill.html">&lsaquo; Previous unit: What is a skill?</a></div><p class="nudge" id="nudge" aria-live="polite" data-btn="Back to the training"></p></div></nav>
 </main>
-<footer class="pagefoot"><span>Last updated 2026-10-21</span><a href="../CHANGELOG.html">Version 1.7</a></footer>
+<footer class="pagefoot"><span>Last updated 2026-10-22</span><a href="../CHANGELOG.html">Version 1.8</a></footer>
 </div>
 </div>
 <div id="say" class="sr" aria-live="polite"></div>
@@ -878,8 +929,7 @@ function paintUnitCards(){
     pnext(ROOT+lb.u,lb.name);
   }else if(li_>=0||s.done){
     var k=todo.filter(function(k){return k>li_;})[0]; if(k===undefined) k=todo[0];
-    /* a unit not yet opened starts at its video, when it has one */
-    var nu=T.units[k], nh=ROOT+(nu.v||nu.u);
+    var nu=T.units[k], nh=ROOT+nu.u;
     go("Continue with unit "+(k+1),nh,"Next: "+nu.name);
     pnext(nh,nu.name);
   }else if(ctaStart) go(ctaStart.t,ctaStart.h,ctaStart.n);
@@ -953,8 +1003,79 @@ document.getElementById("oclose").addEventListener("click",function(){closeNav()
 var hereLinks=[].slice.call(document.querySelectorAll(".ou.current .ostep"));
 var hereHeads=hereLinks.map(function(a){return document.getElementById(a.getAttribute("data-id"));}).filter(Boolean);
 var hereSaved="";
+/* a unit with two or more steps shows one step at a time, with Back and Next at its end, as a codelab
+   does; the title stays, the opening paragraph shows with step 1 and the unit's ending with the last.
+   Without the script every step shows, as before. */
+/* a unit that explains rather than does (no numbered steps) shows one section at a time the same way */
+var PART=false;
+if(isUnit&&!main.querySelector(".stepsec")){
+  var h2s=[].filter.call(main.children,function(e){return e.tagName==="H2"&&e.id;});
+  if(h2s.length>2){
+    PART=true;
+    h2s.forEach(function(h){
+      var sec=document.createElement("section"); sec.className="stepsec"; main.insertBefore(sec,h);
+      var n=h;
+      while(n&&(n===h||!(n.tagName==="H2"||n.tagName==="NAV"||n.classList.contains("pager")||n.classList.contains("pagefoot")))){
+        var nx=n.nextElementSibling; sec.appendChild(n); n=nx;
+      }
+      h.classList.add("step");
+    });
+  }
+}
+var steps=isUnit?[].slice.call(main.querySelectorAll(".stepsec")):[];
+var PAGED=steps.length>1, stepAt=0;
+function stepOf(id){
+  var t=null; try{t=id&&document.getElementById(id);}catch(e){}
+  if(!t||!main.contains(t)||t.closest(".pagehead")) return -1;
+  var s=t.closest(".stepsec"); if(s) return steps.indexOf(s);
+  /* the opening goes with step 1, the unit's ending with the last step */
+  return steps[0].compareDocumentPosition(t)&Node.DOCUMENT_POSITION_PRECEDING?0:steps.length-1;
+}
+function showStep(i,scroll){
+  stepAt=i;
+  var before=true, after=false;
+  [].forEach.call(main.children,function(el){
+    if(el.classList.contains("stepsec")){before=false;el.hidden=el!==steps[i];if(el===steps[steps.length-1]) after=true;return;}
+    if(el.classList.contains("pagehead")) return;
+    if(before) el.hidden=i!==0; else if(after) el.hidden=i!==steps.length-1;
+  });
+  if(scroll){window.scrollTo(0,0);var h=steps[i].querySelector("h2.step");h.setAttribute("tabindex","-1");h.focus({preventScroll:true});}
+  markHere(); scrollHints();
+}
+if(PAGED){
+  main.classList.add("paged");
+  steps.forEach(function(sec,i){
+    var h=sec.querySelector("h2.step"), lab=document.createElement("p");
+    lab.className="stepof"; lab.textContent=(PART?"Part ":"Step ")+(i+1)+" of "+steps.length; sec.insertBefore(lab,sec.firstChild);
+    var nav=document.createElement("nav"); nav.className="stepnav"; nav.setAttribute("aria-label","Steps");
+    function link(j,cls,text){var a=document.createElement("a");a.className=cls;a.href="#"+steps[j].querySelector("h2.step").id;a.innerHTML=text;return a;}
+    if(i>0) nav.appendChild(link(i-1,"stepback","&lsaquo; Back"));
+    if(i<steps.length-1){var nh=steps[i+1].querySelector("h2.step"), nt=nh.querySelector(".tt")||nh;
+      nav.appendChild(link(i+1,"btn stepnext","Next: "+esc(nt.textContent)+" &rsaquo;"));}
+    if(nav.children.length) sec.appendChild(nav);
+  });
+  window.addEventListener("hashchange",function(){
+    var id=decodeURIComponent(location.hash.slice(1));
+    if(!id){showStep(0,true);return;}
+    var j=stepOf(id);
+    if(j<0) return;
+    var t=document.getElementById(id), top=t.matches("h2.step");
+    showStep(j,top);
+    if(!top) t.scrollIntoView();
+  });
+  var j0=stepOf(decodeURIComponent(location.hash.slice(1)));
+  showStep(j0<0?0:j0,false);
+}
 function markHere(){
   if(!hereHeads.length) return;
+  if(PAGED){
+    var cur=steps[stepAt].querySelector("h2.step");
+    hereLinks.forEach(function(a){var on=a.getAttribute("data-id")===cur.id;a.classList.toggle("here",on);
+      if(on) a.setAttribute("aria-current","location"); else a.removeAttribute("aria-current");});
+    steps.forEach(function(sec,i){sec.classList.toggle("here",i===stepAt);});
+    var hp=stepAt?cur.id:""; if(HERE&&hp!==hereSaved){hereSaved=hp;putLast(T,HERE.u,hp);}
+    return;
+  }
   var at=hereHeads[0], lim=window.innerHeight*0.35, reached=false;
   hereHeads.forEach(function(h){if(h.getBoundingClientRect().top<=lim){at=h;reached=true;}});
   if(window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-4){at=hereHeads[hereHeads.length-1];reached=true;}
@@ -986,6 +1107,45 @@ function toTop(){
 }
 try{history.scrollRestoration="manual";}catch(e){}
 toTop(); window.addEventListener("load",toTop); window.addEventListener("pageshow",toTop);
+/* a video opens in place under its link and closes again; the page around it stays where it was */
+var vbox=null;
+function closeVideo(){if(!vbox) return;
+  /* so a link to #video opens it again */
+  if(location.hash==="#video"){try{history.replaceState(null,"",location.pathname+location.search);}catch(e){}}
+  var a=vbox.previousElementSibling&&vbox.previousElementSibling.querySelector("a[data-play]");
+  vbox.remove(); vbox=null; if(a){a.setAttribute("aria-expanded","false"); a.focus();}}
+function openVideo(a){
+  var p=a.closest("p.watch"); if(vbox&&vbox.previousElementSibling===p){closeVideo();return;}
+  closeVideo();
+  vbox=document.createElement("div"); vbox.className="vidinline";
+  var bar=document.createElement("div"); bar.className="vidbar";
+  var x=document.createElement("button"); x.type="button"; x.className="vidclose"; x.textContent="Close video";
+  x.addEventListener("click",closeVideo); bar.appendChild(x);
+  var f=document.createElement("iframe"); f.className="vidframe"; f.title="Video"; f.src=a.getAttribute("data-play");
+  f.setAttribute("allow","autoplay");
+  vbox.appendChild(f); vbox.appendChild(bar); p.parentNode.insertBefore(vbox,p.nextSibling);
+  a.setAttribute("aria-expanded","true");
+  function post(){try{f.contentWindow.postMessage({kitViewport:window.innerHeight,kitTop:f.getBoundingClientRect().top+window.scrollY},"*");}catch(e){}}
+  f.addEventListener("load",post);
+}
+window.addEventListener("message",function(e){
+  if(!vbox||!e.data||typeof e.data.kitVideoHeight!=="number") return;
+  var f=vbox.querySelector("iframe"); if(e.source===f.contentWindow) f.style.height=Math.max(420,e.data.kitVideoHeight)+"px";});
+[].forEach.call(document.querySelectorAll("a[data-play]"),function(a){
+  a.setAttribute("aria-expanded","false");
+  a.addEventListener("click",function(e){e.preventDefault();openVideo(a);});});
+function videoHash(){if(location.hash==="#video"){var a=document.querySelector(".pagehead a[data-play]"); if(a&&!vbox) openVideo(a);}}
+videoHash(); window.addEventListener("hashchange",videoHash);
+/* a link to #video while that is already the address still opens the video */
+[].forEach.call(document.querySelectorAll('a[href$="#video"]'),function(l){
+  l.addEventListener("click",function(){if(l.pathname===location.pathname&&location.hash==="#video") setTimeout(videoHash,0);});});
+/* on a narrow screen a drawing keeps its size and scrolls inside its box: say so under it */
+function scrollHints(){[].forEach.call(document.querySelectorAll("main .drawing"),function(d){
+  var h=d.nextElementSibling&&d.nextElementSibling.classList.contains("scrollhint")?d.nextElementSibling:null;
+  var wide=d.scrollWidth>d.clientWidth+2;
+  if(wide&&!h){h=document.createElement("span");h.className="scrollhint";h.textContent="Scroll sideways to see the whole drawing ›";d.parentNode.insertBefore(h,d.nextSibling);}
+  else if(!wide&&h) h.remove();});}
+scrollHints(); window.addEventListener("resize",scrollHints); window.addEventListener("load",scrollHints);
 /* search over every page of the kit */
 var q=document.getElementById("q"), res=document.getElementById("results");
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}

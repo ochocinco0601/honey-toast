@@ -55,8 +55,11 @@ set was built. Follow that video; add no new mechanisms or checks.
    a jump starts the scene's first line; with the sound off, captions one line at a time; fit at
    1366x657 and at 683 wide.
 5. Package: `python <skill>/builder/build_publish.py <folder> <kit>/videos/<training>/<stem>`. Rebuild
-   the kit with its own build and confirm its checks pass with no stale-video warning. Click the
-   video's item in the path and its "Watch this step" links.
+   the kit with its own build and confirm its checks pass with no stale-video warning. On the
+   lesson's page, open the video in place from under the title and close it again; open it from
+   the kit's outline, which opens the lesson with the video open; and check the previous unit's
+   Continue opens the lesson with the video closed. A lesson has one video, opened where the
+   learner is: no per-step links into it and no separate page for it.
 6. Stop any server you started.
 
 Do not touch other lessons' folders or videos, the kit's maintenance scripts, the builder (report a

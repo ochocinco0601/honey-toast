@@ -23,7 +23,7 @@ import sys
 # ---- What a maintainer changes when the kit grows (see maintaining/README.md) ----
 # A record, not a setting: the version of the training-kit skill that built this kit. It goes into
 # each page's generated-file comment only. The kit's own version is the newest entry in CHANGELOG.md.
-SKILL_VERSION = "1.16"
+SKILL_VERSION = "1.17"
 PROGRAM_NAME = "Training programme"
 # Who the learner asks for help, and where they paste a prompt for it.
 ASSISTANT = "the assistant"
@@ -296,14 +296,35 @@ LIST_ITEM = re.compile(r"^(- |\d+\.\s)")
 
 def item_html(lines, src):
     h, text, kind = [], [], None
+    fig = [False]
 
     def flush():
+        # A drawing on its own inside an action is that action's figure; the text right under it is its caption.
         if text:
-            h.append(inline(" ".join(text), src))
+            s = inline(" ".join(text), src)
+            if re.fullmatch(r'<span class="drawing"[^>]*>.*</span>', s, flags=re.S):
+                h.append('<span class="fig">%s</span>' % s)
+                fig[0] = True
+            elif fig[0]:
+                h.append('<span class="cap">%s</span>' % s)
+                fig[0] = False
+            else:
+                h.append(s)
             text.clear()
     j = 0
     while j < len(lines):
         ln = lines[j]
+        if ln.startswith("> ") and j + 1 < len(lines) and lines[j + 1].startswith("> "):
+            # Consecutive "> " lines inside an action are one request, as they are outside one.
+            flush()
+            parts = []
+            while j < len(lines) and lines[j].startswith("> "):
+                parts.append(lines[j][2:])
+                j += 1
+            h.append(prompt_block("\n".join(parts), kind))
+            kind = None
+            fig[0] = False
+            continue
         m = MARKER.match(ln)
         if j and LIST_ITEM.match(ln):
             # A list nested inside this item: it and its indented lines render as a list of their own.
@@ -313,6 +334,7 @@ def item_html(lines, src):
                 block.append(lines[j])
                 j += 1
             h.append(render(block, src))
+            fig[0] = False
             continue
         j += 1
         if m:
@@ -638,8 +660,15 @@ def video_minutes(v):
 
 
 def video_href(md, v):
-    """A video's kit page, as a link from another kit page."""
-    return rel(md, v["kitpage"])
+    """A video, as a link from another kit page: its lesson's page, which opens the video in place."""
+    return rel(md, out_name(v["lesson"])) + "#video"
+
+
+def play_link(md, v, label, sid=""):
+    """A link that opens the video in place: the package in a frame, at a scene when one is given."""
+    tail = "#" + sid if sid else ""
+    # The link under a page's title is where "#video" lands; the page's script then opens it.
+    return PLAY.replace('<p class="watch">', '<p class="watch" id="video">') % (html.escape(rel(md, v["kitpage"]) + tail), html.escape(rel(md, v["page"]) + "?in=kit" + tail), label)
 
 
 def package_faults(pkg, files_on_disk, size):
@@ -774,14 +803,9 @@ def load_videos():
     for lesson, v in sorted(videos.items()):
         if v["stale"]:
             print("WARNING: The video for %s was made from an earlier version of the lesson (%s)%s. Remake it with "
-                  "the explainer skill; until then the lesson page says so and has no \"Watch this step\" links."
+                  "the explainer skill; until then the lesson page says so under its video link."
                   % (v["title"], lesson, "; it narrates step %s, which the lesson no longer has"
                      % ", ".join(map(str, v["lost"])) if v["lost"] else ""))
-        elif lesson != "README.md":
-            for n in lesson_steps(lesson):
-                if n not in v["steps"]:
-                    print("WARNING: step %d of %s has no scene in its video, so it has no \"Watch this step\" link."
-                          % (n, lesson))
     return videos
 
 
@@ -804,27 +828,29 @@ def copy_videos():
 
 
 WATCH = '<p class="watch"><a href="%s"><span aria-hidden="true">&#9654;</span> %s</a></p>'
+# A video opens in place on the page it is linked from: data-play is the package to frame and its scene.
+PLAY = '<p class="watch"><a href="%s" data-play="%s"><span aria-hidden="true">&#9654;</span> %s</a></p>'
 STALE_LINE = ('<p class="stalevideo">The video for this lesson was made from an earlier version of these steps. '
               'Where they differ, follow the written steps.</p>\n')
 VIDEO_CSS = r"""
-/* videos: "Watch this step" under a step's heading, and the home page's link to the overview */
+/* videos: the "Watch the video" button under a page's title */
 main p.watch{margin:4px 0 12px;font-size:.875rem;line-height:1.4}
 main p.watch a{text-decoration:none}
 main p.watch a:hover{text-decoration:underline}
+main .stepsec > p.watch{margin:12px 0 0}
+main .stepsec > p.watch + *{margin-top:24px}
+main .pagehead p.watch{margin:16px 0 0}
+main .stepsec > p.watch a,main .pagehead p.watch a{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:6px 16px;border:1px solid var(--accent);
+border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:.9375rem;font-weight:600}
+main .stepsec > p.watch a:hover,main .pagehead p.watch a:hover{text-decoration:none;background:var(--accent);color:var(--accent-ink)}
 .pagehead p.watch{margin:8px 0 0}
+.vidinline{margin:16px 0 8px;border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--surface)}
+.vidinline .vidframe{display:block;width:100%;height:600px;border:0}
+.vidinline .vidbar{display:flex;justify-content:flex-end;padding:8px 12px;border-top:1px solid var(--rule)}
+.vidinline .vidclose{font:inherit;font-size:.9375rem;font-weight:600;min-height:36px;padding:6px 16px;border:1px solid var(--rule2);
+border-radius:8px;background:var(--bg);color:var(--ink);cursor:pointer}
+.vidinline .vidclose:hover{border-color:var(--accent);color:var(--accent)}
 .pagehead p.stalevideo{margin:8px 0 0;font-size:.875rem;color:var(--ink2)}"""
-
-
-def watch_links(md, rest):
-    """Under each numbered step heading, a link to the first scene of the lesson's video that narrates it."""
-    v = VIDEOS.get(md)
-    if not v or v["stale"] or md == "README.md":
-        return rest
-
-    def add(mo):
-        sid = v["steps"].get(int(mo.group(1)))
-        return mo.group(0) + (WATCH % (html.escape(video_href(md, v) + "#" + sid), "Watch this step") if sid else "")
-    return re.sub(r'<h2 id="[^"]+" class="step"><span class="sr">(\d+)\. </span>.*?</h2>', add, rest)
 
 
 HEAD = r'<h([23]) id="([^"]+)"[^>]*>(.*?)</h\1>'
@@ -957,6 +983,12 @@ def outline(md, video=False):
             '<span class="cnt"><span class="sr">, </span>%s</span>' % count if count else "")
     close = '<button class="oclose" id="oclose" type="button" aria-label="Close the outline">&times;</button>'
     trains = []
+    if "README.md" in VIDEOS:
+        ov = VIDEOS["README.md"]
+        trains.append('<li class="ot ou" data-t=""><a class="otrow" href="%s"%s><span class="oname">Overview</span>'
+                      '<span class="sr">, </span><span class="olevel">Video &middot; %d min</span></a></li>'
+                      % (video_href(md, ov), ' aria-current="page"' if video and md == "README.md" else "",
+                         video_minutes(ov)))
     for x in TRAININGS:
         mark = ' aria-current="true"' if x is t else ""
         meta = html.escape(x["level"]) if x["path"] else "Coming later"
@@ -1085,10 +1117,9 @@ def pager(md):
                    if next_ in UNITS else "Next")
             title, href, btn = (unit_name(next_) if next_ in UNITS else nav_title(next_)), rel(md, out_name(next_)), "Continue"
             if next_ in UNITS and next_ in VIDEOS:
-                # The next unit's video comes before its steps; the video page's lesson link is the way on.
-                lbl = "Next unit: %d of %d &middot; video %d min, then the steps" % (
+                # The next unit opens with its video closed; the learner opens it from under the title.
+                lbl = "Next unit: %d of %d &middot; with a %d-minute video" % (
                     UNITS[next_][1], len(t["units"]), video_minutes(VIDEOS[next_]))
-                href = video_href(md, VIDEOS[next_])
         else:
             lbl, title, href, btn = "End of the path", t["name"], rel(md, out_name(t["readme"])), "Back to the training"
         back = ""
@@ -1107,7 +1138,10 @@ def pager(md):
                 % (lbl, html.escape(title), href, done, btn, ARROW_SVG, back, extra, nudge))
     links = []
     if md == "README.md":
-        if AVAILABLE:
+        # The overview's video is the path's first stop, as each lesson's video is the first stop of its lesson.
+        if "README.md" in VIDEOS:
+            links.append('<a class="next" href="#video">Start with the overview video &rsaquo;</a>')
+        elif AVAILABLE:
             links.append('<a class="next" href="%s">Start with %s &rsaquo;</a>'
                          % (out_name(AVAILABLE[0]["readme"]), html.escape(AVAILABLE[0]["name"])))
     elif seq is None or (k == 0 and md == t["readme"]):
@@ -1117,7 +1151,7 @@ def pager(md):
     if next_:
         pid = ' id="pager-next"' if t and md == t["readme"] else ""
         # From a training's home, unit 1 starts with its video when it has one.
-        to = video_href(md, VIDEOS[next_]) if pid and next_ in UNITS and next_ in VIDEOS else rel(md, out_name(next_))
+        to = rel(md, out_name(next_))
         links.append('<a class="next"%s href="%s">Next: %s &rsaquo;</a>' % (pid, to, html.escape(nav_title(next_))))
     elif t and md in t["recipes"]:
         # The last recipe would otherwise offer only "Previous"; the training's home is where to go next.
@@ -1356,14 +1390,18 @@ def write(md):
         # A training's home says its level and size once under its title, as a course page does.
         size = '<p class="unit" data-kind="course"><span class="lvl">%s</span> &middot; %s &middot; %s</p>\n' % (
             html.escape(t["level"]), plural(len(t["units"]), "unit"), html.escape(t["time"][:1].upper() + t["time"][1:]))
-    # A lesson's video: "Watch this step" under each step, or, while the video is stale, one line under
-    # the title instead. The home page links to the overview's video under its title.
+    # A page's video: one button under its title that opens it in place, and, while a lesson's video
+    # is stale, one line under it. The home page's button opens the overview.
     v = VIDEOS.get(md)
     if v and md == "README.md":
-        size += WATCH % (html.escape(video_href(md, v)), "Watch the overview &middot; %d min" % video_minutes(v)) + "\n"
+        size += play_link(md, v, "Watch the overview &middot; %d min" % video_minutes(v)) + "\n"
+    elif v and md in UNITS:
+        # The video stays in reach while it is out of date.
+        size += play_link(md, v, "Watch the video &middot; %d min" % video_minutes(v)) + "\n"
+        if v["stale"]:
+            size += STALE_LINE
     elif v and v["stale"]:
         size += STALE_LINE
-    rest = watch_links(md, rest)
     # The title and its size are the page's opening, set apart so the eye starts there; a page's
     # numbered steps each become a section on the step track (see step_sections).
     body = ('<header class="pagehead"><h1>%s</h1>\n%s</header>\n' % (inline(title, md), size)
@@ -1389,7 +1427,7 @@ VIDEO_PAGE_CSS = r"""
 /* a video's page: the kit's chrome around the video's own page, framed at the column's full width */
 .vidhead.pagehead{margin:0 0 12px;padding:0 0 12px}
 .vidnav{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;margin:0 0 12px}
-.vidnav .prev{font-size:.875rem;color:var(--ink2);text-decoration:none}
+.vidnav .prev{font-size:1rem;font-weight:600;color:var(--accent);text-decoration:none}
 .vidnav .prev:hover{color:var(--accent);text-decoration:underline}
 .vidnav .btn{margin-left:auto;min-height:36px;padding:6px 18px}
 .vidframe{display:block;width:100%;height:600px;border:0;background:var(--bg)}
@@ -1421,7 +1459,7 @@ def write_video(md):
     mins = "Video &middot; %d min" % video_minutes(v)
     if md == "README.md":
         meta = mins
-        prev_ = ("All trainings", "README.html")
+        prev_ = ("Back to the home page", "README.html")
         btn = next_ = ("Next: %s" % AVAILABLE[0]["name"], out_name(AVAILABLE[0]["readme"])) if AVAILABLE else None
     else:
         meta = ("Unit %d of %d &middot; " % (UNITS[md][1], len(t["units"])) if md in UNITS else "") + mins
@@ -1633,9 +1671,8 @@ def main():
         print("%-52s %2d prompts (%d to write)" % (out_name(md), n, frames))
     trainings = [{"f": t["folder"], "name": t["name"], "readme": out_name(t["readme"]),
                   "before": [{"u": out_name(b), "name": nav_title(b)} for b in t["before"]],
-                  "units": [dict({"u": out_name(u), "n": n, "name": unit_name(u),
-                                  "steps": [[i, label] for i, label in unit_steps(u) if i != "unit"]},
-                                 **({"v": VIDEOS[u]["kitpage"]} if u in VIDEOS else {}))
+                  "units": [{"u": out_name(u), "n": n, "name": unit_name(u),
+                             "steps": [[i, label] for i, label in unit_steps(u) if i != "unit"]}
                             for n, u in enumerate(t["units"], 1)]} for t in TRAININGS]
     io.open(os.path.join(OUT, "search-index.js"), "w", encoding="utf-8", newline="\n").write(
         "window.KIT_INDEX=" + json.dumps(INDEX, ensure_ascii=False) + ";\n"
@@ -1913,7 +1950,7 @@ min-height:32px;padding:6px 14px;cursor:pointer;border:1px solid var(--accent);b
 -webkit-mask:var(--i-copy) center/contain no-repeat;mask:var(--i-copy) center/contain no-repeat}
 button.copy:hover{background:var(--accent);color:var(--accent-ink)}
 button.copy.ok,button.copy.ok:hover{border-color:var(--ok);background:var(--surface);color:var(--ok)}
-/* a Check: a short bold label in the body's colour, set off by a thin rule */
+/* a Check: base style; inside a step it is led by a green tick instead of the rule (see below) */
 .check{margin:16px 0;padding:2px 0 2px 16px;border-left:3px solid var(--ctl)}
 .check p{margin:0}
 .check .lbl{font-weight:600;cursor:help}
@@ -1951,7 +1988,10 @@ tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
 thead th{background:var(--bg2);border-bottom:1px solid var(--rule2);font-weight:600;font-size:.875rem;color:var(--ink2)}
 tbody th{font-weight:600}
 .toc-inline{margin:0 0 24px;padding:8px 16px;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
-.toc-inline summary{cursor:pointer;font-weight:600;font-size:.875rem;min-height:28px;display:flex;align-items:center}
+.toc-inline summary{cursor:pointer;font-weight:600;font-size:.875rem;min-height:28px;display:flex;align-items:center;gap:8px;list-style:none}
+.toc-inline summary::-webkit-details-marker{display:none}
+.toc-inline summary::before{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg)}
+.toc-inline[open] summary::before{transform:rotate(45deg)}
 .toc-inline ul{list-style:none;margin:8px 0 4px;padding:0;font-size:.875rem}.toc-inline li{margin:4px 0;padding:0}
 .toc-inline li.l3{padding-left:16px}.toc-inline a{text-decoration:none}
 .toc-inline a:hover{text-decoration:underline}
@@ -1961,6 +2001,50 @@ button.stuck{font:inherit;font-size:.875rem;min-height:28px;padding:4px 0;border
 text-decoration:underline;text-decoration-color:var(--ctl);text-underline-offset:3px;text-align:left}
 button.stuck:hover{color:var(--accent);text-decoration-color:currentColor}
 button.stuck.ok{color:var(--ok);text-decoration:none;font-weight:600}
+/* a step's spacing scale, by proximity: 8px inside a group, 32px between its groups (do, see, check), 96px between steps */
+.stepsec{margin-top:96px}
+.stepsec:has(+ .stepsec)::before{bottom:-92px}
+main .stepsec > *{margin-top:8px;margin-bottom:0}
+main .stepsec > h2.step{margin-top:0}
+main .stepsec > p + p{margin-top:12px}
+main .stepsec li{margin:4px 0}
+main .stepsec > p:has(> .drawing){margin-top:32px}
+main .stepsec > p:has(> .drawing) > .drawing{margin:0}
+main .stepsec > .check{margin-top:32px}
+main .stepsec > .check + details.more{margin-top:12px}
+main .stepsec > p:has(> .drawing) + ol,main .stepsec > p:has(> .drawing) + p + ol{margin-top:32px}
+main .stepsec > .check + p:has(> .drawing){margin-top:12px}
+main .stepsec > .prompt,main .stepsec > .prompt + ol{margin-top:16px}
+main .stepsec > h3{margin-top:48px}
+/* one meaning per treatment: numerals are actions, orange points inside a drawing, green is a result,
+   a fold-out is grey and quiet, an alert is never orange */
+main .stepsec ol > li::marker{color:var(--accent);font-weight:700}
+main li .fig{display:block;margin:12px 0 0}
+main li .fig .drawing{margin:0}
+main li .cap{display:block;margin:8px 0 0;font-size:.9375rem;line-height:1.55;color:var(--ink2)}
+main li .fig + .gap,main li .cap + .gap{display:none}
+main li .prompt{margin:12px 0 0}
+main .stepsec li > ul{margin:8px 0 0}
+main .check{border-left:0;padding:0 0 0 28px;position:relative}
+main .check::before{content:"\2713";position:absolute;left:2px;top:0;color:var(--ok);font-weight:700}
+main .check .lbl{color:var(--ok)}
+details.more .m{border-left:0;padding-left:24px}
+main .callout .lbl{color:var(--ink)}
+main .stepsec > .check + .callout{margin-top:24px}
+main.paged h2.step::before{display:none}
+main.paged .stepsec{padding-left:0}
+main .stepsec > h3 + *{margin-top:8px}
+main .stepsec > .steprow{margin-top:16px}
+/* one step at a time: where the learner is, then the step, then the way on */
+main.paged .stepsec{margin-top:32px}
+main.paged .stepsec::before{display:none}
+main.paged .stepsec > p.stepof{margin:0 0 8px;font-size:.875rem;font-weight:600;letter-spacing:.02em;color:var(--ink2)}
+main.paged .stepsec > p.stepof + h2.step{margin-top:0}
+main.paged .stepsec > nav.stepnav{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;margin-top:48px;padding-top:24px;border-top:1px solid var(--rule)}
+nav.stepnav .stepnext{margin-left:auto}
+main.paged h2.step:focus{outline:none}
+nav.stepnav .stepback{font-weight:600;text-decoration:none}
+nav.stepnav .stepback:hover{text-decoration:underline}
 /* what comes next: the end of a unit is one framed block with the Continue button */
 .pager{margin:56px 0 0}
 .nextunit{padding:24px 28px;border:1px solid var(--rule);border-radius:14px;background:var(--surface);box-shadow:var(--shadow)}
@@ -2042,6 +2126,10 @@ border:0;border-radius:8px;background:none;color:var(--ink2);cursor:pointer;font
 @media (max-width:900px){.crumbs li.prog{display:none}.crumbs li.prog+li::before{display:none}
 .unitpos .long{display:none}.unitpos .short{display:inline}}
 @media (max-width:680px){
+/* a drawing's labels stay readable on a phone: it keeps a working width and scrolls inside its own frame */
+main .drawing{overflow-x:auto;-webkit-overflow-scrolling:touch}
+main .drawing svg{min-width:560px}
+main .scrollhint{display:block;margin:4px 0 0;font-size:.8125rem;color:var(--ink2)}
 .site{gap:8px;padding:0 12px}
 .search{width:auto;flex:1}
 .results{position:fixed;left:8px;right:8px;top:calc(var(--hdr) - 4px);width:auto}
@@ -2051,7 +2139,7 @@ main h1{font-size:1.5rem}
 main h2{font-size:1.1875rem;margin-top:36px}
 .pagehead + p,.pagehead + details + p{font-size:1.0625rem}
 /* at phone width the text keeps the whole column: the track folds away and the marker sits beside the step's title */
-.stepsec{margin-top:36px;padding-left:0}
+.stepsec{margin-top:64px;padding-left:0}
 .stepsec::before{display:none}
 main h2.step{padding-left:32px}
 main h2.step::before{left:0;top:3px;width:20px;height:20px}
@@ -2096,7 +2184,8 @@ main li.rate{padding-left:0}
 .wbacts button.copy{font-size:.875rem;padding:8px 14px}
 .workbook h3 a{color:inherit;text-decoration:none}
 .workbook h3 a:hover{color:var(--accent);text-decoration:underline}
-@media print{.site,.side,.scrim,.crumbs,.pager,.pagefoot,.steprow,.wbacts,.kept,.skip{display:none!important}
+@media print{.site,.side,.scrim,.crumbs,.pager,.pagefoot,.steprow,.wbacts,.kept,.skip,.stepnav,.stepof{display:none!important}
+main.paged > [hidden]{display:block!important}
 .layout{display:block}main{max-width:none;margin:0;padding:0}.stepsec{padding-left:0}.stepsec::before,main h2.step::before{display:none}
 .note textarea{border:0;padding:0;min-height:0;resize:none;overflow:visible}}"""
 
@@ -2312,8 +2401,7 @@ function paintUnitCards(){
     pnext(ROOT+lb.u,lb.name);
   }else if(li_>=0||s.done){
     var k=todo.filter(function(k){return k>li_;})[0]; if(k===undefined) k=todo[0];
-    /* a unit not yet opened starts at its video, when it has one */
-    var nu=T.units[k], nh=ROOT+(nu.v||nu.u);
+    var nu=T.units[k], nh=ROOT+nu.u;
     go("Continue with unit "+(k+1),nh,"Next: "+nu.name);
     pnext(nh,nu.name);
   }else if(ctaStart) go(ctaStart.t,ctaStart.h,ctaStart.n);
@@ -2387,8 +2475,79 @@ document.getElementById("oclose").addEventListener("click",function(){closeNav()
 var hereLinks=[].slice.call(document.querySelectorAll(".ou.current .ostep"));
 var hereHeads=hereLinks.map(function(a){return document.getElementById(a.getAttribute("data-id"));}).filter(Boolean);
 var hereSaved="";
+/* a unit with two or more steps shows one step at a time, with Back and Next at its end, as a codelab
+   does; the title stays, the opening paragraph shows with step 1 and the unit's ending with the last.
+   Without the script every step shows, as before. */
+/* a unit that explains rather than does (no numbered steps) shows one section at a time the same way */
+var PART=false;
+if(isUnit&&!main.querySelector(".stepsec")){
+  var h2s=[].filter.call(main.children,function(e){return e.tagName==="H2"&&e.id;});
+  if(h2s.length>2){
+    PART=true;
+    h2s.forEach(function(h){
+      var sec=document.createElement("section"); sec.className="stepsec"; main.insertBefore(sec,h);
+      var n=h;
+      while(n&&(n===h||!(n.tagName==="H2"||n.tagName==="NAV"||n.classList.contains("pager")||n.classList.contains("pagefoot")))){
+        var nx=n.nextElementSibling; sec.appendChild(n); n=nx;
+      }
+      h.classList.add("step");
+    });
+  }
+}
+var steps=isUnit?[].slice.call(main.querySelectorAll(".stepsec")):[];
+var PAGED=steps.length>1, stepAt=0;
+function stepOf(id){
+  var t=null; try{t=id&&document.getElementById(id);}catch(e){}
+  if(!t||!main.contains(t)||t.closest(".pagehead")) return -1;
+  var s=t.closest(".stepsec"); if(s) return steps.indexOf(s);
+  /* the opening goes with step 1, the unit's ending with the last step */
+  return steps[0].compareDocumentPosition(t)&Node.DOCUMENT_POSITION_PRECEDING?0:steps.length-1;
+}
+function showStep(i,scroll){
+  stepAt=i;
+  var before=true, after=false;
+  [].forEach.call(main.children,function(el){
+    if(el.classList.contains("stepsec")){before=false;el.hidden=el!==steps[i];if(el===steps[steps.length-1]) after=true;return;}
+    if(el.classList.contains("pagehead")) return;
+    if(before) el.hidden=i!==0; else if(after) el.hidden=i!==steps.length-1;
+  });
+  if(scroll){window.scrollTo(0,0);var h=steps[i].querySelector("h2.step");h.setAttribute("tabindex","-1");h.focus({preventScroll:true});}
+  markHere(); scrollHints();
+}
+if(PAGED){
+  main.classList.add("paged");
+  steps.forEach(function(sec,i){
+    var h=sec.querySelector("h2.step"), lab=document.createElement("p");
+    lab.className="stepof"; lab.textContent=(PART?"Part ":"Step ")+(i+1)+" of "+steps.length; sec.insertBefore(lab,sec.firstChild);
+    var nav=document.createElement("nav"); nav.className="stepnav"; nav.setAttribute("aria-label","Steps");
+    function link(j,cls,text){var a=document.createElement("a");a.className=cls;a.href="#"+steps[j].querySelector("h2.step").id;a.innerHTML=text;return a;}
+    if(i>0) nav.appendChild(link(i-1,"stepback","&lsaquo; Back"));
+    if(i<steps.length-1){var nh=steps[i+1].querySelector("h2.step"), nt=nh.querySelector(".tt")||nh;
+      nav.appendChild(link(i+1,"btn stepnext","Next: "+esc(nt.textContent)+" &rsaquo;"));}
+    if(nav.children.length) sec.appendChild(nav);
+  });
+  window.addEventListener("hashchange",function(){
+    var id=decodeURIComponent(location.hash.slice(1));
+    if(!id){showStep(0,true);return;}
+    var j=stepOf(id);
+    if(j<0) return;
+    var t=document.getElementById(id), top=t.matches("h2.step");
+    showStep(j,top);
+    if(!top) t.scrollIntoView();
+  });
+  var j0=stepOf(decodeURIComponent(location.hash.slice(1)));
+  showStep(j0<0?0:j0,false);
+}
 function markHere(){
   if(!hereHeads.length) return;
+  if(PAGED){
+    var cur=steps[stepAt].querySelector("h2.step");
+    hereLinks.forEach(function(a){var on=a.getAttribute("data-id")===cur.id;a.classList.toggle("here",on);
+      if(on) a.setAttribute("aria-current","location"); else a.removeAttribute("aria-current");});
+    steps.forEach(function(sec,i){sec.classList.toggle("here",i===stepAt);});
+    var hp=stepAt?cur.id:""; if(HERE&&hp!==hereSaved){hereSaved=hp;putLast(T,HERE.u,hp);}
+    return;
+  }
   var at=hereHeads[0], lim=window.innerHeight*0.35, reached=false;
   hereHeads.forEach(function(h){if(h.getBoundingClientRect().top<=lim){at=h;reached=true;}});
   if(window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-4){at=hereHeads[hereHeads.length-1];reached=true;}
@@ -2420,6 +2579,45 @@ function toTop(){
 }
 try{history.scrollRestoration="manual";}catch(e){}
 toTop(); window.addEventListener("load",toTop); window.addEventListener("pageshow",toTop);
+/* a video opens in place under its link and closes again; the page around it stays where it was */
+var vbox=null;
+function closeVideo(){if(!vbox) return;
+  /* so a link to #video opens it again */
+  if(location.hash==="#video"){try{history.replaceState(null,"",location.pathname+location.search);}catch(e){}}
+  var a=vbox.previousElementSibling&&vbox.previousElementSibling.querySelector("a[data-play]");
+  vbox.remove(); vbox=null; if(a){a.setAttribute("aria-expanded","false"); a.focus();}}
+function openVideo(a){
+  var p=a.closest("p.watch"); if(vbox&&vbox.previousElementSibling===p){closeVideo();return;}
+  closeVideo();
+  vbox=document.createElement("div"); vbox.className="vidinline";
+  var bar=document.createElement("div"); bar.className="vidbar";
+  var x=document.createElement("button"); x.type="button"; x.className="vidclose"; x.textContent="Close video";
+  x.addEventListener("click",closeVideo); bar.appendChild(x);
+  var f=document.createElement("iframe"); f.className="vidframe"; f.title="Video"; f.src=a.getAttribute("data-play");
+  f.setAttribute("allow","autoplay");
+  vbox.appendChild(f); vbox.appendChild(bar); p.parentNode.insertBefore(vbox,p.nextSibling);
+  a.setAttribute("aria-expanded","true");
+  function post(){try{f.contentWindow.postMessage({kitViewport:window.innerHeight,kitTop:f.getBoundingClientRect().top+window.scrollY},"*");}catch(e){}}
+  f.addEventListener("load",post);
+}
+window.addEventListener("message",function(e){
+  if(!vbox||!e.data||typeof e.data.kitVideoHeight!=="number") return;
+  var f=vbox.querySelector("iframe"); if(e.source===f.contentWindow) f.style.height=Math.max(420,e.data.kitVideoHeight)+"px";});
+[].forEach.call(document.querySelectorAll("a[data-play]"),function(a){
+  a.setAttribute("aria-expanded","false");
+  a.addEventListener("click",function(e){e.preventDefault();openVideo(a);});});
+function videoHash(){if(location.hash==="#video"){var a=document.querySelector(".pagehead a[data-play]"); if(a&&!vbox) openVideo(a);}}
+videoHash(); window.addEventListener("hashchange",videoHash);
+/* a link to #video while that is already the address still opens the video */
+[].forEach.call(document.querySelectorAll('a[href$="#video"]'),function(l){
+  l.addEventListener("click",function(){if(l.pathname===location.pathname&&location.hash==="#video") setTimeout(videoHash,0);});});
+/* on a narrow screen a drawing keeps its size and scrolls inside its box: say so under it */
+function scrollHints(){[].forEach.call(document.querySelectorAll("main .drawing"),function(d){
+  var h=d.nextElementSibling&&d.nextElementSibling.classList.contains("scrollhint")?d.nextElementSibling:null;
+  var wide=d.scrollWidth>d.clientWidth+2;
+  if(wide&&!h){h=document.createElement("span");h.className="scrollhint";h.textContent="Scroll sideways to see the whole drawing ›";d.parentNode.insertBefore(h,d.nextSibling);}
+  else if(!wide&&h) h.remove();});}
+scrollHints(); window.addEventListener("resize",scrollHints); window.addEventListener("load",scrollHints);
 /* search over every page of the kit */
 var q=document.getElementById("q"), res=document.getElementById("results");
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}

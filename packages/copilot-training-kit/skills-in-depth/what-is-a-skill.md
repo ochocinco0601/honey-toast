@@ -3,7 +3,7 @@
 A skill is a saved set of instructions for one kind of task. You write the instructions once, and
 Copilot follows them when you ask for that task, so you don't type them again.
 
-## Why use a skill
+## Why use a skill?
 
 Some tasks you ask for again and again, and want done the same way each time:
 
@@ -13,7 +13,7 @@ Some tasks you ask for again and again, and want done the same way each time:
 Without a skill, you type the full instructions every time, and the result changes when your
 wording does. With a skill, you ask in a few words, and Copilot follows the saved instructions.
 
-## What a skill looks like
+## What does a skill look like?
 
 A skill is a folder holding a Markdown file named `SKILL.md`. This one summarizes meeting notes:
 
@@ -30,26 +30,31 @@ After each item, name the note it came from.
 - The lines between the two `---` marks are the skill's header: its name and its description.
 - After the header come the skill's instructions.
 
-## How Copilot uses a skill
+## How does Copilot use a skill?
 
 Copilot checks the description of each skill you have. When your request matches a skill's
 description, such as "summarize the meeting notes", Copilot follows that skill's instructions.
-That's why a description says both what the skill does and when to use it.
 
 ![Diagram: a request is checked against each skill's description. The one that matches, Summarize meeting notes, has its instructions followed.](images/request-matches-a-skill.svg)
 
+That's why a description says both what the skill does and when to use it.
+
 You can also run a skill by name: type `/` in the chat box, and select the skill from the list.
 
-## Where a skill works
+## Where does a skill work?
 
 A skill saved in a folder works only while that folder is open in VS Code, and anyone who opens
 that folder has it. A skill saved in your personal skills folder works in every folder you open,
-for you only. When you ask, Copilot saves a skill in the open folder. Your personal skills folder
-is outside the open folder, so Copilot asks before it saves one there.
+for you only.
 
 ![Diagram: a skill saved in a folder works only while that folder is open; one in your personal skills folder works in every folder.](images/where-a-skill-works.svg)
 
-## Skills and custom instructions
+<!-- more: Where does Copilot save a skill you ask for? -->
+When you ask, Copilot saves a skill in the open folder. Your personal skills folder is outside the
+open folder, so Copilot asks before it saves one there.
+<!-- /more -->
+
+## How is a skill different from custom instructions?
 
 In the Getting started unit [Give Copilot custom instructions for a folder](../getting-started/custom-instructions.md), you saved rules for summaries as custom
 instructions. Copilot read them with every request while the folder was open. Instructions saved

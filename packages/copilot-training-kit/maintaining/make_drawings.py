@@ -92,7 +92,11 @@ window = """
 <rect class="dg-b" x="467" y="392" width="36" height="10" rx="3"/><rect class="dg-b" x="509" y="392" width="36" height="10" rx="3"/><rect class="dg-b" x="551" y="392" width="36" height="10" rx="3"/>
 <rect class="dg-c" x="6" y="414" width="688" height="20"/>
 <rect class="dg-b2" x="18" y="421" width="50" height="6" rx="3"/><rect class="dg-b2" x="590" y="421" width="90" height="6" rx="3"/>
-""" + badge(165, 50, 1) + badge(430, 80, 2) + badge(522, 50, 3) + badge(597, 50, 4) + badge(523, 343, 5)
+""" + (leader([(100, 132), (100, 150)]) + label(52, 168, ["Your folder's files"]) +
+       leader([(300, 178), (300, 202)]) + label(232, 220, ["The file you select"]) +
+       leader([(588, 50), (581, 50)]) + label(512, 55, "New Chat") +
+       label(472, 232, ["The chat: you type,", "Copilot replies"]) +
+       leader([(532, 352), (532, 312)]) + label(472, 306, "Agent control"))
 
 # A permission request: terminal icon, the command, Allow (with a chevron) and Skip
 # (chat/.../chatTerminalToolConfirmationSubPart.ts 208-212; the message itself is only a hover).
@@ -461,7 +465,9 @@ def _link(x, y, words, w):
     return text(x, y, words, size=12) + '<line x1="%d" y1="%d" x2="%d" y2="%d" style="stroke:var(--ink,#1b1b1b);stroke-width:1"/>' % (
         x, y + 3, x + w, y + 3)
 
-_rex, _ = explorer(41, 64, 200, 130, "COPILOT-PRACTICE", [])
+# Several trainings share this drawing and each opens its own practice folder, so the folder's name is a gray bar.
+_rex, _ = explorer(41, 64, 200, 130, "", [])
+_rex += '<rect class="dg-b2" x="64" y="100" width="110" height="8" rx="2"/>'
 restricted_mode = (frame(5, 5, 690, 200) + strip(6, 6, 688, 30, 7) +
     text(20, 26, "File   Edit   Selection   View   Go   …", size=12) +
     tint(6, 36, 688, 28, 0) +

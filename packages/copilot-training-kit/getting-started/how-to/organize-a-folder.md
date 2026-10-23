@@ -16,10 +16,10 @@ The folder gives you files to sort without touching your own.
    then select **Agent**.
 2. In the chat box, enter:
 
-> In the copilot-practice folder, create a folder named inbox.
-> In it, create 12 short, made-up files: meeting notes, drafts of team emails, and ticket exports as .csv files.
-> Put a date from August or September in each file's name.
-> Add or change no other file.
+   > In the copilot-practice folder, create a folder named inbox.
+   > In it, create 12 short, made-up files: meeting notes, drafts of team emails, and ticket exports as .csv files.
+   > Put a date from August or September in each file's name.
+   > Add or change no other file.
 
 Check: `inbox` holds 12 files. If it holds a different number, expect that number below.
 
@@ -29,9 +29,9 @@ Reading the plan first lets you correct it before any file moves.
 
 1. Enter:
 
-> List the files in the inbox folder of the copilot-practice folder, grouped by kind and by month.
-> Propose subfolders inside inbox to sort them into.
-> Don't change any file yet.
+   > List the files in the inbox folder of the copilot-practice folder, grouped by kind and by month.
+   > Propose subfolders inside inbox to sort them into.
+   > Don't change any file yet.
 
 Check: the reply lists all 12 files and proposes subfolders, and `inbox` hasn't changed.
 
@@ -41,9 +41,9 @@ You don't have to accept the first plan. Asking again changes it.
 
 1. Enter:
 
-> Change the plan so the email drafts go in a subfolder named emails.
-> In the new plan, leave the .csv files where they are.
-> Don't change any file yet.
+   > Change the plan so the email drafts go in a subfolder named emails.
+   > In the new plan, leave the .csv files where they are.
+   > Don't change any file yet.
 
 Check: the new plan has an `emails` subfolder and leaves the .csv files in `inbox`.
 
@@ -53,10 +53,10 @@ Saving the plan first gives you a record of where everything was.
 
 1. Enter:
 
-> In the inbox folder, create moves.md: one row per file, with where it is now and where it will go.
-> Then move the files as moves.md says.
-> Tell me any file the plan moves that didn't move.
-> Add or change no other file.
+   > In the inbox folder, create moves.md: one row per file, with where it is now and where it will go.
+   > Then move the files as moves.md says.
+   > Tell me any file the plan moves that didn't move.
+   > Add or change no other file.
 
 2. If a permission request appears, allow it if everything it creates or moves is inside
    `inbox`.

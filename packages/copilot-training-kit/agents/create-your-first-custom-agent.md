@@ -10,22 +10,22 @@ Copilot creates procedures to practice on, in a new folder.
 
 1. In the chat box, enter:
 
-> Create a new folder named agents-practice in the folder Windows uses as my Documents folder, which may be under OneDrive.
-> If agents-practice already exists, don't change it; tell me instead.
-> In it, create a folder named procedures with three short, made-up office procedures.
-> Give each procedure numbered steps, with one unclear step and one step left out.
-> Add or change no other file.
+   > Create a new folder named agents-practice in the folder Windows uses as my Documents folder, which may be under OneDrive.
+   > If agents-practice already exists, don't change it; tell me instead.
+   > In it, create a folder named procedures with three short, made-up office procedures.
+   > Give each procedure numbered steps, with one unclear step and one step left out.
+   > Add or change no other file.
 
 2. If a permission request appears, allow it if it matches what you asked.
 
-![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](../getting-started/images/permission-request.svg)
+   ![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](../getting-started/images/permission-request.svg)
 
-In the drawings, gray bars stand for text that differs on your screen.
+   In the drawings, gray bars stand for text that differs on your screen.
 
 3. On the **File** menu, select **Open Folder**. In the window that opens, go to Documents, the same Documents that File Explorer shows on the left. Select `agents-practice`, and then **Select Folder**.
 4. On the Restricted Mode bar, under the menu bar, select **Manage**. On the **Workspace Trust** page that opens, select **Trust**. If VS Code asks instead whether you trust the authors, leave the box about the parent folder unticked and select **Yes, I trust the authors**.
 
-![Drawing of the Restricted Mode bar under the menu bar, with Manage outlined.](../getting-started/images/restricted-mode.svg)
+   ![Drawing of the Restricted Mode bar under the menu bar, with Manage outlined.](../getting-started/images/restricted-mode.svg)
 
 Check: the list on the left shows `AGENTS-PRACTICE`, with `procedures` in it, and a control at the bottom of the chat box shows **Agent**.
 
@@ -39,21 +39,21 @@ You describe the role, and Copilot writes the custom agent's file.
 
 1. Enter:
 
-> In the agents-practice folder, create the custom agent file .github/agents/procedure-reviewer.agent.md.
-> In its header, set the name to Procedure reviewer.
-> Set the tools in its header to read and search only.
-> Set its description to: Check procedures for unclear or missing steps, without changing them.
-> In its instructions, have it quote each unclear step and say why, and name each missing step.
-> In its instructions, also have it give the file name of the procedure for each step.
-> If that file already exists, don't change it; tell me instead.
-> Add or change no other file.
+   > In the agents-practice folder, create the custom agent file .github/agents/procedure-reviewer.agent.md.
+   > In its header, set the name to Procedure reviewer.
+   > Set the tools in its header to read and search only.
+   > Set its description to: Check procedures for unclear or missing steps, without changing them.
+   > In its instructions, have it quote each unclear step and say why, and name each missing step.
+   > In its instructions, also have it give the file name of the procedure for each step.
+   > If that file already exists, don't change it; tell me instead.
+   > Add or change no other file.
 
 2. Copilot asks before it changes a file in `.github/agents`, unless you've chosen to allow all.
    When the permission request appears, if it creates only that file, select its first button, **Allow Once** or
    **Allow in this Session**.
 3. In the list on the left, expand `.github` until `procedure-reviewer.agent.md` shows, and select it.
 
-![Drawing of the list on the left: .github\agents on one row, and procedure-reviewer.agent.md under it.](images/agent-file.svg)
+   ![Drawing of the list on the left: .github\agents on one row, and procedure-reviewer.agent.md under it.](images/agent-file.svg)
 
 Check: the header's `name` line says Procedure reviewer, and its `tools` line lists `read` and
 `search` only. `edit`, the tool that changes files, isn't there.
@@ -70,7 +70,7 @@ While it's selected, Copilot works in its role, with only its tools.
 2. At the bottom of the chat box, select the control that shows **Agent**, and then select
    **Procedure reviewer**.
 
-![Drawing of the chat: New Chat (+) at the top, and the list of agents, with Procedure reviewer, open above the Agent control.](images/list-of-agents.svg)
+   ![Drawing of the chat: New Chat (+) at the top, and the list of agents, with Procedure reviewer, open above the Agent control.](images/list-of-agents.svg)
 
 Check: the control shows **Procedure reviewer**.
 
@@ -84,7 +84,7 @@ You ask in one line; its instructions say how to report.
 
 1. Enter:
 
-> Check the procedures in the procedures folder.
+   > Check the procedures in the procedures folder.
 
 Check: the reply quotes unclear steps and names missing ones, each with the file name of its procedure. In the list on the left, expand `procedures`, and select the file the reply names for one quoted step. Find that step in it.
 
@@ -94,7 +94,7 @@ The reviewer has no tool to make the change you ask for.
 
 1. Enter:
 
-> Rewrite the unclear steps in the procedures so they're clear.
+   > Rewrite the unclear steps in the procedures so they're clear.
 
 2. If a permission request to change a file appears anyway, select **Skip**.
 

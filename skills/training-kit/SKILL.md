@@ -5,7 +5,7 @@ description: Build a self-paced training kit on any subject, for any audience - 
 
 # Building a training kit
 
-Skill version: 1.16 (2026-10-20). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
+Skill version: 1.17 (2026-10-22). Kits record it as `SKILL_VERSION` in `maintaining/build_pages.py`.
 
 You build a kit that leaves its learners able to do something in their own work. What they can do
 when they finish is the outcome, and every choice below serves it; the maintainer guide's opening
@@ -110,6 +110,9 @@ operate the thing, missing mechanics restrict release to a pilot**.
 - Levels and further trainings follow the guide's opening and its "Adding a more advanced
   training".
 - Recipes cover other tasks from the inventory (the guide's "The recipes are practice").
+- **Decide which units get a video now, as part of the path,** in the table in the guide's
+  "Videos": one row per unit, whether it has one and why. Deciding after the pages are built
+  leaves units without one that needed it. Making the videos can follow the pages.
 - The front page leads: the learner's problem in their terms, what they will be able to do, how
   long, and the single first action.
 
@@ -152,7 +155,10 @@ correction, below, so they never raise it twice.
 Fix the whole class across every page. Generalize it to a rule for any training; put that rule
 where it is enforced (a check if a pattern can find it, `references/review-checklist.md` if it
 needs judgement); and if it is about training design in general rather than this kit, add it to
-this skill in the same pass and raise the skill's version.
+this skill in the same pass and raise the skill's version. **Any change to a kit's scripts,
+corrected or found yourself, goes to `starter/` too,** as the guide's "Corrections" says (it
+travels with every kit): in the same commit, or as an open row until the skill has it. A fix made
+on the kit alone means the next kit repeats the fault and the requester corrects it again.
 
 **An outside service is the requester's choice.** Which service, site or system the training has
 learners connect to, sign in to or send their work to is a fit decision about their organization,
@@ -228,8 +234,9 @@ requester walk it when you show the increment.
 
 Each pass in `reviews.md` is run as that file's opening says. Scale the set to the kit: every
 increment gets review 1 (first-time learner), review 10 (sequence), review 11 (prompts as sent),
-review 12 (pictures) and, after fixes, review 5 (regression); a complete path gets the rest. A
-small kit still gets reviews 1, 3, 4, 5, 9, 10, 11 and 12. A reviewer that cannot operate a browser or the tool reads the
+review 12 (pictures), review 13 (page design) and, after fixes, review 5 (regression); a complete
+path gets the rest. A small kit still gets reviews 1, 3, 4, 5, 9, 10, 11, 12 and 13. Review 13 is
+run again whenever the builder's page layout changes. A reviewer that cannot operate a browser or the tool reads the
 pages and says which steps it could not perform. If you cannot start a fresh session yourself,
 give the requester the increment's briefs in one message to paste into new chats, and say the kit
 is unreviewed until they do.
@@ -340,7 +347,31 @@ review 5 after your change.
 A choice recorded under the kit's "Decisions" that conflicts with what this version changes is
 handled as the guide's "Decisions" says.
 
-What 1.16 changed from 1.15 (a lesson can have a narrated video beside it):
+What 1.17 changed from 1.16 (a step reads in chunks, and a video opens where the learner is):
+- A unit with two or more steps shows one step at a time ("Step 2 of 4", Back and Next); a unit
+  with no numbered steps and three or more sections shows one section at a time ("Part 1 of 3").
+  Without the script every step shows, as before.
+- Spacing groups a step: 8 pixels within a group, 32 between groups, 96 between steps. Each visual
+  treatment has one meaning; a check is led by a green tick. The guide's "Page design" states both.
+- A step is one numbered list. A prompt, a drawing and what the learner sees are indented under
+  the action they belong to; the sentence under a drawing is its caption. Consecutive `> ` lines
+  inside an action are one request. The guide's "The form of a unit" says so.
+- A lesson has one video, opened in place under its title by "Watch the video" and closed by
+  "Close video". No per-step video links; no video page in the path; Continue opens the next
+  lesson with its video closed. The overview is the path's first stop and opens in place on the
+  home page. The player shows only the player.
+- Which units get a video is decided in step 3, and the overview video introduces the programme
+  rather than opening on an example (the guide's "Videos").
+- Any change to a kit's scripts goes to `starter/` in the same commit or stays an open
+  correction row (the guide's "Corrections"). The guide's "Videos" holds a table of which units
+  have a video and why.
+  Build warnings and comments no longer mention per-step video links.
+- Upgrading from 1.16: replace `build_pages.py`, `check_text.py` and `check_structure.py` as
+  "Bringing a kit up to this version" says; carry the guide's "Page design", "The form of a unit"
+  and "Videos" across; move each prompt and drawing under its action in every unit, and rebuild.
+
+What 1.16 changed from 1.15 (a lesson can have a narrated video beside it; its video placement,
+"Watch this step" links and video page in the path were replaced in 1.17):
 - No video player is ever built into a kit page.
 - A kit may hold a `videos/` folder of explainer-page packages, one per lesson, made by the
   explainer skill's publish step. `build_pages.py` checks each package against its

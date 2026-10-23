@@ -1,7 +1,7 @@
 {
  "format": 1,
  "lesson": "getting-started/lesson-application.md",
- "lesson_sha256": "387c75585739c3ccafcdca5174858a6427953d8d43ea2b566c57bbb44087cf5f",
+ "lesson_sha256": "ee61108503a786c557c4fa168ed6fefa30ebf138442e23444d81f53a25cb3869",
  "title": "Have Copilot explain code you didn't write",
  "seconds": 185,
  "back_href": "../../../getting-started/lesson-application.html",
@@ -50,12 +50,12 @@
  "files": {
   "audio/build-check.mp3": "0b018853e4a426c2792eaee684323d1994e039f0d3507bbd6a2fb64a99d0b4d0",
   "audio/build.mp3": "bb9d38bb8271695385149e2adfaf212046ce0bd7aee157009507003744c9853d",
-  "audio/close.mp3": "ab16d5af8cdedb62c4e421f4172b7e48fabee30bc0874e367640ad8a470e8eb1",
+  "audio/close.mp3": "3520b1ee2b0365eca9556aee82cd8602161913eab97f396f41f01df0724f8dc2",
   "audio/explain-check.mp3": "f5e2842063ec66eabdd26d36df5c2e61cd7fa53cb55e22bfdf1a6a0d525f6f49",
   "audio/explain.mp3": "b3a33ae9f9759096b9e9b5fc69291461ed46806597d0e056c0da43ca8a018594",
   "audio/open.mp3": "d7e850f678e363fd4e38800717e67042138d92feed784522cd8f88aa1a97c10d",
   "audio/where-check.mp3": "34c62551f3331059df344326e9012594f16cd7cb7e08da82d94539bf63dda33f",
   "audio/where.mp3": "d2dc9933370a97ed30f988343a7cc1c9bc6fdc6c376ba56661206fdca000238b",
-  "index.html": "86c95fbea4255581e091398a20b56155499dca7c1e4d184216a8edb331fbb0d6"
+  "index.html": "104650f8e5a49758dc6cb16edf69690e0fc9a5a27fbed856095ac87df129d10a"
  }
 }

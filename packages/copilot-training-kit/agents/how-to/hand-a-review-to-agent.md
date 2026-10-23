@@ -22,13 +22,13 @@ fills in waits in the chat box until you send it.
    select the control, and then select **Agent**.
 2. Enter:
 
-> In the agents-practice folder, open .github/agents/procedure-reviewer.agent.md.
-> In its header, add a handoffs list with one handoff.
-> Set the handoff's label to: Fix the unclear steps
-> Set the handoff's agent to agent, in lowercase.
-> Set the handoff's prompt to: Rewrite the unclear steps listed above so they're clear. Add or change no other file.
-> Set the handoff's send to false.
-> Add or change no other file.
+   > In the agents-practice folder, open .github/agents/procedure-reviewer.agent.md.
+   > In its header, add a handoffs list with one handoff.
+   > Set the handoff's label to: Fix the unclear steps
+   > Set the handoff's agent to agent, in lowercase.
+   > Set the handoff's prompt to: Rewrite the unclear steps listed above so they're clear. Add or change no other file.
+   > Set the handoff's send to false.
+   > Add or change no other file.
 
 3. If a permission request appears, allow it if it changes only that file.
 4. In the list on the left, select `procedure-reviewer.agent.md`.
@@ -42,12 +42,12 @@ Check: the header has `label: Fix the unclear steps` and
    **Procedure reviewer**.
 2. Enter:
 
-> Check the procedures in the procedures folder.
+   > Check the procedures in the procedures folder.
+
+   ![Drawing of the chat after the reviewer's reply: Proceed from Procedure reviewer, then the Fix the unclear steps button.](../images/handoff.svg)
 
 Check: when the reply finishes, a button that says **Fix the unclear steps** shows below it, under
 **Proceed from Procedure reviewer**.
-
-![Drawing of the chat after the reviewer's reply: Proceed from Procedure reviewer, then the Fix the unclear steps button.](../images/handoff.svg)
 
 <!-- more: If no button appears -->
 Select the control that shows **Procedure reviewer**, select **Agent**, and enter:

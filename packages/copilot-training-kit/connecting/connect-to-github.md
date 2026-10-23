@@ -23,21 +23,21 @@ Copilot creates an empty folder to hold the connection while you practice.
 
 1. In the chat box, enter:
 
-> Create a new folder named connections-practice in the folder Windows uses as my Documents folder, which may be under OneDrive.
-> If connections-practice already exists, don't change it; tell me instead.
-> Leave the new folder empty.
-> Add or change no other file.
+   > Create a new folder named connections-practice in the folder Windows uses as my Documents folder, which may be under OneDrive.
+   > If connections-practice already exists, don't change it; tell me instead.
+   > Leave the new folder empty.
+   > Add or change no other file.
 
 2. If a permission request appears, allow it if it matches what you asked.
 
-![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](../getting-started/images/permission-request.svg)
+   ![Drawing of a permission request in the chat: what Copilot will do and the command, then the Allow and Skip buttons.](../getting-started/images/permission-request.svg)
 
-In the drawings, gray bars stand for text that differs on your screen.
+   In the drawings, gray bars stand for text that differs on your screen.
 
 3. On the **File** menu, select **Open Folder**. In the window that opens, go to Documents, the same Documents that File Explorer shows on the left. Select `connections-practice`, and then **Select Folder**.
 4. On the Restricted Mode bar, under the menu bar, select **Manage**. On the **Workspace Trust** page that opens, select **Trust**. If VS Code asks instead whether you trust the authors, leave the box about the parent folder unticked and select **Yes, I trust the authors**.
 
-![Drawing of the Restricted Mode bar under the menu bar, with Manage outlined.](../getting-started/images/restricted-mode.svg)
+   ![Drawing of the Restricted Mode bar under the menu bar, with Manage outlined.](../getting-started/images/restricted-mode.svg)
 
 Check: the list on the left shows `CONNECTIONS-PRACTICE`, and a control at the bottom of the chat box shows **Agent**.
 
@@ -51,25 +51,27 @@ A connection is a few lines in a file named `.mcp.json`. Copilot writes them.
 
 1. Enter:
 
-> In the connections-practice folder, create a file named .mcp.json.
-> In it, add one MCP server named github, under mcpServers.
-> Set its type to http.
-> Set its url to https://api.githubcopilot.com/mcp/readonly.
-> If .mcp.json already exists, don't change it; tell me instead.
-> Add or change no other file.
+   > In the connections-practice folder, create a file named .mcp.json.
+   > In it, add one MCP server named github, under mcpServers.
+   > Set its type to http.
+   > Set its url to https://api.githubcopilot.com/mcp/readonly.
+   > If .mcp.json already exists, don't change it; tell me instead.
+   > Add or change no other file.
 
 2. Copilot asks before it changes `.mcp.json`, unless you've chosen to allow all. When the
    permission request appears, if it creates only that file, select its first button, **Allow Once** or **Allow in this Session**.
 3. In the list on the left, select `.mcp.json`.
 4. If a line of small text above `github` in the file says **Start**, select it. This starts the connection.
 
-![Drawing of .mcp.json open in VS Code, with Start in small text above github.](images/start-line.svg)
+   ![Drawing of .mcp.json open in VS Code, with Start in small text above github.](images/start-line.svg)
 
 5. If a message says an MCP server wants to authenticate to GitHub, select **Allow**. If VS Code then asks you to choose an account or sign in, choose your work GitHub account.
-
 6. Wait until the line above `github` says **Running**. It can take a few seconds.
 
 Check: the line above `github` says **Running**.
+
+**Important:** this connection is saved in the connections-practice folder, so it works only while
+that folder is open in VS Code. To use it in another folder, have Copilot add it there.
 
 <!-- more: If the line above github doesn't say Running -->
 If it says **Start**, select it, and select **Allow** if asked. If there's no line above `github`
@@ -80,9 +82,6 @@ at all, or it still doesn't say **Running**, see [When you're stuck, ask Copilot
 If the GitHub sign-in page you use for Copilot isn't on github.com, this connection's address is different. See [GitHub Enterprise](https://github.com/github/github-mcp-server#github-enterprise) in GitHub's documentation.
 <!-- /more -->
 
-**Important:** this connection is saved in the connections-practice folder, so it works only while
-that folder is open in VS Code. To use it in another folder, have Copilot add it there.
-
 ## 3. Ask a question that uses the connection
 
 Copilot uses the connection to look up the answer on GitHub, and the chat shows it did. GitHub
@@ -90,13 +89,13 @@ calls a project a repository, and each saved change to it a commit.
 
 1. At the top of the chat, select **New Chat** (+).
 
-![Drawing of the top of the chat, with New Chat (+) outlined.](../getting-started/images/new-chat.svg)
+   ![Drawing of the top of the chat, with New Chat (+) outlined.](../getting-started/images/new-chat.svg)
 
 2. Enter:
 
-> Use the GitHub connection to answer this question.
-> List the commits of the public octocat/Hello-World repository on GitHub.
-> For the newest commit, tell me its date, its author and its message.
+   > Use the GitHub connection to answer this question.
+   > List the commits of the public octocat/Hello-World repository on GitHub.
+   > For the newest commit, tell me its date, its author and its message.
 
 3. If a message says an MCP server wants to authenticate to GitHub, select **Allow**, and choose your work GitHub account.
 4. If a permission request appears, allow it if it names github.

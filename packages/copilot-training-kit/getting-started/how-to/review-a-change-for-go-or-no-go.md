@@ -17,14 +17,14 @@ Copilot leaves items out of two of the change requests on purpose, so you know w
    then select **Agent**.
 2. In the chat box, enter:
 
-> In the copilot-practice folder, create a folder named change-practice.
-> In it, create checklist.md: the four things a change must have before it is approved.
-> The four are an owner, a time window, a rollback plan and a test result.
-> Then create change-requests.md in the same folder, with three made-up change requests named CHG-201, CHG-202 and CHG-203.
-> Give CHG-201 all four things.
-> Leave the rollback plan out of CHG-202.
-> Leave the owner and the test result out of CHG-203.
-> Add or change no other file.
+   > In the copilot-practice folder, create a folder named change-practice.
+   > In it, create checklist.md: the four things a change must have before it is approved.
+   > The four are an owner, a time window, a rollback plan and a test result.
+   > Then create change-requests.md in the same folder, with three made-up change requests named CHG-201, CHG-202 and CHG-203.
+   > Give CHG-201 all four things.
+   > Leave the rollback plan out of CHG-202.
+   > Leave the owner and the test result out of CHG-203.
+   > Add or change no other file.
 
 Check: `change-practice` holds `checklist.md` and `change-requests.md`.
 
@@ -35,18 +35,20 @@ missing item instead of guessing.
 
 1. Enter:
 
-> Read change-requests.md and checklist.md in the change-practice folder of the copilot-practice folder.
-> For each change request and each checklist item, quote the words in the request that meet it.
-> Where the request doesn't say, write "not stated".
-> Don't guess.
-> Don't change any file.
+   > Read change-requests.md and checklist.md in the change-practice folder of the copilot-practice folder.
+   > For each change request and each checklist item, quote the words in the request that meet it.
+   > Where the request doesn't say, write "not stated".
+   > Don't guess.
+   > Don't change any file.
 
 Check: CHG-201 meets all four. CHG-202's rollback plan is "not stated", and so are CHG-203's owner
 and test result. For CHG-201, find each quote in `change-requests.md`.
 
+<!-- more: If an item is quoted or "not stated" when it shouldn't be -->
 If an item that was left out has a quote instead, or CHG-201 has an item "not stated", find the
 item in `change-requests.md`. A quote such as "Rollback: none provided" doesn't meet the item. Tell
 Copilot what you found, and ask it to correct the item.
+<!-- /more -->
 
 ## 3. Save a suggested decision
 
@@ -54,9 +56,9 @@ Copilot only suggests. The decision stays yours.
 
 1. In the same chat, enter:
 
-> In the change-practice folder, create review.md: a table with one row per change request.
-> In each row, give a suggested go, no-go, or ask for more information, and why.
-> Add or change no other file.
+   > In the change-practice folder, create review.md: a table with one row per change request.
+   > In each row, give a suggested go, no-go, or ask for more information, and why.
+   > Add or change no other file.
 
 2. In the list on the left, right-click `review.md` and select **Open Preview**.
 

@@ -17,12 +17,12 @@ Copilot leaves two things out of the documents on purpose, so you know what it s
    then select **Agent**.
 2. In the chat box, enter:
 
-> In the copilot-practice folder, create a folder named docs-practice.
-> In it, write three short, made-up documents for an application named Order Tracker: an overview, a setup guide and a support guide.
-> Leave out who to call when it fails, and how to restart it.
-> Then create what-support-needs.md in the same folder: six things a support team must find in any application's documentation.
-> Make who to call and how to restart the application two of the six.
-> Add or change no other file.
+   > In the copilot-practice folder, create a folder named docs-practice.
+   > In it, write three short, made-up documents for an application named Order Tracker: an overview, a setup guide and a support guide.
+   > Leave out who to call when it fails, and how to restart it.
+   > Then create what-support-needs.md in the same folder: six things a support team must find in any application's documentation.
+   > Make who to call and how to restart the application two of the six.
+   > Add or change no other file.
 
 Check: `docs-practice` holds the three documents and `what-support-needs.md`.
 
@@ -33,24 +33,26 @@ instead of guessing.
 
 1. Enter:
 
-> Read the three documents in the docs-practice folder of the copilot-practice folder.
-> For each item in what-support-needs.md, quote the passage that answers it and name its document, or write "not found".
-> Don't fill gaps from general knowledge.
-> Don't change any file.
+   > Read the three documents in the docs-practice folder of the copilot-practice folder.
+   > For each item in what-support-needs.md, quote the passage that answers it and name its document, or write "not found".
+   > Don't fill gaps from general knowledge.
+   > Don't change any file.
 
 Check: who to call and how to restart Order Tracker are among the items "not found". Pick one item
 that has a quote. Open the document it names, and find the quote there.
 
+<!-- more: If who to call or how to restart has a quote -->
 If who to call or how to restart Order Tracker has a quote, open the document it names and read
 it. A quote such as "Contact: to be confirmed" doesn't answer the item. If that's what you find,
 tell Copilot so, and ask it to mark the item "not found".
+<!-- /more -->
 
 ## 3. Turn the gaps into questions
 
 1. In the same chat, enter:
 
-> In the docs-practice folder, create gaps.md: each item marked "not found", written as a question I can send to the team that owns Order Tracker.
-> Add or change no other file.
+   > In the docs-practice folder, create gaps.md: each item marked "not found", written as a question I can send to the team that owns Order Tracker.
+   > Add or change no other file.
 
 2. In the list on the left, right-click `gaps.md` and select **Open Preview**.
 
