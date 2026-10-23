@@ -20,6 +20,12 @@ def make_store(tmp_path, items):
     return state
 
 
+@pytest.fixture(autouse=True)
+def fixed_today(monkeypatch):
+    # Fixtures write dated log lines; the store refuses dates that go backwards, so its clock must match them.
+    monkeypatch.setattr(rs, "today", lambda: "2026-10-22")
+
+
 @pytest.fixture
 def items(monkeypatch):
     found = []
