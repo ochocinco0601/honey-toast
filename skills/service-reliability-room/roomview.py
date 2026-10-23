@@ -627,13 +627,16 @@ def render(state_dir):
 <div class="meta">Generated {e(now)}. {last}</div>
 {f'<p class="intent">{e(eng.get("intent"))}</p>' if eng.get("intent") else ''}</header>
 <section class="panel" aria-label="Summary"><div class="strip">{kpi_html}</div></section>
+<section class="panel"><h2>1 · What is open, and what each waits on</h2>
+<p class="q">Open work items and asks from Beads. Each card is in the first column that fits: an ask waits on a person; then in progress; then waits on another open item; then blocked; else ready.</p>
+{board_html(items, bd_error, checker)}</section>
 <div class="row">
-<section class="panel"><h2>1 · What the capability is made of</h2>
-<p class="q">Capability → journeys → components. Arrows are a component's depends_on; panel 2 lists the components each journey uses. A journey is coloured by its worst assessed rung.</p>
+<section class="panel"><h2>2 · What the capability is made of</h2>
+<p class="q">Capability → journeys → components. Arrows are a component's depends_on; panel 3 lists the components each journey uses. A journey is coloured by its worst assessed rung.</p>
 <div class="scroll">{structure_svg(eng, cells)}</div>
 <div class="legend"><span class="sw"><svg width="28" height="10"><line class="dep" x1="0" y1="5" x2="22" y2="5" marker-end="url(#ar)"/></svg>depends on</span>
 <span>Hover a box for its full name and what it depends on.</span></div></section>
-<section class="panel"><h2>2 · Where each journey stands</h2>
+<section class="panel"><h2>3 · Where each journey stands</h2>
 <p class="q">Journeys × rungs, with the components each journey uses. The colour is the standing's level; the cell's tooltip has the standing itself. The number in a cell's corner is its open work items.</p>
 {grid_html(eng, cells)}
 <div class="legend"><span class="sw"><i class="chip s-met">✓</i>met</span><span class="sw"><i class="chip s-partly">◐</i>partly</span>
@@ -641,9 +644,6 @@ def render(state_dir):
 <span class="sw"><i class="chip" style="box-shadow:inset 0 0 0 3px var(--stale)"></i>stale: evidence taken at an older version than the source is now</span>
 <span class="sw"><i class="chip" style="outline:2px dotted var(--ink2);outline-offset:-4px"></i>cannot tell (no seen value recorded, or the source cannot be read)</span></div></section>
 </div>
-<section class="panel"><h2>3 · What is open, and what each waits on</h2>
-<p class="q">Open work items and asks from Beads. Each card is in the first column that fits: an ask waits on a person; then in progress; then waits on another open item; then blocked; else ready.</p>
-{board_html(items, bd_error, checker)}</section>
 <section class="panel"><h2>4 · Work items closed</h2>
 <p class="q">Readiness history, how each rung's standing changed over time, isn't shown yet. This panel is work items and asks closed over time, against all of them created. Dates are Beads' created and closed dates, moved earlier where the log records an item sooner.</p>
 <div class="scroll">{burn}</div>

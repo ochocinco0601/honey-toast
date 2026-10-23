@@ -28,7 +28,11 @@ def run(script, *args):
 
 
 @pytest.fixture
-def state(tmp_path):
+def state(tmp_path, monkeypatch):
+    t = tmp_path / "chief.jsonl"
+    t.write_text(json.dumps({"type": "user", "timestamp": "2026-10-22T18:00:00Z", "isSidechain": False,
+                             "message": {"role": "user", "content": "Yes, go on the plan."}}) + "\n", encoding="utf-8")
+    monkeypatch.setenv("ROOM_TRANSCRIPT", str(t))
     return tmp_path / "cap" / "state"
 
 
@@ -56,7 +60,7 @@ def test_init_brief_go_set_validate_run_without_beads(state):
     assert NOTE in asks and "(0)" not in asks, asks  # no counts that read as "none open"
     code, out = run("roomstate.py", "set", state, "capability", '"payments"')
     assert code == 5, out  # the go gate still holds: no go is logged yet
-    code, out = run("roomstate.py", "log", state, "--kind", "go", "--text", "go on the plan", "--by", "person")
+    code, out = run("roomstate.py", "log", state, "--kind", "go", "--text", "Yes, go on the plan.", "--by", "person")
     assert code == 0, out
     assert NOTE in out
     code, out = run("roomstate.py", "set", state, "capability", '"payments"')
@@ -69,6 +73,12 @@ def test_init_brief_go_set_validate_run_without_beads(state):
     code, out = run("roomstate.py", "brief", "--short", state)
     assert code == 0, out
     assert NOTE in out
+    code, out = run("roomstate.py", "stamp", state, "--text", "closed", "--by", "chief")
+    assert code == 5, out  # nothing delivered yet
+    (state.parent / "report.html").write_text("<h1>report</h1><p>Guard refusals: 1 (the set before the go).</p>", encoding="utf-8")
+    assert run("roomstate.py", "log", state, "--kind", "delivered", "--text", "report.html, opened with them",
+               "--by", "chief", "--refs", "report.html")[0] == 0
+    assert run("roomstate.py", "log", state, "--kind", "steward", "--text", "no change proposed", "--by", "chief")[0] == 0
     code, out = run("roomstate.py", "stamp", state, "--text", "closed", "--by", "chief")
     assert code == 0, out
     assert NOTE in out
@@ -88,7 +98,7 @@ def test_handover_and_the_view_run_without_beads(state):
 
 def test_a_bd_command_without_beads_is_a_plain_refusal(state):
     assert run("roomstate.py", "init", state)[0] == 0
-    run("roomstate.py", "log", state, "--kind", "go", "--text", "go", "--by", "person")
+    run("roomstate.py", "log", state, "--kind", "go", "--text", "Yes, go on the plan.", "--by", "person")
     code, out = run("roomstate.py", "bd", state, "list")
     assert code != 0
     assert NOTE in out
