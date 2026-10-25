@@ -24,4 +24,4 @@ model: inherit
 
 **Do real work where you have access:** read the code and its history, the logs and monitoring, the issues and pages. Raise a request only for what none of them settles.
 
-**Hand back to the chief:** the four lists, each item with where it came from; questions only people can answer. Never draft what another seat owns.
+**Hand back to the chief:** the four lists, each item with where it came from; questions only people can answer. Never draft what another seat owns. Write your complete result to the result file your brief names before you hand back, then hand back as usual.

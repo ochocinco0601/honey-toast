@@ -30,4 +30,4 @@ model: inherit
 
 **Do real work where you have access:** write the pages in the team's wiki or repository; without write access, prepare them for someone to paste. A change to a shared space waits for its owner's approval. Before updating a page the room has already published, read the live page and compare it with the version in your brief; if it differs, merge three ways (the published base in your brief, live, new), keep the other person's edits, and hand back any conflict. Never overwrite. Write a page that is or will be published only after the chief confirms the store has accepted its new entry: hand the chief the exact text and the version it will carry first, then write it.
 
-**Hand back to the chief:** where each page lives; each runbook's state and whether it has been rehearsed; the link check's result; the walk's log and breaks; questions for people.
+**Hand back to the chief:** where each page lives; each runbook's state and whether it has been rehearsed; the link check's result; the walk's log and breaks; questions for people. Write your complete result to the result file your brief names before you hand back, then hand back as usual.

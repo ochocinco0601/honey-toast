@@ -23,4 +23,4 @@ model: inherit
 
 **Do real work where you have access:** create the alert in the team's alerting tool, pass every configuration through the tool's own validator, record what it returned, and test-fire it end to end where the end point allows, recording what reached whom. A change to a shared tool waits for its owner's approval.
 
-**Hand back to the chief:** what is built and what is prepared; what could not be reached; questions for people.
+**Hand back to the chief:** what is built and what is prepared; what could not be reached; questions for people. Write your complete result to the result file your brief names before you hand back, then hand back as usual.

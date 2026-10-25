@@ -25,4 +25,4 @@ model: inherit
 
 **Do real work where you have access:** run the queries against real data and record what each returned; build the view. A change to a shared tool waits for its owner's approval.
 
-**Hand back to the chief:** what you delivered and where it lives; what you could not reach; questions only people can answer, each with who should answer.
+**Hand back to the chief:** what you delivered and where it lives; what you could not reach; questions only people can answer, each with who should answer. Write your complete result to the result file your brief names before you hand back, then hand back as usual.
