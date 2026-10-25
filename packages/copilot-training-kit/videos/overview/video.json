@@ -3,47 +3,32 @@
  "lesson": "README.md",
  "lesson_sha256": "e2737b80d44492fe628be0997b122215fe4177471d791e9b0a6727e405fc19de",
  "title": "Learn GitHub Copilot in VS Code",
- "seconds": 153,
+ "seconds": 138,
  "back_href": "../../README.html",
  "scenes": [
   {
-   "id": "open",
-   "title": "What these trainings are",
+   "id": "what-it-is",
+   "title": "What Copilot is",
    "step": null
   },
   {
-   "id": "at-work",
-   "title": "Copilot at work in VS Code",
+   "id": "uses",
+   "title": "What you can use it for",
    "step": null
   },
   {
-   "id": "permission",
-   "title": "When it asks first",
+   "id": "teach",
+   "title": "What the trainings teach",
    "step": null
   },
   {
-   "id": "frame",
-   "title": "Instructions and tools",
+   "id": "trainings",
+   "title": "The four trainings",
    "step": null
   },
   {
-   "id": "getting-started",
-   "title": "Getting started",
-   "step": null
-  },
-  {
-   "id": "skills",
-   "title": "Skills",
-   "step": null
-  },
-  {
-   "id": "agents",
-   "title": "Custom agents",
-   "step": null
-  },
-  {
-   "id": "connecting",
-   "title": "Connecting your tools",
+   "id": "how",
+   "title": "How the trainings work",
    "step": null
   },
   {
@@ -53,15 +38,12 @@
   }
  ],
  "files": {
-  "audio/agents.mp3": "9d7002f5819c935a72b89ca4aab970245e5d20e1728fd584590e98244c5a225b",
-  "audio/at-work.mp3": "2281b8f130538597854cfbc8bc09800338269203759cc1c2f69622098a79f02f",
-  "audio/connecting.mp3": "7f624c1fec15538b54643acdb0bb83d17edf925d440ca2128b234756614f48d4",
-  "audio/frame.mp3": "ea0d3fd9bee55479a6b8ef5beda9f90324b0381999e8d6500eab75d82af62fa6",
-  "audio/getting-started.mp3": "f547144a1891a75c2fd0dc105abe8d5ef234a91cd527119fcd7ebaa4eda44d2e",
-  "audio/open.mp3": "2ccc277b0bbcbe23aaddd129cf1062dd246b74eddf9c3fc9bb738ecd69483f4a",
-  "audio/permission.mp3": "034d5fd7fb9dcfcc966f7c1d8984be0bd7fb8c74cc7fa5cc24a54f21fcbbedff",
-  "audio/skills.mp3": "0de1ab72c803d45854d5aade8fa6315a5bd63acb79f5888adbe8d21223427506",
-  "audio/start.mp3": "4d6a38ff1c485c231e2204d2096cff49d8f44ba39a6c37ea5d55875e016c953b",
-  "index.html": "fcb59548e6aacdf53f39b4c354da1aa871e83b39158dd7d56083599a7081e780"
+  "audio/how.mp3": "0d0c43ab0a5b2aefd7a676efebe66770919e87da24c3c29fad2eace1bab02722",
+  "audio/start.mp3": "38ee32e272c8c6ab5558af3a723bf5ec737e77793615258e074064f80added59",
+  "audio/teach.mp3": "e48785b4a929c103e71b5fc9c7480d5ff7ab2a7ebc9f9d476ea630da9d272286",
+  "audio/trainings.mp3": "5395947f31a79630237489604918bf0429254f3e15a06cece68a1e24757911bb",
+  "audio/uses.mp3": "9f0fb073efc20a1d3617ad1b7702f02f39b17091e0e0befdf39e4f13e611db01",
+  "audio/what-it-is.mp3": "457e49b897e48b8ec16713e3619dc509a487cede9c108c2c8f6d0bbca45a2ad7",
+  "index.html": "e0f052d1a62a41a24eca011b6adb0164c5d15d1e0e490338b8e37eab6a57ea11"
  }
 }

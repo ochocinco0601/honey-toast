@@ -23,7 +23,7 @@ import sys
 # ---- What a maintainer changes when the kit grows (see maintaining/README.md) ----
 # A record, not a setting: the version of the training-kit skill that built this kit. It goes into
 # each page's generated-file comment only. The kit's own version is the newest entry in CHANGELOG.md.
-SKILL_VERSION = "1.16"
+SKILL_VERSION = "1.17"
 PROGRAM_NAME = "GitHub Copilot training"
 # Who the learner asks for help, and where they paste a prompt for it.
 ASSISTANT = "Copilot"

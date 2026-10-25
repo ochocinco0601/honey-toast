@@ -1,5 +1,10 @@
 # What's new
 
+## 1.9 - 2026-10-24
+
+- The overview video is new. It says what GitHub Copilot in VS Code is, what you can use it for,
+  what each training teaches, and where to start. Nothing in the trainings has changed.
+
 ## 1.8 - 2026-10-22
 
 - Lessons show one step at a time, with Back and Next at its end and its place in the lesson above it.
