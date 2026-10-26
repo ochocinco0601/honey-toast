@@ -102,6 +102,10 @@ def _go(state):
     rs.append_log(state, {"date": "2026-10-22", "kind": "go", "text": "Go", "by": "person", "refs": []})
 
 
+def _agreed(state):
+    rs.append_log(state, {"date": "2026-10-22", "kind": "agreement", "text": "Agreed", "by": "person", "refs": []})
+
+
 def test_a_new_source_sent_with_a_seen_value_is_the_rooms_own_input(tmp_path, items):
     state = make_store(tmp_path, items)
     _go(state)
@@ -138,7 +142,7 @@ def test_a_help_request_is_a_read_not_a_write(tmp_path, items, monkeypatch):
 
 def test_a_command_beads_rejects_is_counted_as_an_input_refusal(tmp_path, items, monkeypatch):
     state = make_store(tmp_path, items)
-    _go(state)
+    _agreed(state)
     _fake_bd(monkeypatch, 1, "", "Error: unknown flag: --reason")
     assert rs.bd_command(state, ["update", "w-1", "--reason", "x"]) == 1
     last = [e for _, e in rs.read_log(state)][-1]
@@ -148,7 +152,7 @@ def test_a_command_beads_rejects_is_counted_as_an_input_refusal(tmp_path, items,
 
 def test_a_create_beads_rejects_is_counted_as_an_input_refusal(tmp_path, items, monkeypatch):
     state = make_store(tmp_path, items)
-    _go(state)
+    _agreed(state)
     _fake_bd(monkeypatch, 1, "", "Error: resolving issue ID state-wlk: no issue found")
     assert rs.bd_command(state, ["create", "t", "--deps", "state-wlk"]) == 1
     last = [e for _, e in rs.read_log(state)][-1]
@@ -293,3 +297,37 @@ def test_a_go_with_no_transcript_to_check_is_refused(tmp_path, items, monkeypatc
     monkeypatch.setenv("ROOM_TRANSCRIPT", str(tmp_path / "missing.jsonl"))
     assert _log_go(state, "Go.") == 5
     assert not rs.go_recorded(state)
+
+
+def _log(state, kind, text, by="person"):
+    return rs.main(["roomstate.py", "log", str(state), "--kind", kind, "--text", text, "--by", by])
+
+
+def test_after_a_go_only_discovery_and_triage_work_is_written_until_the_five_are_agreed(tmp_path, items, monkeypatch):
+    state = make_store(tmp_path, items)
+    _transcript(tmp_path, monkeypatch, ("user", "Backfill the cart service."), ("assistant", "Where should I look?"),
+                ("user", "Start with the cart repo, stop when you can say what it is part of."))
+    assert _log_go(state, "Start with the cart repo, stop when you can say what it is part of.") == 0
+    calls = _fake_bd(monkeypatch, 0, "{}")
+    assert rs.bd_command(state, ["create", "draft the cart alerts", "-l", "rung:alerts"]) == 5
+    assert calls == []
+    assert "no agreement on the five" in [e for _, e in rs.read_log(state)][-1]["text"]
+    assert rs.allowed_before_agreement(state, "create", ["create", "find what the cart service is part of", "-l", "discovery"])
+
+
+def test_an_agreement_needs_the_five_proposed_first_and_the_persons_own_words(tmp_path, items, monkeypatch):
+    state = make_store(tmp_path, items)
+    _transcript(tmp_path, monkeypatch, ("user", "Backfill the cart service."), ("assistant", "The five for this job..."),
+                ("user", "Agreed, but stop at drafts."))
+    assert _log(state, "agreement", "Agreed, but stop at drafts.") == 5
+    assert not rs.agreement_recorded(state)
+    assert _log(state, "decision", "five: standards ...; plan ...; finish level ...; inspection ...; coordination ...",
+                by="chief") == 0
+    assert _log(state, "agreement", "Agreed.", by="person") == 5
+    assert _log(state, "agreement", "Agreed, but stop at drafts.", by="chief") == 5
+    assert _log(state, "agreement", "Agreed, but stop at drafts.") == 0
+    assert rs.agreement_recorded(state) and rs.go_recorded(state)
+    calls = _fake_bd(monkeypatch, 0, "{}")
+    with pytest.raises(rs.WriteNotConfirmed):  # past both gates: the write reached Beads (the stand-in returns no id)
+        rs.bd_command(state, ["create", "draft the cart alerts", "-l", "rung:alerts"])
+    assert calls
