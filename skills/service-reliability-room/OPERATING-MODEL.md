@@ -12,7 +12,7 @@ Around it, Disciplined Agile Delivery's lifecycle: agreeing the job is **Incepti
 
 - **Cynefin.** Complicated: cause and effect found by expert analysis. Complex: found only by probing and iterating; work in small passes and come back.
 - **Retrofit or new build.** Discovering an existing, undocumented system is different work from designing a new one.
-- **Lifecycle phase.** Up front (design for operations, readiness), in the moment (triage, an error in hand), or the feedback loop (postmortems, missing or stale alerts, routine maintenance review).
+- **Lifecycle phase.** Service design and transition (design for operations, production readiness), service operation (triage of an error in hand, and evidence for an incident the organisation's own process runs), or continual service improvement (postmortems, missing or stale alerts, and periodic review with no incident behind it).
 - More lenses are likely; use what the situation shows.
 
 ## The five dimensions of a job, agreed with the person for each job
@@ -21,9 +21,9 @@ Around it, Disciplined Agile Delivery's lifecycle: agreeing the job is **Incepti
 2. **Plan.** The flows in scope, what exists, the order.
 3. **Finish level.** How far above the floor, set by what the flow carries (money, regulatory exposure). It is not a way to shrink scope.
 4. **Inspection.** What is checked, by whom, and where the person signs off before work goes further (hold points).
-5. **Coordination.** How the work is staged: one pass, or several passes coarse to fine, and which seats.
+5. **Coordination.** How the work is staged: one pass, or several progressively elaborated passes, and which seats.
 
-A skill (business flow observability, the runbook skill) is used the same way every time, but each job sets its own five. Until the person grants more autonomy, the room proposes all five, each with a recommendation and its reason, and the person confirms or changes each one.
+A skill (business flow observability, the runbook skill) is the method, and it runs as written; what each job sets is its own five around it (the job is tailored, in PRINCE2 and Disciplined Agile terms, not the method). The person holds the decision rights over all five unless they have delegated some to the room: the room proposes each, with a recommendation and its reason, and the person confirms or changes it.
 
 ## The fixed start, pointed at a capability
 
@@ -32,16 +32,16 @@ Whatever the request's label ("production readiness", "backfill", "make it obser
 2. If not, what is needed to start: the sources, the owners, which flow first; and, where the capability itself is unclear, what it is and where its edges are.
 3. Then the business flow observability activities, on the agreed plan.
 
-The label names where the person wants to end up, not where the work starts. Place the capability on the path to supported in production before deciding what the work is.
+The request names the outcome sought, not the starting point. Assess the capability's current state on the path to supported in production before deciding what the work is.
 
-## Coarse to fine
+## Progressive elaboration
 
-Scope, then where things stand, then direction, then detail. Resolve each level's decisions with the person before opening the next. State nothing only the work could know (causes, thresholds, failure modes, ranked journeys, alert conditions).
+Elaborate progressively (progressive elaboration, PMBOK): scope, then current state, then direction, then detail. Resolve each level's decisions with the person before opening the next. State nothing only the work could know (causes, thresholds, failure modes, ranked journeys, alert conditions).
 
-## Sufficiency, everywhere
+## Stopping and sufficiency decisions
 
-Every stage has a question of enough: are these the right sources, are they enough, how far to trust them, keep going or stop. Make it explicitly, with what you have and why it is or isn't enough. Those that turn on judgement or taste go to the person when they arise: stop and bring them, each with your own recommendation and reason (what more looking would likely change; how far you trust each source and why). Do the reading, drafting and checking yourself.
+Every stage has a stopping decision (satisficing, Simon; value of information in decision analysis): are these the right sources, how reliable is each and how credible is what it says (source evaluation), is it enough to act on, search further or stop. Make each one explicitly, with what you have and why it is or isn't enough. Those that turn on the stakeholder's values or priorities go to the person: stop when they arise and bring them, each with your recommendation and reason (what further search would likely change; how far you rely on each source and why). Do the reading, drafting and checking yourself.
 
-## What the person gives
+## The person's role
 
-Input, intent, gist, feedback, taste and judgement. Never ask them for expertise, and never for a fact you can find by looking.
+The person is the stakeholder (Disciplined Agile's stakeholder role): they set intent and priorities, supply domain knowledge the room cannot find, review and accept work, and make value judgements. Never ask them for expertise of any kind, and never for a fact you can find by looking.
