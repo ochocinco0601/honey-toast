@@ -2,6 +2,10 @@
 
 Usage: python run_status.py <register folder> [stage id ...]
 
+A run whose RUN.md has the section *Plan and go* first owes PLAN.md and a go recorded on it in the person's words.
+Until the go is recorded the run is NOT DONE, and any work past gathering and the survey (a walk table with rows, a
+stage folder, the map) is named as READ BEFORE THE GO. A RUN.md without that section is from an earlier kit.
+
 A stage is owed its six files (STRUCTURE.md, MEASURES.md, ALERT.md, RUNBOOK.md, ALERT.html, RUNBOOK.html in
 stage-<id>/) when it has a stage-<id> folder, when RUN.md in the register folder names stage-<id>, or when it is
 given on the command line. The register is owed views.html and how-this-map-was-made.html. An empty file counts as
@@ -22,6 +26,10 @@ import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import reading_check  # noqa: E402
+import reread  # noqa: E402
+
 STAGE_FILES = ("STRUCTURE.md", "MEASURES.md", "ALERT.md", "RUNBOOK.md", "ALERT.html", "RUNBOOK.html")
 MAP_FILES = ("views.html", "how-this-map-was-made.html")
 
@@ -205,8 +213,8 @@ def fullness(reg, extra=()):
     inter = [s for s in subj if s.get("kind", "").strip() == "relationship"]
     lines.append(f"interactions with an operation: {sum(filled(s, 'operation') for s in inter)} of {len(inter)}")
     inside = ({p.get("subject_id", "").strip() for p in part if filled(p, "operation")}
-              | {a.get("agent", "").strip() for a in agent if a.get("element", "").strip() == "operation"}) - {""}
-    lines.append(f"parts with inside content (an operation on a participation row, or an agent's operation "
+              | {a.get("agent", "").strip() for a in agent if a.get("element", "").strip() == "action"}) - {""}
+    lines.append(f"parts with inside content (an operation on a participation row, or an agent's action "
                  f"elements): {len(inside)}")
     # A step's card has calls when an interaction names the step in `step_hint` (step_sequence.calls_of).
     hinted = {x for s in inter for x in ids(s.get("step_hint"))}
@@ -225,12 +233,57 @@ def fullness(reg, extra=()):
     return lines + list(extra)
 
 
+# ---------------------------------------------------------------- the plan, and the go on it
+
+BEFORE_GO = {"sources", "about", "how-made", "survey"}
+
+
+def plan_and_go(reg):
+    """(plan-first run, go recorded) from RUN.md's section *Plan and go*. A RUN.md without the section is from an
+    earlier kit, and none of this applies to it."""
+    run = reg / "RUN.md"
+    text = run.read_text(encoding="utf-8") if run.is_file() else ""
+    if not re.search(r"^## Plan and go\s*$", text, re.M):
+        return False, False
+    m = re.search(r"^- \*\*Go:\*\*[ \t]*(.*)$", text, re.M)
+    words = (m.group(1).strip() if m else "")
+    return True, bool(words) and not words.startswith("_")
+
+
+def read_before_go(reg):
+    """What the run wrote that the plan's go has to come before: walk tables with rows, stage folders, the map."""
+    early = []
+    for p in sorted(reg.glob("*.csv")):
+        if p.stem in BEFORE_GO:
+            continue
+        with p.open(encoding="utf-8-sig", newline="") as f:
+            if len(list(csv.reader(f))) > 1:
+                early.append(p.name)
+    early += sorted(p.name + "/" for p in reg.glob("stage-*") if p.is_dir())
+    early += [f for f in MAP_FILES if (reg / f).exists()]
+    return early
+
+
 def main(argv):
     if not argv:
         sys.exit(__doc__)
     reg = pathlib.Path(argv[0])
     if not reg.is_dir():
         sys.exit(f"not a folder: {reg}")
+    planned, go = plan_and_go(reg)
+    if planned:
+        has_plan = present(reg, "PLAN.md")
+        print(f"Plan: PLAN.md {'ok' if has_plan else 'MISSING'}; go: "
+              f"{'recorded' if go else 'not recorded, so the run is waiting for the go'}")
+        early = [] if go else read_before_go(reg)
+        if early:
+            print(f"READ BEFORE THE GO: {', '.join(early)} hold work, but RUN.md records no go on the plan. "
+                  "The plan's go comes before any reading in depth.")
+        if not has_plan or early or not go:
+            why = ("PLAN.md MISSING" if not has_plan else
+                   "read before the go" if early else "waiting for the go on the plan")
+            print(f"NOT DONE: {why}")
+            return 1
     owed = expected(reg, argv[1:])
     width = max(len(r) for r in owed)
     print(f"Register: {reg}")
@@ -249,7 +302,19 @@ def main(argv):
     said = f"{missing} of {total} expected outputs missing" if missing else f"all {total} expected outputs exist"
     if old:
         said += f"; {old} stale (generated from the register as it was, not as it is now)"
-    if missing or why or old:
+    unread = False
+    if planned:
+        reading = reading_check.check(reg)
+        print("\n".join(reading.lines()))
+        unread = not reading.passed
+        if unread:
+            said += "; cited code not read by the run"
+        sample = reread.check(reg)
+        print("\n".join(sample.lines()))
+        if not sample.passed:
+            unread = True
+            said += "; sampled rows not re-read and borne out"
+    if missing or why or old or unread:
         print(f"NOT DONE: {said}" + (f"; view questions not answered: {'; '.join(why)}" if why else ""))
     else:
         print(f"DONE: {said}")
@@ -258,7 +323,7 @@ def main(argv):
     except Exception as e:  # the other counts never change whether the run is done
         block = [f"Fullness: not counted ({type(e).__name__}: {e})"] + vq_lines
     print("\n".join(block))
-    return 1 if missing or why or old else 0
+    return 1 if missing or why or old or unread else 0
 
 
 if __name__ == "__main__":

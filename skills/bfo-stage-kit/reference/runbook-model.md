@@ -93,7 +93,7 @@ Established practice, composed *[This practice]*:
 | 4 | **Break the response into steps**, with a plan saying which step comes next under which condition. The plans produce the branches; a stopping rule says how far to break a step down | Hierarchical task analysis (Annett & Duncan) |
 | 5 | **Write it as a branched checklist**: one line per step, action / expected result / what if different. Every path ends | Aviation quick-reference checklist convention |
 | 6 | **State the close for every ending**, including no impact and escalate | SRE verification; ITIL incident closure, which confirms the service is restored before closing (V3 wording) |
-| 7 | **Rehearse it cold**: someone without system knowledge runs it unaided. An unrehearsed runbook is untested | SRE game days, "Wheel of Misfortune"; aviation simulator validation |
+| 7 | **Rehearse it cold**: someone without system knowledge runs it unaided. An unrehearsed runbook is untested | SRE disaster role-play ("Wheel of Misfortune") and disaster-recovery testing (DiRT); aviation simulator validation |
 | 8 | **Set the upkeep**: the resolver improves it at use, and each postmortem updates it | KCS (Consortium for Service Innovation); SRE postmortem practice |
 
 Step 0 gates steps 6 and 7. Step 1 gates everything from step 2 on.

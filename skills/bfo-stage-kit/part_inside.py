@@ -7,7 +7,7 @@ register only:
 - participation.csv: the operations the part performs each process step with (`operation`, `;` separated);
 - subjects.csv: the part's name, kind and the interactions it makes (`from_id`, `to_id`, `step_hint`, and the
   optional `operation`: which of its operations makes the call);
-- agent-system.csv: for an AI agent, its run, the run's operations, its agent parts and its dependencies, and the
+- agent-system.csv: for an AI agent, its run, the run's actions, its agent parts and its dependencies, and the
   run's control flow in `next`;
 - method/agent-questions.csv: the questions asked of an agent.
 A link from an operation to a part it calls is drawn as a call only where the interaction's `operation` names it.
@@ -223,7 +223,7 @@ def agent_rows(M, pid):
 
 
 def reaches(M, pid, op_row):
-    """What one run operation reaches through the agent parts that perform it: their dependencies, and any other part
+    """What one run action reaches through the agent parts that perform it: their dependencies, and any other part
     they are shared with (a tool that runs in another component)."""
     rows = agent_rows(M, pid)
     parts = {r.get("id"): r for r in rows if r.get("element") == "agent part"}
@@ -247,12 +247,12 @@ EDGE = "stroke:var(--m-ink2);stroke-width:1.4;fill:none"
 
 def run_moves(M, pid):
     """The run's control flow as the register records it in `next`: [(from, to, guard)], from "start" (the run row) or an
-    operation id, to an operation id or "end". Only moves between the agent's own operations are kept."""
+    action id, to an action id or "end". Only moves between the agent's own actions are kept."""
     rows = agent_rows(M, pid)
-    ops = {r.get("id") for r in rows if r.get("element") == "operation"}
+    ops = {r.get("id") for r in rows if r.get("element") == "action"}
     out = []
     for r in rows:
-        src = "start" if r.get("element") == "run" else r.get("id") if r.get("element") == "operation" else None
+        src = "start" if r.get("element") == "run" else r.get("id") if r.get("element") == "action" else None
         for dst, guard in cv.next_moves(r.get("next")) if src else []:
             if dst in ops or (dst == "end" and src != "start"):
                 out.append((src, dst, guard))
@@ -260,7 +260,7 @@ def run_moves(M, pid):
 
 
 def tools_of(M, pid, op_row):
-    """The agent's own operations (its participation rows) that the agent parts performing one run operation name,
+    """The agent's own operations (its participation rows) that the agent parts performing one run action name,
     in their name or what they are: a run's "call a tool" joined to the operations it calls. Derived, never a column."""
     rows = agent_rows(M, pid)
     parts = {r.get("id"): r for r in rows if r.get("element") == "agent part"}
@@ -270,7 +270,7 @@ def tools_of(M, pid, op_row):
 
 
 def act_side(M, pid, r, parts):
-    """(the operation's name, "· not assessed" where its agent part was looked for and not found, and the lines beside
+    """(the action's name, "· not assessed" where its agent part was looked for and not found, and the lines beside
     it: the agent parts that perform it and what those reach)."""
     mine = [parts[a] for a in cv.ids(r.get("performed_by")) if a in parts]
     unfound = bool(mine) and not any(cv.ids(p.get("subject_id")) for p in mine)
@@ -286,7 +286,7 @@ def act_side(M, pid, r, parts):
 
 def run_list(M, pid, run, ops, parts):
     """A run whose order the register does not record: its name, with the order said to be not on record, then its
-    operations as a plain list, with no start, end or edge, so nothing reads as a sequence."""
+    actions as a plain list, with no start, end or edge, so nothing reads as a sequence."""
     E = cv.esc
     lis = "".join(f'<li><b>{E(name)}</b> <span class="ref">{E("; ".join(side))}</span></li>'
                   for name, _, side in (act_side(M, pid, r, parts) for r in ops))
@@ -305,7 +305,7 @@ def side_points(cx, top, d, n, side):
 
 
 def run_drawing(M, pid):
-    """One run as a UML activity diagram: an initial node, the run's operations as actions in register order, a final
+    """One run as a UML activity diagram: an initial node, the run's actions in register order, a final
     node, and the control flow the register records in `next`: a decision node where an action has several next moves,
     a merge node where several moves enter one, an edge drawn back up where the run repeats. Each condition sits on its
     own edge where the edge leaves the decision, as UML places a guard. A move that skips ahead runs on the left, a move
@@ -316,10 +316,10 @@ def run_drawing(M, pid):
     E = cv.esc
     rows = agent_rows(M, pid)
     run = next((r for r in rows if r.get("element") == "run"), {})
-    ops = [r for r in rows if r.get("element") == "operation"]
+    ops = [r for r in rows if r.get("element") == "action"]
     parts = {r.get("id"): r for r in rows if r.get("element") == "agent part"}
     if not ops:
-        return '<p class="note">The register names no operation inside this agent\'s run.</p>'
+        return '<p class="note">The register names no action inside this agent\'s run.</p>'
     moves = run_moves(M, pid)
     if not moves:
         return run_list(M, pid, run, ops, parts)
@@ -451,7 +451,7 @@ def run_drawing(M, pid):
     for r in ops:
         for d in reaches(M, pid, r):
             again.setdefault(d, []).append(r.get("name", ""))
-    notes += [f"{d} is reached by more than one operation in a run: {'; '.join(n)}." for d, n in again.items() if len(n) > 1]
+    notes += [f"{d} is reached by more than one action in a run: {'; '.join(n)}." for d, n in again.items() if len(n) > 1]
     ny = y + 8
     for n in notes:
         for ln in cv.wrap(n, W - 40, 11.5, 3):
@@ -472,7 +472,7 @@ SAYS_NOTHING = "a component of this system"  # where a part sits when the regist
 
 
 def question_gaps(M, pid):
-    """measure-gaps.csv rows on one agent, or on one of its operations: [(operation or "", question id, row)]."""
+    """measure-gaps.csv rows on one agent, or on one of its actions: [(action id or "", question id, row)]."""
     import one_canvas as oc  # the page imports this module; importing it back only here avoids a cycle
     path = pathlib.Path(M["R"].get("_path") or "") / "measure-gaps.csv"
     if not M["R"].get("_path") or not path.exists():
@@ -594,7 +594,7 @@ def key(M, pid):
 
 RUN_KEY = ('<details class="seqkey"><summary>Key to the run</summary><ul>'
            "<li>A UML activity diagram. Filled dot: a run starts. Ringed dot: a run ends.</li>"
-           "<li>Rounded box: one operation inside a run, in the order the register lists them. Beside it: the agent "
+           "<li>Rounded box: one action inside a run, in the order the register lists them. Beside it: the agent "
            "parts that perform it, and what those reach.</li>"
            "<li>Diamond under a box: a decision, where a run takes one of several next moves. Diamond over a box: a "
            "merge, where several moves lead into it. A line back up, on the right: the run repeats. A line on the "

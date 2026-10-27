@@ -1,8 +1,10 @@
 # Filling a register for one capability
 
-For a language model drafting from the source material it is given. The run never stops to ask a person: what
-the sources do not state, the model infers plausibly and labels `proposed:` with its basis, and a person confirms
-or corrects those rows afterwards. The result is a filled register (the tables in
+For a language model drafting from the source material it is given. The run never stops to ask a fact it can infer:
+what the sources do not state, the model infers plausibly and labels `proposed:` with its basis, and a person confirms
+or corrects those rows afterwards. What is the person's (intent, scope, judgement and taste: which flow, whether the
+sources are enough, whether to keep going) is brought to them with a proposal when it arises; the plan (Before you
+start, item 7) is the first such point. The result is a filled register (the tables in
 `register-template/`, defined in `register-template/REGISTER.md`) from which `one_canvas.py` draws the
 design-for-operations map, and from which `flow_outputs.py` generates each stage's slice, measures, alert and
 runbook.
@@ -111,7 +113,52 @@ is never inferred: it is written only where a source states it (Step 3a).
    workspace as a further folder, read-only; what is found and cannot be had goes under *still missing*. `RUN.md`'s
    Phase 0 line answers "Is this the complete set of repositories?" with that evidence, and Phase 0 is not done while
    a reference is unresolved and unsearched. If the person's request says to use only the sources they name, do not
-   search: list each unresolved reference under *still missing* instead.
+   search: list each unresolved reference under *still missing* instead. The same holds when the run cannot search (no
+   access to a code host, or the person has said nothing is to be fetched): list each one, with why it was not searched.
+
+6. **Survey before reading.** Once the repository set is complete, run
+   `python "<skill>/survey.py" "<your-folder>"`. It reads the code rows of `sources.csv` (or the repository folders
+   given after the register folder) and writes `survey.csv`: each service with its place, its size in files and
+   lines, its entry points, and the other services it names as an address, counted by the script and never
+   estimated. Read the deployment and configuration definitions now (item 4), and enough of each service's entry
+   points and routes to say what it does in one line. Nothing else is read in depth yet. Add the survey to
+   `sources.csv` as `tool output` and to `how-made.csv`.
+   Then run the code reader over the same repositories, from the workspace root:
+   `python "<skill>/fact-extractor/run.py" . --service-map <folder>=<service> ... > "<your-folder>/fact-base.json"`,
+   one `--service-map` pair per service folder (`fact-extractor/README.md` says how to run it and what it cannot
+   reach). It finds each service's routes, calls, messages and database writes, each with file and line, by rule and
+   never by a model. Check what it produced with `python "<skill>/fact-extractor/contract.py" . "<your-folder>/fact-base.json"`
+   and record its `reach` block in `how-made.csv`; a kind its contract does not know is reported, not a reason to
+   stop. The reader is a module: any tool whose output `fact-extractor/contract.py` accepts can take its place. A row
+   resting on one of its facts is labelled `extracted` and cites the fact's file and line. What it finds are leads,
+   not rows: each one in a service the flow touches is read, then cited by a row or set aside with the reason, and
+   the done check names any left over. What it misses (most calls between services, in practice) is found by
+   reading, labelled `proposed:`, and cites both ends, the call and the operation that receives it.
+7. **Write the plan, and stop for the go.** Write `PLAN.md` in the register folder: the run's work breakdown, in the
+   form of a stage plan's work packages (PRINCE2) or the initial work item list of an Inception phase (Disciplined
+   Agile Delivery). It is read by the person who oversees the run, who knows the business but not this kit: no table
+   names, register ids or phase numbers. **No first person and no narration:** no "I will", no sentences explaining
+   the run's thinking; every line is a fact, a decision or a work item. Exactly these five parts, in this order:
+   - **Header.** One line: the system, the number of repositories, the lines of code (counted by the survey), the
+     number of services.
+   - **Decisions for you.** Each decision the run needs before it reads, as a short block: the decision; the options
+     the survey found, one line each; the recommendation and its reason in one line. **The business flow to map is
+     always one of these decisions:** list the candidate flows the survey shows (the business transactions the entry
+     points, routes and stored states point to), and recommend one. The run never picks the flow. Also a decision:
+     the stage for the alerts and runbooks, where the survey can show candidates, or how it will be chosen; any cut
+     to what is read; and any source outside the workspace, fetch it or leave it as an outside dependency.
+   - **Work items.** A table, `| # | Work item | Input | Output | Done when | Depends on | Size |`. One row per
+     reading unit (a service, or part of a very large one), in reading order, sized in files and lines from the
+     survey; then one row per output (the case and its lifecycle, the stages, steps and parts, the measures, the
+     chosen stage's alerts and runbooks, the check and the drawn map). "Done when" is a check someone else could make.
+   - **Not in scope.** One line each.
+   - **Stops.** One line each: the stop for the go, and each condition that brings the run back before it finishes, a decision
+     of the person's that the walk raises among them.
+   Then set `RUN.md` → *Plan and go*, and put the whole text of `PLAN.md` in your message to the person, as the
+   message itself, ending with the ask for their go and their answer to each decision; never only say that a plan
+   exists or where its file is, because the person reads the plan where they are, in the chat. Then **stop**. Read nothing further until the person's go is recorded in `RUN.md`, word for word, with when it was
+   given. If they ask for changes, revise `PLAN.md` and wait again. `run_status.py` names any work written before
+   the go.
 
 ## Step 1. Declare the frame (*Assigning* Step 0; *Rules*, Rule 0)
 
@@ -136,7 +183,9 @@ say so in that row; it is a finding about where the record is created, not a sta
 work set aside as `other flow` is also a row in `flows.csv` now**, with its own case and no stages: the capability
 carries it, and it is walked separately (Step 8).
 
-If several kinds of case are plausible, name them, pick one, say why. If the source holds no case at all,
+If several kinds of case are plausible, name them: the choice is the person's, made at the plan's go (Before you
+start, item 7), where each is listed with a recommendation and its reason; the run does not pick. Here, take the one
+the person chose. If the source holds no case at all,
 stop: draft the capability alone and say the rest would be fabricated.
 
 `case_identifier`: the field that names one case, and every place it is lost. Read the code for it.
@@ -445,7 +494,7 @@ Work down the levels, asking the question first and then naming the measure:
    process steps that matter are each stage's **exits**, read from its moves in `lifecycle.csv` (a process step whose move takes
    the case out of the stage, by the main move and by every alternative or exception ending, never the process step that
    happens to be listed last), the flow's first process step, every process step with a step-impact row, and every process step an AI
-   agent serves (its participation rows, and its `agent-system.csv` run and operations). Mark each process step measure in
+   agent serves (its participation rows, and its `agent-system.csv` run and actions). Mark each process step measure in
    `receipt_question` with the question it answers.
 4. **Each part, its kind's set** (`method/part-kinds.csv`), at its layer: `application` for an application
    component, `technology` for a system component. An external dependency is asked the same sets from the
@@ -495,10 +544,10 @@ is a route and `reply to` where it is a tool.
 
 **A model output a later call relies on is its own decision point.** Where the agent's chain writes something
 with one model call and a later call decides from it (a description of a room written from a photo, then fed to
-the call that chooses products), that first output is a judgment no tool or reply holds. Class it on the operation row
+the call that chooses products), that first output is a judgment no tool or reply holds. Class it on the action row
 of `agent-system.csv` that makes the call, in `decision_point`: `yes:` and why, citing the line that feeds it on.
 It is keyed by the agent and its place in the chain, element `S03 AS2`, and asked the same questions; its
-candidates name the process step's id in `operation` (`AS2`). Only a process step row classed `yes:` is asked. Do not class a process step
+candidates name the action's id in `operation` (`AS2`). Only an action row classed `yes:` is asked. Do not class an action
 whose output a tool's or a reply's decision point already holds: the model's choice of a tool's arguments is that
 tool's decision point. Grounding comes first:
 does the reply say what the tool returned (a judge sampling replies against the tool's output, NIST AI 600-1
@@ -529,9 +578,9 @@ writes, in these forms:
 A measure that names no tool answers for none of its decision points: the grain is the judgment. A measure listing
 every tool the agent has is not a decision-point candidate; write one per tool, against what that tool records.
 
-**At the run**, every agent, whatever its tools are classed: the agent question of grain `run`, `operations`. One
+**At the run**, every agent, whatever its tools are classed: the agent question of grain `run`, `operating health`. One
 run is one invocation of the agent: a request in, the model and tool calls it makes, an answer out. Each of five
-metrics is its own element, covered by an `agentic` measure of the agent with `agent_question` `operations` marked
+metrics is its own element, covered by an `agentic` measure of the agent with `agent_question` `operating health` marked
 for it in `receipt_question`, or gapped:
 
 | Run metric | The field's form (OpenTelemetry GenAI semantic conventions, repository `open-telemetry/semantic-conventions-genai`, status Development: `docs/gen-ai/gen-ai-metrics.md`, `gen-ai-token-metrics.md`, `gen-ai-agent-spans.md`) |
@@ -604,8 +653,8 @@ a row with no `kind` or one not in the list, and on a `counted by` row whose `wh
 | Every system component (`band` `technology`) that takes part in a process step, whatever its involvement | its id (`S08`) | `technology` | of the component, `technology` |
 | Every decision point: an agent with a tool its participation rows class `yes:` in `decision_point` (the rows of one tool, at several process steps, are one decision point) | the agent's id and the tool (`S04 uw_render_decision`); for a row naming no tool, `S04 at step 15` | each agent question in `method/agent-questions.csv` whose `status` is `provisional` and `grain` is `decision point` | of the agent, `agentic`, with that `agent_question` and the tool in `operation` (for a row naming no tool, that `step`) |
 | Every reply relied on: an agent row classed `yes:` in `reply_decision_point`, one per agent and operation | the agent's id, `reply to` and the tool (`S04 reply to uw_render_decision`), or `reply on` and the route for an agent with no tool (`S03 reply on POST /`); a row naming no operation, `reply at step` and the step | the same agent questions | of the agent, `agentic`, with that `agent_question`, `reply` and the operation in `operation` (a row naming no operation: `reply` and that `step`) |
-| Every model output a later call relies on: an agent's operation in `agent-system.csv` classed `yes:` in `decision_point` | the agent's id and the operation's id (`S03 AS2`) | the same agent questions | of the agent, `agentic`, with that `agent_question` and the operation's id in `operation` |
-| Every agent that performs or supports a process step, or whose `agent-system.csv` run serves one | its id (`S04`) | each run metric: `run duration`, `failed tool calls`, `tokens`, `refusals`, `fallbacks to a person` | of the agent, `agentic`, answering the agent question of grain `run` (`operations`), with the metric in `receipt_question` |
+| Every model output a later call relies on: an agent's action in `agent-system.csv` classed `yes:` in `decision_point` | the agent's id and the action's id (`S03 AS2`) | the same agent questions | of the agent, `agentic`, with that `agent_question` and the action's id in `operation` |
+| Every agent that performs or supports a process step, or whose `agent-system.csv` run serves one | its id (`S04`) | each run metric: `run duration`, `failed tool calls`, `tokens`, `refusals`, `fallbacks to a person` | of the agent, `agentic`, answering the agent question of grain `run` (`operating health`), with the metric in `receipt_question` |
 
 An agent question marked `candidate` is not asked until the agentic layer settles it. A tool classed `no:` is not a
 decision point, and its agent is still asked at the run.
@@ -891,6 +940,22 @@ as `run_status.py` names it, which is one of `step: trigger`, `step: timeouts`, 
 process step's trigger, what happens if it does not happen and its timeouts, and for the expected outcomes of a stage the process step
 ends. Every other view question is answered, or only counted. A gap of kind `not read` does not pass on a first run. `run_status.py` lists each empty field by
 element: fill it or gap it in the step that writes it, and run it again.
+
+**After the go, DONE also needs the cited code read** (`reading_check.py`, which `run_status.py` runs). Every code
+location a row cites must have been opened by the run with the Read tool, its lines inside the part that was read,
+or be a fact the code reader produced in `fact-base.json`. The evidence is Claude Code's own record of the session
+(the transcripts it keeps for the run and every subagent the run launches), never a list the run writes. Open code
+with the Read tool: a file shown by a shell command does not count, and a row is written from the code read, never
+from a script that searches the code and emits rows. A script may find where to look; you read what it found.
+`run_status.py` names each location cited and not read.
+
+**Then the sampled re-read.** When the register is otherwise complete, draw the sample: `python "<skill>/reread.py"
+"<your-folder>"` writes `re-read.csv`, ten rows that cite code, calls resting only on your reading first. Launch one
+agent that wrote none of the rows, and give it only the workspace and `re-read.csv`: for each row it opens the cited
+lines with the Read tool and writes its verdict (`says`, `does not say` or `unclear`) and the reason. It writes
+nothing else in the register folder. A row that does not say is fixed where it was written; then draw the sample
+again and have it re-read. `run_status.py` passes the re-read only when every verdict says, the verdicts came from
+a session that wrote nothing else in the register, and that session opened every cited line.
 
 ## When something new arrives
 

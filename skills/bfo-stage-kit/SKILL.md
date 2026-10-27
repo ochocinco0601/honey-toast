@@ -9,9 +9,26 @@ This folder is the kit. Everything below calls it **the skill folder**. Wherever
 `<skill>`, it means this folder, and the folders it names (`register-template/`, `reference/`, `method/`) are
 inside this folder too.
 
+## The job this serves
+
+A person who oversees operations needs each business capability their teams run to be supported in production:
+someone can tell whether it is healthy, is told when it is not, and knows what to do. Two levels up, the customers and
+the business who depend on it get what they need, and when something breaks the impact on them is found and limited
+first. This skill's step in that job is the design-time map: from the code and the documents, it describes one
+business flow, and for one stage drafts what to measure, what to alert on and a runbook per alert. It receives what
+the person points at (repositories, documents, diagrams, notes), directly or through the service reliability room; it
+hands the person, the room's seats or the team that runs the capability a register and its generated outputs, each
+claim cited to its source or marked proposed. Like any team taking on work for an overseer, it first shows how it will
+do the work: what the system is and how big, what it will read and in what order, what comes out and where it stops,
+and it waits for the go before reading in depth. Done, for the whole job: the person can see the plan before the work
+and trust what comes out of it, because every service the flow touches was read and every claim can be traced; and
+the outputs are complete enough for the next step (measures built, alerts wired, runbooks used). *(Inferred: the
+overseer's view of the work before it starts, at every size of run, and the room's own statement of the job.)*
+
 ## The run
 
-A run is eight phases, done in order. Each has an **In → Out**, and the files it names are what prove it done. The
+A run is eight phases, done in order. Between the first and the second, the run shows the person its plan and
+waits for their go, whatever the run's size. Each phase has an **In → Out**, and the files it names are what prove it done. The
 work goes in the **register folder**, `bfo-work/<application>/` at the workspace root (in a multi-root workspace,
 the first folder), never in the skill folder;
 it is `<your-folder>` in `FILL-STEPS.md`. Run the kit's scripts from the skill folder, exactly as `FILL-STEPS.md`
@@ -29,7 +46,8 @@ re-derivation can be compared.
 
 **Then `RUN.md`, and nothing else starts before it.** Before reading any code or writing any other file, create the
 register folder, copy `register-template/RUN.md` into it, and write its section *What this run will produce* in your
-own words, from this file: the application, the flow and the stage (or how you will pick them), and, phase by phase,
+own words, from this file: the application, the flow and the stage (named by the person, or left to the plan's
+decisions), and, phase by phase,
 what the phase does and the files it must leave. Then set Phase 0 to *doing*.
 
 **`RUN.md` is kept as you go.** At the end of each phase, set it to *done* with the files that prove it, and the
@@ -38,7 +56,7 @@ the path") and what would unblock it, and the run says so in the chat. No phase 
 never stops without saying where it stands. **If `RUN.md` already exists**, because the run is resuming or a new
 chat has started, read it first and continue from the first phase that is not done.
 
-0. **Frame and gather** (FILL-STEPS "Before you start").
+0. **Frame, gather, survey and plan** (FILL-STEPS "Before you start").
    In: whatever the person points at in their request (repositories, pages, diagrams, process descriptions,
    documents, notes), and what is already in the workspace. Out: the register's CSV files, copied from
    `register-template/` by `python "<skill>/start_register.py" "<your-folder>"`, never by hand: it copies only into
@@ -67,18 +85,33 @@ chat has started, read it first and continue from the first phase that is not do
    workspace as a further folder, read-only; what is found and cannot be had goes under *still missing*. `RUN.md`'s
    Phase 0 line answers "Is this the complete set of repositories?" with that evidence, and Phase 0 is not done while
    a reference is unresolved and unsearched. If the person's request says to use only the sources they name, do not
-   search: list each unresolved reference under *still missing* instead.
+   search: list each unresolved reference under *still missing* instead. The same holds when the run cannot search (no
+   access to a code host, or the person has said nothing is to be fetched): list each one, with why it was not searched.
    **This phase lists and places; it does not read everything.** Read each source only far enough to say what it
    is and which step uses it. Code is read in full from Phase 1 on, every service the flow touches, as the rules for
    the whole run below say.
    Keep the documents identifiable as a set: Step 8 hands them, without the walk, to a separate pass.
+   **Then survey and plan** (FILL-STEPS "Before you start", items 6 and 7): `python "<skill>/survey.py"
+   "<your-folder>"` writes `survey.csv`, each service's place, size, entry points and calls, counted by script;
+   then the code reader, `python "<skill>/fact-extractor/run.py"`, writes `fact-base.json` in the register folder:
+   routes, calls, messages and writes with file and line, found by rule. It is a module: any tool whose output
+   `fact-extractor/contract.py` accepts can take its place. Its findings are leads to read, each later cited by a
+   row or set aside with the reason; what it misses is found by reading and labelled `proposed:`, a call citing both
+   ends. Then write `PLAN.md` from the survey, in the form FILL-STEPS item 7 sets: a work breakdown with the decisions
+   the person makes (the flow to map always among them, with candidates and a recommendation; the run never picks
+   it), never a narration.
+   **Stop for the go.** Set `RUN.md` → *Plan and go*, put the whole text of `PLAN.md` in your message to the person,
+   as the message itself, ending with the ask for their go, and end your turn. Never only say that a plan exists or
+   give its path: the person reads the plan in the chat, not by finding a file. Phase 1 starts only when the person's go is recorded in `RUN.md`, word for
+   word, with when it was given. Under the service reliability room, the room's own agreement with the person is
+   the go: its chief engineer records it. `run_status.py` names any work written before the go.
 1. **The case and its lifecycle** (Steps 1 and 2).
-   In: the sources. Out: `flows.csv` (the case, whose expectation, start and end), `lifecycle.csv`. Pick the main business flow, the one whose case the business most
-   depends on, unless the person named one, and write it into `RUN.md`.
+   In: the sources. Out: `flows.csv` (the case, whose expectation, start and end), `lifecycle.csv`. The flow is the one the person chose at the go, from the plan's
+   decision (their own, or the recommendation they accepted); write it into `RUN.md`.
 2. **Stages, process steps, parts and agents** (Steps 3 to 7).
    In: the lifecycle. Out: `stages.csv`, `steps.csv`, `subjects.csv`, `participation.csv`, `set-aside.csv`,
    `agent-system.csv`. Choose this run's stage for Phase 5 and write it into `RUN.md` as `stage-<id>`: the stage
-   the person named; else, if the register already has `stage-<id>` folders, the next stage with none; else the
+   the person named, or chose at the go from the plan's decision; else, if the register already has `stage-<id>` folders, the next stage with none; else the
    stage where a case most often waits or can be left stranded.
 3. **The capability** (Step 8).
    In: the walk so far, and the documents read apart from it. Out: `capabilities.csv`.
@@ -133,11 +166,20 @@ chat has started, read it first and continue from the first phase that is not do
   the measures read every service the flow runs through, whatever stage it carries. Only Step 11 is per stage, as
   above. A run is cut shorter only when the person asks for it (`USE.md`). `KNOWN-GAPS.md` "At scale" says what is
   still open at size.
+- **Open code with the Read tool, and write each row from what you read.** A row is written from code read, never
+  from a script that searches the code and emits rows; a script may find where to look. The done check takes what
+  was read from Claude Code's own record of the session, not from anything the run writes: every location a row
+  cites must have been opened with Read, its lines inside the part read, or be a fact the code reader produced. A
+  file shown by a shell command does not count. Before the done check, `python "<skill>/reread.py" "<your-folder>"`
+  draws `re-read.csv`, a sample of rows; one agent that wrote none of the rows opens each row's cited lines and
+  writes whether the code says what the row claims (FILL-STEPS "The run ends with `run_status.py`").
 - **Talk to the person in names, not ids.** In every message and report, name parts, process steps and stages by their
   names ("the Ordering API", "Accept the order"), never by register id. An id may follow a name in
   brackets only where the person must find a row in a file.
-- Do not stop to ask the person anything. Where the sources do not say something, infer it and label it
-  `proposed:` with the reason.
+- Never stop to ask the person a fact you can infer: where the sources do not say something, infer it and label it
+  `proposed:` with the reason. What is the person's (intent, scope, judgement and taste: which flow, whether the
+  sources are enough, whether to keep going) is brought to them with your proposal when it arises. The plan is the
+  first such point.
 - Never edit a generated file: fix the register and generate again.
 
 ## What the person gets

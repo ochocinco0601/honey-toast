@@ -3,6 +3,6 @@ correctness,Correctness: was the call right?,"the person's agreement or override
 grounding,Grounding: did it decide from the case's inputs?,its decision checked against the inputs it claims to rest on,provisional,decision point
 traceability,Traceability: can the decision be rebuilt?,"a run and tool-call record carrying the case: which decider, which inputs, which steps",provisional,decision point
 drift,Drift: is it still the decider that was vetted?,"that decision point's inputs and outputs against a validated baseline, and the agent's configuration (model, prompt, rules)",provisional,decision point
-operations,Operations: how did its runs go?,"per run of the agent (OpenTelemetry GenAI invoke_agent and execute_tool): run duration; failed tool calls; tokens; refusals; fallbacks to a person",provisional,run
+operating health,Operating health: how did its runs go?,"per run of the agent (OpenTelemetry GenAI invoke_agent and execute_tool): run duration; failed tool calls; tokens; refusals; fallbacks to a person",provisional,run
 escalation,Escalation: does it know when not to decide?,,candidate,
 policy scope,Policy scope: did it stay within its authority?,,candidate,

@@ -1,0 +1,100 @@
+# Coverage probe - observability as code. Deliberately full of idioms no rule may cover yet.
+# Marker form:  # PROBE:<fact_kind>:<framework>:<name>
+# The probe belongs to the next non-blank, non-comment line.
+#
+# **Why this file exists.** Every rule in rules.yaml targets a program language -
+# java, csharp, python, js/ts, go. The artifacts that decide whether anything COLLECTS a
+# signal, and whether a firing reaches a person, are not written in any of them. They are
+# YAML, they are committed, and reading them needs nothing running. Bank of Anthos ships six
+# PrometheusRule alerts routed to Slack in `extras/prometheus/`, which a program-language
+# rule set does not read.
+
+# ---------------------------------------------------------------- collection
+# PROBE:collector_binding:prometheus-operator:ServiceMonitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: frontend
+spec:
+  endpoints:
+    - port: http
+      interval: 30s
+
+---
+# PROBE:collector_binding:prometheus-operator:PodMonitor
+kind: PodMonitor
+spec:
+  podMetricsEndpoints:
+    - port: metrics
+
+---
+# PROBE:collector_binding:blackbox:Probe
+kind: Probe
+spec:
+  prober:
+    url: blackbox-exporter:19115
+  targets:
+    staticConfig:
+      static:
+        - frontend:80
+  interval: 60s
+
+---
+# PROBE:collector_binding:prometheus:scrape-config
+scrape_configs:
+  - job_name: ledgerwriter
+    scrape_interval: 15s
+
+# ---------------------------------------------------------------- alerting
+# PROBE:alert_rule:prometheus-operator:PrometheusRule
+kind: PrometheusRule
+spec:
+  groups:
+    - name: availability
+      rules:
+        - alert: FrontendDown
+          expr: probe_success{job="frontend-probe"} == 0
+          for: 1m
+          labels:
+            severity: critical
+
+---
+# PROBE:alert_rule:prometheus:bare-alerting-rule
+groups:
+  - name: ledger
+    rules:
+      - alert: LedgerWriteFailing
+        expr: rate(ledger_write_errors_total[5m]) > 0
+        for: 5m
+
+# ---------------------------------------------------------------- notification
+# PROBE:alert_route:alertmanager:receiver-slack
+receivers:
+  - name: slack-notifications
+    slack_configs:
+      - api_url: https://hooks.slack.com/services/T000/B000/XXXX
+        send_resolved: true
+
+---
+# PROBE:alert_route:alertmanager:route-to-receiver
+route:
+  receiver: slack-notifications
+  group_by: [alertname]
+
+---
+# PROBE:alert_route:alertmanager:receiver-pagerduty
+receivers:
+  - name: oncall
+    pagerduty_configs:
+      - routing_key: example-key
+
+# ---------------------------------------------------------------- objectives
+# PROBE:objective_declaration:openslo:SLO
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: payment-availability
+spec:
+  objectives:
+    - displayName: availability
+      target: 0.995

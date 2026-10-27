@@ -7,8 +7,9 @@ Usage: python reconcile.py <earlier register> <new register> [--workspace <folde
 
 Columns renamed since an earlier release (RENAMED) are read under their new names whenever an earlier register is
 reconciled. `--migrate` rewrites a register in place to the current names: the columns, the receipt questions that
-carry the name (in measure-gaps.csv `question` and measures.csv `receipt_question`), and a code citation inside
-`customer`, which moves to the row's `source`. It also renames remedy ids `R1`, `R2`, ... to `RM1`, `RM2`, ...
+carry the name (in measure-gaps.csv `question` and measures.csv `receipt_question`), the agent-system.csv `element`
+values renamed (RENAMED_ELEMENTS: an act inside an agent's run is now an action), the measures.csv `agent_question`
+values renamed (RENAMED_AGENT_QUESTIONS), and a code citation inside `customer`, which moves to the row's `source`. It also renames remedy ids `R1`, `R2`, ... to `RM1`, `RM2`, ...
 (interaction ids keep `R01`): in remedies.csv `remedy`, in failure-modes.csv `remedy`, and where a remedy's
 `action`, `expected` or `if_different` names another remedy of the register. The register's own prose (how-made.csv
 notes, a citation) is never rewritten. An earlier `promise` moves to `bound_in_code` only where it cites code (a file
@@ -76,6 +77,12 @@ IDS = {"flows.csv": "flow_id", "lifecycle.csv": "move_id", "stages.csv": "stage"
        "subjects.csv": "subject_id", "expectations.csv": "expectation_id"}
 # Columns renamed since an earlier release: old name to new. Applied where the earlier register is read (table()).
 RENAMED = {"expectation_of": "customer", "promise": "bound_in_code"}
+# agent-system.csv `element` values renamed since an earlier release: an act inside an agent's run is an action
+# (UML's activity vocabulary); "operation" is kept for a tool or route a part offers.
+RENAMED_ELEMENTS = {"operation": "action"}
+# measures.csv `agent_question` values renamed: the run-grain question "operations" collided with "operation" (a tool
+# or route), so it is "operating health".
+RENAMED_AGENT_QUESTIONS = {"operations": "operating health"}
 # An optional lifecycle column added since an earlier release; --migrate adds it empty, beside carried_by.
 ADDED_LIFECYCLE = "started_by"
 # Receipt questions that carried a renamed column's name.
@@ -226,9 +233,10 @@ def add_objectives(reg, moved, notes):
 
 def migrate(reg, notes=None):
     """Rewrite one register in place to the current column names (RENAMED) and receipt questions
-    (RENAMED_QUESTIONS), folding a code citation out of `customer` into `source`, and to the current remedy ids
-    (`RM1`). An earlier `promise` that cites no code moves to expectations.csv (unbound). Returns the files changed;
-    `notes`, where given, gets one line per bound moved."""
+    (RENAMED_QUESTIONS), agent-system.csv element values (RENAMED_ELEMENTS) and measures.csv agent_question values
+    (RENAMED_AGENT_QUESTIONS), folding a code citation out of `customer` into `source`, and to the current remedy
+    ids (`RM1`). An earlier `promise` that cites no code moves to expectations.csv (unbound). Returns the files
+    changed; `notes`, where given, gets one line per bound moved."""
     reg = pathlib.Path(reg)
     notes = [] if notes is None else notes
     old = set(old_remedy_ids(reg))
@@ -244,6 +252,11 @@ def migrate(reg, notes=None):
             new_rows = unbound(name, new_rows, moved)
         if name == "flows.csv" and "expectation_of" in fields:
             new_rows = [fold_customer_citation(r) for r in new_rows]
+        if name == "agent-system.csv" and "element" in fields:
+            new_rows = [dict(r, element=RENAMED_ELEMENTS.get(r["element"], r["element"])) for r in new_rows]
+        if name == "measures.csv" and "agent_question" in fields:
+            new_rows = [dict(r, agent_question=RENAMED_AGENT_QUESTIONS.get(r["agent_question"], r["agent_question"]))
+                        for r in new_rows]
         if name == "measure-gaps.csv":
             new_rows = [dict(r, question=RENAMED_QUESTIONS.get(r.get("question"), r.get("question")))
                         if "question" in r else r for r in new_rows]
@@ -493,7 +506,7 @@ def resolve(path, ws, reads):
 
 def excerpt(f, spans):
     """(lines shown, problem or "") for the cited spans of a file. Only the first line cited decides: a later span
-    past the end (often a line of another file, after a comma) is shown as a note."""
+    past the end (it may be a line of another file, after a comma) is shown as a note."""
     text = f.read_text(encoding="utf-8", errors="replace").splitlines()
     shown, problems = [], []
     for n, (a, b) in enumerate(spans):

@@ -9,10 +9,9 @@ Write this section yourself, in your own words, before you read any code or writ
 skill's text. Saying it back is how the run checks it has understood the skill.
 
 - **Application:** _write the application this run describes._
-- **Flow:** _write the flow, or, if the person did not name one, how you will pick it. Fill it in at the end of
-  Phase 1._
-- **Stage for Step 11:** _write the stage, or, if the person did not name one, how you will pick it. Write it as
-  `stage-<id>` once the stages are cut (Phase 2)._
+- **Flow:** _write the flow the person named, or "a decision in the plan". Fill it in from their answer at the go._
+- **Stage for Step 11:** _write the stage the person named, or "a decision in the plan". Write it as `stage-<id>`
+  once the stages are cut (Phase 2)._
 - **Phase by phase:** _for each phase in `SKILL.md`, one line: what it does, and the files it must leave in this
   folder before it counts as done._
 
@@ -24,7 +23,8 @@ blocked, with its reason.
 
 | Phase | Status | Proved by (files, when done) | Blocked because |
 |---|---|---|---|
-| 0 Frame and gather | to do | | |
+| 0 Frame, gather, survey and plan | to do | | |
+| The go on the plan | to do | | |
 | 1 The case and its lifecycle | to do | | |
 | 2 Stages, steps, parts and agents | to do | | |
 | 3 The capability | to do | | |
@@ -32,6 +32,15 @@ blocked, with its reason.
 | 5 One stage's failure modes, alerts and runbook | to do | | |
 | 6 Check and draw | to do | | |
 | 7 Done check and report | to do | | |
+
+## Plan and go
+
+The run's plan is `PLAN.md` in this folder, written at the end of Phase 0 for the person who oversees the run. Nothing
+is read in depth until the person's go is recorded here, word for word, with when it was given. A go given for a test
+says so ("test go, given by ..."). If the person asks for changes, revise `PLAN.md` and wait again.
+
+- **Plan:** PLAN.md
+- **Go:** _the person's words, word for word, and when; blank until the go is given._
 
 ## Sources
 

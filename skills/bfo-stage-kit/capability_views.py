@@ -29,7 +29,11 @@ TABLES = ["about", "capabilities", "flows", "stages", "steps", "subjects", "part
 COUNTED_ON = ("cases", "events", "requests", "resources", "runs")
 LEVELS = ("component", "external dependency", "")
 RECOVERY = ("moves on", "stranded", "not created", "")
-AGENT_ELEMENTS = ("run", "operation", "agent part", "dependency")
+AGENT_ELEMENTS = ("run", "action", "agent part", "dependency")
+# An element value renamed since an earlier release: old to new. Kept in step with reconcile.RENAMED_ELEMENTS.
+RENAMED_ELEMENTS = {"operation": "action"}
+# A measures.csv agent_question value renamed: old to new. Kept in step with reconcile.RENAMED_AGENT_QUESTIONS.
+RENAMED_AGENT_QUESTIONS = {"operations": "operating health"}
 DONE_BY = ("tool", "model drafting", "person confirming", "by hand")
 SOURCE_KINDS = ("code", "document", "person", "tool output")
 CITE = re.compile(r"\.\w{1,8}:\s?\d|asked:|§|https?://")
@@ -59,7 +63,7 @@ def ids(v):
 
 
 def next_moves(v):
-    """agent-system.csv `next`: [(operation id or "end", guard or "")], `;` separated, each with an optional guard in
+    """agent-system.csv `next`: [(action id or "end", guard or "")], `;` separated, each with an optional guard in
     square brackets (`AS3 [a tool call]`)."""
     out = []
     for tok in (v or "").split(";"):
@@ -399,7 +403,11 @@ def check(R):
             err.append(f"measures.csv {h}: exists must be yes or no")
         if r.get("flow") and r["flow"] not in flows:
             err.append(f"measures.csv {h}: flow {r['flow']} is not a flow")
-        if r.get("agent_question") and r["agent_question"] not in aq:
+        if r.get("agent_question") in RENAMED_AGENT_QUESTIONS and r["agent_question"] not in aq:
+            err.append(f"measures.csv {h}: agent_question {r['agent_question']} is now called "
+                       f"{RENAMED_AGENT_QUESTIONS[r['agent_question']]} (a register made with an earlier version of this "
+                       "kit): rename the value, keeping the row, or run reconcile.py --migrate on a copy of the register")
+        elif r.get("agent_question") and r["agent_question"] not in aq:
             err.append(f"measures.csv {h}: agent_question {r['agent_question']!r} is not in method/agent-questions.csv")
         if layer_of(R, r.get("layer")) in ("business health", "business impact") and r.get("counted_on") != "cases":
             warn.append(f"measures.csv {h}: a business measure counts cases, not {r.get('counted_on')}")
@@ -430,7 +438,11 @@ def check(R):
         a = r.get("agent")
         if a not in agents:
             err.append(f"agent-system.csv {r.get('id')}: agent {a!r} is not a subject whose part_kind is an agent kind")
-        if r.get("element") not in AGENT_ELEMENTS:
+        if r.get("element") in RENAMED_ELEMENTS:
+            err.append(f"agent-system.csv {r.get('id')}: element {r['element']} is now called "
+                       f"{RENAMED_ELEMENTS[r['element']]} (a register made with an earlier version of this kit): rename "
+                       "the value, keeping the row, or run reconcile.py --migrate on a copy of the register")
+        elif r.get("element") not in AGENT_ELEMENTS:
             err.append(f"agent-system.csv {r.get('id')}: element must be one of {', '.join(AGENT_ELEMENTS)}")
         by_agent.setdefault(a, []).append(r)
     for a, rows_ in by_agent.items():
@@ -447,10 +459,10 @@ def check(R):
                 if own.get(p) != "dependency":
                     err.append(f"agent-system.csv {r['id']}: uses {p} is not one of agent {a}'s dependencies")
             for p, _ in next_moves(r.get("next")):
-                if r.get("element") not in ("run", "operation"):
-                    err.append(f"agent-system.csv {r['id']}: next is for the run or an operation only")
-                elif own.get(p) != "operation" and not (p == "end" and r.get("element") == "operation"):
-                    err.append(f"agent-system.csv {r['id']}: next {p} is not one of agent {a}'s operations"
+                if r.get("element") not in ("run", "action"):
+                    err.append(f"agent-system.csv {r['id']}: next is for the run or an action only")
+                elif own.get(p) != "action" and not (p == "end" and r.get("element") == "action"):
+                    err.append(f"agent-system.csv {r['id']}: next {p} is not one of agent {a}'s actions"
                                + ("" if r.get("element") == "run" else " or end"))
             for s in ids(r.get("serves_business_step")):
                 if s not in steps:
@@ -1749,7 +1761,7 @@ def figure_agent(M, agent, mid):
     rows = M["agent_rows"].get(agent["subject_id"], [])
     el = lambda w: [r for r in rows if r.get("element") == w]
     run = (el("run") or [{}])[0]
-    steps, parts, deps = el("operation"), el("agent part"), el("dependency")
+    steps, parts, deps = el("action"), el("agent part"), el("dependency")
     served = [s for s in ids(run.get("serves_business_step")) if s in M["step"]]
     served += [x for r in steps for x in ids(r.get("serves_business_step")) if x in M["step"] and x not in served]
     served += [s["step"] for s in M["step"].values() if any(sid == agent["subject_id"] for sid, _ in s["_parts"]) and s["step"] not in served]
@@ -2013,8 +2025,8 @@ WORDS = [  # the controlled vocabulary for system and work-structure terms
 ]
 
 PART_WORDS = [  # what a part offers, seen from outside
-    ("Operation (of a part)", "A tool, route or handler a component offers, joined to the process steps it serves. "
-                              "Not a code module."),
+    ("Operation", "A tool, route or handler a component offers, joined to the process steps it serves. "
+                  "Not a code module."),
 ]
 
 
@@ -2025,8 +2037,8 @@ OUTCOME_WORDS = [  # the ways a stage ends, drawn after its numbered steps
 
 AGENT_WORDS = [  # the levels of an AI agent seen as its own system
     ("Run", "One request an AI agent takes for one case, from taking it to its reply.", "run"),
-    ("Operation (in a run)", "One act inside a run: a call to its model, a tool, or a check. Not a process step.",
-     "operation"),
+    ("Action", "One act inside a run: a call to its model, a call to a tool, or a check. Not a process step. A tool "
+               "or route a part offers is an operation; calling one is an action.", "action"),
     ("Agent part", "A piece of the agent's own machinery: its model, the functions it may call, its guardrails or its orchestration.",
      "agent part"),
 ]
@@ -2043,9 +2055,10 @@ CASE_WORDS = [  # one case and where it stands: a data concern, apart from the s
 # related one. NT and the reverse of each RT are derived, so every relation reads the same from both ends.
 RELATIONS = {
     "Part": {"UF": ("participant",)},
-    "Component": {"BT": ["Part"], "RT": ["External dependency", "Operation (of a part)"]},
-    "Operation (of a part)": {"RT": ["Process step"]},
-    "Run": {"UF": ["agent invocation"], "RT": ["Operation (in a run)", "Agent part"]},
+    "Component": {"BT": ["Part"], "RT": ["External dependency", "Operation"]},
+    "Operation": {"RT": ["Process step"]},
+    "Action": {"UF": ["Operation (in a run)"], "RT": ["Operation"]},
+    "Run": {"UF": ["agent invocation"], "RT": ["Action", "Agent part"]},
     "State": {"RT": ["Status", "Case", "Stage"]},
     "Status": {"RT": ["Stage"]},
 }

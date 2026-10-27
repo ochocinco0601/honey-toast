@@ -7,6 +7,17 @@ Check the parts: a process step's dependency on a database can be left out, or a
 show, where a restore leads, and what a log really records. Treat the runbook as a draft for the code owners to correct before anyone
 relies on it.
 
+What the done check proves about reading, and what it does not. It proves that every cited line was opened by the
+run with the Read tool, or produced by the code reader, and that a sample of rows was re-read by an agent that wrote
+none of them and found true. It does not prove that every line opened was understood: a row can cite lines that
+were read and still misstate them, and the sample of ten finds that only where it lands. A redraw keeps the rows
+that failed and draws new ones for the rest, so a fix is followed by fresh rows. The record it reads is
+Claude Code's own session transcripts; their layout is Claude Code's, not the kit's, and a release of Claude Code that
+changes it would leave the check finding no record (it then says so and fails, never passes). The code reader finds
+only the coding patterns its rules cover, and joins a call between services only where its rules resolve every hop
+to the service it reaches (`fact-extractor/README.md`, "The join"); other calls rest on the run's reading. The
+instructions say such a call cites both ends, the call and the operation that receives it; no check holds that yet.
+
 ## At scale
 
 On a stage that many services carry, an alert's entry is long even when written as sweeps, and listed part by
@@ -17,8 +28,9 @@ part it is several times longer.
   answering with an error or slowly keeps its databases as tests of their own.
 - **Nothing checks a sweep's command.** The check confirms only that a sweep's parts are of one kind, each in a
   listed move. Whether its command reaches every part and names the one that matched is the drafter's to verify.
-- **One stage's reading is still one session's.** No code reader ships with the kit, and there is no rule for
-  sharing one stage between sessions. Stage by stage is the only split.
+- **One stage's reading is still one session's.** The code reader (`fact-extractor/`) finds routes, calls, messages
+  and writes, but the reading itself is the run's, and there is no rule for sharing one stage between sessions.
+  Stage by stage is the only split.
 - **Citations are verified by sample.** The sample's size is stated per run, not derived. Boilerplate citations
   written in bulk pass the check, and only the sample can catch them.
 - **No rule for one flow carried by parallel sets of services.**
@@ -52,6 +64,12 @@ Failure-mode ids (`FM..`) are the register's; each runbook test names the mode i
   the old ones: `python <kit>/flow_outputs.py <register folder> <flow id> <stage id> --out <register folder>/stage-<stage id>`
   for every stage (the same command as the check in USE.md, "Before you take it to anyone", with `--out` in place of
   `--check`), then `python <kit>/one_canvas.py <register folder> <register folder>/views.html`.
+- **The code reader's own check says `conforms: false` on most code.** Its rules record every log, metric and span
+  call as the kind `emission_site`, and this release's `fact-extractor/contract.py` does not list that kind, so check
+  C3 fails and the command exits 1. The findings are sound and the run should carry on, as FILL-STEPS says under "Before you start"
+  ("a kind its contract does not know is reported, not a reason to stop"). If the run stops or calls the reader
+  broken on this, say: *C3 failing only on emission_site is a known gap in this release; record the reach block and
+  carry on.* Any other failing check is real.
 - An earlier register is reconciled against the code, never built on (SKILL.md Phase 7). `reconcile.py` matches
   rows by what they say, so a row an earlier register worded differently is listed as a candidate or a disagreement
   rather than matched; and it checks that a cited line exists, not that it says what the row claims: the model reads

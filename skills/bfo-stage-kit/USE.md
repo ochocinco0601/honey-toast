@@ -16,34 +16,41 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
 
 ## What you need
 
-- VS Code with GitHub Copilot Chat in **agent mode**, so the model can read files and run terminal commands.
-- Python 3.9 or later on the path. Nothing else is installed.
+- Claude Code (the VS Code extension or the command line), so the model can read files, run terminal commands and
+  launch helper agents. The run's done check reads Claude Code's own record of the session, so a run in another
+  assistant never reaches DONE. What it reads: the session records Claude Code keeps on this machine (under
+  `~/.claude/projects/`) for the folders from the register up to, not including, your home folder or the drive's root. It keeps only which files were opened and the commands run, writes nothing, and
+  sends nothing anywhere.
+- Python 3.9 or later on the path, and Semgrep for the code reader (`pip install semgrep`;
+  `fact-extractor/semgrep_bin.py` says how it is found). The reader runs it with the kit's own rules, metrics and version check off, so it sends
+  nothing anywhere; Semgrep keeps its own settings and log under `~/.semgrep/`. Nothing else is installed.
 - The code, or where it is: name the repositories, pages, diagrams and process descriptions in your request, and
   the run gets them. Code already open in the workspace is read too; where it spans several repositories, add each
   as a folder of one workspace. When the code calls a service whose code is not there, the run gets that code too, with access you already have and read-only: it never requests access, enters credentials, or changes anything at the source, and `RUN.md` lists every source it fetched with what referenced it and why. It also searches your code host, with your access and read-only, for the rest of the repository set: the repositories behind references nothing in the workspace answers, and those that call this flow's services. To keep it to the sources you name, say *use only the sources I name*: it then neither fetches nor searches, and lists the rest under *still missing*.
 - Every repository open as a folder of one workspace (a multi-root workspace when there are several), never in a
   temporary folder: the run's code tools reach only the open workspace, and a run that can't add them is blocked: it names the
   repositories and tells you to open them as one multi-root workspace and start again.
-  Keep your own working folder as the first folder of the workspace, so the skill, your notes and the register stay
-  in reach (a skill is found in every folder's `.github/skills/`, and the first folder wins on a duplicate name),
-  and add the repositories after it; or install the skill in `~/.copilot/skills/`.
+  Keep your own working folder as the first folder of the workspace, so your notes and the register stay in reach,
+  and add the repositories after it.
 - This folder, `bfo-stage-kit/`, in one of two places:
-  - **as a skill** (the simpler way): copy it to `.github/skills/bfo-stage-kit/` in the workspace, or to
-    `~/.copilot/skills/bfo-stage-kit/` for every workspace. Then ask Copilot in agent mode in your own words, for
+  - **as a skill** (the simpler way): copy it to `~/.claude/skills/bfo-stage-kit/` for every workspace, or to
+    `.claude/skills/bfo-stage-kit/` in the folder Claude Code starts in. Then ask Claude Code in your own words, for
     example *Map the main business flow of this application for operations*. The skill's `SKILL.md` tells it what
     to do, and the register goes to `bfo-work/<application>/` at the workspace root;
   - **or in the workspace**, used with the prompt below. The register then goes to `bfo-stage-kit/work/<application>/`.
 
 ## The prompt
 
-Without the skill, copy it as it is into Copilot Chat in agent mode:
+Without the skill, copy it as it is into Claude Code:
 
 ```text
 Run bfo-stage-kit/SKILL.md for the application whose code is in this workspace, and any repositories,
 documents or diagrams I name here, following its calls into any other code you can get, with
 bfo-stage-kit/work/<application>/ as the register folder in place of bfo-work/<application>/. Its first act is
 RUN.md; follow its phases to the end and finish only when run_status.py says DONE.
-Do not stop to ask me anything. When you finish, tell me the folder, the flow and stage, the check results,
+Never stop to ask me a fact you can infer: infer it and mark it proposed. Bring me what is mine (which flow to
+map, what to leave out, whether the sources are enough) with your proposal when it arises, starting with the plan,
+shown whole in the chat. When you finish, tell me the folder, the flow and stage, the check results,
 anything you could not do, and paste run_status.py's output.
 ```
 
@@ -73,6 +80,13 @@ help:
 - open each repository as a folder of one workspace, and list each in `sources.csv` with its commit.
 
 Read `KNOWN-GAPS.md` for what is still open at that size.
+
+**The run shows you its plan before it reads in depth.** After it has gathered the sources and surveyed the code, it
+shows you its whole plan in the chat and asks for your go (it also keeps it as `PLAN.md`). The plan is a work breakdown: a line on what the
+system is and how big; the decisions that are yours, each with its options and a recommendation (which business flow
+to map is always one of them); the work items in order, each with what it takes in, what it produces, when it is done
+and its size; what is out of scope; and where the run stops. Reply with your go and your answers, or with what to
+change. Nothing is read in depth before your go.
 
 The run takes a while. If the model stops partway, say *continue from where you stopped, following FILL-STEPS.md*.
 
@@ -129,7 +143,7 @@ In `bfo-work/<application>/` at the workspace root when the kit is installed as 
 ## Before you take it to anyone
 
 - Run the check yourself: `python <kit>/flow_outputs.py <register folder> <flow id> <stage id> --check`, where
-  `<kit>` is the folder the kit was copied to (`.github/skills/bfo-stage-kit` or `~/.copilot/skills/bfo-stage-kit` as a
+  `<kit>` is the folder the kit was copied to (`~/.claude/skills/bfo-stage-kit` or `.claude/skills/bfo-stage-kit` as a
   skill, `bfo-stage-kit` with the prompt) and
   `<register folder>` is the folder named above.
   It should report 0 errors.

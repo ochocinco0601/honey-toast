@@ -63,6 +63,7 @@ the run's process).
 | cv-42 | capability_views.py | check | 388 | error | a | counted_on {r.get('counted_on')} is not | measures.counted_on is cases, events, requests, resources or runs |
 | cv-43 | capability_views.py | check | 390 | error | a | exists must be yes | measures.exists is yes, no or blank |
 | cv-44 | capability_views.py | check | 392 | error | b | flow {r['flow']} is not | measures.flow -> flows |
+| cv-71 | capability_views.py | check | 407 | error | a (migration) | agent_question {r['agent_question']} is now | Renamed measures.agent_question value (operations is now operating health) |
 | cv-45 | capability_views.py | check | 394 | error | a | agent_question {r['agent_question']} is not | Enum from method list |
 | cv-46 | capability_views.py | check | 396 | warning | a | a business measure counts | Same-row conditional value |
 | cv-47 | capability_views.py | check | 399 | error | b | =step-impact.csv: step {r.get('step')} is not a step | step-impact.step -> steps |
@@ -71,13 +72,14 @@ the run's process).
 | cv-50 | capability_views.py | check | 406 | error | b | =case-attributes.csv {r.get('attribute')}: flow {r.get('flow')} is not a flow | case-attributes.flow -> flows |
 | cv-51 | capability_views.py | check | 416 | warning | b | its case {sid} is | Conditional-required through a join |
 | cv-52 | capability_views.py | check | 423 | error | b | agent {a} is not | agent-system.agent -> a subject whose part_kind is an agent kind |
-| cv-53 | capability_views.py | check | 425 | error | a | element must be one | agent-system.element is run, operation, agent part or dependency |
+| cv-70 | capability_views.py | check | 442 | error | a (migration) | element {r['element']} is now | Renamed agent-system.element value (operation is now action) |
+| cv-53 | capability_views.py | check | 425 | error | a | element must be one | agent-system.element is run, action, agent part or dependency |
 | cv-54 | capability_views.py | check | 430 | error | a | agent {a} repeats an | Compound unique (agent, id) |
 | cv-55 | capability_views.py | check | 432 | error | a | agent {a} needs exactly | Per-group cardinality |
 | cv-56 | capability_views.py | check | 436 | error | b | performed_by {p} is not | agent-system.performed_by -> an agent part of the same agent |
 | cv-57 | capability_views.py | check | 439 | error | b | uses {p} is not | agent-system.uses -> a dependency of the same agent |
 | cv-58 | capability_views.py | check | 442 | error | a | next is for the | Conditional column |
-| cv-59 | capability_views.py | check | 444 | error | b | next {p} is not | agent-system.next -> an operation of the same agent, or end |
+| cv-59 | capability_views.py | check | 444 | error | b | next {p} is not | agent-system.next -> an action of the same agent, or end |
 | cv-60 | capability_views.py | check | 448 | error | b | serves_business_step {s} is not | agent-system.serves_business_step -> steps |
 | cv-61 | capability_views.py | check | 451 | error | b | subject_id {s} is not | agent-system.subject_id -> subjects |
 | cv-62 | capability_views.py | check | 453 | warning | c | an agent with no | Every agent subject has a block |

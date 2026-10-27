@@ -8,6 +8,37 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 4 — 2026-10-27
+
+### What you will notice
+
+- **The kit runs in Claude Code.** Copy it to `~/.claude/skills/bfo-stage-kit/` for every workspace, or to
+  `.claude/skills/bfo-stage-kit/` in the folder Claude Code starts in, and ask in your own words (USE.md, "What you
+  need"). The done check reads Claude Code's own record of the session, so a run in another assistant never reaches
+  DONE.
+  Effect: none: a register you already have is judged as before.
+- **The done check reads only the session records it needs, and says so.** It reads Claude Code's records for the
+  folders from the register up to, not including, your home folder, never a session started in the home folder or
+  above; USE.md, "What you need", says what it reads and keeps. The code reader runs Semgrep with its version check
+  off, so a scan contacts nothing.
+  Effect: none.
+- **Every run shows you its plan and waits for your go before it reads the code in depth.** After gathering, the run
+  surveys the repositories (each service's size, entry points and calls, counted by `survey.py` into `survey.csv`),
+  writes `PLAN.md` in plain words (what the system is and how big, what it will read and in what order, what comes
+  out, what it will take, where it stops, what it leaves out) and stops. Say go, and it goes on; your words are kept
+  in `RUN.md`. `run_status.py` names any work written before the go. This holds at every size.
+  Effect: none: a register you already have has no *Plan and go* section in its `RUN.md`, and is judged as before.
+- **A run is done only when the code its map cites was read.** After the go, `run_status.py` takes what the run
+  opened from Claude Code's own record of the session and names every cited line the run never opened with the Read
+  tool. A code reader (`fact-extractor/`, rules that find routes, calls, messages and writes with file and line)
+  runs with the survey; every finding in a service the map touches is cited by a row or set aside with the reason.
+  Any tool whose output `fact-extractor/contract.py` accepts can replace it. Before the done check, ten rows are
+  re-read against their code by an agent that wrote none of them (`reread.py`, `re-read.csv`).
+  Effect: none: a register you already have has no *Plan and go* section, and is judged as before.
+- **A question's "does not apply" reason names a flow it cites by the flow's name**, on a part's page and the map
+  alike: "flow F3, set aside" is "flow Signing a customer in, set aside" on the example.
+  Effect: none: pages only.
+
 ## Release 3 — 2026-10-15
 
 ### What you will notice
@@ -255,8 +286,8 @@ register until it runs), `fill from each row's citation` (the answer is in the l
   entry's synonyms (UF), broader and narrower terms (BT, NT) and related terms (RT), the same from both ends. New
   entries: State and Status (where a case stands, and the value a system records for it; neither is a stage).
   Component is narrower than Part, and is now any deployable whose code can be had; an external dependency is one
-  whose code cannot. Operation has two entries, one per sense: "of a part" (a tool, route or handler a component
-  offers) and "in a run" (an act inside an AI agent's run). A column name's hover shows the related terms too.
+  whose code cannot. Operation is a tool, route or handler a component offers, and Action an act inside an AI
+  agent's run. A column name's hover shows the related terms too.
   Effect: none: pages only.
 - **The cards say who the flow serves and what each party expects.** The flow card's "Serves" lists the customer
   first, then each other party with what it expects of the whole flow. The stage card gives one line per party: what
@@ -269,7 +300,7 @@ register until it runs), `fill from each row's citation` (the answer is in the l
   nothing and owes no gap or question. The parties' expectations are each stage's main content.
   Effect: none: the column is optional, and an empty cell owes nothing.
 - **An AI agent's run is drawn as a UML activity diagram.** Inside this part shows the run with a start node, its
-  operations as actions, an end node, and the moves between them: a diamond where the run chooses its next move, a
+  actions, an end node, and the moves between them: a diamond where the run chooses its next move, a
   diamond where moves join, and a line back up where it repeats. A move is drawn only where the register records
   it; where it does not, the drawing says so in plain words. The agent's measures are no longer listed inside the
   part: they are in its Measures, with the measures of the calls it makes, and the part keeps the questions asked of
@@ -280,7 +311,7 @@ register until it runs), `fill from each row's citation` (the answer is in the l
   its own line. A run whose order the register does not record is listed, not drawn, with that line first. The
   table of questions asked of an agent says, per question, how many of its measures answer it, or "No measure on
   record", or the gap the register records. The Glossary says what UF, BT, NT and RT mean, a column name's hover
-  spells them out, and "Operation (of a part)" has an example from the register.
+  spells them out, and "Operation" has an example from the register.
   Effect: none: pages only.
 - **A stage is drawn as a business process (BPMN).** Clicking a stage now opens a BPMN sub-process of its flow in
   place of the state machine. The flow is the pool, and the customer is a closed pool above it. The stages before and
@@ -342,6 +373,14 @@ register until it runs), `fill from each row's citation` (the answer is in the l
   Effect: fill from each row's citation: the kind of the line `source_ref` cites, or on a proposed measure the kind it would be taken from; nothing is walked again.
 - **lifecycle.csv has an optional `started_by` column**, beside `carried_by`: on a move that can happen at any time while the case is in a stage (a cancel, a withdrawal), who starts it, cited: the flow's customer, a role, an outside party, `timer` or `the software`. Fill it where you know; `reconcile.py --migrate` adds it empty to an earlier register.
   Effect: none: optional; `reconcile.py --migrate` adds it empty, and you fill it where you know.
+- **An agent's run is made of actions, and its run question is "operating health", so "operation" means only a tool
+  or route a part offers.** `agent-system.csv` → `element` value `operation` is now `action`: one act inside an AI
+  agent's run (a model call, a call to a tool, a check), as in a UML activity; Inside this part and the Glossary say
+  "action", and the Glossary's "Operation" is what a part offers. `measures.csv` → `agent_question` value
+  `operations` is now `operating health` ("Operating health: how did its runs go?"). Run `python reconcile.py
+  --migrate <register>` on a copy of an earlier register to rename both; without it, the check names each old value
+  and its new one. Prose in the register (a measure's question, a note) is never rewritten.
+  Effect: rename: reconcile.py --migrate; on a copy, and no row's content changes.
 - Two columns are renamed: `flows.csv` → `expectation_of` is now `customer` (the role name only; its citation goes in
   the row's `source`), and `flows.csv` and `stages.csv` → `promise` is now `bound_in_code`, shown as "Time limit in
   the code". The receipt questions `the promise` and `past the promise` are now `the time limit` and `past the time

@@ -7,7 +7,7 @@ the register only:
 - participation.csv: the parts that take part (the lifelines), the `operation` each performs the step with;
 - subjects.csv: each part's name, kind and owner, and the interactions recorded for the step (`step_hint`, `sequence`);
 - agent-system.csv: a part of an AI agent shared with one component (the agent runs inside that component), and the
-  agent's own operations that call the same dependency (a call made more than once).
+  agent's own actions that call the same dependency (a call made more than once).
 The hops are the order: each hop's sender is the part the register names or
 implies, a broker and an outbox store are drawn where the hop passes through them, and each recorded call an arrow draws
 is consumed by it. A call no hop accounts for is listed on the card; on a step with no move, the calls are drawn in one
@@ -169,7 +169,7 @@ def inside(M):
 
 
 def repeated(M, agent, sid, to):
-    """The agent's own operations serving this step that call `to` through one of its parts: two or more is a call made
+    """The agent's own actions serving this step that call `to` through one of its parts: two or more is a call made
     more than once."""
     rows = M["agent_rows"].get(agent, [])
     parts = {r.get("id"): r for r in rows if r.get("element") == "agent part"}
@@ -182,7 +182,7 @@ def repeated(M, agent, sid, to):
             return False
         return (to != agent and to in cv.ids(p.get("subject_id"))) or any(
             to in cv.ids(deps.get(d, {}).get("subject_id")) for d in cv.ids(p.get("uses")))
-    names = [r.get("name", "") for r in rows if r.get("element") == "operation"
+    names = [r.get("name", "") for r in rows if r.get("element") == "action"
              and sid in cv.ids(r.get("serves_business_step") or run.get("serves_business_step"))
              and any(reaches(x) for x in cv.ids(r.get("performed_by")))]
     return names if len(names) > 1 else []
@@ -1058,7 +1058,7 @@ def card(M, sc, readable=False):
         else:
             s = f'<b>{nm(m["frm"])}</b> → <b>{nm(m["to"])}</b>' + (f": {lab}{desc}" if lab or desc else "")
         if m.get("loop"):
-            s += f'. More than once, in the agent\'s own operations {E("; ".join(m["loop"]))}; how many times is {GAP}'
+            s += f'. More than once, in the agent\'s own actions {E("; ".join(m["loop"]))}; how many times is {GAP}'
         subs = "".join(item(x, f"{num}.{i}", f"{num}.{i}") if num is not None else item(x)
                        for i, x in enumerate(m.get("sub", []), 1))
         return f"<li>{sn}{s}" + (f"<ul>{subs}</ul>" if subs else "") + "</li>"

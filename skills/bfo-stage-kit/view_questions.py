@@ -163,22 +163,26 @@ def gap_of(M, q, el):
 
 def gap_said(M, q, el):
     """The gap's kind and reason as plain words, or None."""
-    import step_sequence as ss
     g = gap_of(M, q, el)
-    return f"{KIND_WORDS[g[0]]}: {ss.plain(g[1]) or g[1]}" if g else None
+    return f"{KIND_WORDS[g[0]]}: {why_said(M, g[1])}" if g else None
+
+
+def why_said(M, why):
+    """A gap's reason as a reader sees it: plain words, a flow it cites by the flow's name."""
+    import step_sequence as ss
+    return cv.named_flows(M, ss.plain(why) or why)
 
 
 def said(M, q, el, placeholder):
     """What a card prints for a question with no answer: the gap's kind and reason where measure-gaps.csv gives one,
     else the placeholder. Escaped HTML."""
-    import step_sequence as ss
     if q == "stage: expected outcomes" and el in M["stage"] and moveless_outcomes(M, el):
         return "<ul>" + "".join(f"<li>{cv.esc(cv.step_title(M, x))}: <i>{cv.esc(KIND_WORDS[g[0]])}</i>: "
-                                f"{cv.esc(ss.plain(g[1]) or g[1])}</li>" for x, g in moveless_outcomes(M, el)) + "</ul>"
+                                f"{cv.esc(why_said(M, g[1]))}</li>" for x, g in moveless_outcomes(M, el)) + "</ul>"
     g = gap_of(M, q, el)
     if not g:
         return placeholder
-    return f"<i>{cv.esc(KIND_WORDS[g[0]])}</i>: {cv.esc(ss.plain(g[1]) or g[1])}"
+    return f"<i>{cv.esc(KIND_WORDS[g[0]])}</i>: {cv.esc(why_said(M, g[1]))}"
 
 
 # ---------------------------------------------------------------- one step

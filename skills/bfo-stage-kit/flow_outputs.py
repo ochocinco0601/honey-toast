@@ -574,11 +574,11 @@ def route(op):
 
 
 def chain_points(R, flow_id, runs, step_ids):
-    """An agent's intermediate model outputs a later call relies on: its agent-system.csv step rows classed `yes:` in
-    `decision_point`, keyed by the agent and the step's id, its place in the chain (`S03 AS2`)."""
+    """An agent's intermediate model outputs a later call relies on: its agent-system.csv action rows classed `yes:` in
+    `decision_point`, keyed by the agent and the action's id, its place in the chain (`S03 AS2`)."""
     out = []
     for a in R["agent-system"]:
-        if a.get("element") != "operation" or a.get("agent") not in runs or decision_class(a) != "yes":
+        if a.get("element") != "action" or a.get("agent") not in runs or decision_class(a) != "yes":
             continue
         serves = [x for x in ids(a.get("serves_business_step"))]
         if serves and not set(serves) & set(step_ids):
@@ -588,15 +588,15 @@ def chain_points(R, flow_id, runs, step_ids):
 
 
 def chain_failures(R):
-    """An agent-system.csv step row's `decision_point` is blank, `yes:` or `no:`; any other row leaves it blank."""
+    """An agent-system.csv action row's `decision_point` is blank, `yes:` or `no:`; any other row leaves it blank."""
     err = []
     for a in R["agent-system"]:
         v = norm(a.get("decision_point"))
         if not v:
             continue
-        if a.get("element") != "operation":
+        if a.get("element") != "action":
             err.append(f"agent-system.csv {a.get('agent')} {a.get('id')}: decision_point is set on a {a.get('element')} "
-                       "row; only an operation of the agent's chain is classed")
+                       "row; only an action of the agent's chain is classed")
         elif not decision_class(a):
             err.append(f"agent-system.csv {a.get('agent')} {a.get('id')}: class it in decision_point, `yes:` where a later "
                        "call of the chain relies on what this model call writes, `no:` or blank where not, and why "
@@ -690,7 +690,7 @@ def receipt(R, flow_id):
     served = {p["step"] for p in agents}
     runs = list(dict.fromkeys(p["subject_id"] for p in agents))
     for a in R["agent-system"]:
-        if a.get("element") in ("run", "operation") and subj.get(a.get("agent"), {}).get("part_kind") == "LLM agent":
+        if a.get("element") in ("run", "action") and subj.get(a.get("agent"), {}).get("part_kind") == "LLM agent":
             hit = {x for x in ids(a.get("serves_business_step")) if x in step_ids}
             served |= hit
             if hit and a["agent"] not in runs:
