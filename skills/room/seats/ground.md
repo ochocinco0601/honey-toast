@@ -19,9 +19,9 @@ Derive it yourself, from the top down and the outside in:
 
    **A gap is never routed to a person supplying it.** The agent is the
    performer; org roles are what it emulates. The model drafts everything and
-   takes a position on everything, and a human ratifies at the end — so
+   takes a position on everything — so
    "nobody has told us the target yet" is a drafting gap, never a missing
-   input. Whether a real person later ratifies a real number is a
+   input. Whether a real person ratifies a real number is a
    point-in-time need in the real world and has nothing to do with how the
    capability works end to end. Writing "acquire from a person", or naming
    something as what only the user can supply, is a failed pass. A language
