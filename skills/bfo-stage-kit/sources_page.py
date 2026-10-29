@@ -3,16 +3,19 @@
 Usage: python sources_page.py <register folder>   write sources.html in the register folder
 
 One row per source the register was made from (sources.csv), each gathered; and one row per source pointed at or found
-that could not be reached (RUN.md, *Sources*, the *Still missing* list), with the reason written there. Nothing on
-the page is claimed beyond what those two files say: which sources the person named and which the run found is not
-recorded in either, and the page says so. The listener draws it on each request, so it is never behind the files.
+that could not be reached (RUN.md, *Sources*, the *Still missing* list), with the reason written there. Each row says
+whether the person named the source or the run's own search found it (sources.csv `found_by`), and "not recorded"
+where a register made before that column says neither. Nothing on the page is claimed beyond what those two files
+say. The listener draws it on each request, so it is never behind the files.
 Python standard library only."""
-import csv
 import hashlib
 import html
 import pathlib
 import re
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import tables  # noqa: E402
 
 FILE = "sources.html"
 HOME = "index.html"
@@ -20,24 +23,31 @@ E = html.escape
 KIND = {"code": "code", "document": "a document", "person": "notes or answers from a person",
         "tool output": "a tool's output"}
 URL = re.compile(r"https?://[^\s<>\"')]+", re.I)  # only an address written with its scheme; a path stays text
+FOUND_BY = {"person": "you named it", "run": "found by the run's search"}
 TEMPLATE_LINE = "each source pointed at or found that could not be reached"
-UNREADABLE = "The list of sources could not be read just now."
+UNREADABLE = ("Part of the list of sources could not be read just now: it may be mid-save, or saved in a text "
+              "format this page does not know. What could be read is below.")
 
 
 class Unreadable(Exception):
-    """sources.csv is there but is not readable text in table form."""
+    """sources.csv is there but not all of it is readable text in table form; `rows` holds what could be read."""
+
+    def __init__(self, rows):
+        super().__init__("sources.csv could not all be read")
+        self.rows = rows
 
 
 def rows(reg):
-    """The rows of sources.csv, or [] when it is missing or holds only its header. Unreadable when it cannot be read."""
-    p = pathlib.Path(reg) / "sources.csv"
+    """The rows of sources.csv, or [] when it is missing or holds only its header. Saved as UTF-8 (with or without a
+    byte order mark) or in the Windows text format, it is read. Unreadable, carrying what could be read, otherwise."""
     try:
-        with p.open(encoding="utf-8", newline="") as f:
-            return [r for r in csv.DictReader(f) if (r.get("what") or "").strip()]
+        got, whole = tables.read_rows(pathlib.Path(reg) / "sources.csv")
     except OSError:
         return []
-    except (UnicodeDecodeError, csv.Error) as e:
-        raise Unreadable(str(e)) from e
+    got = [r for r in got if (r.get("what") or "").strip()]
+    if not whole:
+        raise Unreadable(got)
+    return got
 
 
 def clean(text):
@@ -56,10 +66,10 @@ def same_source(r):
     return (kind, re.sub(r"\s*\(re-read[^)]*\)\s*$", "", clean(r.get("what", ""))).lower())
 
 
-def sources(reg):
+def sources(reg, read=None):
     """The rows of sources.csv, one per source: a re-read of a source already listed is not a second source."""
     seen, out = set(), []
-    for r in rows(reg):
+    for r in (rows(reg) if read is None else read):
         k = same_source(r)
         if k not in seen:
             seen.add(k)
@@ -72,8 +82,8 @@ def missing(reg):
     text when it has none. The template's instruction, "none" and an empty bullet give none."""
     p = pathlib.Path(reg) / "RUN.md"
     try:
-        text = p.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+        text = tables.decoded(p)[0]
+    except OSError:
         return []
     sec = re.search(r"^## Sources\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
     if not sec:
@@ -139,13 +149,15 @@ def render(reg, home_href=None):
     back = "Home" if home_href != "/" else "The run at work"
     try:
         gathered, said = sources(reg), ""
-    except Unreadable:
-        gathered, said = [], f"<p>{E(UNREADABLE)}</p>"
+    except Unreadable as e:
+        gathered, said = sources(reg, e.rows), f"<p>{E(UNREADABLE)}</p>"
     trs = [f'<tr><td>{named(clean(r.get("what", "")))}</td><td>{E(KIND.get((r.get("kind") or "").strip(), clean(r.get("kind", "")) or "not recorded"))}</td>'
+           f'<td>{E(FOUND_BY.get((r.get("found_by") or "").strip().lower(), "not recorded"))}</td>'
            f'<td class="ok">gathered</td></tr>' for r in gathered]
-    trs += [f'<tr><td>{named(n)}</td><td>not recorded</td><td class="bad">could not be reached: {E(w)}</td></tr>'
+    trs += [f'<tr><td>{named(n)}</td><td>not recorded</td><td></td><td class="bad">could not be reached: {E(w)}</td></tr>'
             for n, w in missing(reg)]
-    body = said + (f'<div class="tw"><table><thead><tr><th>Source</th><th>What it is</th><th>State</th></tr></thead>'
+    body = said + (f'<div class="tw"><table><thead><tr><th>Source</th><th>What it is</th><th>How it came</th>'
+                   f'<th>State</th></tr></thead>'
                    f'<tbody>{"".join(trs)}</tbody></table></div>' if trs else ("" if said else '<p>No source listed yet.</p>'))
     page = ("<!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.\n     Source: sources.csv and RUN.md in this folder\n"
             "     Builder: sources_page.py\n     Build: python sources_page.py <register folder>\n-->\n"

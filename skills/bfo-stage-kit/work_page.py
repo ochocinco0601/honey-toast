@@ -56,7 +56,11 @@ def render(site):
             line = "Updating"
         rel = "" if reg == site else reg.name + "/"
         link = (f' <a href="/{html.escape(rel)}index.html">Home</a>' if (reg / "index.html").is_file() else "")
-        if sources_page.has_any(reg):
+        try:
+            listed = sources_page.has_any(reg)
+        except Exception:  # noqa: BLE001 - a list that cannot be read never takes the page down; the link is drawn
+            listed = True
+        if listed:
             link += f' <a href="/{html.escape(rel)}sources.html">Sources</a>'
         rows.append(f'<li><span class="st">{html.escape(line)}</span>{link}</li>')
     body = f'<ul>{"".join(rows)}</ul>' if rows else f'<p class="st">{html.escape(STARTING)}</p>'

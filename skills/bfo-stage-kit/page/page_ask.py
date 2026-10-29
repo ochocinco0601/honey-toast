@@ -13,7 +13,7 @@ work page at the folder's root on each request, from the folder's files (work_pa
 folder it serves and its process id (also written to listener.pid), so it can be found and stopped; and it saves an answer
 into the answers/ of the run folder whose page sent it (by the page's address), or the served folder's own.
 """
-import json, os, pathlib, sys, time, uuid
+import json, os, pathlib, sys, threading, time, uuid
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote
@@ -22,6 +22,14 @@ MAX_BODY = 1_000_000
 KIT = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [KIT, os.path.dirname(KIT)]  # the kit's own scripts: beside this one, or one folder up in the kit
 PAGES = (".html", ".css", ".js", ".svg")
+# Every page served says when its tab is left (pagehide: closed, reloaded or followed a link) and when it is shown
+# (pageshow: a fresh load, or the back cache with no request), each with the page's own id, so the old page's close
+# and the new page's shown can arrive in either order. A page restored from the back cache keeps its id.
+BEACON = (b'<script>(function(){if(!navigator.sendBeacon)return;var id=Math.random().toString(36).slice(2,12);'
+          b'addEventListener("pagehide",function(){navigator.sendBeacon("/.closed?id="+id)});'
+          b'addEventListener("pageshow",function(){navigator.sendBeacon("/.shown?id="+id)});})();</script>')
+TAB_EVENTS = ("/.closed", "/.shown")
+SEEN_LOCK = threading.Lock()
 
 
 def own_page(site, path):
@@ -61,12 +69,32 @@ def answers_for(site, referer):
 def note_seen(site, path):
     """When each page was last asked for, by address: how the run tells that a browser really has the page open."""
     seen = os.path.join(site, "seen.json")
+    with SEEN_LOCK:
+        _note(seen, path)
+
+
+def note_tab(site, event, page):
+    """A page shown or left, by the page's own id: the pages shown and not yet left are the tabs open on the
+    listener, whatever order their beacons arrive in."""
+    seen = os.path.join(site, "seen.json")
+    with SEEN_LOCK:
+        _note(seen, event, page)
+
+
+def _note(seen, path, page=None):
     try:
         with open(seen, encoding="utf-8") as f:
             got = json.load(f)
     except (OSError, ValueError):
         got = {}
     got[path] = time.time()
+    if page is not None:
+        tabs = got.get("/.tabs") if isinstance(got.get("/.tabs"), dict) else {}
+        if path == "/.shown":
+            tabs[page] = time.time()
+        else:
+            tabs.pop(page, None)
+        got["/.tabs"] = tabs
     try:
         tmp = "%s.%d.tmp" % (seen, os.getpid())
         with open(tmp, "w", encoding="utf-8") as f:
@@ -161,6 +189,9 @@ def serve(site):
                 ctype += "; charset=utf-8" if ctype.startswith("text/") and "charset" not in ctype else ""
             if body is None:
                 body = target.read_bytes()
+            if ctype.startswith("text/html"):
+                at = body.rfind(b"</body>")
+                body = body[:at] + BEACON + body[at:] if at >= 0 else body + BEACON
             self.send_response(200)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
@@ -177,6 +208,14 @@ def serve(site):
         def do_POST(self):
             # Only the page this server served may post; stops other sites posting to localhost.
             own = "http://127.0.0.1:%d" % self.server.server_address[1]
+            event, _, query = self.path.partition("?")
+            page = query[3:] if query.startswith("id=") else ""
+            if (event in TAB_EVENTS and self.own_host() and self.headers.get("Origin") in (own, None)
+                    and page.isascii() and page.isalnum() and len(page) <= 32):
+                note_tab(site, event, page)
+                self.send_response(204)
+                self.end_headers()
+                return
             if self.path != "/answers" or self.headers.get("Origin") != own:
                 self.send_error(403)
                 return
@@ -213,9 +252,39 @@ def serve(site):
         f.write(url)
     print("READY " + url, flush=True)
     httpd.timeout = min(5.0, idle)
+    grace = float(os.environ.get("BFO_LISTENER_END_GRACE_SECONDS") or 120)
+    watch, ended_at = RunEnd(site), None
     while time.time() - last[0] < idle:
         httpd.handle_request()
+        if watch.ended():
+            ended_at = ended_at or time.time()
+            if time.time() - ended_at >= grace:  # an open tab keeps asking, so the idle clock never runs out
+                break
+        else:
+            ended_at = None
     httpd.server_close()
+
+
+class RunEnd:
+    """Whether the run this listener serves has ended: a run under the folder was seen under way, and now none is.
+    Read from the run record, so it never waits on the session remembering the stop command."""
+
+    def __init__(self, site):
+        self.site, self.seen_running, self.checked, self.answer = site, False, 0.0, False
+
+    def ended(self):
+        if time.time() - self.checked < 5:
+            return self.answer
+        self.checked = time.time()
+        try:
+            import start
+            import work_page
+            running = any(start.resumable(r) for r in work_page.runs(self.site))
+        except Exception:  # noqa: BLE001 - a record mid-write, or a kit without them: never stop on a guess
+            return False
+        self.seen_running = self.seen_running or running
+        self.answer = self.seen_running and not running
+        return self.answer
 
 
 def announce_new(site):

@@ -12,6 +12,7 @@ cannot. Nothing here reads or shows a live value.
 import argparse
 import csv
 import html
+import io
 import json
 import pathlib
 import re
@@ -20,6 +21,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import page_style as ps  # noqa: E402
+from tables import decoded  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 METHOD = HERE / "method"
@@ -47,14 +49,19 @@ def read_csv(path, malformed=None):
     if not path.exists():
         return []
     rows = []
-    with path.open(encoding="utf-8-sig", newline="") as f:
-        reader = csv.DictReader(f)
+    t, whole = decoded(path)  # UTF-8, with or without a byte order mark, or the Windows text format
+    reader = csv.DictReader(io.StringIO(t, newline=""))
+    try:
         for r in reader:
             extra = r.pop(None, None)
             if extra and malformed is not None:
                 malformed.append(f"{path.name} line {reader.line_num}: {len(reader.fieldnames) + len(extra)} fields where the "
                                  f"header has {len(reader.fieldnames)}; quote a value that holds a comma")
             rows.append({(k or "").strip(): (v or "").strip() for k, v in r.items()})
+    except csv.Error:
+        whole = False
+    if not whole and malformed is not None:
+        malformed.append(f"{path.name}: part of it could not be read; save it as UTF-8 text")
     return rows
 
 
@@ -177,8 +184,10 @@ def headers(reg, tables):
     for t in tables:
         p = reg / f"{t}.csv"
         if p.exists():
-            with p.open(encoding="utf-8-sig", newline="") as f:
-                out[t] = [c.strip() for c in next(csv.reader(f), [])]
+            try:
+                out[t] = [c.strip() for c in next(csv.reader(io.StringIO(decoded(p)[0], newline="")), [])]
+            except csv.Error:
+                out[t] = []
     return out
 
 

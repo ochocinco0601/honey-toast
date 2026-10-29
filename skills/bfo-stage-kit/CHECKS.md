@@ -18,7 +18,8 @@ the run's process).
 
 | id | module | function | line | severity | class | lead | guards |
 |---|---|---|---|---|---|---|---|
-| cv-01 | capability_views.py | read_csv | 51 | error | a | {len(reader.fieldnames) + len(extra)} fields | Row arity equals header |
+| cv-01 | capability_views.py | read_csv | 58 | error | a | {len(reader.fieldnames) + len(extra)} fields | Row arity equals header |
+| cv-72 | capability_views.py | read_csv | 64 | error | a | part of it could not be read | The file is readable text: UTF-8, with or without a byte order mark, or cp1252 |
 | cv-69 | capability_views.py | declared_value_failures | 139 | warning | a | is not one of the values REGISTER.md declares | each value of a column REGISTER.md declares a `One of:` list for is in that list (today subjects.band, lifecycle.from_kind and path, measures.form and receipt_question); a warning, so no register in use turns red |
 | cv-02 | capability_views.py | column_failures | 179 | error | a (migration) | {'; '.join((f'{o} is now | Renamed column |
 | cv-03 | capability_views.py | column_failures | 186 | error | a | {t}.csv has no {', | every column REGISTER.md defines, Optional ones aside, is present (read from REGISTER.md) |

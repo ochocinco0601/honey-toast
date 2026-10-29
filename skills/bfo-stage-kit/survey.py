@@ -110,8 +110,10 @@ def main(argv):
     if len(argv) > 1:
         repos = [pathlib.Path(a).resolve() for a in argv[1:]]
     else:
-        with (reg / "sources.csv").open(encoding="utf-8-sig", newline="") as f:
-            rows = list(csv.DictReader(f))
+        import tables
+        rows, whole = tables.read_rows(reg / "sources.csv")  # UTF-8, with or without a byte order mark, or cp1252
+        if not whole:
+            sys.exit("sources.csv: part of it could not be read. Save it as UTF-8 text and run the survey again.")
         bad = [i for i, r in enumerate(rows, 2) if None in r or (r.get("kind", "").strip() == "code"
                                                                 and not (r.get("repository") or "").strip())]
         if bad:

@@ -5,6 +5,35 @@ import io
 import pathlib
 
 
+def decoded(path):
+    """(the file's text, whether all of it could be read). UTF-8 with or without a byte order mark; else the Windows
+    text format Excel and Notepad save (cp1252); else UTF-8 with each unreadable byte marked. NUL bytes are dropped.
+    A missing file raises OSError."""
+    data = pathlib.Path(path).read_bytes()
+    whole = True
+    for enc in ("utf-8-sig", "cp1252"):
+        try:
+            t = data.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        t, whole = data.decode("utf-8", errors="replace"), False
+    return t.replace("\x00", ""), whole
+
+
+def read_rows(path):
+    """(the rows of a CSV file as dicts, whether all of it could be read). What precedes a malformed line is kept."""
+    t, whole = decoded(path)
+    rows = []
+    try:
+        for r in csv.DictReader(io.StringIO(t, newline="")):
+            rows.append(r)
+    except csv.Error:
+        whole = False
+    return rows, whole
+
+
 def dicts(path, encoding="utf-8-sig"):
     """The rows as dicts, or [] when the file is missing."""
     path = pathlib.Path(path)

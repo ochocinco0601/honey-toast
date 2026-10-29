@@ -25,11 +25,8 @@
 - **A browser set to send no page address with its requests files every answer under the work folder, not the
   run's own folder,** so the session is not told of it; the page still says it was saved. Say "read it" in the chat
   and the session reads it from there.
-- **A page tab you close is not opened again at a later stop.** Once the browser has had the page, the run takes it
-  as open. Open the address the session gives you in the chat to bring it back.
-- **At the first stop a second tab of the same page can open.** Both show the same page; close either.
-- **A sources list saved in a text format other than UTF-8 can stop the home from being drawn again;** the Sources
-  page itself says it could not be read.
+- **If your browser unloads the page's tab to save memory, or closes without warning, a tab you close later may not
+  be opened again.** Open the address the session gives you in the chat to bring it back.
 - **Stopping the page's listener at a run's end stops the page of any other run in the same work folder.** Run
   `wait_on_page.py` for that run again to bring its page back.
 - **The kit's instructions do not yet describe Clear, the line about ticks and words put back, or the quoted
@@ -115,9 +112,9 @@ Failure-mode ids (`FM..`) are the register's; each runbook test names the mode i
   same id, so the lock does not stop them writing one register together. A second start step while a first look is
   under way is refused ("the first look is already running", until its brief, or for 45 minutes at most), but two
   helpers started from one start step are not, nor two helpers on one register after the brief.
-  Two scripts write into the register without checking the lock: the code reader (`fact-extractor/run.py`), which
-  ships unchanged from where it is maintained, and the page's listener, which writes only the answers the person
-  sends.
+  Two scripts write into the register without checking the lock: the code reader (`fact-extractor/run.py`), a
+  separate program the kit runs as it is (`fact-extractor/README.md`, "The join"), and the page's listener, which
+  writes only the answers the person sends.
 - **The lock guards the kit's scripts, not the tables the assistant writes by hand.** A script that writes the
   register refuses another chat's fresh lock, but the assistant's own edits to the tables and to `RUN.md` check
   nothing. A chat that goes on after a refusal, or after being told another chat holds the work, can still

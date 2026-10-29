@@ -52,6 +52,9 @@ import pathlib
 import re
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import tables  # noqa: E402
+
 HERE = pathlib.Path(__file__).resolve().parent
 KEYS = {
     "flows.csv": ("name",),
@@ -121,8 +124,7 @@ def table(reg, name, earlier=False):
     p = reg / name
     if not p.is_file():
         return []
-    with p.open(encoding="utf-8-sig", newline="") as f:
-        rows = list(csv.DictReader(f))
+    rows = tables.read_rows(p)[0]  # UTF-8, with or without a byte order mark, or the Windows text format
     return [renamed(r) for r in rows] if earlier else rows
 
 

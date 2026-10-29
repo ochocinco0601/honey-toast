@@ -379,6 +379,7 @@ added it.
 | commit | Optional. For code: the commit read, or `folder as found` with no version history |
 | as_of | The date the source describes, or the date you were told |
 | pass | The pass that first read it |
+| found_by | Optional: a register made with an earlier version of this kit may leave it out. `person` when the person named or gave the source (a source inside a repository they gave counts as theirs), `run` when the run's own search found it |
 | note | One line: what it covers, and what it does not |
 
 ### product-names.csv: product names the run vouches for

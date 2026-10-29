@@ -71,6 +71,7 @@ their request already gave you. Say nothing before it.
 > your judgement, each time with a recommendation. Every message from me opens with a line like the one above: the
 > flow, the stage, the activity, what has been drafted, what is next, and what waits on you. Your tools may ask you to approve
 > my reading the system's files or running my checks; that is expected, and approving them lets the work go on.
+> A page for this work opens in your browser as I start; its address is in my messages too.
 >
 > **What I need to begin.** *[If the request pointed at the system's code (its repositories, or a link to
 > its code): "You have pointed me at <the system, by its name> and its code; that is all I need to begin the first
@@ -90,8 +91,8 @@ start step (below) first; on finish-first-look or fresh, look, without reading a
 folders open here hold that system's code (their names and top-level files): if they do, go on to the helper as for
 code; if they do not, write to the person, through `say`, as "When the system's code is not here" says, and end your turn, so
 nothing is searched before their yes. Otherwise end the turn and wait, after the start step as it says below; when
-they answer, start the helper with their answer as the request, without running the start step again. Write nothing
-before the helper's reply.
+they answer, start the helper with their answer as the request, without running the start step again. Once a helper
+is started, write nothing more until its reply.
 
 **When the system's code is not here.** If that look finds no code of the named system, or the helper returns
 blocked for want of code, write to the person, through `say`: that
@@ -117,9 +118,11 @@ If it prints `OPEN FAILED`, open the address in the person's browser yourself, a
 else; either way, the page's address reaches the person in your next message from a script: `say` and the briefs
 end with it, and after a message sent as it is, `python "<skill>/brief.py" page "<your-folder>"` prints it. Right
 after the start step, before the first-look helper starts, send one line through `say` saying the page for this work
-is open; `say` ends it with the page's address. On DECISION resume, choose
+is open; `say` ends it with the page's address. If it printed `PAGE: not brought up`, that line says instead that the
+page could not be opened and the work goes on without it. On DECISION resume, choose
 or held, your message is exactly the text it printed after MESSAGE, then what `python "<skill>/brief.py" page "<your-folder>"` prints (the
-page's address), and nothing else, and
+page's address; on resume, `<your-folder>` is the one FOLDER line; on choose or held, run it on the workspace root
+instead, since no one register is the person's yet), and nothing else, and
 you end your turn: no helper starts. Send it even when the person's request names other work: the message offers to start new work instead, and their answer decides. On finish-first-look or fresh, start the helper below, which writes into the
 folder the page is already serving; `start_register.py` refuses a new register until the start step has run for this
 run.
@@ -145,7 +148,8 @@ would unblock it, in the person's terms (with no code to read,
 or only code that is not the named system's: that the system's code is needed, and that they can point at it or agree to a search for it)."* When it returns
 blocked for want of code, see "When the system's code is not here" above. Otherwise, when it returns, your message is its reply, sent as it is, and nothing else: no sentence before it ("Here is the brief", "I'll pass this along"), none after it. Its first line
 is already the status line. Then end your turn: the brief ends with what it waits on, the person's picks or one question
-whether to carry on. Write nothing between the launch and that message.
+whether to carry on. Write nothing between the launch and that message, except the one line, after the start step,
+that the page is open.
 
 **When the person answers the brief**, record their picks with `go.py` (phase 0, "Their answer is recorded as data"),
 unless they agreed to a search: then search first and brief again, as phase 0 says there. `go.py` prints a status line;
@@ -164,7 +168,8 @@ follow its DECISION the same way; never release it without their say-so.
 - **Every later message opens with the status line**, copied exactly from `python "<skill>/brief.py" status
   "<your-folder>"` run just before you write it, or as `say` or a script prints it. Never type the line yourself,
   and never send two.
-- **Write to the person only at the points this file names:** the launch, the capability brief or the re-entry brief,
+- **Write to the person only at the points this file names:** the launch, the one line after the start step that the
+  page is open, the capability brief or the re-entry brief,
   the pick of how far each stage goes (after phase 3), the review of the proposed alerts (phase 5a), a question that
   needs their judgement, a plain message that the run
   is blocked and why, and the report. Between

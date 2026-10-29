@@ -8,6 +8,18 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Unreleased
+
+### What you will notice
+
+- **The page stays in one tab, and comes back if you close it.** The first stop no longer opens a second tab of
+  the page; a reload or a link to another page of the run is not taken as a closed tab; if you close the tab, the
+  next stop opens it again.
+  Effect: none.
+- **The page's background program stops when the run ends,** read from the run's record a couple of minutes after
+  its end, even with the page still open in your browser.
+  Effect: none.
+
 ## Release 6 — 2026-10-29
 
 ### What you will notice

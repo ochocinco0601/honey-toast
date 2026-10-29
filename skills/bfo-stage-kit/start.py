@@ -220,7 +220,9 @@ def open_the_page(root):
     try:
         print(listener.say(*listener.up(site)))
     except OSError as e:
-        print(f"PAGE: not brought up ({e}); the run goes on without it")
+        print(f"PAGE: not brought up ({e}); the run goes on without it. Do not tell the person the page is open: "
+              "say, in one plain sentence through brief.py say, that the page for this work could not be opened "
+              "and the work goes on without it")
     return site
 
 

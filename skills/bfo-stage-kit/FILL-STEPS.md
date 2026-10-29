@@ -42,7 +42,8 @@ is never inferred: it is written only where a source states it (Step 3a).
 2. **Gather what you will read**, and list it. Take every source the person pointed at, and what is in the
    workspace, and get each with your own tools. List each in `sources.csv` with pass `1`; `kind` is `code`,
    `document` (a page, a diagram, a process description, a runbook, a catalogue entry), `person` (notes, tickets,
-   recorded answers) or `tool output`. In `note`, write which step below will use it. Write `sources.csv` as soon
+   recorded answers) or `tool output`. `found_by` is `person` for a source the person named or gave (and anything
+   read inside it), `run` for one the run's own search found. In `note`, write which step below will use it. Write `sources.csv` as soon
    as the list is complete, and run the survey and the code reader (item 6) as soon as what each reads is in
    place, never all at the end: the run's page reads these files to show how far the first look has got. Keep the summary in
    `about.csv` → `sources_examined`, so a reader knows what "not assessed" covers. If the code has no
@@ -122,7 +123,7 @@ is never inferred: it is written only where a source states it (Step 3a).
    itself. The brief lists them under what is still open. At the brief the person can say yes to any of these
    searches. Search only on that yes, with the person's own access and read-only: a yes is a change to the brief
    (below, "If they ask for changes to the brief"), and (c) what the repositories found reference is brought to the
-   person the same way. Record each repository found in `sources.csv` with the search that found it, add it to the
+   person the same way. Record each repository found in `sources.csv` with the search that found it and `found_by` `run`, add it to the
    workspace as a further folder, read-only, and write in `RUN.md` *Sources* what the person agreed to search; what
    is found and cannot be had goes under *still missing*, and what the person does not agree to search goes under
    *still missing* too. `RUN.md`'s Phase 0 line answers "Is this the complete set of

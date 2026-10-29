@@ -4,12 +4,22 @@ Usage: python brief.py status <register folder>       one line; every message to
        python brief.py capability <register folder>   the capability brief, also written to PLAN.md
        python brief.py reentry <register folder>      the re-entry brief, for a run picked up again
        python brief.py terms <file>                   ids and kit terms found in a text (exit 1 if any)
+       python brief.py say <register folder> <message file> [--after]
+                                                      a message for the person: refused (exit 1) if it uses ids,
+                                                      file names or kit terms; else printed after the status line
+                                                      (--after: no status line) and ending with the page's address.
+                                                      Before a register exists, give the workspace root
+       python brief.py page <register folder>         the page's address, as a line (the workspace root before a
+                                                      register exists)
+       python brief.py depth <register folder> <flow id> --recommend "<text>"
+       python brief.py alerts <register folder> <flow id> <stage id>... --recommend "<text>"
 
 Reads `RUN.md` (its Status table), `orientation.json` (written by the run from its first, shallow look: the
 capability, the services, every flow found with its stages, what was searched and what is open, and a
 recommendation), `scope.json` (the person's picks, written by go.py) and `survey.csv`. The capability brief is
 refused, and nothing written, while orientation.json is incomplete, names services other than the survey's, recommends
-a flow it did not find, or carries an id, a file name or the kit's own vocabulary. Exit 0 written, 2 refused.
+a flow it did not find, or carries an id, a file name or the kit's own vocabulary.
+Exit 0 done; 1 refused by `say`, or terms found by `terms`; 2 refused otherwise, or wrong usage.
 Python standard library only."""
 import csv
 import json

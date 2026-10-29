@@ -111,6 +111,23 @@ def seen_at(site, page):
         return None
 
 
+def tab_open(site):
+    """True when a tab is open on this listener: a page has said it is shown and has not said it was left, each page
+    by its own id, so a reload or a link to another kit page stays open whatever order the two pages' words arrive
+    in; a tab left in the background never says it was left. A browser that sends no such word is judged by its
+    requests: open when it has asked for a page."""
+    try:
+        seen = json.loads((pathlib.Path(site).resolve() / SEEN_FILE).read_text(encoding="utf-8"))
+        if isinstance(seen.get("/.tabs"), dict):
+            return bool(seen["/.tabs"])
+        closed = seen.pop("/.closed", None)
+        seen.pop("/.shown", None)
+        last = max(seen.values(), default=None)
+    except (OSError, ValueError, AttributeError, TypeError):
+        return False
+    return last is not None and (closed is None or last > closed)
+
+
 def asked_since(site, page, since, wait=0.0):
     """True when the browser asks for the page at or after `since`, waiting up to `wait` seconds."""
     end = time.time() + wait
@@ -124,16 +141,14 @@ def asked_since(site, page, since, wait=0.0):
 
 
 def up(site, page="", opener=None, wait=10.0):
-    """(address, started, opened): the browser opened on the page, judged by its own request. A page the browser has
-    already asked this listener for is left as it is, so no second tab opens; otherwise the browser is opened, and
-    `opened` is True only when it asks for the page within `wait` seconds."""
+    """(address, started, opened): the browser opened on the page, judged by its own request. While a tab is open on
+    this listener nothing is opened, as that tab follows to the page by itself; a tab closed since is opened again.
+    Otherwise the browser is opened, and `opened` is True only when it asks for the page within `wait` seconds."""
     site = pathlib.Path(site).resolve()
     url, started = start(site)
     page = page.lstrip("/")
     address = url + page
-    if not started and seen_at(site, page) is not None:
-        # the browser has had this page from this listener: it is never opened again, as a tab left in the
-        # background checks itself too seldom to tell from a closed one, and the address is given every time anyway
+    if not started and tab_open(site):
         return address, started, True
     t0 = time.time()
     launched = (opener or open_in_browser)(address)
