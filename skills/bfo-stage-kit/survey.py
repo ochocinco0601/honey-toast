@@ -103,6 +103,9 @@ def main(argv):
     if not argv:
         sys.exit(__doc__)
     reg = pathlib.Path(argv[0]).resolve()
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+    import run_lock  # the register is written by one run at a time
+    run_lock.guard(reg)
     root = reg.parent.parent
     if len(argv) > 1:
         repos = [pathlib.Path(a).resolve() for a in argv[1:]]

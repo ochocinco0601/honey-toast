@@ -2,10 +2,16 @@
 
   python -u page_ask.py serve DIR   serve DIR on 127.0.0.1; save each POST /answers to DIR/answers/
   python -u page_ask.py watch DIR   print one line per answers file not yet announced (run under Monitor)
+  python -u page_ask.py poll DIR SECONDS
+                                    the same, but exit after the first pass that announces anything,
+                                    or print TIMEOUT and exit after SECONDS (run as a background task)
 
-The stage kit's own copy of the page step's listener. One change from the page step it comes from: besides
+The stage kit's own copy of the page step's listener. Changes from the page step it comes from: besides
 page-kit.js, it serves the folder's own pages read-only (any .html, .css, .js or .svg file under the served folder,
-never outside it and never under answers/), so the home screen's links to the run's other pages work.
+never outside it and never under answers/), so the home screen's links to the run's other pages work; it draws the
+work page at the folder's root on each request, from the folder's files (work_page.py); it answers /.alive with the
+folder it serves and its process id (also written to listener.pid), so it can be found and stopped; and it saves an answer
+into the answers/ of the run folder whose page sent it (by the page's address), or the served folder's own.
 """
 import json, os, pathlib, sys, time, uuid
 from functools import partial
@@ -14,6 +20,7 @@ from urllib.parse import unquote
 
 MAX_BODY = 1_000_000
 KIT = os.path.dirname(os.path.abspath(__file__))
+sys.path[:0] = [KIT, os.path.dirname(KIT)]  # the kit's own scripts: beside this one, or one folder up in the kit
 PAGES = (".html", ".css", ".js", ".svg")
 
 
@@ -38,11 +45,82 @@ def own_page(site, path):
     return target
 
 
+def answers_for(site, referer):
+    """The answers/ folder of the run folder whose page posted: the first folder of the page's address under the
+    served folder when it is a folder there, else the served folder's own."""
+    path = unquote((referer or "").split("://", 1)[-1].partition("/")[2].split("?")[0].split("#")[0])
+    first = path.split("/")[0] if "/" in path else ""
+    root = pathlib.Path(site).resolve()
+    if first and first not in (".", "..") and "\\" not in first and ":" not in first and first.lower() != "answers":
+        run = (root / first).resolve()
+        if run.parent == root and run.is_dir():
+            return str(run / "answers")
+    return str(root / "answers")
+
+
+def note_seen(site, path):
+    """When each page was last asked for, by address: how the run tells that a browser really has the page open."""
+    seen = os.path.join(site, "seen.json")
+    try:
+        with open(seen, encoding="utf-8") as f:
+            got = json.load(f)
+    except (OSError, ValueError):
+        got = {}
+    got[path] = time.time()
+    try:
+        tmp = "%s.%d.tmp" % (seen, os.getpid())
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(got, f)
+        os.replace(tmp, seen)
+    except OSError:
+        pass
+
+
+def home_of(site):
+    """The newest run's home screen under the folder, once drawn, else None."""
+    try:
+        import work_page
+    except ImportError:
+        return None
+    return work_page.home(site)
+
+
+def live(site, path):
+    """The work page, drawn now from the folder's files, for the folder's root; a run's sources page, drawn now from
+    its sources.csv and RUN.md, for <run>/sources.html; else None."""
+    bare = unquote(path.split("?")[0].split("#")[0])
+    segs = bare[1:].split("/")
+    if segs[-1] == "sources.html" and len(segs) <= 2 and "\\" not in bare and ":" not in bare:
+        root = pathlib.Path(site).resolve()
+        name = segs[0] if len(segs) == 2 else ""
+        if name not in (".", "..", "answers"):
+            run = root / name if name else root
+            if run.is_dir() and (run / "sources.csv").is_file():
+                try:
+                    import sources_page
+                except ImportError:
+                    return None
+                return sources_page.render(run).encode("utf-8")
+    if bare not in ("/", "/run.html"):
+        return None
+    try:
+        import work_page
+    except ImportError:
+        return None
+    return work_page.render(site).encode("utf-8")
+
+
 def serve(site):
-    answers = os.path.join(site, "answers")
-    os.makedirs(answers, exist_ok=True)
+    os.makedirs(os.path.join(site, "answers"), exist_ok=True)
+    # a listener left behind ends after a spell with no request; the next stop starts a fresh one
+    idle = float(os.environ.get("BFO_LISTENER_IDLE_SECONDS") or 8 * 3600)
+    last = [time.time()]
 
     class Handler(SimpleHTTPRequestHandler):
+        def setup(self):
+            last[0] = time.time()
+            super().setup()
+
         def end_headers(self):
             self.send_header("Cache-Control", "no-store")
             super().end_headers()
@@ -57,8 +135,23 @@ def serve(site):
                 return
             # Only the page step's script and the folder's own pages are served: nothing outside the folder,
             # nothing under answers/, and nothing but pages. The file checked is the file served.
-            if self.path.split("?")[0].split("#")[0] == "/page-kit.js":
+            body, bare = None, self.path.split("?")[0].split("#")[0]
+            if bare == "/" or bare.endswith(".html"):
+                note_seen(site, bare)
+            to = home_of(site) if bare == "/" else None
+            if to:  # a run's home screen is drawn: the work page's address leads there, and its open tab follows
+                self.send_response(302)
+                self.send_header("Location", to)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            if bare == "/.alive":
+                body = ("%s\n%d" % (pathlib.Path(site).resolve(), os.getpid())).encode("utf-8")
+                ctype = "text/plain; charset=utf-8"
+            elif bare == "/page-kit.js":
                 target, ctype = pathlib.Path(KIT) / "page-kit.js", "text/javascript; charset=utf-8"
+            elif live(site, self.path) is not None:
+                body, ctype = live(site, self.path), "text/html; charset=utf-8"
             else:
                 target = own_page(site, self.path)
                 if target is None:
@@ -66,7 +159,8 @@ def serve(site):
                     return
                 ctype = self.guess_type(str(target))
                 ctype += "; charset=utf-8" if ctype.startswith("text/") and "charset" not in ctype else ""
-            body = target.read_bytes()
+            if body is None:
+                body = target.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
@@ -98,6 +192,8 @@ def serve(site):
                 self.send_error(400)
                 return
             name = "answers-%s-%s.json" % (time.strftime("%Y%m%d-%H%M%S"), uuid.uuid4().hex[:8])
+            answers = answers_for(site, self.headers.get("Referer"))
+            os.makedirs(answers, exist_ok=True)
             path = os.path.join(answers, name)
             with open(path + ".tmp", "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -111,32 +207,64 @@ def serve(site):
 
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), partial(Handler, directory=site))
     url = "http://127.0.0.1:%d/" % httpd.server_address[1]
+    with open(os.path.join(site, "listener.pid"), "w", encoding="utf-8") as f:
+        f.write(str(os.getpid()))
     with open(os.path.join(site, "url.txt"), "w", encoding="utf-8") as f:
         f.write(url)
     print("READY " + url, flush=True)
-    httpd.serve_forever()
+    httpd.timeout = min(5.0, idle)
+    while time.time() - last[0] < idle:
+        httpd.handle_request()
+    httpd.server_close()
 
 
-def watch(site):
+def announce_new(site):
     answers = os.path.join(site, "answers")
     seen_path = os.path.join(answers, ".announced")
     os.makedirs(answers, exist_ok=True)
+    try:
+        with open(seen_path, encoding="utf-8") as f:
+            seen = set(f.read().split())
+    except FileNotFoundError:
+        seen = set()
+    found = 0
+    for name in sorted(os.listdir(answers)):
+        if name.endswith(".json") and name not in seen:
+            # Ledger first: a caller that stops the process on reading the line cannot cause a repeat.
+            with open(seen_path, "a", encoding="utf-8") as f:
+                f.write(name + "\n")
+            print("ANSWERS " + os.path.join(answers, name), flush=True)
+            found += 1
+    return found
+
+
+def watch(site):
     while True:
-        try:
-            with open(seen_path, encoding="utf-8") as f:
-                seen = set(f.read().split())
-        except FileNotFoundError:
-            seen = set()
-        for name in sorted(os.listdir(answers)):
-            if name.endswith(".json") and name not in seen:
-                print("ANSWERS " + os.path.join(answers, name), flush=True)
-                with open(seen_path, "a", encoding="utf-8") as f:
-                    f.write(name + "\n")
+        announce_new(site)
+        time.sleep(0.5)
+
+
+def poll(site, timeout):
+    end = time.time() + timeout
+    while not announce_new(site):
+        if time.time() >= end:
+            print("TIMEOUT no answers yet", flush=True)
+            return
         time.sleep(0.5)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3 or sys.argv[1] not in ("serve", "watch"):
+    args = sys.argv[1:]
+    if len(args) == 2 and args[0] in ("serve", "watch"):
+        site = os.path.abspath(args[1])
+        serve(site) if args[0] == "serve" else watch(site)
+    elif len(args) == 3 and args[0] == "poll":
+        try:
+            timeout = float(args[2])
+        except ValueError:
+            timeout = 0
+        if timeout <= 0:
+            sys.exit(__doc__)
+        poll(os.path.abspath(args[1]), timeout)
+    else:
         sys.exit(__doc__)
-    site = os.path.abspath(sys.argv[2])
-    serve(site) if sys.argv[1] == "serve" else watch(site)

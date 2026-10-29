@@ -2470,6 +2470,8 @@ def main(argv=None):
     M = model(R)
     opened = parse_open(M, a.open)
     out = pathlib.Path(a.out) if a.out else HERE / "out" / f"{R['_name']}.html"
+    import run_lock  # the register is written by one run at a time
+    run_lock.guard(out.parent)
     out.parent.mkdir(parents=True, exist_ok=True)
     cmd = "python capability_views.py " + " ".join(argv if argv is not None else sys.argv[1:])
     out.write_text(page(M, opened, pathlib.Path(a.register).as_posix(), cmd, (len(err), len(warn))), encoding="utf-8")

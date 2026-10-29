@@ -19,8 +19,12 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import register_layout as layout  # noqa: E402
+import run_lock  # noqa: E402
 
 STATUS_LEAD = "**Where things stand:**"
+# The capability brief's ask about the searches its "Still open" line proposes: put where the person answers.
+SEARCH_ASK = ("If you agree to any search proposed under *Still open*, say which: I search only where you agree, "
+              "and show you what was found before reading in depth.")
 NEW_RUN = (f"{STATUS_LEAD} Flow: not chosen yet · Stage: not chosen yet · not started · Drafted: nothing yet · "
            "Next: a first look over the system · Waiting on you: nothing")
 # The run record's phase rows, by their opening words, and the activity each belongs to as the person reads it.
@@ -43,16 +47,90 @@ ROWS = (("0 ", 1), ("The go", 0), ("1 ", CASE), ("2 ", STRUCTURE), ("3 ", CAPABI
         ("Pick of how far", DEPTH_PICK), ("4 ", MEASURES), ("5 ", 4), ("5a ", ALERTS),
         ("Review of the alerts", REVIEW), ("5b ", RUNBOOKS), ("6 ", 5), ("7 ", 6))
 KIT_TERMS = [
-    (r"\b(?:F|ST|S|R|P|M|FM|AL|E|D)\d+\b", "an id"),
+    # P50 to P999 are latency percentiles, the alerts' own words, not ids
+    (r"\b(?:F|ST|S|R|M|FM|AL|E|D)\d+\b|\bP(?!(?:50|75|90|95|99|999)\b)\d+\b|\bL\d{2,}\b", "an id"),
     (r"\b[\w.-]+\.(?:csv|md|py|json|html|log|ya?ml|java|go|js|ts|xml|properties|toml|txt|sh)\b", "a file name"),
-    (r"\b[\w.-]*[-_.][\w.-]*/[\w./-]+|\b[\w.-]+/[\w.-]+/[\w./-]+", "a path"),
+    # a path has a letter in its first part, so a price per month or a date is not one
+    (r"\b(?=[\w.-]*[A-Za-z][\w.-]*/)[\w.-]*[-_.][\w.-]*/[\w./-]+|\b(?=[\w.-]*[A-Za-z])[\w.-]+/[\w.-]+/[\w./-]+",
+     "a path"),
     (r"\b(?:will|it|this run|the run)\s+(?:describes?|maps?|covers?|walks?)\s+(?:one|a single)\s+(?:business\s+)?"
      r"flow\b(?![^.]*\b(?:batch|remain))", "one flow presented as the whole job"),
     (r"\bregisters?\b", "kit vocabulary"), (r"\bunits?\b", "kit vocabulary"), (r"\bproposed:", "kit vocabulary"),
-    (r"\b[Pp]hase \d\b", "kit vocabulary"), (r"\bStep \d+\b", "kit vocabulary"), (r"\bjudges?\b", "kit vocabulary"),
+    (r"\b[Pp]hases?\s*(?:\d+(?:\s*(?:-|–|to|and)\s*\d+)?[a-z]?|zero|one|two|three|four|five|six|seven)\b",
+     "kit vocabulary"), (r"\b5[ab]\b", "kit vocabulary"),
+    # the run's process words used as nouns: "the go", "the flow go"; "this stop", "the next stop". As verbs ("go on",
+    # "stop here", "orders that stop moving") they are ordinary English and pass.
+    (r"\b(?:The|the|Your|your|Their|their|This|this) (?:[a-z]*flow )?go\b(?![-/]|\s(?:on|ahead|back|through|over|"
+     r"into|to|with|for|out|up|down|away|first|in|off|by|wrong|well|live)\b)", "kit vocabulary"),
+    (r"\b(?:The|the|This|this|That|that|[Ee]ach|[Nn]ext|[Ll]ater|[Ee]arlier|[Ww]hich) stop\b"
+     r"(?! (?:the|it|them|here|now|working|reading|moving|there)\b| on (?:the|its|a|their|each) (?:\w+ )?(?:route|way|"
+     r"line|round|run)\b)", "kit vocabulary"),
+    (r"\breceipts?\b", "kit vocabulary"), (r"\b[Ss]tep \d+\b(?! of\b)", "kit vocabulary"), (r"\bjudges?\b", "kit vocabulary"),
     (r"\bmerge\b", "kit vocabulary"), (r"\bfact base\b|\bfact-base\b", "kit vocabulary"),
     (r"\bstage-\w+", "kit vocabulary"), (r"\bsubjects?\.|\bparticipation\b", "kit vocabulary"),
 ]
+
+
+PAGE_LEAD = "The page for this work: "
+
+
+def page_line(folder):
+    """The page's address, as a line for the person, while a listener serves the work; else "". `folder` is a register
+    folder, or the workspace root before a register exists (its work folder's listener is asked)."""
+    import listener
+    folder = pathlib.Path(folder).resolve()
+    work = folder / listener.WORK
+    site = work.resolve() if work.is_dir() else listener.site_of(folder)
+    url = listener.serving(site)
+    if not url:
+        return ""
+    rel = "" if site == folder else folder.name + "/"
+    return PAGE_LEAD + url + (rel + "index.html" if (folder / "index.html").is_file() else "")
+
+
+def with_page(text, folder):
+    """`text` with the page's address on a last line of its own while a listener serves the work."""
+    line = page_line(folder)
+    return f"{text.rstrip()}\n\n{line}" if line else text
+
+
+def register_names(reg):
+    """The names the register gives (flows, stages, steps, parts, measures and the first look's), longest first: the
+    business's own words, which the person knows the system by, so `say` lets them through."""
+    reg, names = pathlib.Path(reg), set()
+    for f in reg.glob("*.csv"):
+        if f.name in ("how-made.csv", "sources.csv"):  # the kit's own tables, not the business's names
+            continue
+        try:
+            for row in csv.DictReader(f.open(encoding="utf-8-sig")):
+                names |= {(row.get(c) or "").strip() for c in ("name", "measure", "title", "service")}
+        except (OSError, csv.Error, UnicodeDecodeError):
+            continue
+    try:
+        o = json.loads((reg / layout.ORIENTATION).read_text(encoding="utf-8-sig"))
+        names |= {s.get("name", "") for s in o.get("services") or []}
+        for fl in o.get("flows") or []:
+            names |= {fl.get("name", "")} | {s.get("name", "") for s in fl.get("stages") or []}
+        names.add((o.get("capability") or {}).get("name", ""))
+    except (OSError, ValueError, AttributeError):
+        pass
+    return sorted((n for n in names if n), key=len, reverse=True)
+
+
+def say_terms(text, reg):
+    """The terms check of a message the session wrote, outside what the person knows already: the register's own
+    names, words quoted back in double quotes (theirs, as they said them) and a web address."""
+    text = re.sub(r"https?://\S+", " ", text)
+    # an address without its scheme: a host with a dot or localhost, a port maybe, then a path
+    text = re.sub(r"\b(?:localhost|[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,})(?::\d+)?/[^\s,;)]*(?<![.,])", " ", text)
+    for n in register_names(reg):  # as written, or with its first letter lower-cased mid-sentence
+        text = re.sub("(?i:" + re.escape(n[:1]) + ")" + re.escape(n[1:]), " ", text)
+    quoted = re.findall(r'"[^"\n]*"|\u201c[^\u201d\n]*\u201d', text)
+    text = re.sub(r'"[^"\n]*"|\u201c[^\u201d\n]*\u201d', " ", text)
+    # quoted words are the person's own and pass, except an id, a file name or a path, which are never theirs
+    strict = [pat for pat, kind in KIT_TERMS if kind in ("an id", "a file name", "a path")]
+    hits = kit_terms(text) + [m.group(0) for q in quoted for pat in strict for m in re.finditer(pat, q)]
+    return list(dict.fromkeys(hits))
 
 
 def kit_terms(text):
@@ -60,7 +138,7 @@ def kit_terms(text):
     hits = []
     for pattern, _ in KIT_TERMS:
         hits += [m.group(0) for m in re.finditer(pattern, text)]
-    return hits
+    return [h for h in hits if not re.fullmatch(r"[A-Z][A-Za-z]*\.js", h)]  # Node.js, Next.js: products, not files
 
 
 SLOT_CAPITAL = re.compile(r"(?:\b(?:serves|is|are|was|at|for|of|with|by|to)|[:,]) ([A-Z][a-z]+)(?= [a-z])")
@@ -329,7 +407,7 @@ def capability(reg, o):
 
 **What I need from you.** Nothing is read in depth until you answer.
 1. Which flow to start with. Recommended: *{r['flow']}*.
-"""
+{SEARCH_ASK + chr(10) if o.get('unresolved') else ''}"""
 
 
 def reentry(reg, o):
@@ -581,6 +659,7 @@ def main(argv):
             print("Usage: python brief.py depth <register folder> <flow id> --recommend \"<your recommendation and "
                   "its reason>\"", file=sys.stderr)
             return 2
+        run_lock.guard(args[0])
         run_md = pathlib.Path(args[0]) / "RUN.md"
         before = run_md.read_bytes() if run_md.is_file() else None
         mark_the_pick_stop(args[0])
@@ -598,7 +677,7 @@ def main(argv):
         import go
         go.record_flow_id(pathlib.Path(args[0]), args[1])  # found by id, not by a name the walk may change
         depth.write_quietly(args[0])
-        print(text)
+        print(with_page(text, args[0]))
         return 0
     if argv[:1] == ["alerts"]:
         args = argv[1:]
@@ -611,6 +690,7 @@ def main(argv):
             print("Usage: python brief.py alerts <register folder> <flow id> <stage id>... --recommend \"<your "
                   "recommendation and its reason>\"", file=sys.stderr)
             return 2
+        run_lock.guard(args[0])
         run_md = pathlib.Path(args[0]) / "RUN.md"
         before = run_md.read_bytes() if run_md.is_file() else None
         mark_the_review(args[0])
@@ -626,7 +706,34 @@ def main(argv):
         (pathlib.Path(args[0]) / REVIEW_FILE).write_text(text, encoding="utf-8", newline="\n")
         import go  # what the person is shown is what their go covers: go.py --alerts-reviewed checks against this
         go.record_alerts_shown(pathlib.Path(args[0]))
-        print(text)
+        print(with_page(text, args[0]))
+        return 0
+    if argv[:1] == ["say"]:
+        after = "--after" in argv
+        args = [a for a in argv[1:] if a != "--after"]
+        if len(args) != 2 or not pathlib.Path(args[0]).is_dir():
+            print(__doc__, file=sys.stderr)
+            return 2
+        text = pathlib.Path(args[1]).read_text(encoding="utf-8-sig").strip()
+        hits = say_terms(text, args[0])
+        if hits:
+            print("REFUSED: the message uses words the person does not know (ids, file names or the kit's own "
+                  "process words): " + "; ".join(hits) + ". Say each in the person's terms (the flow, stage, step "
+                  "or service by its name; what was done or is next in plain words), and run this again. Nothing "
+                  "sent.", file=sys.stderr)
+            return 1
+        if not after:  # --after: a line added to a message a script printed, which has its status line already
+            print(status(pathlib.Path(args[0])))
+            print()
+        print(with_page(text, args[0]))
+        return 0
+    if argv[:1] == ["page"]:
+        if len(argv) != 2 or not pathlib.Path(argv[1]).is_dir():
+            print(__doc__, file=sys.stderr)
+            return 2
+        line = page_line(argv[1])
+        if line:
+            print(line)
         return 0
     if len(argv) != 2 or argv[0] not in ("status", "capability", "reentry", "terms"):
         print(__doc__, file=sys.stderr)
@@ -640,6 +747,14 @@ def main(argv):
     if what == "status":
         print(status(reg))
         return 0
+    if what == "capability" and any(s == "done" for _, s in phases(reg)[1:]):
+        # past the first look, the run is picked up where it stands: asking for the first flow again would undo the go
+        print("REFUSED: this run is past its first look (a phase after it is done), so the person is not asked for "
+              "the first flow again. Pick the run up with: python brief.py reentry " + f'"{reg}"' + ", and send what "
+              "it prints. Nothing written.", file=sys.stderr)
+        return 2
+    if what == "capability":
+        run_lock.guard(reg)
     o = load(reg, layout.ORIENTATION)
     bad = problems(reg, o)
     if bad:
@@ -660,9 +775,12 @@ def main(argv):
         return 2
     if what == "capability":
         (reg / "PLAN.md").write_text(text, encoding="utf-8", newline="\n")
+        import start  # the first look has reached its brief: its mark in the work folder ends here
+        if reg.resolve().parent.name == "bfo-work":
+            start.end_first_look(reg.resolve().parent)
         import depth  # the page draws this stop's open choice from depth.json
         depth.write_quietly(reg)
-    print(text)
+    print(with_page(text, reg))
     return 0
 
 

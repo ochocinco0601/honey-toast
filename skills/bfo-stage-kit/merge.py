@@ -474,6 +474,9 @@ def main(argv):
     if len(args) != 1:
         print(__doc__)
         return 2
+    if not is_check:
+        import run_lock  # the register is written by one run at a time
+        run_lock.guard(args[0])
     summary, problems = (check if is_check else merge)(args[0])
     print(json.dumps(summary))
     for p in problems:

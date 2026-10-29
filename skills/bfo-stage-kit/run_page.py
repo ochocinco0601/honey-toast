@@ -491,6 +491,8 @@ def main(argv):
     if not reg.is_dir():
         print(f"no such folder: {reg}")
         return 2
+    import run_lock  # the register is written by one run at a time
+    run_lock.guard(reg)
     (reg / OUT).write_text(render(reg), encoding="utf-8")
     print(reg / OUT)
     return 0

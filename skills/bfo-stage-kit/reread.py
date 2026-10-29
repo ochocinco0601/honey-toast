@@ -145,6 +145,8 @@ def main(argv):
         r = check(argv[1])
         print("\n".join(r.lines()))
         return 0 if r.passed else 1
+    import run_lock  # the register is written by one run at a time
+    run_lock.guard(argv[0])
     rows = draw(argv[0], int(argv[1]) if len(argv) > 1 else 10)
     print(f"re-read.csv: {len(rows)} row(s) drawn")
     return 0

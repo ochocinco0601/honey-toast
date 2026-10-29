@@ -497,6 +497,8 @@ def main(argv):
     if cmd == "run":
         mode, model = _opt(argv, "--rows"), _opt(argv, "--model")
         reg, ws, unit = argv[:3]
+        import run_lock  # the register is written by one run at a time
+        run_lock.guard(reg)
         rnd = rnd or 1
         launched = run(reg, ws, unit, rnd, mode, model)
         n = settings(reg)["judges"]

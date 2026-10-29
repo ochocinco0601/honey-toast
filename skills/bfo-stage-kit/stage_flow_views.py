@@ -2165,6 +2165,8 @@ def main(argv=None):
             f = next(f for f in M["flows"] if f["flow_id"] == x)
             secs.append(f'<section class="casemoves"><h2>{E(f.get("name", ""))}: how a case moves end to end</h2>'
                         f'{flow_block(M, x, docs)}</section>')
+    import run_lock  # the register is written by one run at a time
+    run_lock.guard(out.parent)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("<!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY. Builder: stage_flow_views.py -->\n<!doctype html>\n"
                    '<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'

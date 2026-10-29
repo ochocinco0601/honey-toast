@@ -35,6 +35,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import register_layout as layout  # noqa: E402
+import run_lock  # noqa: E402
 
 
 def load(reg):
@@ -527,6 +528,7 @@ def main(argv):
             print("Usage: python go.py <register folder> --answers <answers file> [--test]", file=sys.stderr)
             return 2
         reg = pathlib.Path(rest[0])
+        run_lock.guard(reg)
         key = answers_key(argv[i + 1])
         if key and taken_before(reg, key):
             print("REFUSED: these answers were recorded already, so they are not the person's latest. If nothing "
@@ -583,6 +585,7 @@ def main(argv):
     if not reg.is_dir():
         print(f"not a folder: {reg}", file=sys.stderr)
         return 2
+    run_lock.guard(reg)
     got = (record_review(reg, a) if a.alerts_reviewed else
            record_depth(reg, a.depth, a) if a.depth is not None else
            record_stage_ids(reg, names(a.stage_ids)) if a.stage_ids is not None else record_go(reg, a))

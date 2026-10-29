@@ -8,6 +8,113 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 6 — 2026-10-29
+
+### What you will notice
+
+- **A Sources page shows what the run is working from.** The home's top bar, and the page shown while the run
+  starts, link to it as soon as a source is listed: each source gathered, what it is, and each one that could not be
+  reached, with why. It only reads; nothing is added or retried from it.
+  Effect: none.
+- **The run's own words are checked before they reach you.** Every message the session writes itself, not only
+  the ones a script prints, is checked for ids, file names and the kit's process words (phases, "the go", a stop,
+  register and the like) and rewritten in your terms before it is sent.
+  Effect: none.
+- **The page's address comes with every message that points at the page,** not only when the browser could not
+  be opened: the scripts add it themselves while the page is up, so it is never typed by hand.
+  Effect: none.
+
+- **The page comes up first, before the first look.** The start step now runs in the session itself, right after
+  the opening message: it brings up the run's page, records when the run started, and only then looks for earlier
+  work. The first look then writes its list of sources, its survey and the code reader's facts as each is complete,
+  so the page shows how far it has got instead of nothing until the brief.
+  Effect: none.
+
+- **Two chats can no longer write one register at once.** A run could be picked up by a second chat while the first
+  was still writing it, and each overwrote the other's work. The run that starts or picks up a register now holds
+  it, and every script that writes the register refuses another chat while the holder has written within the last
+  four hours, writing nothing. Picking up work another chat holds asks you whether that chat has stopped, and carries
+  on only on your word, which the register records. A chat that has not written for four hours loses its hold to the
+  next one that writes, which says so, so a chat that crashed never leaves the register stuck. Where the chat
+  cannot be told apart from another (nothing names it), the run goes on without the hold, and the register says so.
+  Two first looks started in one chat cannot be told apart by the hold, so a second start while a first look is
+  under way is refused until that first look reaches its brief.
+  Effect: none.
+
+- **Work started before is picked up where it stands, decided by a script.** A run used to decide by its own
+  reading whether the workspace held a run of this kit to carry on, and could miss one: it then looked over the
+  system again and asked for the first flow again. The run's first work is now `start.py`, which searches the
+  workspace and decides: one run not finished is picked up with the re-entry brief, several are put to you to pick
+  from, and with none the first look starts fresh. The capability brief is refused for a run past its first look,
+  and a new register is refused while a run is not finished, unless you have said to start new work, in words the
+  new run records.
+  Effect: none.
+
+- **After a Done, the home screen no longer brings back your earlier ticks and words.** A browser could put the
+  last answer's ticks and words back into the page after it reloaded, so the page held at the next choice as if you
+  had changed something, and a Done would have sent the old answer again. Every tick and box on the home screen now
+  opts out of that, and the page takes what it holds once loaded as nothing changed. Ticks and words you have not
+  sent yet are kept by the page itself, in that browser tab: if you open one of the kit's pages and come back, or
+  reload, they are put back as not yet sent. What a Done sent is not kept. If the run has moved to another choice
+  meanwhile, the ticks and words for the old choice are not put back; your topics to talk about are.
+  Effect: none.
+- **The session says plainly when a stop is answered and how its two background tasks end.** Only a pick that
+  `go.py` records answers a stop; a post of topics alone, words with no tick at the pick, or a refusal leave the run
+  waiting there. The wait is stopped by its task id, and the page's listener by the stop command printed for it, once the run's report is sent.
+  Effect: none.
+- **After a refusal, the session no longer says the page was drawn again.** Nothing is recorded on a refusal, so
+  nothing is redrawn. The answer can be sent again on the page or in the chat; when `go.py` says the page was drawn
+  before the choice changed, the session draws it again first, and otherwise the page already shows the choice open
+  now.
+  Effect: none.
+- **A home screen opened just as the run moved on now catches up.** If the run drew the page again in the moment
+  between the tab opening it and the page's first check, the tab used to stay on the older page until the next
+  change. Each drawing now carries a stamp of what it shows, and the tab compares against the one it opened.
+  Effect: none.
+- **The run searches for more code only where you agree.** Start with as much or as little as you have; for what
+  is not there, the brief says what the run cannot find and where it proposes to look, and it searches only where
+  you say yes; the brief's last part asks you which. With only a system's name, the run first looks at what is open
+  in your workspace, and if the code is not there it proposes where to look and waits for your yes. Code found on a
+  yes in the chat is surveyed and the brief is shown again, keeping any flow you picked as the recommendation, so you
+  confirm it once; a yes sent from the home screen with a flow ticked goes on with that flow and the code found. What
+  you do not agree to search is listed as still missing.
+  Effect: none.
+- **Done on the home screen counts only what it sent.** The page says "Sending…" until the answer is saved. Ticks
+  or words you change while it is on its way stay unsent, so the page will not reload over them, and a second Done
+  within the same second is saved like the first.
+  Effect: none.
+- **The home screen's hold message says "send or clear".** It used to say "save", where the kit's own
+  instructions say "send"; both now use the one word.
+  Effect: none.
+- **Unticking a milestone on the home screen leaves the earlier ones as they are.** Unticking one takes the
+  later milestones of that stage with it, as before; it no longer ticks the earlier ones.
+  Effect: none.
+- **Clear on the home screen.** A Clear beside each Done puts the ticks and words in its own drop-down back as the
+  page loaded (or as your last Done sent them); the Clear on the line at the top does the same for the whole page.
+  Clear sends nothing, and what stays unsent elsewhere is still kept. A drop-down's Clear also undoes the earlier
+  milestones its own ticks ticked in other drop-downs. Once nothing is unsent, a held update goes ahead. Done still
+  sends everything on the page.
+  Effect: none.
+- **The home screen says when it has put your unsent ticks and words back.** After a reload, or coming back from
+  one of the kit's pages, a line at the top says they are back and not yet sent, with Send and Clear. A Send from
+  that line leaves "Saved at" showing there until the page updates or you change something. After any Done, if
+  anything changed after you pressed it, the line says that is not yet sent. Topic words are not put back under another flow: where
+  the place you typed them now asks for your choice, or is no longer on the page, the line quotes them and says
+  which, on every load of the page, until you press Clear on that line or send with Done.
+  Effect: none.
+- **The run opens its page by itself.** At each stop, the script that readies the home screen starts the page's
+  listener when none is serving and opens your browser on it, instead of leaving both to the session; when the
+  browser does not ask for the page, the session opens it itself. The session gives you the page's address too,
+  every time it points you at it. Before your run has a home screen the page shows
+  where the run stands, and it moves to the home screen by itself once there is one. A proxy set for command-line
+  tools on your machine does not stop the run from finding its own page. The small web server that shows the page
+  stops by itself after eight hours with no request; USE.md says what it is. If you close the page's tab,
+  a later stop does not open it again; the address in the chat brings it back.
+  Effect: none.
+- **The home screen is replaced whole when the run draws it again,** so an open tab never loads a half-written page
+  and stops following the run.
+  Effect: none.
+
 ## Release 5 — 2026-10-28
 
 ### What you will notice

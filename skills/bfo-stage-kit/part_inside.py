@@ -662,6 +662,8 @@ def main(argv=None):
         return 1
     secs = "".join(f'<section class="insideout"><h2>{cv.esc(M["subj"][x].get("name", ""))}: inside this part</h2>'
                    f'{block(M, x)}</section>' for x in want)
+    import run_lock  # the register is written by one run at a time
+    run_lock.guard(out.parent)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("<!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY. Builder: part_inside.py -->\n<!doctype html>\n"
                    '<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'

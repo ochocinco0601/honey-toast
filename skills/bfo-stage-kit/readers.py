@@ -123,6 +123,8 @@ def main(argv):
         print(prompt(argv[1], argv[2], mode))
         return 0
     if len(argv) >= 4 and argv[0] == "run":
+        import run_lock  # the register is written by one run at a time
+        run_lock.guard(argv[1])
         n = run(argv[1], argv[2], argv[3:], mode, model)
         print(f"{n} reader(s) finished; replies in {pathlib.Path(argv[1]) / layout.REPLIES}")
         return 0

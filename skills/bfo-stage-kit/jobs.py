@@ -378,6 +378,8 @@ def main(argv=None):
     if a.cmd == "status":
         return cmd_status(job, out)
     job.mkdir(parents=True, exist_ok=True)
+    import run_lock  # the register is written by one run at a time
+    run_lock.guard(job.parent)
     try:
         if a.cmd == "done":
             return cmd_done(a, job, out)

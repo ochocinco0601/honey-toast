@@ -68,6 +68,8 @@ Written at the start of the run, and filled in by Phase 7's reconciliation. An e
 and is never this run's starting point. A register folder whose `RUN.md` has this section was made by this version
 of the kit; one without it is an earlier register.
 
+- **Started new beside unfinished work:** _written by `start_register.py --new`: the person's words, word for word,
+  and the runs of this kit not finished when this one began beside them; blank otherwise._
 - **Found:** the path of each register already in the workspace when the run began, or "none".
 - **Reconciled:** for each, the path of `reconcile.py`'s report, and its counts: unchecked (not added), carried
   from a person, re-open in a document, not supported, not assessed, disagreements, and Step 11 work not carried.

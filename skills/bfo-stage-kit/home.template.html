@@ -134,7 +134,7 @@ a.pgl:hover,.nav a.go:hover{text-decoration:underline}
 <!--NAV-->
 <div style="box-sizing: border-box; max-width: 1280px; margin: 0 auto; padding: 18px 24px 48px; display: flex; flex-direction: column; gap: 14px; font-family: 'Segoe UI', system-ui, sans-serif; color: #1D1D1B">
 
-<div class="card" id="moved" role="status" style="border-color: #1F4E8C; color: #1F4E8C; font-weight: 600" hidden></div>
+<div class="card" id="moved" role="status" style="border-color: #1F4E8C; color: #1F4E8C; font-weight: 600" hidden><span data-said data-status></span> <button type="button" class="ab2 dn" data-done>Send</button> <!--CLEAR--></div>
 <div class="card">
 <div class="mute">Each row is one flow identified. Each dot is one of the flow&rsquo;s milestones toward supported in production. Identified, Mapped, Measures defined, Runbooks written: filled once drafted for your review (a runbook is drafted, never rehearsed). Alerts defined: filled once the review of the proposed alerts is recorded. Instrumented, Dashboards built, Team prepared: done by other teams, so these dots never fill here. The count under Instrumented is read from the code at design time, not from the running system. A draft is not complete, correct or accepted. The line between two filled dots is filled. Click any dot to see what is there to review at that milestone.</div>
 <!--HEAD-->
@@ -186,9 +186,14 @@ a.pgl:hover,.nav a.go:hover{text-decoration:underline}
   var OPTS = ['Measures defined', 'Alerts defined', 'Runbooks written'];
   document.addEventListener('change', function (e) {
     var t = e.target;
-    if (t.hasAttribute('data-stagetick')) {  // ticking a milestone brings the ones before it; unticking leaves them
-      var at = OPTS.indexOf(t.value), upto = t.checked ? at : at - 1;
-      all('input[data-stagetick]').forEach(function (x) { if (x.name === t.name) x.checked = OPTS.indexOf(x.value) <= upto; });
+    if (t.hasAttribute('data-stagetick')) {  // ticking a milestone brings the ones before it; unticking takes the later
+      var at = OPTS.indexOf(t.value);       // ones with it and leaves the earlier ones as they are
+      all('input[data-stagetick]').forEach(function (x) {
+        if (x.name !== t.name) return;
+        var i = OPTS.indexOf(x.value);
+        if (t.checked && i < at) x.checked = true;
+        if (!t.checked && i > at) x.checked = false;
+      });
     } else if (t.hasAttribute('data-flowtick')) {  // one flow per run
       all('input[data-flowtick]').forEach(function (x) { if (x !== t) x.checked = false; });
     }
@@ -209,7 +214,7 @@ a.pgl:hover,.nav a.go:hover{text-decoration:underline}
   if (!window.fetch || location.protocol === 'file:') return;
   // no limit on how long it watches: the wait grows from 3 s to at most 15 s, so a change shows within about 15 s;
   // a Done resets it to 3 s, so the redraw after the answer shows quickly; a tab brought back to the front checks at once
-  var url = location.pathname, base = null, wait = 3000, failed = 0, behind = false, timer = null, saved = '';
+  var url = location.pathname, base = null, wait = 3000, failed = 0, behind = false, timer = null, sending = [];
   // what the inputs hold, keyed by name (and value, for a tick), never by their place on the page: the words and Done
   // move into a drop-down when it opens and back when it closes, and that move is no change
   function state(els) {
@@ -226,11 +231,28 @@ a.pgl:hover,.nav a.go:hover{text-decoration:underline}
   var kept = fields();  // unsaved input is any tick or words changed since the page loaded or since the last Done
   function unsaved() { return fields() !== kept; }
   // said in every status line, so in the open drop-down too, and at the top of the page, so it is seen with none open
-  function say(text) {
+  // with `actions`, the line at the top carries Send and Clear
+  function say(text, actions) {
     Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) { el.textContent = text; });
     var top = document.getElementById('moved');
-    if (top) { top.textContent = text; top.hidden = false; }
+    if (!top) return;
+    top.querySelector('[data-said]').textContent = text;
+    top.querySelector('[data-clear]').hidden = !actions;
+    top.querySelector('[data-done]').hidden = !actions || actions === 'clear';
+    top.hidden = false;
   }
+  // what the top line says when no reload is held: input put back ('back'), or a Send from it saved ('saved')
+  var note = '';
+  function unsay() {
+    if (behind || !note) return;
+    note = '';
+    var top = document.getElementById('moved');
+    if (top) top.hidden = true;
+  }
+  // the line about input put back goes once nothing is unsent; a "Saved at" there stays until the next change
+  function settle() { if (note === 'saved' || !unsaved()) unsay(); }
+  var NOT_SENT = 'Ticks or words changed since are not yet sent: send them or clear them.';
+  var PUT_BACK ='Ticks or words you had not sent are back in the drop-downs, still not sent: send them or clear them.';
   function again() { clearTimeout(timer); timer = setTimeout(poll, wait); wait = Math.min(wait * 2, 15000); }
   // one listener serves the whole run, so two failed checks in a row mean it has gone (the run ended, or Claude Code
   // was closed): say so, and stop; if the run starts a new listener at a later stop, the chat says to open that page
@@ -242,8 +264,13 @@ a.pgl:hover,.nav a.go:hover{text-decoration:underline}
   function moved() {
     if (!unsaved()) { location.reload(); return; }
     behind = true;
-    say('The run has moved on: save or clear your changes, and the page will update.');
+    say('The run has moved on: send or clear your changes, and the page will update.', true);
   }
+  // the page's stamp says what it shows; the base is the loaded page's own, so a redraw that lands between this tab's
+  // load and its first check is still a change (a page with no stamp falls back to its first fetch)
+  function mark(t) { var m = /<meta name="drawn" content="([0-9a-f]+)">/.exec(t); return m ? m[1] : t; }
+  var own = document.querySelector('meta[name="drawn"]');
+  if (own) base = own.content;
   function poll() {
     clearTimeout(timer);
     fetch(url, { cache: 'no-store' }).then(function (r) {
@@ -251,8 +278,9 @@ a.pgl:hover,.nav a.go:hover{text-decoration:underline}
       return r.text();
     }).then(function (t) {
       failed = 0;
-      if (base === null) base = t;
-      if (t !== base) moved(); else again();
+      var k = mark(t);
+      if (base === null) base = k;
+      if (k !== base) moved(); else again();
     }, stopped);
   }
   // a held reload goes ahead as soon as the page is clean: on any edit, and when a drop-down opens or closes
@@ -263,18 +291,168 @@ a.pgl:hover,.nav a.go:hover{text-decoration:underline}
   document.addEventListener('visibilitychange', function () {
     if (!behind && document.visibilityState === 'visible' && failed < 2) { wait = 3000; poll(); }
   });
-  // a Done is saved once page-kit.js writes its "Saved at" line in [data-status]
-  new MutationObserver(function () {
-    var line = '';
-    Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) {
-      if (/^Saved at /.test(el.textContent)) line = el.textContent;
+  // a browser can put the last load's ticks and words back after this script has run; what the page holds once it has
+  // loaded is its clean state, unless a reload is already held over the person's own unsent input
+  function clean() { if (!behind) { kept = fields(); keptAt = values(); } }
+  // the browser no longer puts inputs back, so the page keeps the person's own unsent ticks and words for this tab,
+  // tied to the choice they were typed for, and puts them back when the page loads again on that same choice
+  var KEY = 'unsent:' + url, STRAYS = 'strays:' + url;
+  function inputs() { return document.querySelectorAll('input[name], select[name], textarea[name]'); }
+  function choice() {
+    var els = inputs();
+    for (var i = 0; i < els.length; i++) if (els[i].name === 'choice_id') return els[i].value;
+    return '';
+  }
+  // a tick by name and value; a box for a flow's topics by name and flow; any other box by name and its place
+  // among boxes of that name
+  function each(fn) {
+    var seen = {}, els = inputs();
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i], flow = el.getAttribute ? el.getAttribute('data-flow') : null;
+      if (el.type === 'hidden') continue;
+      if (el.type === 'checkbox' || el.type === 'radio') fn(el, 'tick ' + el.name + ' ' + el.value);
+      else if (flow !== null) fn(el, 'text ' + el.name + ' @' + flow);
+      else { seen[el.name] = (seen[el.name] || 0) + 1; fn(el, 'text ' + el.name + ' ' + seen[el.name]); }
+    }
+  }
+  function values() {
+    var out = {};
+    each(function (el, k) { out[k] = el.type === 'checkbox' || el.type === 'radio' ? el.checked : el.value; });
+    return out;
+  }
+  var keptAt = values();  // the clean state by field, beside `kept`: only what differs from it is kept for this tab
+  // topics to talk about (talk: ticks, talk-words: boxes) are sent with any Done and belong to no choice
+  function topic(k) { return /^(tick talk:|text talk-words:)/.test(k); }
+  function keep() {
+    last = values();
+    try {
+      if (!unsaved()) { sessionStorage.removeItem(KEY); return; }
+      var now = values(), held = {};
+      for (var k in now) if (now[k] !== keptAt[k]) held[k] = now[k];
+      var from = {};
+      for (k in held) if (origin[k]) from[k] = origin[k];
+      sessionStorage.setItem(KEY, JSON.stringify({ choice: choice(), held: held, origin: from }));
+    } catch (err) { /* no storage: nothing kept */ }
+  }
+  // on the same choice, everything kept comes back; on another, only the topics do: the old choice's ticks and words
+  // answered a question no longer open
+  function putBack() {
+    try {
+      var got = JSON.parse(sessionStorage.getItem(KEY) || 'null') || { choice: choice(), held: {} };
+      // topics with no box on the page are kept apart until the person dismisses them, so a page that reloads at
+      // once (the run often draws twice in a row) says them again instead of losing them
+      var strays = JSON.parse(sessionStorage.getItem(STRAYS) || '{}');
+      for (var s in got.held) if (topic(s) && got.held[s]) strays[s] = got.held[s];
+      var same = got.choice === choice(), placed = {}, words = [], ticks = 0;
+      each(function (el, k) {
+        placed[k] = true;
+        var v = k in got.held && (same || topic(k)) ? got.held[k] : k in strays ? strays[k] : undefined;
+        if (v === undefined) return;
+        if (el.type === 'checkbox' || el.type === 'radio') el.checked = !!v; else el.value = v;
+        if (got.origin && got.origin[k]) origin[k] = got.origin[k];
+      });
+      // the words are said, and where their drop-down now asks for the choice, so
+      var asking = {}, picked = [];
+      Array.prototype.forEach.call(document.querySelectorAll('[data-ask]'), function (el) {
+        if (el.getAttribute) asking['text talk-words:' + el.getAttribute('data-milestone') + ' @' + el.getAttribute('data-flow')] = true;
+      });
+      for (var k in strays) {
+        if (placed[k]) { delete strays[k]; continue; }
+        if (strays[k] === true) ticks++;
+        else (asking[k] ? picked : words).push('"' + strays[k] + '"');
+      }
+      for (k in strays) { sessionStorage.setItem(STRAYS, JSON.stringify(strays)); break; }
+      if (!picked.length && !words.length && !ticks) sessionStorage.removeItem(STRAYS);
+      keep();
+      var lost = words.concat(ticks ? [ticks + (ticks > 1 ? ' ticks' : ' tick')] : []);
+      var gone = (picked.length ? ' Not put back, because where you typed them now asks for your choice; add them to ' +
+        'your words there if you want them sent: ' + picked.join(', ') + '.' : '') +
+        (lost.length ? ' Not put back, because what they were about is no longer on this page: ' + lost.join(', ') + '.' : '');
+      if (unsaved()) { say(PUT_BACK + gone, true); note = 'back'; }
+      else if (gone) { say('Topics you had not sent could not be put back.' + gone, 'clear'); note = 'back'; }
+    } catch (err) { /* no storage: nothing to put back */ }
+  }
+  // a tick in one drop-down can tick a stage's earlier milestones in others; each field remembers the drop-down whose
+  // change set it, so that drop-down's Clear undoes what it spread as well
+  var origin = {}, last = values();
+  document.addEventListener('change', function (e) {
+    var t = e.target, here = t && t.closest && t.closest('[data-dd]'), id = here && here.getAttribute('data-dd');
+    if (!id) return;
+    var now = values();
+    each(function (el, k) { if (el === t || now[k] !== last[k]) origin[k] = id; });
+  });
+  document.addEventListener('change', keep);
+  document.addEventListener('input', keep);
+  document.addEventListener('change', settle);
+  document.addEventListener('input', settle);
+  window.addEventListener('load', clean);
+  window.addEventListener('pageshow', function (e) {
+    // back from the back-forward cache the script's own record is intact, so it stands; check for a redraw now.
+    // A listener that sends no-store keeps the page out of that cache, so Back is a fresh load; kept for any that do
+    if (!e.persisted) { clean(); putBack(); }
+    else if (!behind && failed < 2) { wait = 3000; poll(); }
+  });
+  // Clear puts ticks and words back as the page loaded (or as the last Done sent them) and sends nothing: a drop-down's
+  // Clear only in its own drop-down, the top line's in the whole page. What stays unsent elsewhere is still kept for
+  // the tab and still holds; once nothing is unsent, a held reload goes ahead
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-clear]');
+    if (!btn) return;
+    var scope = btn.getAttribute('data-clear') === 'page' ? null : btn.closest('[data-dd]');
+    if (!scope) try { sessionStorage.removeItem(STRAYS); } catch (err) { /* no storage */ }  // dismissed
+    var id = scope && scope.getAttribute('data-dd');
+    each(function (el, k) {
+      if (!(k in keptAt) || (scope && !scope.contains(el) && origin[k] !== id)) return;
+      if (el.type === 'checkbox' || el.type === 'radio') el.checked = keptAt[k]; else el.value = keptAt[k];
+      delete origin[k];
     });
-    if (!line || line === saved) return;
-    saved = line; kept = fields();
-    if (behind) { location.reload(); return; }
+    keep();
+    if (behind && !unsaved()) { location.reload(); return; }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) {
+      if (!scope || scope.contains(el)) el.textContent = '';
+    });
+    if (note === 'saved' || !unsaved()) unsay();
+  });
+  // a Done sends what the inputs hold at the press, so that is what it saves: ticks or words changed while the answer
+  // is on its way stay unsent. The status lines say "Sending" until page-kit.js writes the outcome, so an earlier
+  // "Saved at" line is never taken for this Done's, and two Dones in the same second are two saves. Each outcome
+  // settles the oldest press still on its way; while another is on its way, the lines say "Sending" again.
+  function busy() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) { el.textContent = 'Sending…'; });
+  }
+  document.addEventListener('click', function (e) {
+    if (!(e.target.closest && e.target.closest('[data-done]'))) return;
+    sending.push({ state: fields(), at: values() });
+    busy();
+  });
+  new MutationObserver(function () {
+    if (!sending.length) return;
+    var saved = false, refused = false;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) {
+      if (/^Saved at /.test(el.textContent)) saved = true;
+      else if (/^(Not accepted|Could not reach)/.test(el.textContent)) refused = true;
+    });
+    if (!saved && !refused) return;
+    var done = sending.shift();
+    if (sending.length) busy();
+    if (refused) return;
+    kept = done.state; keptAt = done.at; keep();
+    try { sessionStorage.removeItem(STRAYS); } catch (err) { /* no storage */ }
+    if (!behind && !sending.length && unsaved()) {  // changed after the press (a second press on the busy button sends
+      var line = '';                               // nothing): say what was saved, and that the rest is not yet sent
+      Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) {
+        if (/^Saved at /.test(el.textContent)) line = el.textContent.split('. ')[0] + '. ';
+      });
+      say(line + NOT_SENT, true); note = 'back';
+    } else if (note === 'back') {  // sent from the top line: it keeps the "Saved at" until the redraw or the next change
+      note = 'saved';
+      var top = document.getElementById('moved');
+      if (top) top.querySelector('[data-clear]').hidden = top.querySelector('[data-done]').hidden = true;
+    }
+    if (behind) { if (!unsaved()) location.reload(); return; }
     wait = 3000; again();
   }).observe(document.body, { subtree: true, characterData: true, childList: true });
-  poll();  // from page load, always: the first check is the base the later ones compare with
+  poll();  // from page load, always
 })();
 </script>
 <script src="/page-kit.js"></script>

@@ -17,8 +17,10 @@ the business who depend on it get what they need, and when something breaks the 
 first. This skill's step in that job is the design-time map of the capability: from the code and the documents, it
 finds the business flows the capability carries, and in batches, one flow per run, describes a flow and for the stages
 the person picks drafts what to measure, what to alert on and a runbook per alert. The job is the whole capability,
-every flow; one run is one batch, and each run says what remains. It receives what the person points at
-(repositories, documents, diagrams, notes), directly or through the service reliability room; it hands the person,
+every flow; one run is one batch, and each run says what remains. It receives what the person points at, as much or
+as little as they have (a system's name or only an idea of it, some repositories or all, documents, diagrams,
+notes), directly or through the service reliability room; for what is not there it proposes where to look, taken
+from the environment it runs in, and searches only where they agree. It hands the person,
 the room's seats or the team that runs the capability a register and its generated outputs, each claim cited to its
 source or marked proposed. The person oversees the work but is not an expert in this system or this kit. So, like any
 team taking on work for an overseer, the run first introduces itself and how the two will work together; then, after
@@ -30,7 +32,8 @@ alerts, chosen from the health signals, and what each rests on, and waits for th
 deserve an alert is a different question from the ways the work can fail; every message says where things stand, and
 a run picked up again starts by saying, in full, where the work is. Done, for the whole job: the person can judge from
 the first messages that the run understood its job and the system, can see what is covered and what remains, and can
-trust what comes out, because every service the flow touches was read and every claim can be traced; and the outputs
+trust what comes out, because every service the flow touches was read, or is named as still missing with why, and
+every claim can be traced; and the outputs
 are complete enough for the next step (measures built, alerts wired, runbooks used).
 
 ## Your first message: the launch
@@ -69,37 +72,98 @@ their request already gave you. Say nothing before it.
 > flow, the stage, the activity, what has been drafted, what is next, and what waits on you. Your tools may ask you to approve
 > my reading the system's files or running my checks; that is expected, and approving them lets the work go on.
 >
-> **What I need to begin.** *[If the request named the system or its code: "You have pointed me at <the system, by
-> its name> and its code; that is all I need to begin the first look." Otherwise: "Which system should I look at?
-> Point me at its code and any documents about it."]*
+> **What I need to begin.** *[If the request pointed at the system's code (its repositories, or a link to
+> its code): "You have pointed me at <the system, by its name> and its code; that is all I need to begin the first
+> look." If it named only the system, or an idea of it: "You have named <the system, by its name>. I will first look
+> for its code in what is open here; if it is not here, I will propose where to look, and search only where you
+> agree." Otherwise: "Which system should I look at? Tell me what you have, as much or as little as you know:
+> its name or only an idea of it, some of its repositories or all of them, documents about it. For what is not here,
+> I will propose where to look, and search only where you agree."]*
 
 In that last part, name what the person gave in their terms (the system's name, its code, its documents) and what is
-still needed, and never repeat a path, a folder name or a file name from their request.
+still needed, and never repeat a path, a folder name or a file name from their request. Where and how to search is
+taken from the environment the run is in (its own instructions, tools and sources), never from a fixed place, and
+the run searches only where the person agrees.
 
-If the request named the system, go straight on in the same turn. Otherwise end the turn and wait; when they answer,
-start the helper below with their answer as the request, and write nothing before its reply.
+If the request pointed at the system's code, go straight on in the same turn. If it named only the system, run the
+start step (below) first; on finish-first-look or fresh, look, without reading any file in depth, at whether the
+folders open here hold that system's code (their names and top-level files): if they do, go on to the helper as for
+code; if they do not, write to the person, through `say`, as "When the system's code is not here" says, and end your turn, so
+nothing is searched before their yes. Otherwise end the turn and wait, after the start step as it says below; when
+they answer, start the helper with their answer as the request, without running the start step again. Write nothing
+before the helper's reply.
 
-**The first look runs in one helper, so nothing of the setup reaches the person.** Right after the launch, in the
+**When the system's code is not here.** If that look finds no code of the named system, or the helper returns
+blocked for want of code, write to the person, through `say`: that
+the system's code is not in what is open here, where you propose to look for it, taking where and how from the
+environment, and that they can say yes or point at the code instead; then end your turn. Before their yes, query no
+code host or outside source at all: the proposal comes only from what is open in the workspace and from the
+environment's own instructions. On a yes, search there,
+with their own access and read-only, and add each repository found to the workspace as a further folder; then start
+the helper again with their request and their answer, naming each repository added and the search they agreed to, so
+the helper records it as a source. If the search finds nothing, say so in a sentence, through `say`, and ask them to point at the code, and start
+nothing. When they point at code, start the helper with their answer added to the request.
+
+**The start step comes first, in this session, by script.** Right after the launch, in the same turn, your first
+tool call is `python "<skill>/start.py" "<workspace root>"` (in a multi-root workspace, the first folder), with
+`--system "<the system's name, as the person said it>"` added when the request names one, run by this
+session, never inside the helper, and whatever the request gave. With a name, only that system's unfinished run is
+picked up: another system's is listed on OTHER lines, and the run starts fresh for the named system with
+`start_register.py --new --words "<their request, word for word>"`. When the request gave nothing to look at, run the start
+step first and only then end the turn and wait, as above. In this order it brings up the work page, searches for
+earlier work, takes the lock on the register it picks up, decides, and, unless another chat holds the work or the
+person is still to choose, records when the run started ("The run", below).
+If it prints `OPEN FAILED`, open the address in the person's browser yourself, as that line says, before anything
+else; either way, the page's address reaches the person in your next message from a script: `say` and the briefs
+end with it, and after a message sent as it is, `python "<skill>/brief.py" page "<your-folder>"` prints it. Right
+after the start step, before the first-look helper starts, send one line through `say` saying the page for this work
+is open; `say` ends it with the page's address. On DECISION resume, choose
+or held, your message is exactly the text it printed after MESSAGE, then what `python "<skill>/brief.py" page "<your-folder>"` prints (the
+page's address), and nothing else, and
+you end your turn: no helper starts. Send it even when the person's request names other work: the message offers to start new work instead, and their answer decides. On finish-first-look or fresh, start the helper below, which writes into the
+folder the page is already serving; `start_register.py` refuses a new register until the start step has run for this
+run.
+From then until the first look's brief, a second start step on
+the workspace is refused with "the first look is already running", so start one helper only, once. If the helper
+returns blocked and the run starts over, end that mark first with `python "<skill>/start.py" "<workspace root>"
+--first-look-ended`.
+
+**The first look runs in one helper, so nothing of the setup reaches the person.** After the start step, in the
 same turn, start one subagent with the Agent tool (general-purpose), **with `run_in_background: false`**, so you wait
 for it and your turn ends on the brief and the stop (a helper left in the background ends your turn with nothing for
 the person, and nothing may wake you when it finishes). Give it: the person's request word for word;
-the skill folder's path; and this task: *"Follow `<skill>/SKILL.md`, section 'The run', from looking for earlier work
-through the stop for the person's word in phase 0, using `<skill>/FILL-STEPS.md` 'Before you start'. Write nothing for
-the person. If you find a stopped run whose first phase is done, run `brief.py reentry`; if its first phase is not
-done, finish the first look in it and run `brief.py capability`; with no stopped run, do the first look and run
-`brief.py capability`. Your final reply is exactly the text that script printed, and nothing else; if the run is blocked, your
-final reply is one plain sentence saying why and what would unblock it."* When it returns, your message is its reply
-and nothing else: no sentence before it ("Here is the brief", "I'll pass this along"), none after it. Its first line
+the skill folder's path; the start step's DECISION, FOLDER and EARLIER lines as printed; and this task: *"Follow
+`<skill>/SKILL.md`, section 'The run', from the start step's decision through the stop for the person's word in
+phase 0, using `<skill>/FILL-STEPS.md` 'Before you start'. Write nothing for the person. The start step has run;
+never run it again or decide by your own reading. On finish-first-look, finish the first look in the folder it
+names; on fresh, start a new register folder with `start_register.py` and do the first look there. Write each of
+the sources list, the survey and the code reader's facts as soon as it is complete, so the page shows the progress.
+Then run `brief.py capability`, and your final reply is exactly the text that script printed, and nothing
+else. If the run is blocked, your
+final reply is what `brief.py say` printed for one plain sentence saying why and what
+would unblock it, in the person's terms (with no code to read,
+or only code that is not the named system's: that the system's code is needed, and that they can point at it or agree to a search for it)."* When it returns
+blocked for want of code, see "When the system's code is not here" above. Otherwise, when it returns, your message is its reply, sent as it is, and nothing else: no sentence before it ("Here is the brief", "I'll pass this along"), none after it. Its first line
 is already the status line. Then end your turn: the brief ends with what it waits on, the person's picks or one question
 whether to carry on. Write nothing between the launch and that message.
 
 **When the person answers the brief**, record their picks with `go.py` (phase 0, "Their answer is recorded as data"),
-which prints the status line; your reply opens with that line and says, in a sentence or two, what was recorded and
-what happens next.
+unless they agreed to a search: then search first and brief again, as phase 0 says there. `go.py` prints a status line;
+then write a sentence or two saying what was recorded and what happens next, through `say`, and send what
+`say` printed, whose status line takes the place of the one `go.py` printed. When they answer which earlier work to carry on (DECISION choose), run `python "<skill>/start.py"
+"<workspace root>" --resume "<that folder>"`, the FOLDER lines being in the order the list numbers them, and follow
+its DECISION as at the start step: send what it prints after MESSAGE, as it is, or on finish-first-look start the
+helper on that folder. When they answer a re-entry brief or that list by asking for new work instead,
+run `start.py` with `--new`, which decides fresh beside the unfinished work, then start the helper as above with
+their request and these words, and tell it to start the new register with `start_register.py --new --words "<their
+words, word for word>"`, which records them; without them it refuses a new register while a run is not finished. When they answer DECISION held (another chat is working on that work) by saying that chat has stopped, run
+`python "<skill>/start.py" "<workspace root>" --release "<that folder>" --words "<their words, word for word>"` and
+follow its DECISION the same way; never release it without their say-so.
 
 **Talking to the person, for the whole run.**
 - **Every later message opens with the status line**, copied exactly from `python "<skill>/brief.py" status
-  "<your-folder>"` run just before you write it. Never type the line yourself.
+  "<your-folder>"` run just before you write it, or as `say` or a script prints it. Never type the line yourself,
+  and never send two.
 - **Write to the person only at the points this file names:** the launch, the capability brief or the re-entry brief,
   the pick of how far each stage goes (after phase 3), the review of the proposed alerts (phase 5a), a question that
   needs their judgement, a plain message that the run
@@ -108,8 +172,24 @@ what happens next.
 - **Plain words.** They know the business but not this kit and not this system. Name flows, stages, steps and
   services by their names, never by an id; no file names, script names, folder names or the kit's own vocabulary
   (register, unit, phase numbers, judges, merge); define a term the first time you use it. Setup (Python, scripts,
-  folders, the kit's files) is never their concern: if it fails, tell them in one plain sentence that the run is
-  blocked, why, and what would unblock it.
+  folders, the kit's files) is never their concern: if it fails, tell them in one plain sentence, through `say`, that the run is blocked, why, and what would
+  unblock it.
+- **Every message you write yourself goes through `say`.** After the launch, which is sent as this file writes it,
+  write each message to a file outside the system's code and run
+  `python "<skill>/brief.py" say "<your-folder>" "<message file>"` (before a register folder exists, the workspace
+  root): it prints the status line and then your message, and you send what it printed, exactly; a line you
+  add after a script's message goes through `say --after`, which prints no status line. It refuses, listing them, the
+  ids, file names and kit process words it knows; say each in the person's terms and run it again. The names the
+  register gives (a flow, stage, step, service or measure), words quoted back in double quotes as the person said
+  them, and a web address pass: they are how the person knows the system. It does not catch every shorthand, so
+  write in plain words first. Only when Python itself cannot run, send the one plain sentence that says the run is
+  blocked without it. While a listener serves the work, `say` and the briefs end with the page's address; after a
+  script's message sent as it is, `python "<skill>/brief.py" page "<your-folder>"` prints it. Never type the address
+  yourself. That covers: the sentence after a pick is recorded (after a pick is recorded);
+  the line back on their topics (you asked to talk about); a question needing judgement; a blocked message; a refusal
+  reply; the read-it reply; the report's own prose; the carry-on answer after a re-entry brief; and the proposal of
+  where to look for the code. A live answer to the person's own question is the one exception, and so is the talk about their topics once
+the line back has opened it: write those in the same plain words, with no ids, phase numbers or kit terms.
 
 ## The run
 
@@ -121,9 +201,30 @@ the first folder), never in the skill folder;
 it is `<your-folder>` in `FILL-STEPS.md`. Run the kit's scripts from the skill folder, exactly as `FILL-STEPS.md`
 writes them, with `<skill>` replaced by the skill folder's path.
 
-**After the launch, the run's first work is to look for earlier work, silently.** Search the whole workspace, not only `bfo-work/`, for every
-folder holding `steps.csv` or `lifecycle.csv`, leaving out the skill folder. A folder whose `RUN.md` has the section
-*Earlier registers* was made by this version of the kit: if its phases are not all done, this run resumes it (below).
+**After the launch, the run's first work is the start step, by script, silently:** `python "<skill>/start.py"
+"<workspace root>"` (in a multi-root workspace, the first folder), run by the session itself before any helper.
+First it brings up the work page, served from the workspace's `bfo-work/` folder (made if need be), so the person
+has the page while the rest runs; once its decision clears, it records when the run started
+(`bfo-work/run-started.json`). It searches the whole workspace, not only
+`bfo-work/`, for every folder holding `steps.csv` or `lifecycle.csv`, leaving out the kit's own folders, and decides;
+the run follows its decision and never decides by its own reading. A folder whose `RUN.md` has the section *Earlier
+registers* was made by this version of the kit, and if its phases are not all done the run picks it up: DECISION
+resume prints the re-entry brief (below), finish-first-look names the folder whose first look is to be finished,
+choose, when there are several, asks the person which, and held says another chat is working on it. DECISION fresh means there is none, and the first look
+starts in a new register folder. Two scripts hold the same line: `brief.py capability` refuses a run past its first
+look, and `start_register.py` refuses a new register while a run is not finished, unless given the person's words
+to start new (`--new --words`). The EARLIER lines are the earlier registers.
+**One run writes a register at a time.** Picking a run up, or starting a register with `start_register.py`, takes
+the register's lock (`RUN.lock`) for this run, and every kit script that writes the register checks it: while
+another run holds it and has written within the last four hours, the script refuses and writes nothing. A run is named
+by the session id Claude Code sets in every shell it starts, so the helper doing the first look and the session that
+launched it are one run; a second chat is another. Where nothing names the run, the run goes on unguarded and
+`RUN.md` says so; never set a run name yourself. A refusal is never worked around: say in the chat, through `say`, that another
+chat is working on this work, and stop writing. When the refusal says the run is kept out of its own register (the
+lock is held by the run whose start step began this work), it gives the exact release command: ask the person, through `say`, to
+confirm no other chat is working on it, and on their yes run it with their words; never wait out the lock's age. DECISION held is the same refusal at the start: its message asks
+the person whether that chat has stopped. A lock no run has written for four hours is taken over by the next run that
+writes, which says so and records it in `RUN.md`, so a crashed run never leaves its register unusable.
 **Every other one is an earlier register: a tool's output, never a source and never a base.** The run never writes
 into it, never copies the template over it, and never starts from it: it walks fresh from the code and the person's
 sources into a new register folder (`bfo-work/<application>-<yyyy-mm-dd>/` when `bfo-work/<application>/` is taken),
@@ -131,8 +232,9 @@ lists each earlier register in `RUN.md` → *Earlier registers* → *Found*, and
 Phase 7. If the stage to cover is not named, prefer one an earlier register has `stage-<id>/` work for, so the
 re-derivation can be compared.
 
-**Then `RUN.md`, and nothing else starts before it.** Before reading any code or writing any other file, create the
-register folder, copy `register-template/RUN.md` into it, and write its section *What this run will produce* in your
+**Then `RUN.md`, and nothing else starts before it.** Before reading any code or writing any other file, on
+DECISION fresh, create the register folder with `python "<skill>/start_register.py" "<your-folder>"`, which copies
+`RUN.md` and the empty tables from `register-template/` into it, and write its section *What this run will produce* in your
 own words, from this file: the application, the flow and the stages (named by the person, or left to the plan's
 decisions), and, phase by phase,
 what the phase does and the files it must leave. Then set Phase 0 to *doing*.
@@ -146,31 +248,48 @@ as last put to them, so they have them in front of them. Your next message to th
 the text `python "<skill>/brief.py" reentry "<your-folder>"` prints, sent as it is. It says what the work is, what
 the capability is, what has been drafted and found, what was decided and by whom, where it stands, and what is next. Never ask
 "shall we pick up where we left off?". When it waits on nothing, it ends by asking whether to carry on with what
-is next, recommending yes; on their yes, continue from the first phase that is not done.
+is next, recommending yes; on their answer, your reply goes through `say`, and on their yes, continue from the
+first phase that is not done.
 
 **Waiting on the home screen**, at the two stops where the run waits on the person's pick: the flow to map first,
-and how far each stage goes. After the message, run `python "<skill>/wait_on_page.py" "<your-folder>"`. It writes
-`depth.json`, draws the home screen (`index.html`, by `home.py`) and writes `resume.md`. At the first stop it prints
-three things to do: start the listener in the background, start the watch with the Monitor tool (timeout_ms
-1800000), and open the page. Do all three. One listener serves the whole run, so the page stays in its one tab: at a
+and how far each stage goes. Before you send that stop's message, run `python "<skill>/wait_on_page.py"
+"<your-folder>"`. It writes `depth.json`, draws the home screen (`index.html`, by `home.py`) and writes `resume.md`,
+and brings up the page itself: it starts the listener when none is serving (it outlives the call) and opens the
+person's browser on this run's home screen unless the page is already open there. If it prints `OPEN FAILED`, open
+the address in the person's browser yourself, as that line says, before you write to them. Your message is what
+`brief.py` printed, exactly as printed (it ends with the page's address), then one line, through `say --after`,
+saying the run is waiting on them
+there. If it refuses (the
+page could not be started), say in one plain sentence, through `say`, that the page could not be opened, and take their answer in
+the chat. Then start the wait it printed. The wait is the watch, started with the Monitor tool (timeout_ms
+1800000), when the Monitor tool is in your tool list or ToolSearch finds it (`select:Monitor`). Without it, the wait
+is `page_ask.py poll` (the command is printed), run as a background task and run again each time it exits, with
+answers or with TIMEOUT after 30 minutes. When a poll exits, handle every `ANSWERS` line in its output (as below)
+before running it again, because a file announced once is never announced again; each run is a new task, so the task
+id to keep is the poll running now's. Keep a wait running from the first stop to the run's end, as the person can send
+topics at any time. Check for Monitor each time you start a wait, and never run two at once. One listener serves the whole run, so the page stays in its one tab: at a
 later stop it says the listener is already serving, and the open page, which checks for changes by itself, shows the
 new choice within about 15 seconds (unless ticks or words on it are not yet sent: it then says so at its top and
-waits for them to be sent or cleared); then start nothing and open no page. If at a later stop it prints all three
-again, the listener has gone and the earlier tab has stopped updating: start the listener and the watch, open the
-page once, and tell the person to use the new tab and close the old one. End the message with one line saying the run is waiting on the person there. If it refuses,
-say why in the chat and take their answer there. **On an `ANSWERS <path>` event,** read that file, record it with
+waits for them to be sent or cleared); then start the wait only if none is running (a poll has exited once it
+announced the last stop's answers). **On an `ANSWERS <path>` line** (a watch event, or a line in a finished poll's output), read that file, record it with
 `python "<skill>/go.py" "<your-folder>" --answers "<path>"`, and say back in a line or two what was recorded, then
 "you asked to talk about: ..." with the topics `go.py` printed after that phrase, and talk with the person about
-them. A tick at any other milestone (talk:) and the words typed in any drop-down are those topics: recorded in
+them, through `say`. A tick at any other milestone (talk:) and the words typed in any drop-down are those topics: recorded in
 `RUN.md`, never a pick. A post of topics alone records no pick; at the pick, words with no tick record no pick either,
-so ask in the chat how far each stage goes. On a refusal, say why in plain words, and how to answer again; still talk
+so ask in the chat, through `say`, how far each stage goes. On a refusal, say why in plain words, through `say`, and how to answer
+again (a
+refused answer whose words agree to a search is that yes: phase 0, "A yes to a search"); still talk
 about any topics in the file. Every record draws the home screen again, and the open page shows it within about 15 seconds; it never reloads over
 ticks or words not yet sent, and says at its top to send or clear them first. Opening or closing a drop-down
 changes nothing. If the
-person says "read it", read the newest file in `<your-folder>/answers/` that `go.py` has not recorded already, and record it the same way; if there is none,
-ask the question in the chat. An answer typed in the chat is recorded with `--flow` or `--depth`, as below. When the
-watch ends with no answer, start it again with the same command. Keep the listener and the watch running between
-stops; stop both, with the tool that stops a background task, once the run's report is sent at its end.
+person says "read it", read the newest file that `go.py` has not recorded already in `<your-folder>/answers/`, or else in the `answers/` of the folder above it when that is the work folder, and record it the same way; if there is none,
+ask the question in the chat, through `say`. An answer typed in the chat is recorded with `--flow` or `--depth`, as below. When the
+wait ends (the watch expires, or a poll exits), start it again the same way. After a restart, or in a new chat that
+picks the run up at a stop, run `wait_on_page.py` again first: it brings the page back if its listener has gone, and opens it; give the person its address with what `python "<skill>/brief.py" page "<your-folder>"` prints. When you start the wait, keep its task
+id (for a poll, the newest run's). A stop is answered only when `go.py` records a pick; a post of topics alone, words with no tick
+at the pick, and a refusal are not answers, so the run still waits there. Keep the wait running between stops; once
+the run's report is sent at its end, stop the wait by its task id, with the tool that stops a background task, and
+the listener with the stop command it printed.
 
 0. **Frame, gather, survey and plan** (FILL-STEPS "Before you start").
    In: whatever the person points at in their request (repositories, pages, diagrams, process descriptions,
@@ -180,6 +299,9 @@ stops; stop both, with the tool that stops a background task, once the run's rep
    `sources.csv` with one row per source, pass `1`, and in `note` the step that will use it
    (the table in "Before you start"); `about.csv` → `sources_examined` and `what_it_is`; the first rows of
    `how-made.csv`; and `RUN.md` → *Sources*, listing what was gathered and what is still missing.
+   **Write each file as soon as it is complete, never all at the end:** `sources.csv` once the sources are listed,
+   then the survey, then the code reader's facts, each run as soon as what it reads is in place. The work page reads
+   these files, so the person sees the first look move.
    **First, prove the scripts run:** `python "<skill>/run_status.py" "<your-folder>"`. It says NOT DONE at this
    point, and that is expected. If the command itself fails (no python, a version older than 3.9), set Phase 0
    *blocked* with the error and stop there: every later phase ends in a script, so nothing is drafted that cannot be
@@ -189,18 +311,26 @@ stops; stop both, with the tool that stops a background task, once the run's rep
    every citation starts with that folder. **Every repository the run uses is a folder of the open workspace** (a
    multi-root workspace when there are several), never a temporary folder: the environment's code tools reach only the
    open workspace. If you cannot add folders to the workspace yourself, set Phase 0 *blocked*, name the repositories,
-   and tell the person to open them as one multi-root workspace and start again; write the same in `RUN.md`. A source you cannot reach (no access, a dead link) is listed under
+   and tell the person, through `say`, to open them as one multi-root workspace and start again; write the same in `RUN.md`. A source you cannot reach (no access, a dead link) is listed under
    *still missing* in `RUN.md` with what you tried, and the run goes on: a missing source changes what the map is
    worth, never whether the run continues.
-   **Check the repository set is complete**, without being asked: (a) for every reference the code makes that no
-   folder in the workspace answers (a host or service name, a client package, a queue or topic, an image, a
-   configuration key, a URL), search the code host with the person's own access (repository search, code search
-   across the organisation) for the repository behind it; (b) search the other way too, for repositories that call,
-   consume from or deploy this flow's services; (c) repeat on what the new repositories reference, until a pass finds
-   nothing new. Record each repository found in `sources.csv` with the search that found it, and add it to the
-   workspace as a further folder, read-only; what is found and cannot be had goes under *still missing*. `RUN.md`'s
-   Phase 0 line answers "Is this the complete set of repositories?" with that evidence, and Phase 0 is not done while
-   a reference is unresolved and unsearched. If the person's request says to use only the sources they name, do not
+   **Check the repository set is complete.** The first look resolves references only against the workspace and what
+   the person gave; it does not search a code host. (a) For every reference the code makes that no folder in the
+   workspace answers (a host or service name, a client package, a queue or topic, an image, a configuration key, a
+   URL), and (b) the other way, for the repositories that may call, consume from or deploy this flow's services, write
+   an item in `orientation.json`'s `unresolved`: what is open and where the run proposes to look, in plain words like
+   the rest of the brief, taking where and how to search from the environment the run is in (its own instructions,
+   tools and sources). Write each so the brief's plain-words check passes: name the service and the kind of
+   reference ("the address the basket service calls for payments"), never the address, path, file name or id
+   itself. The brief lists them under what is still open. At the brief the person can say yes to any of these
+   searches. Search only on that yes, with the person's own access and read-only: a yes is a change to the brief
+   (below, "If they ask for changes to the brief"), and (c) what the repositories found reference is brought to the
+   person the same way. Record each repository found in `sources.csv` with the search that found it, add it to the
+   workspace as a further folder, read-only, and write in `RUN.md` *Sources* what the person agreed to search; what
+   is found and cannot be had goes under *still missing*, and what the person does not agree to search goes under
+   *still missing* too. `RUN.md`'s Phase 0 line answers "Is this the complete set of
+   repositories?" with that evidence, and Phase 0 is not done while a reference is neither resolved nor put to the
+   person with a proposal. If the person's request says to use only the sources they name, do not
    search: list each unresolved reference under *still missing* instead. The same holds when the run cannot search (no
    access to a code host, or the person has said nothing is to be fetched): list each one, with why it was not searched.
    **This phase lists and places; it does not read everything.** Read each source only far enough to say what it
@@ -240,7 +370,17 @@ stops; stop both, with the tool that stops a background task, once the run's rep
    lines of `RUN.md`; it refuses a flow or service the brief did not name. Map their words to the brief's names
    yourself where the match is plain (a spelling, a shortened name); ask only when their answer matches nothing in the
    brief. If they ask for changes to the brief instead, change `orientation.json`, run `brief.py capability` again and
-   wait again. A run's done is not the capability's done: the done check owes what their pick of how far each stage
+   wait again. A yes to a search the brief proposed is such a change, and records no go: search there, add each
+   repository found as above, run `survey.py` and the code reader again, update `orientation.json` (its services,
+   flows and what is still open), run `brief.py capability` again and wait again. If the same answer also picked a
+   flow, make that flow the recommendation, so the next stop asks them only to confirm it. From the home screen the
+   yes comes in the words: with a flow ticked, `go.py --answers` records the go at once, so search and survey as
+   above, update `orientation.json` with each service found and whether you recommend including it, then record the
+   go again with `python "<skill>/go.py" "<your-folder>" --flow "<the flow they ticked>" --words "<their words>"`,
+   which replaces it and takes its services from the new survey and those recommendations, and tell them in a short message, through `say`, which services were added, your recommendation for each, and any flow or open question the search
+   turned up, so they can change it; with no flow ticked, `go.py` refuses the answer, and its words, where they agree to a
+   search, are that yes all the same: search, survey and brief again. A topic sent from the home screen that agrees
+   to a search is that yes too. A run's done is not the capability's done: the done check owes what their pick of how far each stage
    goes asks for, and reports every other stage as not yet covered; until that pick it says NOT DONE. With no pick of
    how far each stage goes (an earlier run, whose go named stages), record the ids of exactly the stages they named
    with `python "<skill>/go.py" "<your-folder>" --stage-ids <id>,<id>` once Phase 2 cuts them, and the done check owes
@@ -273,7 +413,7 @@ stops; stop both, with the tool that stops a background task, once the run's rep
    "<id>=measure|alerting|runbooks,..." --words "<their answer, word for word>"` (`--test` for a test standing in for
    them); a stage not named stays mapped only, and an empty answer makes the run a map only. They may later take a
    stage further with the same command; taking a stage less far than already picked is not supported yet, and
-   `go.py` refuses it, so tell them so and keep their earlier pick. It sets the phases their
+   `go.py` refuses it, so tell them so, through `say`, and keep their earlier pick. It sets the phases their
    pick leaves out to *not picked*, which counts as passed. Nothing is measured before their pick: `flow_outputs.py`
    refuses. A map-only run is done once the map is drawn: the done check owes each stage's page and the map, and no
    measure. This pick decides which stages get alerts and runbooks; in an earlier run whose go named stages, those
@@ -352,7 +492,8 @@ stops; stop both, with the tool that stops a background task, once the run's rep
    Out: `RUN.md` with every phase done, blocked, or *not picked* by the person, and the report to the person: the register folder, the flow and
    stage, the check results, the stages that still have no Step 11, each earlier register and what its reconciliation found (added,
    carried forward, not supported, not assessed, disagreements, each named), anything you could not do, and the output of
-   `run_status.py` pasted as it is. End the report with **What would make this map fuller**: the deployables the map
+   `run_status.py` pasted as it is; your own prose in the report goes through `say`, and what the report must
+name as it is (the register folder, each earlier register's folder, the pasted output, the guides it points at) is sent beside it, unchecked. End the report with **What would make this map fuller**: the deployables the map
    stops at (every part under *still missing*, and every external dependency with no source of its own), then the
    `proposed:` rows counted by the kind of source that would settle them, read off the table in FILL-STEPS "Before
    you start".
@@ -365,8 +506,11 @@ stops; stop both, with the tool that stops a background task, once the run's rep
 - Step 11 covers the stages the person picked; a flow is covered when every stage has had one, and the capability
   when every flow is.
 - **Follow the code past the workspace.** When a move calls a deployable whose code is not here, identify it from
-  what the call shows (an address, a client package, a queue or topic name, an image) and get it with your own
-  tools if you can reach it: it is a pass-1 source like the others. Fetch it only with access the person already has, and read-only: never request access, enter credentials, or change anything at the source. Record every fetched source in `RUN.md` *Sources* with what referenced it and why. If the person's request says to use only the sources they name, do not fetch: list it under *still missing* instead. With its code it is a component, whoever owns
+  what the call shows (an address, a client package, a queue or topic name, an image). If the person has already
+  agreed to a search that covers it, the place and the kind of code they agreed to (`RUN.md` *Sources* records what
+  they agreed to search), get it with your own tools if you can reach it: it is a pass-1 source like the
+  others. Otherwise ask them, through `say`, as a question that needs their judgement, with where you propose to look, and fetch it
+  only on their yes. Fetch it only with access the person already has, and read-only: never request access, enter credentials, or change anything at the source. Record every fetched source in `RUN.md` *Sources* with what referenced it and why. If the person's request says to use only the sources they name, do not fetch: list it under *still missing* instead. With its code it is a component, whoever owns
   it, and you read the operations this flow calls and what those call (FILL-STEPS Step 5); how far into an outside
   service to go is Step 6's. If you cannot reach it, it stays a part cited by how you identified it, an external
   dependency, and goes under *still missing* in `RUN.md`.
@@ -386,7 +530,7 @@ stops; stop both, with the tool that stops a background task, once the run's rep
   stages by their names ("the Ordering API", "Accept the order"), never by id, in every message and report.
 - Never stop to ask the person a fact you can infer: where the sources do not say something, infer it and label it
   `proposed:` with the reason. What is the person's (intent, scope, judgement and taste: which flow, whether the
-  sources are enough, whether to keep going) is brought to them with your proposal when it arises. The plan is the
+  sources are enough, whether to keep going) is brought to them with your proposal, through `say`, when it arises. The plan is the
   first such point.
 - Never edit a generated file: fix the register and generate again.
 

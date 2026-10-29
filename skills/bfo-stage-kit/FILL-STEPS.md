@@ -30,17 +30,21 @@ is never inferred: it is written only where a source states it (Step 3a).
 
 1. Start the register with `python "<skill>/start_register.py" "<your-folder>"`, in a new folder named for the
    capability. It copies the CSV files in `register-template/` (not `REGISTER.md`), and refuses a folder that
-   already holds a CSV file, so earlier work is never copied over. Where the workspace holds a register with its own
-   `RUN.md` from this kit (one with the section *Earlier registers*), read the effect lines in the kit's
-   `CHANGELOG.md` and recommend to the person the least work that brings it up to this kit: nothing, fills from
-   each row's citation, or the re-walks those lines name. The person decides. As you
+   already holds a CSV file, so earlier work is never copied over. While the workspace holds a run of this kit that
+   is not finished, it refuses a new folder unless given the person's words to start new (`--new --words`): such a
+   run is picked up, and `start.py` decides which. When a run of this kit made with an earlier release is picked
+   up, its upgrade is a point for the person's judgement after the re-entry brief, never the helper's: read the
+   effect lines in the kit's `CHANGELOG.md` and recommend the least work that brings it up to this kit (nothing,
+   fills from each row's citation, or the re-walks those lines name). The person decides. As you
    do each step below, add a row to `how-made.csv`: what went in, which files came out, and who did it (a tool,
    a model drafting, a person confirming, or by hand). `RUN.md` from the same folder is the run's record of its
    phases: when the kit is run as a skill, the skill's `SKILL.md` says how it is written and kept.
 2. **Gather what you will read**, and list it. Take every source the person pointed at, and what is in the
    workspace, and get each with your own tools. List each in `sources.csv` with pass `1`; `kind` is `code`,
    `document` (a page, a diagram, a process description, a runbook, a catalogue entry), `person` (notes, tickets,
-   recorded answers) or `tool output`. In `note`, write which step below will use it. Keep the summary in
+   recorded answers) or `tool output`. In `note`, write which step below will use it. Write `sources.csv` as soon
+   as the list is complete, and run the survey and the code reader (item 6) as soon as what each reads is in
+   place, never all at the end: the run's page reads these files to show how far the first look has got. Keep the summary in
    `about.csv` → `sources_examined`, so a reader knows what "not assessed" covers. If the code has no
    version history, list it as the folder as found, with the date you read it. For code, write the repository's
    folder and the commit read in `repository` and `commit`, one row per repository. With more than one, open each
@@ -99,24 +103,36 @@ is never inferred: it is written only where a source states it (Step 3a).
    repository defines, and write `proposed:` and why.
 5. **A call that leaves the workspace.** When the walk (Step 2) meets a call to a deployable whose code is not in
    the workspace, name it from what the call shows: an address, a client package, a queue or topic name, an image.
-   If its repository or documents can be reached, get them: a source found during the first run is pass `1`, not a
+   If the person has already agreed to a search that covers it, the place and the kind of code they agreed to
+   (`RUN.md` *Sources* records what they agreed to search), and its repository or documents can be reached, get
+   them; otherwise ask the person, as a question that needs their judgement, with where you propose to look, and get
+   them only on their yes. A source found during the first run is pass `1`, not a
    new pass, and it goes into a folder of the workspace (item 2). Fetch it only with access the person already has, and read-only: never request access, enter credentials, or change anything at the source. Record every fetched source in `RUN.md` *Sources* with what referenced it and why. If the person's request says to use only the sources they name, do not fetch: list it under *still missing* instead. With its code, it is a component (Step 5), whatever its application id or owning team, and you read the
    operations this flow calls and what those call. If its code cannot be had, it is still a part (Step 5), cited by
    the line that identified it, with `repository` blank: an external dependency, and its measures are gapped with
    the reason. List it under *still missing* in `RUN.md`.
-   **Check the repository set is complete**, without being asked: (a) for every reference the code makes that no
-   folder in the workspace answers (a host or service name, a client package, a queue or topic, an image, a
-   configuration key, a URL), search the code host with the person's own access (repository search, code search
-   across the organisation) for the repository behind it; (b) search the other way too, for repositories that call,
-   consume from or deploy this flow's services; (c) repeat on what the new repositories reference, until a pass finds
-   nothing new. Record each repository found in `sources.csv` with the search that found it, and add it to the
-   workspace as a further folder, read-only; what is found and cannot be had goes under *still missing*. `RUN.md`'s
-   Phase 0 line answers "Is this the complete set of repositories?" with that evidence, and Phase 0 is not done while
-   a reference is unresolved and unsearched. If the person's request says to use only the sources they name, do not
+   **Check the repository set is complete.** The first look resolves references only against the workspace and what
+   the person gave; it does not search a code host. (a) For every reference the code makes that no folder in the
+   workspace answers (a host or service name, a client package, a queue or topic, an image, a configuration key, a
+   URL), and (b) the other way, for the repositories that may call, consume from or deploy this flow's services, write
+   an item in `orientation.json`'s `unresolved`: what is open and where the run proposes to look, in plain words like
+   the rest of the brief, taking where and how to search from the environment the run is in (its own instructions,
+   tools and sources). Write each so the brief's plain-words check passes: name the service and the kind of
+   reference ("the address the basket service calls for payments"), never the address, path, file name or id
+   itself. The brief lists them under what is still open. At the brief the person can say yes to any of these
+   searches. Search only on that yes, with the person's own access and read-only: a yes is a change to the brief
+   (below, "If they ask for changes to the brief"), and (c) what the repositories found reference is brought to the
+   person the same way. Record each repository found in `sources.csv` with the search that found it, add it to the
+   workspace as a further folder, read-only, and write in `RUN.md` *Sources* what the person agreed to search; what
+   is found and cannot be had goes under *still missing*, and what the person does not agree to search goes under
+   *still missing* too. `RUN.md`'s Phase 0 line answers "Is this the complete set of
+   repositories?" with that evidence, and Phase 0 is not done while a reference is neither resolved nor put to the
+   person with a proposal. If the person's request says to use only the sources they name, do not
    search: list each unresolved reference under *still missing* instead. The same holds when the run cannot search (no
    access to a code host, or the person has said nothing is to be fetched): list each one, with why it was not searched.
 
-6. **Survey before reading.** Once the repository set is complete, run
+6. **Survey before reading.** Once the repository set holds what the workspace and the person gave (and again, with
+   the code reader, whenever a search the person agreed to adds repositories), run
    `python "<skill>/survey.py" "<your-folder>"`. It reads the code rows of `sources.csv` (or the repository folders
    given after the register folder) and writes `survey.csv`: each service with its place, its size in files and
    lines, its entry points, and the other services it names as an address, counted by the script and never
@@ -152,7 +168,7 @@ is never inferred: it is written only where a source states it (Step 3a).
                     "recommend": "in or out", "why": ""}],
       "flows": [{"name": "", "what": "one sentence", "found_in": "where in the code you saw it (path:line; kept
                  for checking, never shown)", "stages": [{"name": "", "what": "one sentence"}]}],
-      "searched": ["what you looked at"], "unresolved": ["what is still open"],
+      "searched": ["what you looked at"], "unresolved": ["what is still open, and where I propose to look"],
       "earlier": "an earlier map found, and what it changes for this run (leave out when none)",
       "recommendation": {"flow": "a flow named above", "why": "",
                          "remains": "what remains of the capability after this run"}}
@@ -168,7 +184,10 @@ is never inferred: it is written only where a source states it (Step 3a).
      carries an id, a file name or kit vocabulary. When it passes it writes `PLAN.md` and prints the brief.
    - **Send the printed brief as your message, exactly as printed, and stop.** `brief.py` marks the stop in `RUN.md` itself.
      Read nothing further until the person answers. If they ask for changes, change `orientation.json`, render again
-     and wait again.
+     and wait again. A yes to a search the brief proposed is such a change and records no go: search, add each
+     repository found (item 5), run the survey and the code reader again (item 6), update `orientation.json`, render
+     again and wait again, with any flow they picked in the same answer as the recommendation (SKILL.md phase 0
+     says how a yes sent from the home screen is taken).
    - **Record their answer by script:** `python "<skill>/go.py" "<your-folder>" --flow "<flow>" --words "<their
      answer, word for word>"` (add `--test` when a test stands in for the person). The go asks only which flow comes
      first; where they accepted the recommendation, it is their pick. The services read are those the brief marked

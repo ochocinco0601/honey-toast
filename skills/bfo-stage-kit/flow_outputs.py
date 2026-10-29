@@ -30,6 +30,7 @@ import capability_views as cv  # noqa: E402
 import go  # noqa: E402
 import page_style as ps  # noqa: E402
 import view_questions as vq  # noqa: E402
+import run_lock  # noqa: E402
 
 TABLES = ["about", "flows", "capabilities", "stages", "steps", "subjects", "participation", "measures", "lifecycle",
           "failure-modes", "remedies", "step-impact", "case-attributes", "agent-system", "measure-gaps", "sources",
@@ -3375,6 +3376,8 @@ def main(argv=None):
     stage_of_work.add_argument("--runbooks", action="store_true")
     stage_of_work.add_argument("--measures", action="store_true")
     a = ap.parse_args(argv)
+    if a.out:
+        run_lock.guard(a.register)
     part = "alerts" if a.alerts else "runbooks" if a.runbooks else "measures" if a.measures else "all"
     R = load(a.register)
     flows = [f["flow_id"] for f in R["flows"]]

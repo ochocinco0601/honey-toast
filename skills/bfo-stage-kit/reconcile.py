@@ -743,6 +743,9 @@ def main(argv):
         for reg in argv[1:]:
             if not pathlib.Path(reg).is_dir():
                 sys.exit(f"not a folder: {reg}")
+            sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+            import run_lock  # the register is written by one run at a time
+            run_lock.guard(reg)
             notes = []
             print(f"{reg}: " + (", ".join(migrate(reg, notes)) or "already current"))
             if notes:
@@ -768,6 +771,9 @@ def main(argv):
     if out.resolve().is_relative_to(old):
         sys.exit("refused: the report would be written into the earlier register")
     text = render(old, new, report)
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+    import run_lock  # the register is written by one run at a time
+    run_lock.guard(out.parent)
     out.write_text(text, encoding="utf-8")
     print(text.splitlines()[2])
     print(f"report: {out}")

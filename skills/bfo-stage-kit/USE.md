@@ -27,9 +27,14 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
 - Python 3.9 or later on the path, and Semgrep for the code reader (`pip install semgrep`;
   `fact-extractor/semgrep_bin.py` says how it is found). The reader runs it with the kit's own rules, metrics and version check off, so it sends
   nothing anywhere; Semgrep keeps its own settings and log under `~/.semgrep/`. Nothing else is installed.
+- A browser, for the run's page. To show it, the run starts a small web server on this machine only
+  (`127.0.0.1`), with no window. It keeps running between the points where the run waits on you, and stops at the
+  run's end, with the stop command the run prints, or by itself after eight hours with no request. The run opens
+  your browser on the page; set `BFO_NO_BROWSER=1` to turn that off and open the address the run gives you
+  yourself. Nothing is sent off the machine.
 - The code, or where it is: name the repositories, pages, diagrams and process descriptions in your request, and
   the run gets them. Code already open in the workspace is read too; where it spans several repositories, add each
-  as a folder of one workspace. When the code calls a service whose code is not there, the run gets that code too, with access you already have and read-only: it never requests access, enters credentials, or changes anything at the source, and `RUN.md` lists every source it fetched with what referenced it and why. It also searches your code host, with your access and read-only, for the rest of the repository set: the repositories behind references nothing in the workspace answers, and those that call this flow's services. To keep it to the sources you name, say *use only the sources I name*: it then neither fetches nor searches, and lists the rest under *still missing*.
+  as a folder of one workspace. You can start with as much or as little as you have: a name, some repositories, all of them, documents. For what is not there (the repositories behind references nothing in the workspace answers, those that call this flow's services, a service the code calls whose code is not there), the run says what it cannot find and proposes where to look, and searches only where you agree. It searches and fetches with access you already have and read-only: it never requests access, enters credentials, or changes anything at the source, and `RUN.md` lists every source it fetched with what referenced it and why. What you do not agree to search is listed under *still missing*. To keep it to the sources you name, say *use only the sources I name*: it then neither fetches nor searches, and lists the rest under *still missing*.
 - Every repository open as a folder of one workspace (a multi-root workspace when there are several), never in a
   temporary folder: the run's code tools reach only the open workspace, and a run that can't add them is blocked: it names the
   repositories and tells you to open them as one multi-root workspace and start again.

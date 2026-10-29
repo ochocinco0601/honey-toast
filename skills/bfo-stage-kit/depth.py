@@ -32,6 +32,7 @@ import capability_views as cv  # noqa: E402
 import flow_outputs as fo  # noqa: E402
 import go  # noqa: E402
 import register_layout as layout  # noqa: E402
+import run_lock  # noqa: E402
 
 VERSION = 1
 FILE = "depth.json"
@@ -391,6 +392,7 @@ def main(argv):
         print(__doc__.split("\n\n")[1], file=sys.stderr)
         return 2
     reg = pathlib.Path(args[0])
+    run_lock.guard(reg)
     if recommend is not None:
         got = record_recommendation(reg, recommend)
         if isinstance(got, str):

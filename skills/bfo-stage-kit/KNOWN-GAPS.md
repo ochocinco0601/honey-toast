@@ -1,5 +1,41 @@
 # Known gaps
 
+## The session's own words
+
+- **A message that asks you something can open with a status line saying nothing waits on you.** Read the
+  question itself: when a message asks you something, the run is waiting on your answer.
+
+- **A system whose name looks like the kit's shorthand can be refused before the run has recorded it.** Until the
+  first look writes the system's names down, the check on the session's own words knows only the kit's words: a
+  system called "Unit Manager" or "Receipts" is named in quotes, and one whose name looks like an id ("S3 uploader")
+  may have to be described rather than named in that first message.
+- **A unit of stock, a receipt, a cash register or a merge of baskets in the session's own sentences** is refused
+  unless the register itself uses those words, so the session says them another way.
+
+## The home screen
+
+- **A topic tick that could not be put back is counted, not named.** Words are quoted on the line at the top; a
+  tick is only counted ("1 tick"), and the line says what it was about is gone even where that place now asks for
+  your choice.
+- **Clear in one drop-down can leave a later milestone without its earlier ones.** For example: tick Alerts, then
+  Runbooks in its own drop-down, then Clear in the Alerts drop-down. Runbooks stays ticked alone. A Done is then
+  refused with the reason and nothing is recorded; tick the earlier milestones and send again.
+- **Two answers on their way at once, the first refused:** a change made after the second press can be taken as
+  sent. It needs a refused answer, which the page does not cause on its own.
+- **A browser set to send no page address with its requests files every answer under the work folder, not the
+  run's own folder,** so the session is not told of it; the page still says it was saved. Say "read it" in the chat
+  and the session reads it from there.
+- **A page tab you close is not opened again at a later stop.** Once the browser has had the page, the run takes it
+  as open. Open the address the session gives you in the chat to bring it back.
+- **At the first stop a second tab of the same page can open.** Both show the same page; close either.
+- **A sources list saved in a text format other than UTF-8 can stop the home from being drawn again;** the Sources
+  page itself says it could not be read.
+- **Stopping the page's listener at a run's end stops the page of any other run in the same work folder.** Run
+  `wait_on_page.py` for that run again to bring its page back.
+- **The kit's instructions do not yet describe Clear, the line about ticks and words put back, or the quoted
+  words,** so a session asked why words did not come back answers from the page's own line, not from the
+  instructions.
+
 ## Picking how far each stage goes
 
 - **Taking stages further on a finished register is not supported yet.** Nothing routes a run started on a register
@@ -73,6 +109,27 @@ part it is several times longer.
 Failure-mode ids (`FM..`) are the register's; each runbook test names the mode it comes from.
 
 ## Open in the kit
+
+- **The register's lock tells sessions apart, not the helpers inside one session.** A run is named by the session
+  id Claude Code gives each session and the shells of its helpers. Two helpers one session starts at once carry the
+  same id, so the lock does not stop them writing one register together. A second start step while a first look is
+  under way is refused ("the first look is already running", until its brief, or for 45 minutes at most), but two
+  helpers started from one start step are not, nor two helpers on one register after the brief.
+  Two scripts write into the register without checking the lock: the code reader (`fact-extractor/run.py`), which
+  ships unchanged from where it is maintained, and the page's listener, which writes only the answers the person
+  sends.
+- **The lock guards the kit's scripts, not the tables the assistant writes by hand.** A script that writes the
+  register refuses another chat's fresh lock, but the assistant's own edits to the tables and to `RUN.md` check
+  nothing. A chat that goes on after a refusal, or after being told another chat holds the work, can still
+  overwrite by hand.
+- **A register made before the kit's run record had its *Earlier registers* section is not picked up.** The start
+  step tells this kit's runs by that section; an older register without it is treated as an earlier register, and
+  the run starts fresh beside it and reconciles it at the end.
+- **Where nothing names the run, the lock does not guard the register.** With neither Claude Code's session id nor
+  `BFO_RUN` set, the run still goes on: the start step decides whether to pick up earlier work or start fresh, and
+  every script writes. No lock is taken or checked, and `RUN.md` records once that it was not, and why. A script is
+  refused only when a lock no older than four hours names a run and the script runs as a different, named run. A
+  register this kit made that has no lock is never refused for lacking one.
 
 - **Building the map copies each stage's runbook and alert pages already in the register folder.** After you change a
   register, or take up a new kit version, regenerate each stage's outputs before you build the map, or the map shows

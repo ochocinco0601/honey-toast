@@ -1382,6 +1382,9 @@ def main(argv=None):
         for x in err:
             print("error:", x)
         return 1
+    import run_lock  # the register is written by one run at a time
+    run_lock.guard(reg)
+    run_lock.guard(out.parent)
     M = number_steps(prune(cv.model(R)))
     out.parent.mkdir(parents=True, exist_ok=True)
     with ps.home_beside(out.parent):

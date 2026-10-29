@@ -18,16 +18,20 @@ taken from a page, so it has no form. Every other tick is a topic to talk about 
 Done sends them all, and the page reloads once the run has redrawn it.
 
 Exit 0 written, 2 refused. Python standard library only."""
+import hashlib
 import html
 import json
+import os
 import pathlib
 import re
 import sys
+import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import capability_views as cv  # noqa: E402
 import depth  # noqa: E402
+import run_lock  # noqa: E402
 
 FILE = "index.html"
 TEMPLATE = HERE / "home.template.html"
@@ -506,22 +510,31 @@ def recorded(d, keys):
     return got
 
 
+CLEAR = ('<button type="button" class="ab2" data-clear="" title="Undo what you changed in this drop-down">'
+         'Clear</button>')  # puts its own drop-down back as it loaded and sends nothing
+CLEAR_PAGE = ('<button type="button" class="ab2" data-clear="page" title="Undo everything you changed on this page">'
+              'Clear</button>')  # the top line's: the whole page
+
+
 def form_html(d):
     """The form beside its ticks: the choice it answers, the person's words, Done, and what happened. The ticks are
     the named checkboxes in the drop-downs; a tick the choice does not take has no name."""
     c = d.get("open_choice")
     if not form_of(d):
         return ""
-    return (f'<div id="answers" hidden><input type="hidden" name="choice_id" value="{E(c["choice_id"])}">'
-            '<div class="tdone" id="ask"><span class="mute"></span>'
-            '<input type="text" class="wi" name="words" aria-label="Your words" placeholder="Your words">'
-            '<button type="button" class="ab2 dn" data-done>Done</button><span class="mute" data-status></span></div></div>')
+    return (f'<div id="answers" hidden><input type="hidden" name="choice_id" value="{E(c["choice_id"])}" '
+            'autocomplete="off"><div class="tdone" id="ask"><span class="mute"></span>'
+            '<input type="text" class="wi" name="words" aria-label="Your words" placeholder="Your words" '
+            'autocomplete="off">'
+            '<button type="button" class="ab2 dn" data-done>Done</button>' + CLEAR +
+            '<span class="mute" data-status></span></div></div>')
 
 
 # ---------------------------------------------------------------- the page
 
 def tick(attrs, label):
-    return f'<input type="checkbox" class="tk" aria-label="{E(label)}"{attrs}>'
+    # autocomplete off on every input: after a reload a browser would otherwise put the last load's ticks back
+    return f'<input type="checkbox" class="tk" aria-label="{E(label)}"{attrs} autocomplete="off">'
 
 
 TALK_KEY, TALK_WORDS = "talk:", "talk-words:"  # topics to talk about with Claude, never recorded as a pick
@@ -596,12 +609,15 @@ def dropdown(fl, p, d):
         tree.append(f'<div class="mute" style="padding: 6px 4px 0">{E(tree_note)}</div>')
     if flow_choice or stage_choice:
         said = AT_THE_GO if flow_choice else AT_THE_PICK
-        tree.append(f'<div class="tslot" data-ask data-note="{E(said)}"></div>')
+        tree.append(f'<div class="tslot" data-ask data-flow="{E(f.get("name") or "")}" data-milestone="{E(name)}" '
+                    f'data-note="{E(said)}"></div>')
     else:
         said = TALK if ticked else WORDS_ONLY
         tree.append(f'<div class="tslot"><div class="tdone"><span class="mute">{E(said)}</span><input type="text" '
-                    f'class="wi" name="{E(TALK_WORDS + name)}" aria-label="Your words" placeholder="Your words">'
-                    '<button type="button" class="ab2 dn" data-done>Done</button>'
+                    f'class="wi" name="{E(TALK_WORDS + name)}" data-flow="{E(f.get("name") or "")}" aria-label="Your words" '
+                    'placeholder="Your words" '
+                    'autocomplete="off">'
+                    '<button type="button" class="ab2 dn" data-done>Done</button>' + CLEAR +
                     '<span class="mute" data-status></span></div></div>')
     tree.append("</div>")
     pane = "".join(f'<div class="pane" data-pane="{k}"{"" if k == first else " hidden"}>{v}</div>' for k, v in panes.items())
@@ -635,8 +651,9 @@ def render(reg, d):
     rows = "".join(row(fl) + "".join(dropdown(fl, p, d) for p in range(len(COLS))) for fl in flows)
     the_map = (f'<a class="go" href="{MAP_FILE}">The map</a>' if (reg / MAP_FILE).is_file()
                else '<span class="off">The map</span>')
+    sources = '<a class="go" href="sources.html">Sources</a>' if (reg / "sources.csv").is_file() else ""
     nav = (f'<div class="nav"><span class="sys">{E(d["_title"])}</span><a class="go on" href="{FILE}" '
-           f'aria-current="page">Home</a>{the_map}<span class="sp2"></span></div>')
+           f'aria-current="page">Home</a>{the_map}{sources}<span class="sp2"></span></div>')
     blind = ("Found is only what has been found so far; a traced flow shows only what its trace found."
              if any(fl.mapped for fl in flows) else "Found is only what has been found so far.")
     source = f"Drawn from depth.json in the register {d.get('register') or reg.name}. Where the run stands: {d.get('stop')}."
@@ -645,15 +662,31 @@ def render(reg, d):
     page = TEMPLATE.read_text(encoding="utf-8")
     for k, v in (("<!--GENERATED-->", generated), ("<!--TITLE-->", E("Home · " + d["_title"])), ("<!--NAV-->", nav),
                  ("<!--HEAD-->", head), ("<!--ROWS-->", rows), ("<!--BLIND-->", E(blind)),
-                 ("<!--SOURCE-->", E(source)), ("<!--FORM-->", form_html(d))):
+                 ("<!--SOURCE-->", E(source)), ("<!--FORM-->", form_html(d)), ("<!--CLEAR-->", CLEAR_PAGE)):
         page = page.replace(k, v, 1)
-    return page
+    # the watch compares this stamp, not the first page it fetches, so a redraw before its first check is still seen
+    stamp = hashlib.sha256(page.encode("utf-8")).hexdigest()[:16]
+    return page.replace('<meta charset="utf-8">', f'<meta charset="utf-8">\n<meta name="drawn" content="{stamp}">', 1)
 
 
 def write(reg):
     reg = pathlib.Path(reg)
     d = json.loads((reg / depth.FILE).read_text(encoding="utf-8"))
-    (reg / FILE).write_text(render(reg, d), encoding="utf-8", newline="\n")
+    # written beside it and moved into place in one step, so the open page never fetches half of it
+    part = reg / (FILE + ".part")
+    part.write_text(render(reg, d), encoding="utf-8", newline="\n")
+    try:
+        for attempt in range(10):
+            try:
+                os.replace(part, reg / FILE)
+                break
+            except PermissionError:  # on Windows, while the listener is reading the page; it lets go within moments
+                if attempt == 9:
+                    raise
+                time.sleep(0.05)
+    except OSError:
+        part.unlink(missing_ok=True)
+        raise
     return reg / FILE
 
 
@@ -664,6 +697,7 @@ def main(argv):
         print(__doc__.split("\n\n")[1], file=sys.stderr)
         return 2
     reg = pathlib.Path(argv[0])
+    run_lock.guard(reg)
     if not (reg / depth.FILE).is_file():
         print(f"REFUSED: {reg / depth.FILE} is missing: write it first with depth.py. Nothing written.", file=sys.stderr)
         return 2
