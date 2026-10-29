@@ -46,6 +46,9 @@ KINDS = {
     "env_read", "config_ref",
     "background_trigger", "poll_interval",
     "client_binding",
+    # A log, metric or span emitted in the source. The measures step reads it for the
+    # `exists` rung of the coverage ladder; `emission_form` and `registry_bound` qualify it.
+    "emission_site",
 }
 
 REQUIRED_FACT_FIELDS = ("kind", "file", "line", "evidence", "service")
@@ -90,12 +93,22 @@ def c2_fact_shape(facts):
 
 
 def c3_kind_vocabulary(facts):
+    """A kind outside the vocabulary is reported, never a failure (INTEGRATION.md).
+
+    A reader swapped in for this one may know constructs this method has no consumer for.
+    Those facts are not wrong, so they do not fail the fact base; they are named in `reported`
+    so the gap is visible rather than silently carried through the passes that follow.
+    """
     unknown = sorted({f.get("kind") for f in facts} - KINDS - {None})
     if unknown:
-        return fail("C3 kind vocabulary",
-                    "kinds outside the vocabulary — nothing downstream consumes these",
-                    unknown)
-    return ok("C3 kind vocabulary", "every kind is one the passes consume")
+        result = ok("C3 kind vocabulary",
+                    f"{len(unknown)} kind(s) outside the vocabulary, reported and not "
+                    "failed — nothing downstream consumes these: " + ", ".join(unknown))
+        result["reported"] = unknown
+        return result
+    result = ok("C3 kind vocabulary", "every kind is one the passes consume")
+    result["reported"] = []
+    return result
 
 
 def c4_citation_integrity(root, facts, sample):

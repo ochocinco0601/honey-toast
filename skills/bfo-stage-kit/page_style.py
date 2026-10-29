@@ -14,7 +14,10 @@ with cards at 15 px.
 
 Import it and put `CSS` first in a page's <style>; capability_views.CSS already starts with it, so a page that
 includes that needs nothing more."""
+import contextlib as _contextlib
 import html as _html
+import pathlib as _pathlib
+import posixpath as _posixpath
 import re as _re
 
 TOKENS = """
@@ -52,6 +55,7 @@ h2.sec{display:flex;align-items:baseline;gap:16px;font:600 18px/1.3 var(--m-sans
 details.fold>summary{list-style:none;cursor:pointer}details.fold>summary::-webkit-details-marker{display:none}
 details.fold>summary h2.sec::before{content:"\\25B8\\00a0"}details.fold[open]>summary h2.sec::before{content:"\\25BE\\00a0"}
 main.frame .card,main.frame dl.card{font-size:15px}main.frame .card dl{font-size:15px}
+.homelink{font-size:13px;margin:0 0 4px}
 .prose p{margin:0 0 4px}.prose p:last-child{margin-bottom:0}
 .prose ul{margin:2px 0 6px;padding-left:20px}.prose li{margin:0 0 3px}
 """
@@ -75,14 +79,40 @@ SECTIONS = {
 
 
 MAP = "Map"  # the trail's first crumb, which opens the map
+HOME = "Home"  # the crumb before it, while the pages are drawn beside the home screen (home_beside)
+HOME_FILE = "index.html"  # the home screen, the register folder's own page
+_home = []  # one entry per home_beside block: whether the home screen sits in that folder
+
+
+@_contextlib.contextmanager
+def home_beside(folder):
+    """While drawing pages for `folder`, the folder holding the map: a trail that starts at the map starts at Home
+    first when the home screen (HOME_FILE) sits in that folder."""
+    _home.append((_pathlib.Path(folder) / HOME_FILE).is_file())
+    try:
+        yield _home[-1]
+    finally:
+        _home.pop()
+
+
+def home_on():
+    return bool(_home and _home[-1])
+
+
+def home_href(map_href):
+    """The home screen beside the map, from wherever `map_href` reaches the map."""
+    return _posixpath.join(_posixpath.dirname(map_href), HOME_FILE)
 
 
 def frame_head(trail, title, here=None):
     """The trail and the page's title, which names its kind, as HTML. The trail is where the page sits: `trail`
     [(words, href)] is the map (MAP), then each level above the page, each named by its own page's title and opening
-    that page; the page itself ends it as plain text, named `here`, else by its title."""
+    that page; the page itself ends it as plain text, named `here`, else by its title. A step whose href is None is a
+    page not written yet, shown as plain text. Home comes first while home_beside says it is there."""
     E = _html.escape
-    links = [f'<a href="{E(h)}">{E(w)}</a>' for w, h in trail]
+    if home_on() and trail and trail[0][0] == MAP and trail[0][1]:
+        trail = [(HOME, home_href(trail[0][1]))] + list(trail)
+    links = [f'<a href="{E(h)}">{E(w)}</a>' if h else f"<span>{E(w)}</span>" for w, h in trail]
     links.append(f'<span aria-current="page">{E(title if here is None else here)}</span>')
     return f'<p class="trail">{TRAIL_SEP.join(links)}</p><h1>{E(title)}</h1>'
 

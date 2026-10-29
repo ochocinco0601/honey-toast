@@ -2,7 +2,8 @@
 
 **What it does.** An assistant follows this kit over an application's code and describes one business flow of it:
 the case it carries (one order, one application), the states the case passes through, and the stages they fall
-into. For one stage, it then produces four files you can take to the engineers who own the code:
+into. For each stage you take past mapping, it then produces the files your pick calls for (the structure and the
+measures; then the alerts; then the runbooks), which you can take to the engineers who own the code:
 
 | File | What it is |
 |---|---|
@@ -20,7 +21,9 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
   launch helper agents. The run's done check reads Claude Code's own record of the session, so a run in another
   assistant never reaches DONE. What it reads: the session records Claude Code keeps on this machine (under
   `~/.claude/projects/`) for the folders from the register up to, not including, your home folder or the drive's root. It keeps only which files were opened and the commands run, writes nothing, and
-  sends nothing anywhere.
+  sends nothing anywhere. If you started Claude Code outside the register's folder (in a folder beside it or below
+  it), set `BFO_TRANSCRIPTS` to that session's project folder under `~/.claude/projects/` (named after the folder the
+  session was started in, every character other than a letter or digit written as a dash) before the done check.
 - Python 3.9 or later on the path, and Semgrep for the code reader (`pip install semgrep`;
   `fact-extractor/semgrep_bin.py` says how it is found). The reader runs it with the kit's own rules, metrics and version check off, so it sends
   nothing anywhere; Semgrep keeps its own settings and log under `~/.semgrep/`. Nothing else is installed.
@@ -50,48 +53,53 @@ bfo-stage-kit/work/<application>/ as the register folder in place of bfo-work/<a
 RUN.md; follow its phases to the end and finish only when run_status.py says DONE.
 Never stop to ask me a fact you can infer: infer it and mark it proposed. Bring me what is mine (which flow to
 map, what to leave out, whether the sources are enough) with your proposal when it arises, starting with the plan,
-shown whole in the chat. When you finish, tell me the folder, the flow and stage, the check results,
+shown whole in the chat. When you finish, tell me the folder, the flow and how far each stage went, the check results,
 anything you could not do, and paste run_status.py's output.
 ```
 
 To point it at sources, add one line at the end (optional): *These are the sources: …*, naming the repositories,
 pages, diagrams and process descriptions.
 
-**Every stage, one per run.** The map and the measures cover the whole flow in the first run. The coverage check
-fails a run only on its own stage and the flow; what only other stages hold is a warning until their own runs, so
-one stage's run passing does not mean the flow is covered. The failure modes, alerts and runbook (Step 11) are
-written for one stage per run, to keep each run's reading bounded. A flow is covered when every stage has had its
-Step 11 and its check passes: run it again on the same register for each of the
-others, saying *Do Step 11 for stage <id> next, in the register in <folder>*. Each such run regenerates and checks
-every stage already done, and is not finished until all of their checks pass. The first run takes the stage where a
-case most often waits or can be left stranded, because that is where cases are lost first; to set the order
-yourself, add one sentence at the end: *The stage I want first is …*.
+**How far each stage goes is your pick, after the map.** The map covers the whole flow in the first run. Once it
+is drawn, the run shows you its stages and asks how far each one goes: mapped only, measured, measured with alerts,
+or on to runbooks. You can take any number of stages to any depth, with the run's recommendation in front of you; a
+flow can be mapped and left there. The checks follow each stage's depth: a stage you left mapped only is held to its
+map and nothing more, and the run is done when every stage you took further passes at the depth you picked. Decide
+how far each stage goes before the run moves on: you can take a stage further while the run is still under way, but
+not back, and taking stages further on a run that has already finished is not supported yet (see KNOWN-GAPS.md).
 
 **A capability served by many services or repositories.** The same instructions hold at any size; FILL-STEPS
 covers what changes with the number of services. Tests of many parts of one kind become one sweep over all of them,
 shared dependencies are tested first, and a called service's own databases are reached through its tests. Citations
-are checked by sample, and every citation starts at the workspace root. The check errors only on the run's own
-stage and the flow; another stage's gaps wait for that stage's run. A capability spread over several repositories is not
+are checked by sample, and every citation starts at the workspace root. The check holds each stage to the depth you
+picked for it, and the flow to its own measures. A capability spread over several repositories is not
 yet proven at that size. By default a run reads every service the flow touches. Two more things
 help:
-- only for a run that has to be cut, add: *For this run's stage, read the code of the services that carry it in full. For the flow's other services,
-  read only what you need to place them, and gap their measures with the reason "not read in this run".* The runs
-  for the other stages read their own services in full and replace those gaps.
+- only for a run that has to be cut, add: *For the stages I take past mapping, read the code of the services that
+  carry them in full. For the flow's other services, read only what you need to place them, and gap their measures
+  with the reason "not read in this run".* Those gaps stay until those services are read; taking more stages further
+  on a finished register is not supported yet (KNOWN-GAPS.md).
 - open each repository as a folder of one workspace, and list each in `sources.csv` with its commit.
 
 Read `KNOWN-GAPS.md` for what is still open at that size.
 
-**The run shows you its plan before it reads in depth.** After it has gathered the sources and surveyed the code, it
-shows you its whole plan in the chat and asks for your go (it also keeps it as `PLAN.md`). The plan is a work breakdown: a line on what the
-system is and how big; the decisions that are yours, each with its options and a recommendation (which business flow
-to map is always one of them); the work items in order, each with what it takes in, what it produces, when it is done
-and its size; what is out of scope; and where the run stops. Reply with your go and your answers, or with what to
-change. Nothing is read in depth before your go.
+**The run introduces itself, then shows you the system before it reads in depth.** Its first message says what it
+is for, how you will work together and what it needs from you. After a first, shallow look at the code it sends a
+brief (it also keeps it as `PLAN.md`): what this work is; what the system does, for whom, and what one case is; every
+business flow found so far, each with its stages; what it looked at and what is still open; the services and which to
+include; where it recommends starting, and what then remains; and what it will do unless you say otherwise (the
+services it will read, and how its findings will be checked against the code: in a single run, a reader who wrote
+none of them re-reads a sample of ten; in a run split into reading units, independent checks read each finding). It asks one thing: which flow to start
+with. Reply with the flow, or accept its recommendation, or say what to change. Nothing is read in depth before your answer. Every message opens with one line
+saying where things stand; if you come back to a stopped run, it first tells you, in full, where the work is.
+
+**Before any runbook, the run shows you the alerts it proposes and waits.** For each stage you picked it says what each alert counts, what it guards, whether it exists today, and why; you keep, drop, change or add alerts, or say go. Saying *continue* there is not a go on the alerts: say what you decide about them.
 
 The run takes a while. If the model stops partway, say *continue from where you stopped, following FILL-STEPS.md*.
 
-**Where a run stands.** `RUN.md` in the register folder records each phase of the run as to do, doing, done or
-blocked, with the files that prove it or the reason it is blocked. Whether the run is done is said by
+**Where a run stands.** `RUN.md` in the register folder records each phase of the run as to do, doing, done,
+blocked or not picked, with the files that prove it or the reason it is blocked. *Not picked* is a phase your pick of
+how far each stage goes leaves out: the run passes over it and does not wait on it. Whether the run is done is said by
 `python <kit>/run_status.py <register folder>`, which lists every output the run owes and says DONE or NOT DONE.
 The Fullness block it prints after that line counts how full the register is and judges nothing.
 
@@ -108,7 +116,8 @@ the code the new run read, and added only if the code says it. A row cited to a 
 A row a person gave is carried forward, cited to that person, and any disagreement with the new run is listed for a
 person to settle. A guess (`proposed:`) is dropped, and a row about code the new run did not read is marked not
 assessed. `RUN.md` and the final report name each earlier register and what was added, carried, not supported, not
-assessed and disagreed. Alerts and runbooks from the earlier run are not carried: each stage gets its own new run.
+assessed and disagreed. Alerts and runbooks from the earlier run are not carried: each stage's alerts and runbooks are made again in the
+new run.
 
 The earlier in-place upgrade prompt is retired (CHANGELOG, Release 2).
 
@@ -118,7 +127,7 @@ In `bfo-work/<application>/` at the workspace root when the kit is installed as 
 `bfo-stage-kit/work/<application>/` when it is used with the prompt:
 
 - the register, a set of CSV files: the model, row by row, each row cited;
-- `stage-<id>/` holding the four files above;
+- `stage-<id>/` for each stage taken past mapping, holding the files its depth calls for from the four above;
 - `views.html`, the same model drawn as one map, which opens in a browser: point at a box to light its chain, open a
   stage's process steps to see the parts that carry them, and click a box to see its measures and drawings. `how-this-map-was-made.html` beside it says how the map was made, for whoever builds or checks it; each stage's
   `RUNBOOK.html` and `ALERT.html` sit in `stage-<id>/` beside it.

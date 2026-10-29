@@ -22,3 +22,10 @@ func callOut(c *http.Client, client pb.OrderServiceClient) {
 	os.Getenv("ORDERS_HOST")
 	os.LookupEnv("ORDERS_HOST")
 }
+
+var placed = promauto.NewCounter(prometheus.CounterOpts{Name: "orders_placed_total"})
+
+func metrics(r *http.ServeMux, latency *prometheus.HistogramVec) {
+	prometheus.MustRegister(latency)
+	r.Handle("/metrics", promhttp.Handler())
+}

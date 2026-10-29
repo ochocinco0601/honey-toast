@@ -10,15 +10,16 @@ skill's text. Saying it back is how the run checks it has understood the skill.
 
 - **Application:** _write the application this run describes._
 - **Flow:** _write the flow the person named, or "a decision in the plan". Fill it in from their answer at the go._
-- **Stage for Step 11:** _write the stage the person named, or "a decision in the plan". Write it as `stage-<id>`
-  once the stages are cut (Phase 2)._
+- **Stages and how far each goes:** _the person's pick after mapping, as `stage-<id>` and its depth for each stage
+  (mapped only, measured, alerting, runbooks); "not yet picked" until then._
 - **Phase by phase:** _for each phase in `SKILL.md`, one line: what it does, and the files it must leave in this
   folder before it counts as done._
 
 ## Status
 
-Status is one of: to do, doing, done, blocked. **Done** names the files that prove it. **Blocked** says why (for
-example "python is not on the path") and what would unblock it. No phase is skipped: a phase that cannot be done is
+Status is one of: to do, doing, done, blocked, not picked. **Done** names the files that prove it. **Blocked** says
+why (for example "python is not on the path") and what would unblock it. **Not picked** is a phase the person's pick
+of how far each stage goes leaves out, set by `go.py --depth`: it is passed over, never waited on. No phase is skipped: a phase that cannot be done is
 blocked, with its reason.
 
 | Phase | Status | Proved by (files, when done) | Blocked because |
@@ -28,8 +29,11 @@ blocked, with its reason.
 | 1 The case and its lifecycle | to do | | |
 | 2 Stages, steps, parts and agents | to do | | |
 | 3 The capability | to do | | |
-| 4 Measures and costs | to do | | |
-| 5 One stage's failure modes, alerts and runbook | to do | | |
+| Pick of how far each stage goes | to do | | |
+| 4 Measures and costs, for the stages picked | to do | | |
+| 5a The picked stages' alerts | to do | | |
+| Review of the alerts | to do | | |
+| 5b The picked stages' failure modes and runbooks | to do | | |
 | 6 Check and draw | to do | | |
 | 7 Done check and report | to do | | |
 
@@ -41,6 +45,14 @@ says so ("test go, given by ..."). If the person asks for changes, revise `PLAN.
 
 - **Plan:** PLAN.md
 - **Go:** _the person's words, word for word, and when; blank until the go is given._
+- **Scope:** _the flow the person picked at the go, then their words, written by `go.py`: `flow <name>; stages not
+  yet picked (after the flow is mapped). In their words: "..."`; once they pick how far each stage goes, the stages
+  with their depth. Blank until the go. The done check owes what that pick asks for; every other stage is reported
+  as not yet covered._
+- **Depth picked:** _the person's pick of how far each stage goes, after mapping, word for word, and when; written
+  by `go.py --depth`. Blank until they pick. Nothing is measured before it._
+- **Alerts reviewed:** _the person's answer on the proposed alerts, word for word, and when; written by `go.py
+  --alerts-reviewed`. Blank until they answer. No runbook is written before it._
 
 ## Sources
 

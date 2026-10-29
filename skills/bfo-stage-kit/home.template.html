@@ -1,0 +1,282 @@
+<!--GENERATED-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title><!--TITLE--></title>
+<style>
+body{margin:0;background:#F6F5F1}
+.lvl{font-size:11px;color:#5A5850;letter-spacing:0.06em;text-transform:uppercase}
+.card{background:#FFFFFF;border:1px solid #DAD7CD;border-radius:8px;padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.case{font:inherit;font-size:13px;min-height:32px;padding:4px 12px;border:1px solid #DAD7CD;background:#FFFFFF;border-radius:6px;cursor:pointer;color:#1D1D1B}
+.case.on{border-color:#1F4E8C;color:#1F4E8C;font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.col{background:#F1EFE8;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0;min-height:120px}
+.col .h{font-size:12px;font-weight:600;color:#3D3B35;letter-spacing:0.04em;text-transform:uppercase}
+.col .q{font-size:12px;color:#5A5850}
+.fc{font:inherit;text-align:left;color:#1D1D1B;border:1px solid #DAD7CD;background:#FFFFFF;border-radius:6px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:4px;min-height:44px}
+.fc.on{border:2px solid #1F4E8C;padding:9px 11px}
+.fc .t{font-size:14px;font-weight:600}
+.fc .s{font-size:12px;color:#5A5850}
+.sts{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:12px}
+.yes{color:#2E7D4A;font-weight:600}
+.no{color:#5A5850}
+.empty{font-size:12px;color:#7A776E}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{font:inherit;font-size:13px;min-height:36px;padding:4px 14px;border:1px solid #DAD7CD;background:#FFFFFF;border-radius:6px;cursor:pointer;color:#1D1D1B}
+.tab.on{border-color:#1F4E8C;color:#1F4E8C;font-weight:600}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.box{border:1px solid #EEECE5;border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.box .t{font-size:14px;font-weight:600}
+ul{margin:0;padding-left:16px;font-size:13px}
+li{margin:2px 0}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:12px;border:1px solid #DAD7CD;border-radius:4px;padding:1px 6px;background:#FAF9F5}
+.mute{color:#5A5850;font-size:12px}
+.trk{display:grid;grid-template-columns:minmax(170px,1.3fr) repeat(3,minmax(0,0.55fr)) repeat(5,minmax(0,0.8fr));align-items:start;gap:0;width:100%;box-sizing:border-box}
+.trk.hd small.out{color:#7A4B00;font-style:italic}
+.sp .lb.sm{font-size:11px;line-height:1.3;color:#3D3B35}
+.trk.hd{font-size:13px;color:#3D3B35;padding:0 12px 6px;border-bottom:1px solid #DAD7CD}
+.trk.hd .sh{display:flex;flex-direction:column;padding-right:8px}
+.trk.hd small{font-size:11px;color:#5A5850}
+.trk.rw{color:#1D1D1B;background:#FFFFFF;border:1px solid transparent;border-bottom:1px solid #EEECE5;padding:12px;min-height:56px}
+.trk.rw.on{border:2px solid #1F4E8C;padding:11px;border-radius:6px}
+.nm{display:flex;flex-direction:column;gap:2px;padding-right:10px}
+.nm small{font-size:12px;color:#5A5850}
+.sp{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:36px;justify-content:center}
+.sp .ln{position:absolute;left:0;right:0;top:9px;height:3px;background:#DAD7CD}
+.sp:last-child .ln{right:auto;width:12px}
+.sp .pt{position:relative;width:14px;height:14px;border-radius:50%;background:#FFFFFF;border:2px solid #B9B5A8;box-sizing:border-box;z-index:1;margin-top:2px}
+.sp .lb{font-size:12px;color:#5A5850;padding-right:8px}
+.sp.go .ln{background:#2E7D4A}
+.sp.done .pt{background:#2E7D4A;border-color:#2E7D4A}
+.sp.done .lb{color:#1D1D1B}
+.sp.part .pt{background:linear-gradient(90deg,#2E7D4A 50%,#FFFFFF 50%);border-color:#2E7D4A}
+.sp.part .lb{color:#1D1D1B}
+button.sp{font:inherit;text-align:left;background:none;border:0;padding:0;cursor:pointer;color:inherit;width:100%;min-height:44px}
+button.sp:hover .pt{box-shadow:0 0 0 3px #D6E2F2}
+button.sp.sel .pt{box-shadow:0 0 0 3px #1F4E8C}
+button.sp.sel .lb{color:#1F4E8C;font-weight:600}
+.crumb{font-size:13px;color:#3D3B35}
+.sec{display:flex;flex-direction:column;gap:6px}
+.sec .st{font-size:12px;font-weight:600;color:#3D3B35;letter-spacing:0.04em;text-transform:uppercase;border-bottom:1px solid #EEECE5;padding-bottom:4px}
+.it{font-size:14px;padding:6px 0;border-bottom:1px solid #F4F2EC;display:flex;flex-direction:column;gap:3px}
+.it .sub{font-size:13px;color:#3D3B35}
+.it .sub .k{color:#5A5850;display:inline-block;min-width:110px}
+.tag{font-size:11px;color:#2F4A6B;border:1px solid #B9C6D6;border-radius:3px;padding:0 4px;white-space:nowrap}
+ol.steps{margin:0;padding-left:20px;font-size:13px}
+.inl{border:2px solid #1F4E8C;border-top:0;border-radius:0 0 6px 6px;margin:-2px 0 8px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;background:#FFFFFF}
+.trk.rw.on.op{border-radius:6px 6px 0 0}
+.dh{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;font-size:14px}
+.split{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:14px;align-items:start}
+.tree{display:flex;flex-direction:column;font-size:12px;border-right:1px solid #EEECE5;padding-right:10px}
+.tn.d0{grid-template-columns:minmax(0,1fr) auto}
+.tn.d1{padding-left:4px}
+.tn.d2{padding-left:26px}
+.tn{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:baseline;gap:0;padding:2px 4px;text-align:left;font:inherit;font-size:12px;color:#1D1D1B;background:none;border:0;border-radius:4px;min-height:24px}
+.tn .tg{font-family:Consolas,'Courier New',monospace;color:#9A968B;white-space:pre}
+.tn .tc{grid-column:2;color:#5A5850;font-size:11px;font-weight:400;font-variant-numeric:tabular-nums}
+.tn.tb{cursor:pointer}
+.trow{display:flex;align-items:center;gap:4px}.trow>.tn{flex:1}
+.ru{display:flex;gap:12px;padding:0 0 4px 50px;font-size:12px;color:#3D3B35}.ru label{display:flex;align-items:center;gap:4px;cursor:pointer}
+.tk{width:16px;height:16px;margin:0;accent-color:#1F4E8C;cursor:pointer;flex:none}
+.tdone{display:flex;flex-direction:column;gap:6px;padding-top:10px;margin-top:8px;border-top:1px solid #EEECE5}
+.wi{font:inherit;font-size:12px;min-height:30px;padding:2px 8px;border:1px solid #DAD7CD;border-radius:6px}
+.ab2.dn{background:#1D1D1B;color:#FFFFFF;border-color:#1D1D1B;align-self:flex-start}
+.caps{color:#2F4A6B;margin-top:3px}
+tr.ab td{white-space:pre-line}
+.tn.tb:hover{background:#F1EFE8}
+.tn.tb.on{background:#E4ECF6;color:#123460;font-weight:600}
+.pane{display:flex;flex-direction:column;gap:8px;min-width:0}
+@media (max-width: 760px){.split{grid-template-columns:minmax(0,1fr)}.tree{border-right:0}}
+.tw{overflow-x:auto;max-height:520px;overflow-y:auto;border:1px solid #EEECE5;border-radius:6px}
+table.dt{border-collapse:collapse;width:100%;font-size:12px;line-height:1.35}
+table.dt th{position:sticky;top:0;background:#F1EFE8;text-align:left;font-weight:600;color:#3D3B35;padding:4px 8px;border-bottom:1px solid #DAD7CD}
+table.dt td{padding:3px 8px;border-bottom:1px solid #F4F2EC;vertical-align:top}
+table.dt tr.grp td{background:#FAF9F5;font-weight:600;color:#3D3B35;font-size:11px;letter-spacing:0.04em;text-transform:uppercase;padding-top:6px}
+table.dt tr.no td:last-child{color:#2F4A6B}
+table.dt tr.blk td{border-top:2px solid #DAD7CD}
+table.dt td:first-child{font-weight:600;color:#3D3B35;white-space:nowrap;width:1%}
+table.dt td:nth-child(2),table.dt th:nth-child(2){width:1%;padding-left:2px;padding-right:4px;text-align:right;color:#A8A499;font-size:11px;font-weight:400;font-variant-numeric:tabular-nums}
+table.dt tr.gap td{color:#5A5850}
+.pgs{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin:2px 0 8px;font-size:12px}.pgl{color:#2F4A6B;text-decoration:underline;text-underline-offset:2px}
+.tw:has(tr.ins) table.dt{table-layout:fixed}.tw:has(tr.ins) th:nth-child(1){width:4px}.tw:has(tr.ins) th:nth-child(2){width:22px}.tw:has(tr.ins) th:nth-child(3){width:30%}.tw:has(tr.ins) th:nth-child(4){width:24%}.tw:has(tr.ins) td{overflow-wrap:anywhere}
+table.dt tr.lv td{background:#F7F6F2;color:#5A5850;font-style:italic}
+table.dt tr.lv td:first-child{font-style:normal;color:#1D1D1B}
+@media (max-width: 760px){.trk{grid-template-columns:minmax(0,1fr) repeat(8,minmax(0,0.4fr))}}
+.nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;background:#FFFFFF;border-bottom:1px solid #DAD7CD;padding:10px 24px;font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;color:#1D1D1B}
+.nav .sys{font-weight:600}
+.nav .go{color:#1F4E8C;text-decoration:none;padding:4px 2px;border-bottom:2px solid transparent}
+.nav .go.on{border-bottom-color:#1F4E8C;font-weight:600}
+.nav .off{color:#8A867C}
+.nav .sp2{flex:1}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;align-items:baseline;font-size:15px}
+.pick .it{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;padding:8px 0;border-top:1px solid #ECEAE3}
+.pick .it:first-child{border-top:none}
+.pick .pnm{font-size:14px;font-weight:600}
+.recm.none{display:none}
+.recm{display:inline-block;font-size:11px;font-weight:600;color:#1F4E8C;background:#E4ECF6;border-radius:3px;padding:0 6px;margin-left:6px;vertical-align:1px}
+.why{grid-column:1;font-size:12px;color:#5A5850}
+.acts{display:flex;gap:6px;grid-row:1 / span 2;grid-column:2}
+.ab2{font:inherit;font-size:13px;min-height:32px;padding:2px 12px;border-radius:6px;border:1px solid #DAD7CD;background:#FFFFFF;color:#1D1D1B;cursor:pointer}
+.ab2.y{border-color:#1F4E8C;color:#1F4E8C}
+.add{font:inherit;font-size:13px;color:#1F4E8C;background:none;border:none;padding:8px 0 0;cursor:pointer;text-align:left}
+.top2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:start}
+@media (max-width:900px){.top2{grid-template-columns:1fr}}
+[hidden]{display:none!important}
+a.pgl:hover,.nav a.go:hover{text-decoration:underline}
+.trk.rw.on.op+.inl{margin-top:-2px}
+</style>
+</head>
+<body>
+<!--NAV-->
+<div style="box-sizing: border-box; max-width: 1280px; margin: 0 auto; padding: 18px 24px 48px; display: flex; flex-direction: column; gap: 14px; font-family: 'Segoe UI', system-ui, sans-serif; color: #1D1D1B">
+
+<div class="card" id="moved" role="status" style="border-color: #1F4E8C; color: #1F4E8C; font-weight: 600" hidden></div>
+<div class="card">
+<div class="mute">Each row is one flow identified. Each dot is one of the flow&rsquo;s milestones toward supported in production. Identified, Mapped, Measures defined, Runbooks written: filled once drafted for your review (a runbook is drafted, never rehearsed). Alerts defined: filled once the review of the proposed alerts is recorded. Instrumented, Dashboards built, Team prepared: done by other teams, so these dots never fill here. The count under Instrumented is read from the code at design time, not from the running system. A draft is not complete, correct or accepted. The line between two filled dots is filled. Click any dot to see what is there to review at that milestone.</div>
+<!--HEAD-->
+<!--ROWS-->
+<div class="mute"><!--BLIND--></div>
+</div>
+
+<div style="font-size: 12px; color: #5A5850"><!--SOURCE--></div>
+</div>
+<!--FORM-->
+<script>
+(function () {
+  var open = null;
+  function all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function close() {
+    if (!open) return;
+    open.hidden = true;
+    var key = open.getAttribute('data-dd'), row = document.querySelector('[data-row="' + key.split('-')[0] + '"]');
+    if (row) row.classList.remove('on', 'op');
+    var dot = document.querySelector('[data-dot="' + key + '"]');
+    if (dot) { dot.classList.remove('sel'); dot.setAttribute('aria-pressed', 'false'); }
+    var ask = document.getElementById('ask'), park = document.getElementById('answers');
+    if (ask && park && open.contains(ask)) park.appendChild(ask);
+    open = null;
+  }
+  function show(key) {
+    var was = open && open.getAttribute('data-dd');
+    close();
+    if (was === key) return;
+    var dd = document.querySelector('[data-dd="' + key + '"]');
+    if (!dd) return;
+    dd.hidden = false; open = dd;
+    var row = document.querySelector('[data-row="' + key.split('-')[0] + '"]');
+    if (row) row.classList.add('on', 'op');
+    var dot = document.querySelector('[data-dot="' + key + '"]');
+    dot.classList.add('sel'); dot.setAttribute('aria-pressed', 'true');
+    var slot = dd.querySelector('.tslot[data-ask]'), ask = document.getElementById('ask');
+    if (slot && ask) { slot.appendChild(ask); ask.querySelector('.mute').textContent = slot.getAttribute('data-note'); }
+  }
+  function pick(btn) {
+    var dd = btn.closest('[data-dd]'), at = btn.getAttribute('data-sel');
+    all('[data-sel]', dd).forEach(function (b) {
+      var on = b.getAttribute('data-sel') === at;
+      b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'true' : 'false');
+    });
+    all('[data-pane]', dd).forEach(function (p) { p.hidden = p.getAttribute('data-pane') !== at; });
+  }
+  // The ticks for the open choice are the named checkboxes in the drop-downs, a stage's one per milestone
+  var OPTS = ['Measures defined', 'Alerts defined', 'Runbooks written'];
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.hasAttribute('data-stagetick')) {  // ticking a milestone brings the ones before it; unticking leaves them
+      var at = OPTS.indexOf(t.value), upto = t.checked ? at : at - 1;
+      all('input[data-stagetick]').forEach(function (x) { if (x.name === t.name) x.checked = OPTS.indexOf(x.value) <= upto; });
+    } else if (t.hasAttribute('data-flowtick')) {  // one flow per run
+      all('input[data-flowtick]').forEach(function (x) { if (x !== t) x.checked = false; });
+    }
+  });
+  document.addEventListener('click', function (e) {
+    var dot = e.target.closest && e.target.closest('[data-dot]');
+    if (dot) { show(dot.getAttribute('data-dot')); return; }
+    var sel = e.target.closest && e.target.closest('[data-sel]');
+    if (sel) pick(sel);
+  });
+})();
+</script>
+<script>
+// Claude Code redraws this page whenever the run moves on: after each recorded answer, and when it reaches the next
+// choice. The page watches its own address from the moment it loads and reloads when the served page changes, so one
+// tab follows the whole run and the next Done answers the choice now open.
+(function () {
+  if (!window.fetch || location.protocol === 'file:') return;
+  // no limit on how long it watches: the wait grows from 3 s to at most 15 s, so a change shows within about 15 s;
+  // a Done resets it to 3 s, so the redraw after the answer shows quickly; a tab brought back to the front checks at once
+  var url = location.pathname, base = null, wait = 3000, failed = 0, behind = false, timer = null, saved = '';
+  // what the inputs hold, keyed by name (and value, for a tick), never by their place on the page: the words and Done
+  // move into a drop-down when it opens and back when it closes, and that move is no change
+  function state(els) {
+    var out = [];
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      out.push(el.type === 'checkbox' || el.type === 'radio'
+        ? 'tick ' + el.name + ' ' + el.value + ' ' + (el.checked ? 1 : 0)
+        : 'text ' + el.name + ' ' + el.value);
+    }
+    return out.sort().join('\n');
+  }
+  function fields() { return state(document.querySelectorAll('input[name], select[name], textarea[name]')); }
+  var kept = fields();  // unsaved input is any tick or words changed since the page loaded or since the last Done
+  function unsaved() { return fields() !== kept; }
+  // said in every status line, so in the open drop-down too, and at the top of the page, so it is seen with none open
+  function say(text) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) { el.textContent = text; });
+    var top = document.getElementById('moved');
+    if (top) { top.textContent = text; top.hidden = false; }
+  }
+  function again() { clearTimeout(timer); timer = setTimeout(poll, wait); wait = Math.min(wait * 2, 15000); }
+  // one listener serves the whole run, so two failed checks in a row mean it has gone (the run ended, or Claude Code
+  // was closed): say so, and stop; if the run starts a new listener at a later stop, the chat says to open that page
+  function stopped() {
+    if (++failed < 2) { again(); return; }
+    say('Claude Code has stopped watching this page, so it no longer updates. Carry on in the chat.');
+  }
+  // never reload over unsaved input: hold the reload until it is saved or cleared
+  function moved() {
+    if (!unsaved()) { location.reload(); return; }
+    behind = true;
+    say('The run has moved on: save or clear your changes, and the page will update.');
+  }
+  function poll() {
+    clearTimeout(timer);
+    fetch(url, { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.text();
+    }).then(function (t) {
+      failed = 0;
+      if (base === null) base = t;
+      if (t !== base) moved(); else again();
+    }, stopped);
+  }
+  // a held reload goes ahead as soon as the page is clean: on any edit, and when a drop-down opens or closes
+  function recheck() { if (behind && !unsaved()) location.reload(); }
+  document.addEventListener('change', recheck);
+  document.addEventListener('input', recheck);
+  document.addEventListener('click', recheck);
+  document.addEventListener('visibilitychange', function () {
+    if (!behind && document.visibilityState === 'visible' && failed < 2) { wait = 3000; poll(); }
+  });
+  // a Done is saved once page-kit.js writes its "Saved at" line in [data-status]
+  new MutationObserver(function () {
+    var line = '';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) {
+      if (/^Saved at /.test(el.textContent)) line = el.textContent;
+    });
+    if (!line || line === saved) return;
+    saved = line; kept = fields();
+    if (behind) { location.reload(); return; }
+    wait = 3000; again();
+  }).observe(document.body, { subtree: true, characterData: true, childList: true });
+  poll();  // from page load, always: the first check is the base the later ones compare with
+})();
+</script>
+<script src="/page-kit.js"></script>
+</body>
+</html>

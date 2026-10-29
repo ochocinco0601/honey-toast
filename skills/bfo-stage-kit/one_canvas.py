@@ -1194,11 +1194,16 @@ def left_out(M):
 MADE_FILE = "how-this-map-was-made.html"
 
 
+def home_link():
+    """The way back to the home screen, at the top of a page beside the map, while ps.home_beside says it is there."""
+    return f'<p class="homelink"><a href="{ps.HOME_FILE}">{ps.HOME}</a></p>' if ps.home_on() else ""
+
+
 def made_page(M, reg_label, checked):
     """How the map was made, for whoever builds or checks it: written beside the page, never on it."""
     return ("<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
             f"<title>{cv.esc(M['system'])}: how this map was made</title>\n<style>{cv.CSS}{CSS}</style></head><body><main>"
-            f"<h1>{cv.esc(M['system'])}: how this map was made</h1>"
+            f"{home_link()}<h1>{cv.esc(M['system'])}: how this map was made</h1>"
             f'<p class="note">Drawn from the register {cv.esc(reg_label)}.</p>{how_made(M, checked)}</main></body></html>\n')
 
 STAGE_FILE = "STAGE.html"  # a stage's own page, beside its RUNBOOK.html and ALERT.html
@@ -1343,7 +1348,7 @@ def page(M, reg_label, build_cmd, checked, docs=None):
     return (head + "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
             "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
             f"<title>{cv.esc(M['system'])} one canvas</title>\n<style>{cv.CSS}{CSS}{pi.CSS}{sfv.CSS}{MAP_CSS}</style></head><body><main>"
-            f"<div class=\"pagehead\"><h1>{cv.esc(M['system'].split(' (')[0])}</h1>{cv.words(M, set(M['stage']), folded=True)}</div>"
+            f"{home_link()}<div class=\"pagehead\"><h1>{cv.esc(M['system'].split(' (')[0])}</h1>{cv.words(M, set(M['stage']), folded=True)}</div>"
             f'<p class="mapcount">{cv.esc(map_counts(M))}</p>'
             f'<div class="canvas idle"><figure><div class="mapfig">{toolbar()}{map_screen(M)}</div>{left_out(M)}{off_chain(M)}</figure>'
             f'<div class="divider" role="separator" aria-orientation="vertical" aria-label="Resize the map and the panels" '
@@ -1354,6 +1359,15 @@ def page(M, reg_label, build_cmd, checked, docs=None):
             f'</div></div>'
             f'<script type="application/json" id="panel-data">{json.dumps(panel_data(M, docs)).replace("</", "<" + chr(92) + "/")}</script>'
             + "</main>" + cv.chain_data(M) + map_chain(M) + MAP_JS + JS + SEQ_JS + DIVIDER_JS + INSIDE_JS + CASE_JS + RAIL_FIG_JS + HASH_JS + "</body></html>\n")
+
+
+def drawing_pages(M):
+    """The drawing pages main writes beside the map, relative to it: each stage's, each part's that has one, each
+    process step's, each flow's. The done check owes every one."""
+    return ([f"stage-{st}/{STAGE_FILE}" for st in M["stage"]]
+            + [ptp.href(M, p) for p in M["subj"] if ptp.has_page(M, p)]
+            + [stp.href(M, s) for s in M["step"] if stp.has_page(M, s)]
+            + [fp.href(f["flow_id"]) for f in M["flows"]])
 
 
 def main(argv=None):
@@ -1370,6 +1384,12 @@ def main(argv=None):
         return 1
     M = number_steps(prune(cv.model(R)))
     out.parent.mkdir(parents=True, exist_ok=True)
+    with ps.home_beside(out.parent):
+        return draw(M, reg, out, argv, err, warn)
+
+
+def draw(M, reg, out, argv, err, warn):
+    """The map and every page beside it, written."""
     cmd = "python -I one_canvas.py " + " ".join(argv)
     said = lambda text: fo.relabel_prose(M["_step_label"], M["R"]["steps"], text)
     docs = with_stage_pages(M, stage_docs(reg))

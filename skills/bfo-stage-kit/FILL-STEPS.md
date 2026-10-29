@@ -134,31 +134,52 @@ is never inferred: it is written only where a source states it (Step 3a).
    not rows: each one in a service the flow touches is read, then cited by a row or set aside with the reason, and
    the done check names any left over. What it misses (most calls between services, in practice) is found by
    reading, labelled `proposed:`, and cites both ends, the call and the operation that receives it.
-7. **Write the plan, and stop for the go.** Write `PLAN.md` in the register folder: the run's work breakdown, in the
-   form of a stage plan's work packages (PRINCE2) or the initial work item list of an Inception phase (Disciplined
-   Agile Delivery). It is read by the person who oversees the run, who knows the business but not this kit: no table
-   names, register ids or phase numbers. **No first person and no narration:** no "I will", no sentences explaining
-   the run's thinking; every line is a fact, a decision or a work item. Exactly these five parts, in this order:
-   - **Header.** One line: the system, the number of repositories, the lines of code (counted by the survey), the
-     number of services.
-   - **Decisions for you.** Each decision the run needs before it reads, as a short block: the decision; the options
-     the survey found, one line each; the recommendation and its reason in one line. **The business flow to map is
-     always one of these decisions:** list the candidate flows the survey shows (the business transactions the entry
-     points, routes and stored states point to), and recommend one. The run never picks the flow. Also a decision:
-     the stage for the alerts and runbooks, where the survey can show candidates, or how it will be chosen; any cut
-     to what is read; and any source outside the workspace, fetch it or leave it as an outside dependency.
-   - **Work items.** A table, `| # | Work item | Input | Output | Done when | Depends on | Size |`. One row per
-     reading unit (a service, or part of a very large one), in reading order, sized in files and lines from the
-     survey; then one row per output (the case and its lifecycle, the stages, steps and parts, the measures, the
-     chosen stage's alerts and runbooks, the check and the drawn map). "Done when" is a check someone else could make.
-   - **Not in scope.** One line each.
-   - **Stops.** One line each: the stop for the go, and each condition that brings the run back before it finishes, a decision
-     of the person's that the walk raises among them.
-   Then set `RUN.md` → *Plan and go*, and put the whole text of `PLAN.md` in your message to the person, as the
-   message itself, ending with the ask for their go and their answer to each decision; never only say that a plan
-   exists or where its file is, because the person reads the plan where they are, in the chat. Then **stop**. Read nothing further until the person's go is recorded in `RUN.md`, word for word, with when it was
-   given. If they ask for changes, revise `PLAN.md` and wait again. `run_status.py` names any work written before
-   the go.
+7. **The first look, the capability brief, and the stop for the person's word.** The person knows the business but
+   not this system and not this kit. Before anything is read in depth, they get a brief that shows the run understood
+   its job and the system, and they pick which flow this run maps first.
+   - **Read shallowly, only what names the business flows:** each service's entry points and routes (for a
+     storefront, its pages and its API), its interface definitions, the deployment files, and the documents. No
+     service is read in depth before the person's word.
+   - **Write `orientation.json`** in the register folder. Every text in it is for the person: plain words, no ids, no
+     file or folder names, none of the kit's vocabulary (register, unit, phase numbers, judges, merge), and each term
+     defined in the sentence that first uses it. Its fields:
+     ```json
+     {"activity": {"for": "what business flow observability is for, in your own words",
+                   "this_run": "what this run will produce for this system"},
+      "capability": {"name": "", "what": "what the system does, in one or two sentences",
+                     "for_whom": "who it serves", "one_case": "what one case is, the thing followed start to end"},
+      "services": [{"name": "exactly as in the survey", "does": "a phrase starting with a verb: holds, takes, decides",
+                    "recommend": "in or out", "why": ""}],
+      "flows": [{"name": "", "what": "one sentence", "found_in": "where in the code you saw it (path:line; kept
+                 for checking, never shown)", "stages": [{"name": "", "what": "one sentence"}]}],
+      "searched": ["what you looked at"], "unresolved": ["what is still open"],
+      "earlier": "an earlier map found, and what it changes for this run (leave out when none)",
+      "recommendation": {"flow": "a flow named above", "why": "",
+                         "remains": "what remains of the capability after this run"}}
+     ```
+     List every flow found so far, not only the one you recommend: one run maps one flow, and the job is the whole
+     capability. A flow you did not find may still exist; say what you searched. Each flow is labelled a proposal
+     until the walk confirms it. `this_run` says what this run produces as one batch of the job, never as the whole
+     job ("this run maps the flow you pick, one batch"). The brief places each text inside a sentence: write `for_whom`,
+     `one_case`, each `searched` and `unresolved` item, `why` and `remains` as phrases that continue a
+     sentence, starting in lower case unless with a name; name tools in words joined by "and", never with slashes.
+   - **Render the brief:** `python "<skill>/brief.py" capability "<your-folder>"`. It refuses, and says why, while a
+     field is empty, the services are not the survey's, the recommended flow was not found, or the text
+     carries an id, a file name or kit vocabulary. When it passes it writes `PLAN.md` and prints the brief.
+   - **Send the printed brief as your message, exactly as printed, and stop.** `brief.py` marks the stop in `RUN.md` itself.
+     Read nothing further until the person answers. If they ask for changes, change `orientation.json`, render again
+     and wait again.
+   - **Record their answer by script:** `python "<skill>/go.py" "<your-folder>" --flow "<flow>" --words "<their
+     answer, word for word>"` (add `--test` when a test stands in for the person). The go asks only which flow comes
+     first; where they accepted the recommendation, it is their pick. The services read are those the brief marked
+     include, and the checks per finding three; add `--in <service,...> --out <service,...>` or `--judges <n>` only
+     when they say otherwise. `--stages` is refused: the stages are picked after mapping (`go.py --depth`). `go.py`
+     writes `scope.json`, with what remains after this run, and `run-settings.json`, and fills the go and scope lines
+     of `RUN.md`. A run's done is not the capability's done: `run_status.py` owes what their pick of how far each
+     stage goes asks for, reports every other stage as not yet covered, and says NOT DONE while no go or no pick is
+     recorded. With no pick of how far each stage goes (an earlier run, whose go named stages), `go.py
+     "<your-folder>" --stage-ids <id>,<id>` records the ids of the stages it named once Phase 2 cuts them, and
+     `run_status.py` owes alerts and runbooks for those stages only.
 
 ## Step 1. Declare the frame (*Assigning* Step 0; *Rules*, Rule 0)
 
@@ -481,6 +502,13 @@ objectives is done later, by people. The candidates are accounted for with three
 kit (`packages/observability-practice/the-instrument-sud-v2.yaml`), so that a thin
 stage or an unmeasured agent step is caught rather than left unnoticed.
 
+**Measuring is chosen per stage; mapping is not.** Steps 1 to 8 map the whole flow. Then the person picks how far
+each stage goes (`go.py --depth`, SKILL.md after phase 3). This step's stage, step and part levels run only for the
+stages they chose to measure. The flow level runs as soon as any stage is measured, because the flow's own measures
+belong to the flow. A part shared by several stages is measured if any of its stages is. An expectation (Step 3a)
+stays with mapping: it is a business fact. Only its indicator, the measure that shows it is met, is this step's,
+and only for a measured stage or for the flow. With no stage measured this step is not done at all.
+
 Work down the levels, asking the question first and then naming the measure:
 
 1. **The flow** (its case subject, `flow` set, `step` and `stage` blank): cases started, finished, still open;
@@ -605,12 +633,44 @@ a framework's built-in metric, in `source_ref`, and write `declared` in `source`
 written once per case: read where it is written and what triggers it. Everything else is `exists` `no`, `source`
 `proposed`.
 
+`exists` follows from whether the signal the measure is counted from is produced today, never from its kind in
+`taken_from`. A count of a request metric the framework already records is `yes`, like every other measure of that
+metric, even when no one has built the count yet. A join of log lines or spans the code already writes (orders
+cancelled while their payment went ahead, from the payment log line and the order's state) is `yes`, citing each
+emitting line: it needs a query, not a code change. Only a measure that needs the code to write something it does
+not write today is `no`. A record the code already stores is produced today: a count over rows of a table the code
+writes is `yes`, and so is a server's own answer to a probe, like its other statistics. Whether anything collects
+the signal is `watched`, not `exists`. Two measures counted from
+the same signal have the same `exists`.
+
 On every measure, write in `taken_from` the kind of record it is counted from, one of the eleven `REGISTER.md` lists: where
 `exists` is `yes`, the kind of the cited line; on a proposed measure, where it would be taken from, decided from what
 the measure counts and never from the tools at hand. For how a measure could be taken from each kind, and what each
 cannot do, see the implementing-a-measure skill, §2. Name the kind of the cited line itself, never of what it
 reports on: a part's own health check is the kind of record that runs it (a probe or a metric), never the case's own
 record or configuration.
+
+On every measure with a `source_ref`, write in `counted_at` the named place it is counted at: `taken_from` says the
+kind, `counted_at` says which one, so a reader can go and find it. It is a plain name a reader knows without the
+code: the table and the database it lives in (`order lines table, ordering database`, never `ordering.orderItems`),
+the log and the service that writes it (`Ordering API log, line 'CreateOrderCommand succeeded'`), a service's
+request metric or traces, or the system whose own status it is (a queue's depth is the message broker's own status,
+connections are the database server's own status, never a metric of the application that uses them). Never a code
+identifier: nothing dotted or backticked, nothing quoted unless it is a log line's own words (after `line`, or
+before `log line`), and no table, class or event name as the code spells it; say a state or an event in words.
+Product names, abbreviations such as e.g., and version numbers are plain names. A product whose own name has a
+capital inside a word (`SiteMinder`) and that the check refuses is declared in `product-names.csv` in the
+register: its name as one word, and in `source` where its vendor or the sources write it so. A declared name
+passes only as a whole word, and one holding a dot, underscore, backtick or slash is ignored; never declare a
+table, class or event name. A server's own status names the product where the code shows it:
+`database server's own status (PostgreSQL)`, `message broker's queue status (RabbitMQ)`. A measure counted from
+two places names both, as `X, against Y`: `orders table, ordering database, against the Payment Processor log`.
+`flow_outputs.py --check` refuses a name only the code knows, and two measures with the same `counted_at` and a
+different `exists`. Fill it per row from that row's own `counted_how` and citation:
+open the cited file and line, and name the system that holds what it shows.
+It is never filled by walking the code again. Where the cited code does not show the place (a proposed measure whose
+record does not exist yet), write `not in the code: ` and what it would take. Never leave it blank:
+`flow_outputs.py --check` fails on a row with a citation and no `counted_at`, and the run is not done.
 
 **A measure can be emitted and never collected.** On every measure whose `exists` is `yes`, write `watched`:
 `yes` where operations monitoring collects it, `in the app only` where an application screen shows it and nothing
@@ -626,8 +686,9 @@ then only as that source states them.
 of every start-set below is either **covered** by at least one candidate in `measures.csv` or **gapped**: a row in
 `measure-gaps.csv` saying why no candidate is proposed, with its source. There is no third state. A gap is not a
 measure, so it is never a `measures.csv` row with the measure left blank. `flow_outputs.py --check` recomputes the
-receipt from the register for the whole flow, whichever stage it is run for, and fails on every element that is
-neither covered nor gapped. A gap row with no `why` or no `source` does not count.
+receipt from the register, whichever stage it is run for, and fails on every element that is neither covered nor
+gapped: of the whole flow in a run with no pick of how far each stage goes; otherwise of the flow and of the stages
+picked to measure (a part shared with a measured stage included), and not at all when no stage is measured. A gap row with no `why` or no `source` does not count.
 
 Each gap row also says its `kind`, one of four, chosen by what stops a candidate for this question:
 `does not apply` (ruled out by design: the question cannot arise here, as when the stage lasts one request and no
@@ -701,7 +762,8 @@ or asks a useless question, change it.
 
 **Draft alerts as proposals, and say what each rests on.** Each names the expectation it guards. Whether to alert,
 and on what, at any level (the flow, a stage, a process step or a part), is the team's decision; the register only drafts.
-Mark each measure you propose for alerting in `alert`, as `yes:` and its basis, required for the alert's runbook
+Choosing the alerts is phase 5a's work (Step 11, "Alerting"), done once the measures are complete; this is how it is
+written. Mark each measure you propose for alerting in `alert`, as `yes:` and its basis, required for the alert's runbook
 entry, and **name the expectation it guards by id in `expectation`** (Step 3a). `--check` fails on an alerting
 measure whose `expectation` is blank or names an id `expectations.csv` does not hold, at whatever level it is. The
 alert is drafted on every stage its measure reaches: a process step's stage, every stage of a flow, each stage a part
@@ -734,7 +796,8 @@ errors do.
 
 ## Step 10. Record what a failure costs (*Rules*, Rule 3)
 
-For each lifecycle move whose `if_not` hurts the case, a `step-impact.csv` row on the process step it belongs to: the
+For the stages picked to measure (all of them in a run with no such pick), for each lifecycle move whose `if_not`
+hurts the case, a `step-impact.csv` row on the process step it belongs to: the
 category from `method/impact.csv`, the unit counted in cases, and `recovery` copied from the lifecycle. A case
 acknowledged to the party and then lost fits no recovery value: leave `recovery` blank and begin `note` with
 `lost after acknowledgement:` and the evidence. In `case-attributes.csv`, what is at stake in one case:
@@ -742,9 +805,21 @@ acknowledged to the party and then lost fits no recovery value: leave `recovery`
 
 ## Step 11. The failure modes, the alerts and the runbook for a stage (`reference/runbook-model.md`, "How to write one")
 
-For each stage. The runbook is written for every stage, and the alert page for every stage an alert reaches, at
+For each stage picked for alerts (and runbooks), or every stage in a run with no pick of how far each stage goes.
+The runbook is written for every such stage, and the alert page for every one an alert reaches, at
 whatever level the alert is drafted (Step 9). The alerts and the runbook are **generated**, never written: what you
 write is the worksheet they are generated from.
+
+**Step 11 is done in two parts, with the person's review between them.** Deciding what to alert on is one concern;
+the ways the work can fail, which a responder tests once an alert has fired, are another, and the list of causes does
+not decide the alerts.
+- **Alerting** (phase 5a): the expectations and the alerts of item 1, chosen from the health measures alone: which
+  business, application and technology signals deserve an alert, each with its basis, the expectation it guards
+  and, for a count of cases, its `counted_moves`; then item 6's check of what the alerts rest on. Generate with
+  `--alerts` (item 7), then stop for the person's review.
+- **Runbooks** (phase 5b), after their go on the alerts: the runbook entries of item 1, then items 2 to 6, the
+  failure modes hop by hop, their tests, endings and remedies, one configuration, and the claims verified against
+  the code. Generate with `--runbooks` (item 7).
 
 1. **The expectations** are the stage's rows in `expectations.csv` (Step 3a), each alert naming the one it guards
    in `expectation`, with the stage's time limit in the code where the code sets one (Step 3) and the right outcome of each process step that takes a case out of
@@ -819,7 +894,9 @@ write is the worksheet they are generated from.
 3. **Give each mode a test that tells it apart** from the others a responder meets in the same state: the exact
    query (table and columns as the code defines them), the log text as the code writes it, or the command. On a
    state column, `seen` lists every value the code can leave other than the healthy one. Name the measures it reads,
-   adding them in Step 9 if they are missing. **A signal is only evidence where it is written:** a cancellation
+   adding them in Step 9 if they are missing; a measure added here is a companion measure, never a new alert, and
+   changing an alert's basis, expectation or counted moves takes the run back to the alerting part and the person's
+   review. **A signal is only evidence where it is written:** a cancellation
    or deadline started by a caller shows at the caller, not in the callee's logs; a call made outside the request's
    trace context is not in its trace. Where a harmless cause gives the same signal as a fault (a party giving up
    looks like a slow part), the test says how to tell them apart, or the harmless ending is not used. **A test
@@ -863,7 +940,9 @@ write is the worksheet they are generated from.
 5. **Describe one configuration.** A test and a remedy are written for the configuration `about.csv` names. Where the
    repository ships another that changes the answer (a different store), say so in the test. Values are written as
    the store holds them: a status kept as a number is tested as that number, with its name beside it.
-6. **Verify the claims against the code before anything is generated.** Re-open every distinct `file:line` a live
+6. **Verify the claims against the code before each part is generated.** Before `--alerts`, re-open what each
+   proposed alert rests on: its measure's source, the expectation it guards, and the moves it counts, and record it in
+   `how-made.csv`. Before `--runbooks`, the rest of this item. Re-open every distinct `file:line` a live
    failure mode cites (its `failure`, `test` and `source`: what a responder acts on), and a random sample of the
    rest of what the register cites for the stage's rows and the frame (flows, stages, steps, participation,
    lifecycle, remedies, measures, step impact). Rows added or carried forward from an earlier register (the
@@ -875,23 +954,43 @@ write is the worksheet they are generated from.
    lacks, a restore that really reaches the fault: adding an instance helps only if callers spread their calls
    over instances)? Correct each row that fails, and write a `how-made.csv` row for the pass: how many claims were read
    (those cited by live failure modes, and the sample, each counted), and how many were corrected. This pass is the drafter's own; someone who did not draft the register still checks a sample of the citations afterwards (USE.md, "Before you take it to anyone").
-7. **Generate** the slice, the measures, the alerts and the runbook:
+7. **Generate** the slice, the measures, the alerts and the runbook, in the two parts:
 
 ```
-python "<skill>/flow_outputs.py" "<your-folder>" <flow> <stage> --out "<your-folder>/stage-<stage>"
+python "<skill>/flow_outputs.py" "<your-folder>" <flow> <stage> --out "<your-folder>/stage-<stage>" --alerts
 ```
 
-It checks first, and writes `ALERT.md` and `RUNBOOK.md` only when the check passes: every hop, need and carrier of
+writes the slice, the measures and the alert pages, checking only what the alerts rest on (each alert's basis, the
+expectation it guards, the moves a count of cases counts, and the register's structure); the alert pages say the
+runbook is still to come. Stop there for the person's review of the alerts. After their go:
+
+```
+python "<skill>/flow_outputs.py" "<your-folder>" <flow> <stage> --out "<your-folder>/stage-<stage>" --runbooks
+```
+
+writes the runbook, and the alert pages again with their runbook links; it refuses while the stage has alerts and
+no `ALERT.md`. Plain `--out`, with no stage of work named, is what regenerates a stage already done, and it writes
+what that stage's depth in the person's pick owes and no more: a stage at *measure* gets its slice and measures, a
+stage at *alerting* its alert pages too, and a stage at *runbooks* everything. A stage left at *none* is mapped only
+and is not regenerated: its page comes from the map. With no pick recorded (an earlier run), it does both at once.
+Where `RUN.md` has the row *Review of the alerts*, `--runbooks`, and plain `--out` on a stage taken to runbooks,
+refuse until the person's go on the alerts is recorded (`go.py --alerts-reviewed --decision go`). `--runbooks`, and
+plain `--out` on a stage taken to alerting or runbooks, refuse when the alerts have changed since that go: the change
+goes back through `--alerts`, which opens the review again each time it runs; plain `--out` never opens it.
+
+Together the two check, and write `ALERT.md` and `RUNBOOK.md` only when the checks pass: every hop, need and carrier of
 every move covered; every mode's part in its move's lifecycle row; every test's measures in `measures.csv`; no two
 modes in one state a responder cannot tell apart; a remedy for every restore and every stranded case; exactly the
 measures marked in `alert` proposed for alerting, each naming the expectation it guards, at whatever level it is.
-A stage no alert reaches is noted, not failed: it gets its runbook, which says no alert is proposed for it, and no
-`ALERT.md`. A failure is fixed in the step that produced it. **Never edit a generated file.**
+A stage no alert reaches is noted by `--check`, not failed: it gets its runbook, which says no alert is proposed for
+it, and no `ALERT.md`. A stage taken to alerting or runbooks still owes its alert at the done check, so `run_status.py` lists
+its `ALERT.md` missing until one is proposed. A failure is fixed in the step that produced it. **Never edit a generated file.**
 `ALERT.md` gives each alert its runbook link, to its own entry in `RUNBOOK.md`.
 
 **Where other stages already have a `stage-<id>` folder**, this run can change what they rest on: a shared row, a
-flow-wide row, a remedy. So regenerate every one of them the same way, each with its own `--check`. The run is not
-done until every stage's check passes, because this stage's check only warns on what other stages hold.
+flow-wide row, a remedy. So regenerate every one of them that the person's pick takes past *none* the same way, each
+with its own `--check`; a stage left mapped only is not regenerated. The run is not done until every such stage's
+check passes, because this stage's check only warns on what other stages hold.
 
 ## Step 12. Check and draw
 
@@ -923,13 +1022,20 @@ python "<skill>/one_canvas.py" "<your-folder>" "<your-folder>/views.html"
 python "<skill>/flow_outputs.py" "<your-folder>" <flow> <stage> --check
 ```
 
+With a pick of how far each stage goes, `--check` checks each stage for what its depth does: a stage mapped only or
+measured only for its structure and the measures it owes, a stage taken to alerts for those and its alerts, and only
+a stage taken to runbooks for failure modes. Run it for each stage of the flow.
+
 `<skill>` is the folder `capability_views.py` is in. `one_canvas.py` writes the page, `how-this-map-was-made.html` beside it, and copies each stage's `RUNBOOK.html` and `ALERT.html` into `stage-<id>/` beside it. `--check` lists every id that points
 nowhere, every value outside the closed lists, and every row with no citation. A failure in any check is fixed in
 the step that produced it, and if the step's rule allowed it, in this procedure. A warning is not a failure: read
 it, and either act on it or leave the reason in the row it names.
 
 **The run ends with `run_status.py`**, and it is done only when that says DONE. DONE needs every output the run
-owes, and every field a view requires (each one marked required in the steps above) answered or gapped, for each
+owes: with a pick of how far each stage goes, for each stage what its depth does (mapped only: its `STAGE.html`;
+measured: `STRUCTURE.md` and `MEASURES.md`; alerts: those and the alert pages; runbooks: all six); otherwise all six
+files for each stage in the scope recorded at the go, and for every other stage only its `STAGE.html`, those others
+listed as not yet covered, never as missing, and every field a view requires (each one marked required in the steps above) answered or gapped, for each
 element of the stages the run owes and for the flow. A gap is a row in `measure-gaps.csv`: the element's id (a
 process step id, a part's subject id, a stage id, an alert measure's handle, or an expectation's id), the question exactly
 as `run_status.py` names it, which is one of `step: trigger`, `step: timeouts`, `part: operations`,
@@ -952,10 +1058,14 @@ from a script that searches the code and emits rows. A script may find where to 
 **Then the sampled re-read.** When the register is otherwise complete, draw the sample: `python "<skill>/reread.py"
 "<your-folder>"` writes `re-read.csv`, ten rows that cite code, calls resting only on your reading first. Launch one
 agent that wrote none of the rows, and give it only the workspace and `re-read.csv`: for each row it opens the cited
-lines with the Read tool and writes its verdict (`says`, `does not say` or `unclear`) and the reason. It writes
-nothing else in the register folder. A row that does not say is fixed where it was written; then draw the sample
-again and have it re-read. `run_status.py` passes the re-read only when every verdict says, the verdicts came from
-a session that wrote nothing else in the register, and that session opened every cited line.
+lines with the Read tool and writes its verdict (`says`, `does not say` or `unclear`) and the reason into
+`re-read.csv` **with the Write or Edit tool**, never by a shell command. It writes nothing else in the register
+folder and runs no shell command that names it: the check reads who judged from Claude Code's record of the tools
+each session used, and a shell command could have written rows unseen. Tell the agent so in its prompt. A row that
+does not say is fixed where it was written; then draw the sample again and have it re-read. `run_status.py` passes
+the re-read only when every verdict says, the verdicts were written with Write or Edit by a session that wrote
+nothing else in the register and ran no shell command naming it, and that session opened every cited line; when it
+refuses, it says which of these failed.
 
 ## When something new arrives
 

@@ -1,5 +1,12 @@
 # Known gaps
 
+## Picking how far each stage goes
+
+- **Taking stages further on a finished register is not supported yet.** Nothing routes a run started on a register
+  whose run is done back to the pick of how far each stage goes: it maps again into a new folder, and a second go
+  would record its scope without the earlier pick. Until it is, pick every stage's depth in the one run, at the pick.
+- **Taking a stage less far than already picked is refused,** because the pages already written for it would stay.
+
 ## How far to trust a run
 
 Check the parts: a process step's dependency on a database can be left out, or a mobile app drawn as a web front end
@@ -17,6 +24,14 @@ changes it would leave the check finding no record (it then says so and fails, n
 only the coding patterns its rules cover, and joins a call between services only where its rules resolve every hop
 to the service it reaches (`fact-extractor/README.md`, "The join"); other calls rest on the run's reading. The
 instructions say such a call cites both ends, the call and the operation that receives it; no check holds that yet.
+
+## Naming where a measure is counted
+
+- **The check knows product names from a fixed list.** A product written with a capital in the middle of a word
+  (such as a middleware or monitoring product) passes only when the list holds it; one it does not hold is taken for
+  a name only the code knows, and the run is not done until the run declares it in the register's
+  `product-names.csv`, with where its vendor or the sources write it so. The run vouches for each name it declares;
+  check the declared names when you review the register.
 
 ## At scale
 
@@ -64,12 +79,6 @@ Failure-mode ids (`FM..`) are the register's; each runbook test names the mode i
   the old ones: `python <kit>/flow_outputs.py <register folder> <flow id> <stage id> --out <register folder>/stage-<stage id>`
   for every stage (the same command as the check in USE.md, "Before you take it to anyone", with `--out` in place of
   `--check`), then `python <kit>/one_canvas.py <register folder> <register folder>/views.html`.
-- **The code reader's own check says `conforms: false` on most code.** Its rules record every log, metric and span
-  call as the kind `emission_site`, and this release's `fact-extractor/contract.py` does not list that kind, so check
-  C3 fails and the command exits 1. The findings are sound and the run should carry on, as FILL-STEPS says under "Before you start"
-  ("a kind its contract does not know is reported, not a reason to stop"). If the run stops or calls the reader
-  broken on this, say: *C3 failing only on emission_site is a known gap in this release; record the reach block and
-  carry on.* Any other failing check is real.
 - An earlier register is reconciled against the code, never built on (SKILL.md Phase 7). `reconcile.py` matches
   rows by what they say, so a row an earlier register worded differently is listed as a candidate or a disagreement
   rather than matched; and it checks that a cited line exists, not that it says what the row claims: the model reads

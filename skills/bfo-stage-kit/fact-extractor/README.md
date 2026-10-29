@@ -90,9 +90,9 @@ Each fact: `kind`, `service`, `file`, `line`, `evidence` (the source text at tha
 `rule`, `in_type` (the enclosing type, which the join needs), `in_test`.
 
 The kinds: `inbound_route`, `outbound_http`, `grpc_method`, `grpc_call`, `message_consumer`,
-`message_producer`, `message_publisher`, `message_subscription`, `durable_read`,
+`message_producer`, `message_publisher`, `message_subscription`, `event_binding`, `durable_read`,
 `durable_write`, `repo_decl`, `env_read`, `config_ref`, `background_trigger`, `poll_interval`,
-`client_binding`.
+`client_binding`, `emission_site`. A kind outside these is reported by `contract.py`, not failed.
 
 At the top level, the blocks a reader should open before trusting any count:
 

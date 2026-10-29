@@ -200,6 +200,15 @@ class JavaStreams {
 
         // PROBE:emission_site:micrometer:cache-binder
         GuavaCacheMetrics.monitor(meterRegistry, balanceCache, "balances");
+
+        // PROBE:emission_site:prometheus-simpleclient:histogram-builder
+        Histogram latency = Histogram.build()
+                .name("http_request_duration_seconds")
+                .help("Request duration in seconds.")
+                .register();
+
+        // PROBE:emission_site:prometheus-simpleclient:metrics-servlet
+        ServletRegistrationBean scrape = new ServletRegistrationBean(new MetricsServlet(), "/metrics");
     }
 
     // PROBE:emission_site:micrometer:timed-annotation

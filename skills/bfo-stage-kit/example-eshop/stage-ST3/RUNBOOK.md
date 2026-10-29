@@ -11,9 +11,7 @@ One entry per proposed alert, then the stage's shared section. Each alert's runb
 
 **M14 Paid orders waiting to ship, and the oldest's age** is above the operators' threshold for longer than their window ([ALERT.md](ALERT.md)).
 
-**The expectation it guards:** a paid order still waiting has not been shipped when the customer expects the goods, and nothing moves it but a person recording the shipment: no timer watches Paid orders and nothing in the application calls the ship endpoint (lifecycle L13, recovery stranded). How long a wait is too long is the operators' dispatch target, not the register's.
-
-This measure is not emitted yet; deployed as written, the alert fires on No data until it is.
+**The expectation it guards:** a paid order still waiting has not been shipped when the customer expects the goods, and nothing moves it but a person recording the shipment: no timer watches Paid orders and nothing in the application calls the ship endpoint (lifecycle L13, recovery stranded). How long a wait is too long is the operators' dispatch target, not set here.
 
 **Its cases:** those held in the stage past the time limit (the time limit in [ALERT.md](ALERT.md)). A case not past the time limit is not one of M14's.
 
@@ -215,10 +213,10 @@ For the cases no test explained: escalate them with what you have (S8), and reco
 
 Operator links to fill in, one per measure the tests read:
 
-- M14 (Paid orders waiting to ship, and the oldest's age: rows in 'Paid'; age from the order's OrderStatusChangedToPaid outbox row "CreationTime"): proposed
+- M14 (Paid orders waiting to ship, and the oldest's age: rows in 'Paid'; age from the order's OrderStatusChangedToPaid outbox row "CreationTime"): exists
 - M40 (Ordering API requests by route and status, and their duration: http.server.request.duration by http.route and http.response.status_code): exists
 - M42 (Ordering API transaction failures, by command: ordering-api lines 'Error Handling transaction for {CommandName} ({@Command})'; read with az containerapp logs show --name ordering-api --resource-group <rg> --type console --tail 300 --format text (one replica per call; add --replica for the others)): exists
-- M81 (Ordering database accepting connections: pg_isready -d orderingdb; run in the postgres container (az containerapp exec --name postgres --resource-group <rg>)): proposed
+- M81 (Ordering database accepting connections: pg_isready -d orderingdb; run in the postgres container (az containerapp exec --name postgres --resource-group <rg>)): exists
 - M82 (Long-running statements on orderingdb: SELECT count(*) FROM pg_stat_activity WHERE datname = 'orderingdb' AND state = 'active' AND now() - query_start > interval '5 seconds'; in the postgres container (az containerapp exec --name postgres --resource-group <rg>) run psql -U postgres -d orderingdb): exists
 - M80 (Connections to the postgres server against max_connections: SELECT count(*) FROM pg_stat_activity; SHOW max_connections; in the postgres container (az containerapp exec --name postgres --resource-group <rg>) run psql -U postgres -d orderingdb): exists
 - M75 (Identity API rate, errors, duration: http.server.request.duration): exists
@@ -241,4 +239,4 @@ Operator links to fill in, one per measure the tests read:
 | T12 | FM114 person: nobody acts | L13 | Fulfilment staff | Ordering.API/Apis/OrdersApi.cs:12, 51-78; Ordering.Domain/AggregatesModel/OrderAggregate/Order.cs:119-140 |
 | T13 | FM127 needs: unavailable | L13 | Identity API | eShop.ServiceDefaults/AuthenticationExtensions.cs:33-50 |
 
-<!-- bfo-generated-from {"flow": "F1", "stage": "ST3", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "f3ef7b5dbcfd", "measures": "3c7ec5c71e65", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->
+<!-- bfo-generated-from {"flow": "F1", "stage": "ST3", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "f3ef7b5dbcfd", "measures": "b0ad6bcbbe1a", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->

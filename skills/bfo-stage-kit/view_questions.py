@@ -62,6 +62,15 @@ CONTRACT = {
     "expectation: indicator": GAP_OK,  # a business health or impact measure naming it, or a gap with its kind
 }
 QUESTIONS = tuple(CONTRACT)
+# Questions only measuring answers: what is at stake (the case attributes, written with the measures and costs) and an
+# expectation's indicator (the measure that shows it is met). In a run whose person chose which stages to measure,
+# they count only for those stages, and for the flow and its own expectations once any stage is measured.
+MEASURE_ONLY = ("stage: at stake", "expectation: indicator")
+# Questions only alerting answers (the alerts and the expectation each guards), and those only the runbooks answer
+# (an alert's tests and what to contain first come from the failure modes, which are runbook work): each counts only
+# for stages taken that far.
+ALERTING_ONLY = ("stage: alerts", "alert: expectation it guards")
+RUNBOOK_ONLY = ("flow: stage runbooks", "alert: contain first", "alert: its own tests")
 # A required question one kind of gap may stand for, on one condition: a step no part carries may have no move in
 # the code, which the gap says, citing where it was looked for. A step a part carries still needs its moves.
 LIMITED = {"step: moves": ("no record",)}
@@ -444,15 +453,27 @@ def load(reg):
     return M
 
 
-def count(reg, owed=None):
+def count(reg, owed=None, measured=None, alerting=None, runbooks=None):
     """{question: {"answered": [ids], "gapped": {kind: [ids]}, "empty": [ids]}} over the flows with a stage the run owes, the stages it owes and their steps, every part, and each alert drafted in an owed stage. owed None: every
-    stage."""
+    stage. `measured`, `alerting` and `runbooks`, the stages the person chose to measure, to take to alerting and to
+    take to runbooks: given, a question of MEASURE_ONLY counts only for a measured stage (and for the flow's own
+    expectations once any stage is measured), one of ALERTING_ONLY only for a stage taken to alerting, and one of
+    RUNBOOK_ONLY only for one taken to runbooks. None: every owed stage, as before."""
     import flow_outputs as fo
     import part_inside as pi
     M = load(reg)
     C = {q: {"answered": [], "gapped": {}, "empty": []} for q in QUESTIONS}
 
-    def put(q, el, ctx=None):
+    def counted(q, stage):
+        """Whether question q is asked of an element of `stage` (None: of the flow as a whole)."""
+        for only, chosen in ((MEASURE_ONLY, measured), (ALERTING_ONLY, alerting), (RUNBOOK_ONLY, runbooks)):
+            if q in only and chosen is not None:
+                return bool(chosen) if stage is None else stage in chosen
+        return True
+
+    def put(q, el, ctx=None, stage=None):
+        if not counted(q, stage):
+            return
         st, kind = status(M, q, el, ctx)
         if st == "gapped":
             C[q]["gapped"].setdefault(kind, []).append(el)
@@ -469,7 +490,7 @@ def count(reg, owed=None):
             put(q, f["flow_id"])
         for st in stages:
             for q in of("stage"):
-                put(q, st["stage"])
+                put(q, st["stage"], stage=st["stage"])
             for x in st["_steps"]:
                 for q in of("step"):
                     put(q, x["step"])
@@ -487,7 +508,7 @@ def count(reg, owed=None):
                 SM = fo.build(R, f["flow_id"], s["stage"])
             for m in [m for m in SM["alerts"] if m.get("stage") == s["stage"]]:
                 for q in of("alert"):
-                    put(q, m.get("handle", ""), (SM, m))
+                    put(q, m.get("handle", ""), (SM, m), stage=s["stage"])
     for f in M["flows"]:  # each expectation of an owed flow: of the whole flow, or of a stage the run owes
         owed_here = [st["stage"] for st in f["_stages"] if owed is None or st["stage"] in owed]
         if not owed_here:
@@ -495,7 +516,7 @@ def count(reg, owed=None):
         for e in expectations(M, flow=f["flow_id"]):
             if not e.get("stage") or e["stage"] in owed_here:
                 for q in of("expectation"):
-                    put(q, e.get("expectation_id", ""))
+                    put(q, e.get("expectation_id", ""), stage=e.get("stage") or None)
     return C
 
 

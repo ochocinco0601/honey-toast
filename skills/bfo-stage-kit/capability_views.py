@@ -165,6 +165,9 @@ RENAMED = {"expectation_of": "customer", "promise": "bound_in_code"}
 EFFECT = {
     ("measures", "taken_from"): "fill from each row's citation: the kind of the line `source_ref` cites, or on a "
     "proposed measure the kind it would be taken from; nothing is walked again",
+    ("measures", "counted_at"): "fill from each row's citation: the named place the line `source_ref` cites (the "
+    "table and its database, the log and its line, the metric and the service that serves it), or `not in the code: ` "
+    "and what it would take; nothing is walked again",
 }
 
 

@@ -13,5 +13,13 @@ class NotEmission {
 
         // `info` on a domain object, same shape, same reason.
         buildReport.info("nothing to do");
+
+        // A builder with a `register` step on a class that is not a Prometheus collector.
+        // `$C.build()...register()` with the class unbound matches this.
+        Report.build().name("monthly").register();
+
+        // A simpleclient collector built and NOT registered: `.create()`. Reported as a
+        // registered metric it would carry a `registry_bound: "yes"` the source contradicts.
+        Histogram.build().name("unregistered").help("not scraped").create();
     }
 }

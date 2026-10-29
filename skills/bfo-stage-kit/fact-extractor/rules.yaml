@@ -2277,6 +2277,108 @@ rules:
           - pattern: GuavaCacheMetrics.monitor(...)
           - pattern: "@Timed(...)"
 
+  # **The Prometheus client libraries' own forms, which no meter registry is involved in.**
+  # Sock Shop's orders and carts build their request-latency histogram with the simpleclient
+  # builder, `Histogram.build()...register()`, and payment and catalogue register theirs with
+  # `prometheus.MustRegister`. The meter-registry rule above reads none of it, so without
+  # this rule those services yield no metric fact at all.
+  #
+  # **Only the registering forms.** `.register()` puts a simpleclient collector into the
+  # default registry; `.create()` builds one that nothing scrapes until it is registered
+  # elsewhere. In Go, `prometheus.NewHistogramVec(...)` only defines a metric, and the line
+  # that registers it is `prometheus.MustRegister(...)`; `promauto.New...` does both at once.
+  # So `registry_bound: "yes"` is written in the source at every line these match.
+  #
+  # **The class name is the discriminator.** `$C.build()...register()` alone matches any
+  # builder with a `register` step. `fixtures/negative/NotEmission.java` holds one.
+  - id: dfo-java-prometheus-metric
+    languages: [java]
+    severity: INFO
+    message: "emission_site"
+    metadata:
+      fact_kind: emission_site
+      emission_form: metric
+      registry_bound: "yes"
+      provisional: true
+      authored:
+        estate: "microservices-demo/sock-shop"
+        date: "2026-10-27"
+        checked_against: "orders and carts HTTPMonitoringInterceptor.java, opened at the Histogram field"
+      checked: []
+    patterns:
+      - pattern-either:
+          - pattern: $C.build(...). ... .register(...)
+          - pattern: $C.build(...).register(...)
+      - metavariable-regex:
+          metavariable: $C
+          regex: '^(Counter|Gauge|Histogram|Summary)$'
+
+  - id: dfo-go-prometheus-metric
+    languages: [go]
+    severity: INFO
+    message: "emission_site"
+    metadata:
+      fact_kind: emission_site
+      emission_form: metric
+      registry_bound: "yes"
+      provisional: true
+      authored:
+        estate: "microservices-demo/sock-shop"
+        date: "2026-10-27"
+        checked_against: "payment wiring.go and catalogue cmd/cataloguesvc/main.go, opened at MustRegister"
+      checked: []
+    pattern-either:
+      - pattern: prometheus.MustRegister(...)
+      - pattern: prometheus.Register(...)
+      - patterns:
+          - pattern: promauto.$F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '^New\w+$'
+
+  # **The scrape endpoint.** A service that serves its registry at /metrics exposes every
+  # metric registered in it, including the ones a library registers for it - the JVM and
+  # process collectors `DefaultExports.initialize()` adds, the Go runtime collector the
+  # default registry carries. So the endpoint is the fact a measures step needs most, and on
+  # Sock Shop's orders it is registered in a form no other rule reads: `new MetricsServlet()`
+  # registered at /metrics in `config/PrometheusAutoConfiguration.java`.
+  #
+  # **No `registry_bound`.** The endpoint exposes a registry; it registers nothing, and a
+  # qualifier saying it did would be asserted, not read. In Go the same line is also the
+  # route `dfo-go-inbound-route` reports, and the run discloses it as a line carrying two
+  # kinds, which it genuinely is.
+  - id: dfo-java-prometheus-endpoint
+    languages: [java]
+    severity: INFO
+    message: "emission_site"
+    metadata:
+      fact_kind: emission_site
+      emission_form: metric
+      provisional: true
+      authored:
+        estate: "microservices-demo/sock-shop"
+        date: "2026-10-27"
+        checked_against: "orders config/PrometheusAutoConfiguration.java, opened at the servlet registration"
+      checked: []
+    pattern: new MetricsServlet(...)
+
+  - id: dfo-go-prometheus-endpoint
+    languages: [go]
+    severity: INFO
+    message: "emission_site"
+    metadata:
+      fact_kind: emission_site
+      emission_form: metric
+      provisional: true
+      authored:
+        estate: "microservices-demo/sock-shop"
+        date: "2026-10-27"
+        checked_against: "payment transport.go, opened at the /metrics handler"
+      checked: []
+    pattern-either:
+      - pattern: promhttp.Handler()
+      - pattern: promhttp.HandlerFor(...)
+
   - id: dfo-python-log-emission
     languages: [python]
     severity: INFO

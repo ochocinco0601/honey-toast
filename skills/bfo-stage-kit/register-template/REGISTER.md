@@ -261,6 +261,7 @@ Design-time: each row is a measure someone could take. It is proposed unless the
 | watched | Optional. Only where `exists` is `yes`: whether operations monitoring collects the emitted measure (FILL-STEPS Step 9). `yes` where a scrape configuration, collector, exporter, log shipper or monitoring dashboard takes it; `in the app only` where an application screen shows it and nothing collects it; `no` where nothing does (a metric nothing scrapes, a log nothing ships); `unknown` where no such configuration is within reach. Never settled by reading the emitting code. Blank on a proposed measure. The page shows it in an opened measure, as Watched |
 | watched_source | Optional. Where `watched` is set: the collection or dashboard configuration read, with its citation, or the words `no inventory reachable`, which only `unknown` may rest on. `flow_outputs.py --check` fails on a value outside `yes`, `in the app only`, `no`, `unknown`, on `watched` with no source, and on `watched` written on a measure that is not emitted |
 | taken_from | The kind of record the measure is counted from. Where `exists` is `yes`, the kind of the line cited in `source_ref`; on a proposed measure, the kind it would be taken from. Decide it from what the measure counts, never from the tools at hand (FILL-STEPS Step 9). One of: `metric`, `log or event record`, `trace`, `the edge`, `external probe`, `client-side instrumentation`, `the case's own record`, `a message log kept with the state`, `configuration`, `platform lifecycle events`, `another organisation's record`. |
+| counted_at | Optional as a column only in a register made before it existed; every register started from `register-template/` has it. The plain name of the place the measure is counted at, one a reader knows without the code, read from that row's own `counted_how` and citation: the table and the database it lives in (`order lines table, ordering database`), the log and the service that writes it (`Ordering API log, line 'CreateOrderCommand succeeded'`), a service's request metric or traces, or the system whose own status it is, naming the product where the code shows it (`message broker's queue status (RabbitMQ), Ordering queue`; `database server's own status (PostgreSQL), connections`). A measure counted from two places names both, as `X, against Y`. Never a code identifier: nothing backticked, no quoted word that is not a log line, no word joined by an underscore or with a capital inside it that starts a new word, no dotted lower-case name unless it is a file, a host or a number. Two measures with the same `counted_at` have the same `exists`. `taken_from` says the kind; this says which one. Where the code does not show the place, `not in the code: ` and what it would take. Filled from the row's citation, never by walking the code again (FILL-STEPS Step 9). `flow_outputs.py --check` fails on a row with a `source_ref` and no `counted_at`, on one naming a code identifier, and on two with the same `counted_at` and a different `exists` |
 
 A measure is a candidate: something that could show whether the capability works. Choosing which are wanted, and
 setting any target or threshold, is done later by people; the register holds none unless a source states one.
@@ -379,3 +380,14 @@ added it.
 | as_of | The date the source describes, or the date you were told |
 | pass | The pass that first read it |
 | note | One line: what it covers, and what it does not |
+
+### product-names.csv: product names the run vouches for
+
+Optional, and empty in most runs. A product whose own name has a capital inside a word, which the check of
+`counted_at` takes for a name only the code knows. A declared name passes only as a whole word; one holding a
+dot, underscore, backtick or slash, or with no source, is ignored. Never a table, class or event name.
+
+| Column | What goes in it |
+|---|---|
+| name | The product's name as one word, as its vendor writes it (`SiteMinder`) |
+| source | Where the name is written so: the vendor's documentation, or a source of this register by its citation |

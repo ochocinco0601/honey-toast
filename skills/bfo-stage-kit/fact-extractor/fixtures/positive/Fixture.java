@@ -48,4 +48,16 @@ public class Fixture {
 
     @Async
     public void background() { }
+
+    static final Histogram requestLatency = Histogram.build()
+            .name("http_request_duration_seconds")
+            .help("Request duration in seconds.")
+            .labelNames("service", "method", "path", "status_code")
+            .register();
+
+    static final Counter placed = Counter.build("orders_placed_total", "orders placed").register();
+
+    ServletRegistrationBean metricsServlet(String metricsPath) {
+        return new ServletRegistrationBean(new MetricsServlet(), metricsPath);
+    }
 }

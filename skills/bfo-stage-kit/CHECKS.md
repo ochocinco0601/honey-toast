@@ -108,12 +108,18 @@ the run's process).
 | fo-17 | flow_outputs.py | gap_rows | 766 | warning | c | names nothing the receipt | Gap names a non-element |
 | fo-18 | flow_outputs.py | gap_rows | 768 | warning | c | a candidate in measures.csv | False gap |
 | fo-19 | flow_outputs.py | citation_failures | 789 | warning | b (FK in text) | a citation starts with | Citation prefix -> sources.repository |
-| fo-20 | flow_outputs.py | receipt_failures | 806 | warning | c | {msg}; it belongs only | the receipt, for an element of another stage: a warning, since its own run errors on it |
+| fo-20 | flow_outputs.py | receipt_failures | 884 | warning | c | whose own run errors on it | the receipt, for an element of another stage: a warning, since its own run errors on it |
+| fo-20m | flow_outputs.py | receipt_failures | 882 | warning | c | not measured in this run | the receipt, where the person chose which stages to measure: an element only of stages not measured is a warning, never owed |
 | fo-21 | flow_outputs.py | receipt_failures | 808 | error | c | ={msg} | the receipt: each element of the run's stage or flow is covered by a measure or gapped |
+| fo-21p | flow_outputs.py | person_text_failures | 426 | error | c | a person reads when reviewing this alert | an alert's basis, question and guarded expectations, as the person reviewing it reads them, carry no id, file name or kit term (the review's own term list) |
 | fo-22 | flow_outputs.py | watched_failures | 827 | error | a | watched is set and | Same-row conditional |
 | fo-23 | flow_outputs.py | watched_failures | 830 | error | a | watched {w or 'blank'} | measures.watched is yes, in the app only, no or unknown |
 | fo-24 | flow_outputs.py | watched_failures | 832 | error | a | watched is {w} with | dependentRequired |
 | fo-25 | flow_outputs.py | watched_failures | 835 | error | a | watched is {w} on | Same-row conditional |
+| fo-73 | flow_outputs.py | counted_at_failures | 953 | error | a | and says no counted_at | dependentRequired: a measure with a source_ref names the place it is counted at; run_status.py says NOT DONE on the same rows |
+| fo-75 | flow_outputs.py | counted_at_failures | 1010 | error | a | counted_at names {hit}, a name only | measures.counted_at is a plain name, never a code identifier (flow_outputs.code_name: backticked, a quoted word not a log line, snake_case, an inner capital starting a word, a dotted lower-case name not a file, host or number) |
+| fo-76 | flow_outputs.py | same_place_failures | 985 | error | b | the same counted_at | two measures naming the same place agree on exists |
+| fo-74 | flow_outputs.py | check | 1116 | warning | a | measures.csv has no counted_at column | a register made before counted_at existed is told to add it, filled from each row's citation |
 | fo-26 | flow_outputs.py | check | 844 | error | b | lifecycle.csv names {tok} in | lifecycle.carried_by and needs -> subjects, by id or name |
 | fo-27 | flow_outputs.py | check | 849 | warning | c | {msg}, so it is | a step has moves: a step view_questions.moves_excuse excuses is drawn not assessed |
 | fo-28 | flow_outputs.py | check | 851 | error | c | {msg}; only a step no part carries | a step has moves, or view_questions.moves_excuse excuses it: a step no part carries, by a gap the view question `step: moves` also counts, or as a step the reference model adds, which the view question counts as does not apply |
@@ -145,10 +151,10 @@ the run's process).
 | fo-54 | flow_outputs.py | check | 959 | error | d (text) | {col} names a runbook section ({x}); the register does not know the runbook's sections: | Regex over remedy text |
 | fo-55 | flow_outputs.py | check | 963 | error | d (text) | {col} names {', '.join(named)}, | Regex over remedy text |
 | fo-56 | flow_outputs.py | check | 969 | error | d (text) | =failure-modes.csv {r.get('mode_id', '?')}: {col} names a runbook section ({x}); the register does not know the runbook's sections | Regex over failure-mode text |
-| fo-57 | flow_outputs.py | check | 978 | error | c | no failure mode at | FMEA coverage |
-| fo-58 | flow_outputs.py | check | 983 | error | c | hop {h}, mode {c['mode']} | move x hop x catalogue mode |
-| fo-59 | flow_outputs.py | check | 989 | error | c | need {need} ({name(M, need)}), | move x need x needs-mode |
-| fo-60 | flow_outputs.py | check | 992 | error | c | carrier {part} ({name(M, part)}) | move x carrier |
+| fo-57 | flow_outputs.py | required_failure_rows | 965 | error | c | no failure mode at | FMEA coverage |
+| fo-58 | flow_outputs.py | required_failure_rows | 971 | error | c | hop {h}, mode {c['mode']} | move x hop x catalogue mode |
+| fo-59 | flow_outputs.py | required_failure_rows | 979 | error | c | need {need} ({name(M, need)}), | move x need x needs-mode |
+| fo-60 | flow_outputs.py | required_failure_rows | 984 | error | c | carrier {part} ({name(M, part)}) | move x carrier |
 | fo-61 | flow_outputs.py | check | 1000 | error | d (declarable) | same measures and same | Unique (derived branch, measures, seen) |
 | fo-62 | flow_outputs.py | check | 1067 | note (printed as `note:`, never stops the outputs) | d | proposed for alerting on its | Reports where an alert not on a stage's count of cases is drafted: every stage it reaches (its step's stage, every stage of its flow, or each stage its part serves), or that it reaches none. Was an error in earlier releases: the register says which measures alert, at any level |
 | fo-63 | flow_outputs.py | check | 1073 | note (printed as `note:`, never stops the outputs) | d | no alert is proposed on stage | Reports a stage with no alert reaching it: no ALERT page is written and its runbook says so. Was an error ("each run stage has at least 1 alert") in earlier releases: whether to alert is the team's decision |
@@ -166,6 +172,8 @@ the run's process).
 | vq-03 | view_questions.py | refusal | 88 | error | d (text) | the reason cites no | CITE regex |
 | rs-01 | run_status.py | view_questions | 174 | not done | c | {q} {len(C[q]['empty'])} empty | each view question that gates is answered or gapped, for each element owed (vq-q01 to vq-q24) |
 | rs-02 | run_status.py | view_questions | 177 | not done | d (process) | {q} {len(unread)} gapped not | a gap of kind `not read` does not pass on a first run |
+| rs-03 | run_status.py | split_checks | 72 | not done | d (process) | rows not judged by | in a split run, every unit's rows are judged by the number of judges run-settings.json sets (default three) and flagged rows judged again, read from the transcripts (judges.py) |
+| rs-04 | run_status.py | split_checks | 54 | not done | d (process) | the map is not the | in a split run, the map's tables are what a merge of the unit folders gives, every call matched or listed (merge.py) |
 
 ## The view questions that gate
 

@@ -27,6 +27,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from capability_views import read_csv, ids  # noqa: E402
 import capability_views as cv  # noqa: E402
+import go  # noqa: E402
 import page_style as ps  # noqa: E402
 import view_questions as vq  # noqa: E402
 
@@ -63,6 +64,8 @@ def old_remedy_id_failures(R):
                        "every remedy id and every reference to one")
     return out
 RECOVERY = cv.RECOVERY
+RUNBOOK_LATER = ("The runbook comes at the runbooks stage, after these alerts are reviewed: it writes the ways each "
+                 "can fail, the tests that tell them apart, and what to do.")
 THRESHOLD = ("*Operator value, not set here.* For each measure, the value at which the alert fires. Whether it "
              "pages a person, opens a ticket or shows on a dashboard is the operators' decision.")
 LAYERS = ["business health", "business impact", "application", "technology"]
@@ -79,6 +82,7 @@ def load(reg):
     R["measure-forms"] = read_csv(HERE / "method" / "measure-forms.csv")
     R["agent-questions"] = read_csv(HERE / "method" / "agent-questions.csv")
     R["impact"] = read_csv(HERE / "method" / "impact.csv") if (HERE / "method" / "impact.csv").exists() else []
+    R["products"] = vouched_products(read_csv(reg / PRODUCT_NAMES))
     R["_name"] = reg.name
     return R
 
@@ -403,6 +407,34 @@ def guards(m):
     return list(dict.fromkeys(ids(m.get("expectation"))))
 
 
+def person_text_failures(M, drafted):
+    """Errors for an alert whose text, as the person reviewing it reads it, carries an id, a file name or the kit's
+    own vocabulary: its basis, the question it answers and the expectations it guards, each turned into words as the
+    review renders them (brief.py alerts) and judged by the review's own term list, so the review can always be
+    rendered. A measure's own name is the register's, and is let stand."""
+    import brief
+    R = M["R"]
+    expect = {e.get("expectation_id"): e for e in R.get("expectations", [])}
+    names = {brief.cont(as_reviewed(M, x["measure"])) for x in M["measures"].values()} | \
+            {as_reviewed(M, x["measure"]) for x in M["measures"].values()}
+    out = []
+    for m in drafted:
+        texts = [("basis", basis(m)), ("question_it_answers", m.get("question_it_answers"))] + \
+                [(f"expectation {e}", expect[e].get("expectation")) for e in guards(m) if e in expect]
+        for col, text in texts:
+            hits = brief.review_terms(as_reviewed(M, text), names)
+            if hits:
+                out.append(f"measures.csv {m['handle']}: the {col} a person reads when reviewing this alert carries "
+                           f"{', '.join(dict.fromkeys(hits))}: write it in their words, naming no table, file, id or "
+                           "word of the kit's")
+    return out
+
+
+def as_reviewed(M, text):
+    """Register text as the person reads it in a review: ids named, remedies and states in words, no proposal label."""
+    return re.sub(r"\bproposed:\s*", "", states_said(M, remedy_words(unid(M, unpipe(text or ""))))).strip()
+
+
 def expectation_failures(R, flow_id):
     """Errors on the register's ties to expectations.csv: an id in `measures.expectation` that is not a row of it, and
     an `objective` of the flow's expectations that is `proposed:` (an objective is only ever stated, never drafted)
@@ -668,9 +700,10 @@ def receipt(R, flow_id):
     case = {sid for sid, s in subj.items() if s.get("part_kind") == "case"}
     out = []
 
-    def add(element, question, what, covered, at=()):
-        out.append(dict(element=element, question=question, what=what, covered=bool(covered),
-                        stages=sorted(set(at))))
+    def add(element, question, what, by, at=()):
+        # `by`: the measures that answer the element; covered when there is one, and `by` names them by handle
+        out.append(dict(element=element, question=question, what=what, covered=bool(by),
+                        by=[m.get("handle") or m.get("measure") for m in by], stages=sorted(set(at))))
 
     stage_of = {s["step"]: s["stage"] for s in R["steps"]}
 
@@ -681,9 +714,9 @@ def receipt(R, flow_id):
     own_cases = {s.get("business_subject") for s in steps}  # a case measure naming no flow counts only the flows of its case
     if time_limit(flow.get("bound_in_code")):
         add(flow_id, "the time limit", f"flow: {flow['name']}",
-            any(on_cases(m) and not m.get("step") and not m.get("stage")
-                and (m.get("flow") == flow_id or (not m.get("flow") and m.get("subject_id") in own_cases))
-                and m.get("layer") == "business health" and m.get("form") in TIME_LIMIT_FORMS for m in ms), [])
+            [m for m in ms if on_cases(m) and not m.get("step") and not m.get("stage")
+             and (m.get("flow") == flow_id or (not m.get("flow") and m.get("subject_id") in own_cases))
+             and m.get("layer") == "business health" and m.get("form") in TIME_LIMIT_FORMS], [])
     step_ids = [s["step"] for s in steps]
     rows = [p for p in R["participation"] if p["step"] in step_ids]  # every component, whatever its involvement
     agents = agent_rows(R, flow_id)
@@ -702,8 +735,8 @@ def receipt(R, flow_id):
         for q, (layers, forms) in STAGE_ASKS.items():
             if q in TIME_LIMIT_QUESTIONS and not time_limit(st.get("bound_in_code")):
                 continue
-            add(sid, q, f"stage: {st['name']}", any(m.get("layer") in layers and m.get("form") in forms
-                                                     and q in listed(m.get("receipt_question")) for m in mine), [sid])
+            add(sid, q, f"stage: {st['name']}", [m for m in mine if m.get("layer") in layers and m.get("form") in forms
+                                                  and q in listed(m.get("receipt_question"))], [sid])
         M = build(R, flow_id, sid)
         for s in M["steps"]:
             n = s["step"]
@@ -712,13 +745,14 @@ def receipt(R, flow_id):
             if not (leaves or first or n in impact or n in served):
                 continue
             for q in STEP_QUESTIONS:
-                add(n, q, f"step: {s['name']}", any(m.get("step") == n and on_cases(m) and m.get("layer") in BUSINESS
-                                                     and q in listed(m.get("receipt_question")) for m in ms), [sid])
+                add(n, q, f"step: {s['name']}", [m for m in ms if m.get("step") == n and on_cases(m)
+                                                  and m.get("layer") in BUSINESS
+                                                  and q in listed(m.get("receipt_question"))], [sid])
     for c in dict.fromkeys(p["subject_id"] for p in rows):
         s = subj.get(c, {})
         if s.get("band") == "technology":
             add(c, "technology", f"system component: {s['name']}",
-                any(m["subject_id"] == c and m.get("layer") == "technology" for m in ms),
+                [m for m in ms if m["subject_id"] == c and m.get("layer") == "technology"],
                 [stage_of[p["step"]] for p in rows if p["subject_id"] == c])
         elif (s.get("band") == "application" and s.get("level") == "component"
               and s.get("part_kind") not in ("LLM agent", "person", "case")):
@@ -726,7 +760,7 @@ def receipt(R, flow_id):
             app = [m for m in ms if m["subject_id"] == c and m.get("layer") == "application"]
             for op in dict.fromkeys(o for p in mine for o in listed(p.get("operation"))):
                 add(f"{c} {op}", "application", f"operation of {s['name']}",
-                    any(listed(m.get("operation")) == [op] for m in app),  # one candidate per operation
+                    [m for m in app if listed(m.get("operation")) == [op]],  # one candidate per operation
                     [stage_of[p["step"]] for p in mine if op in listed(p.get("operation"))])
             if any(not listed(p.get("operation")) for p in mine):
                 add(c, "application", f"component: {s['name']}, no operation named", app,
@@ -737,7 +771,7 @@ def receipt(R, flow_id):
             for op in dict.fromkeys(o for p in rows if p["subject_id"] == c for o in listed(p.get("operation"))):
                 if route(op):
                     add(f"{c} {op}", "application", f"route of {s['name']}, the agent's own component",
-                        any(listed(m.get("operation")) == [op] for m in app),
+                        [m for m in app if listed(m.get("operation")) == [op]],
                         [stage_of[p["step"]] for p in rows if p["subject_id"] == c and op in listed(p.get("operation"))])
     provisional = [q for q in R["agent-questions"] if q.get("status") == "provisional"]
     at_point = [q["agent_question"] for q in provisional if q.get("grain") == "decision point"]
@@ -772,7 +806,7 @@ def receipt(R, flow_id):
                 else f"{'reply' if pt.get('reply') else 'decision point'} of {subj[pt['agent']]['name']}, "
                 f"at step{'s' if len(pt['steps']) > 1 else ''} " + ", ".join(pt["steps"]))
         for q in at_point:
-            add(key, q, what, any(m.get("agent_question") == q and answers(m, pt) for m in mine),
+            add(key, q, what, [m for m in mine if m.get("agent_question") == q and answers(m, pt)],
                 [stage_of[n] for n in pt["steps"] if n in stage_of] or
                 [stage_of[p["step"]] for p in agents if p["subject_id"] == pt["agent"]])
     if at_run:
@@ -780,7 +814,7 @@ def receipt(R, flow_id):
             mine = [m for m in ms if m["subject_id"] == agent and m.get("layer") == "agentic"
                     and m.get("agent_question") in at_run]
             for q in RUN_QUESTIONS:
-                add(agent, q, f"runs of {subj[agent]['name']}", any(q in listed(m.get("receipt_question")) for m in mine),
+                add(agent, q, f"runs of {subj[agent]['name']}", [m for m in mine if q in listed(m.get("receipt_question"))],
                     [stage_of[p["step"]] for p in agents if p["subject_id"] == agent])
     return out
 
@@ -858,9 +892,14 @@ def citation_failures(R):
             f"({', '.join(sorted(repos))}); cite from the workspace root" for first, where in sorted(stray.items())]
 
 
-def receipt_failures(R, flow_id, stage=None):
+def receipt_failures(R, flow_id, stage=None, measured=None):
     """A run that names a stage errors on an element of that stage or of the flow, and warns on one that belongs only
-    to other stages: their own runs read their code, and error on it."""
+    to other stages: their own runs read their code, and error on it. `measured`, the set of stages the person chose
+    to measure, takes the named stage's place: an element is owed when it belongs to the flow or to any measured stage
+    (so a part shared by several stages is owed when one of them is measured). With no stage measured, the measure
+    receipt is not run at all."""
+    if measured is not None and not measured:
+        return [], set(), [], []
     rec = receipt(R, flow_id)
     err, warn, gapped = gap_rows(R, rec)
     elsewhere = {(r["element"], r["question"]) for f in R["flows"] if f["flow_id"] != flow_id for r in receipt(R, f["flow_id"])}
@@ -870,7 +909,9 @@ def receipt_failures(R, flow_id, stage=None):
         if not r["covered"] and (r["element"], r["question"]) not in gapped:
             msg = (f"receipt: {r['element']} ({r['what']}), {r['question']}: no candidate in measures.csv and no "
                    "reason in measure-gaps.csv")
-            if stage and r["stages"] and stage not in r["stages"]:
+            if measured is not None and r["stages"] and not set(r["stages"]) & set(measured):
+                warn.append(msg + f"; it belongs only to {', '.join(r['stages'])}, not measured in this run")
+            elif measured is None and stage and r["stages"] and stage not in r["stages"]:
                 warn.append(msg + f"; it belongs only to {', '.join(r['stages'])}, whose own run errors on it")
             else:
                 err.append(msg)
@@ -904,8 +945,154 @@ def watched_failures(m):
     return []
 
 
-def check(M):
-    """(errors, warnings). An error fails the run."""
+# What counted_at may hold and what only the code knows. A quoted span after `line` or before `log line` is a log
+# line's own words and is let through, whatever it holds; any other quoted span is refused, a space in it or not.
+# Abbreviations (`e.g.`) and version numbers (`v7.2`) pass. Refused: anything backticked; a quoted word that is not a log line
+# (`'Cancelled'`); a word joined by an underscore (`pg_stat_activity`); a word with a capital inside it that starts a
+# new lower-case word (`orderItems`, `IntegrationEventLog`), a product spelled that way aside; a dotted word that is
+# all lower case (`ordering.orders`), unless it is a file of a known kind, a host name or a number. A capital at the
+# end of a name (`RabbitMQ`, `PostgreSQL`, `MongoDB`) and a dotted product name (`ASP.NET`, `Node.js`) pass.
+QUOTED = re.compile(r"(?<!\w)(['\"])(.+?)\1(?!\w)")
+WORD = re.compile(r"[\w.\-]+")
+PRODUCTS = {"GitHub", "GitLab", "OpenTelemetry", "OpenSearch", "OpenShift", "JavaScript", "TypeScript", "WebSocket",
+            "PayPal", "YouTube", "ServiceNow", "PagerDuty", "Datadog", "NewRelic", "AppDynamics", "CloudWatch",
+            "SolarWinds", "BigPanda", "LogicMonitor", "DynamoDB", "eShop", "BigQuery", "NServiceBus", "MassTransit",
+            "IdentityServer", "PowerShell", "WebLogic", "WebSphere", "BizTalk", "AutoSys", "SharePoint", "MuleSoft",
+            "CyberArk", "webMethods", "TeamCity", "NetScaler", "LoadRunner", "SiteScope", "BladeLogic", "ZooKeeper",
+            "WildFly", "NetBackup", "OpenStack", "BigFix", "ArcSight", "LogRhythm", "vSphere", "vCenter", "NetApp"}
+PROSE = {"e.g", "i.e", "etc", "vs", "cf"}  # abbreviations, as WORD finds them with the last dot stripped
+VERSION = re.compile(r"v?\d+(\.\d+)+")
+FILE_KINDS = ("log", "txt", "json", "csv", "yaml", "yml", "xml", "conf", "ini", "out", "err")
+HOST_ENDS = ("com", "net", "org", "io", "dev", "cloud", "local", "internal", "svc", "lan")
+
+
+PRODUCT_NAMES = "product-names.csv"  # in the register: name, source (where the name is written so)
+
+
+def vouched_products(rows):
+    """The product names the register declares that the check may accept: each with a source, one word, and holding
+    no dot, underscore, backtick or slash, so no declaration can let a code identifier through."""
+    return {n for r in rows for n in [norm(r.get("name"))]
+            if n and norm(r.get("source")) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9\-]*", n)}
+
+
+def code_name(text, products=()):
+    """The first part of `text` only the code knows, or None. `products`: names the register vouches for."""
+    rest = []
+
+    def lift(m):
+        if (re.search(r"\blines?:?\s*$", text[:m.start()])
+                or re.match(r"\s*(log\s+)?lines?\b", text[m.end():])):  # a log line: whatever its quotes hold
+            return " "
+        rest.append(m.group(0))
+        return " "
+    s = QUOTED.sub(lift, text)
+    tick = re.search(r"`[^`]*`", s)
+    if rest or tick:
+        return rest[0] if rest else tick.group(0)
+    for tok in WORD.findall(s):
+        tok = tok.strip(".-")
+        if tok.lower() in PROSE or VERSION.fullmatch(tok):
+            continue
+        if re.search(r"[A-Za-z0-9]_[A-Za-z0-9]", tok):
+            return tok
+        if re.search(r"[a-z][A-Z][a-z]", tok) and tok not in PRODUCTS and tok not in products:
+            return tok
+        parts = tok.split(".")
+        if len(parts) > 1 and any(re.match(r"[A-Z][a-z]", p) for p in parts[1:]):  # schema.Table (`dbo.Orders`)
+            return tok
+        if len(parts) > 1 and not (any(re.search(r"[A-Z]", p) for p in parts) or parts[-1].lower() in FILE_KINDS
+                                   or parts[-1].lower() in HOST_ENDS or all(p.isdigit() for p in parts)):
+            return tok
+    return None
+
+
+def same_place_failures(measures):
+    """An error per place two measures name in the same `counted_at` while their `exists` differ: the place either
+    produces the signal today or does not."""
+    by = {}
+    for m in measures:
+        at = norm(m.get("counted_at")).lower()
+        if at and not at.startswith("not in the code"):
+            by.setdefault(at, []).append(m)
+    out = []
+    for at, ms in by.items():
+        if len({m.get("exists") for m in ms}) > 1:
+            said = ", ".join(f"{m['handle']} {m.get('exists') or 'blank'}" for m in ms)
+            out.append(f"measures.csv {', '.join(m['handle'] for m in ms)}: the same counted_at ({at}) and a different "
+                       f"exists ({said}): a place either produces the signal today or does not, so set each from "
+                       "its citation")
+    return out
+
+
+def counted_at_failures(m, products=()):
+    """`counted_at`: the plain name of the place a measure is counted at, read from its own counted_how and
+    citation. A row with a `source_ref` and no `counted_at` fails, and so does one naming a code identifier; a
+    register whose measures.csv has no such column (made with an earlier release) is warned once by the check
+    instead."""
+    if "counted_at" not in m or not norm(m.get("source_ref")):
+        return []
+    at = norm(m.get("counted_at"))
+    if not at:
+        return [f"measures.csv {m['handle']}: it cites {norm(m['source_ref'])[:80]!r} and says no counted_at, so the "
+                "screen cannot say where it is counted: write the plain name of the place that citation shows (the "
+                "table and the database it lives in, the log and the service that writes it, or the system whose own "
+                "status it is), or 'not in the code: ' and what it would take"]
+    hit = code_name(at, products)
+    if hit:
+        return [f"measures.csv {m['handle']}: counted_at names {hit}, a name only the code knows, so a "
+                "reader cannot find the place from it: write the plain name a reader knows without the code (the "
+                "table and the database it lives in, the log and the service that writes it, or the system whose "
+                f"own status it is). If {hit} is a product's own name, declare it in {PRODUCT_NAMES} with where "
+                "its vendor or the sources write it so"]
+    return []
+
+
+def alert_check(M):
+    """The alerting stage's check: the register's structure, and the measure and alert rules (basis, expectation,
+    counted moves). It reads no failure-mode work: alerts are chosen from the measures alone."""
+    return check(M, "alerts")
+
+
+def runbook_check(M):
+    """The runbooks stage's check: the register's structure, and the failure-mode coverage of every move and hop, the
+    tests, what a responder should see, and the remedies."""
+    return check(M, "runbooks")
+
+
+def required_failure_rows(M, mv):
+    """The failure-mode rows a stage's move owes, each with whether it is written: first, any row at all; then each
+    hop kind's modes, each need's modes and each carrier. The check's errors and depth.json both read this list."""
+    R, move = M["R"], M["moves"][mv]["move"]
+    rows = [r for r in M["fm"] if mv in ids(r["moves"])]
+    out = [dict(move=mv, what=f"{move}: any failure mode", met=bool(rows),
+                error=f"lifecycle {mv} ({move}): no failure mode at all")]
+    for h in M["hops"][mv]:
+        for c in R["hop-failures"]:
+            if c["hop_kind"] == h:
+                out.append(dict(move=mv, what=f"{move}: {h}, {c['mode']}",
+                                met=any(r["hop"] == h and r["mode"] == c["mode"] for r in rows),
+                                error=f"lifecycle {mv}: hop {h}, mode {c['mode']!r} has no failure mode row (write "
+                                      f"one, or ending 'not possible' with the citation)"))
+    for need in M["needs"][mv]:
+        for c in R["hop-failures"]:
+            if c["hop_kind"] == "needs":
+                out.append(dict(move=mv, what=f"{move}: needs {name(M, need)}, {c['mode']}",
+                                met=any(r["hop"] == "needs" and need in parts_of(r) and r["mode"] == c["mode"]
+                                        for r in rows),
+                                error=f"lifecycle {mv}: need {need} ({name(M, need)}), mode {c['mode']!r} has no "
+                                      f"failure mode row"))
+    for part in M["carried"][mv]:
+        out.append(dict(move=mv, what=f"{move}: carried by {name(M, part)}",
+                        met=any(part in parts_of(r) for r in rows),
+                        error=f"lifecycle {mv}: carrier {part} ({name(M, part)}) has no failure mode row"))
+    return out
+
+
+def check(M, part="all"):
+    """(errors, warnings). An error fails the run. `part` "alerts" or "runbooks" keeps the register's structure and only
+    that stage's own rules; "all" is both, in one pass."""
+    alerts, runbooks = part in ("all", "alerts"), part in ("all", "runbooks")
     err, warn = [], []
     R, moves, sm = M["R"], M["moves"], M["stage_moves"]
     for tok in dict.fromkeys(M["unresolved"]):
@@ -949,13 +1136,13 @@ def check(M):
                 warn.append(f"step {s['step']}: its lifecycle needs {d} ({name(M, d)}), and no interaction on that step "
                             f"reaches it, so the map draws no caller: list the step on the subjects.csv interaction "
                             f"that calls it, or correct the needs")
-    reached = donts_of(M, R["failure-modes"])
-    for rid, rem in M["remedies"].items():
+    reached = donts_of(M, R["failure-modes"]) if runbooks else set()
+    for rid, rem in (M["remedies"].items() if runbooks else ()):
         if rem.get("kind") == "do not" and rid not in reached:
             warn.append(f"remedies.csv {rid}: a do not remedy that no failure mode uses, and no remedy they use names, "
                         "so no runbook shows it: name it in the remedy of the modes it cautions against")
     cat = {(h["hop_kind"], h["mode"]) for h in R["hop-failures"]}
-    for r in M["fm"]:
+    for r in (M["fm"] if runbooks else ()):
         i = r.get("mode_id", "?")
         if r["hop"] not in M["kinds"]:
             err.append(f"failure-modes.csv {i}: hop {r['hop']!r} is not a hop kind in method/hop-failures.csv")
@@ -1016,9 +1203,16 @@ def check(M):
                        "says what an emitted measure counts wrong, so a proposed measure has none: say what it must "
                        "count in counted_how")
         err += watched_failures(m)
-    handles = {m["handle"] for m in M["alerts"]}
-    err += old_remedy_id_failures(R)
-    for rid, rem in M["remedies"].items():
+        err += counted_at_failures(m, R.get("products", ()))
+    err += same_place_failures(R["measures"])
+    if R["measures"] and not any("counted_at" in m for m in R["measures"]):
+        warn.append("measures.csv has no counted_at column (a register made with an earlier version of this kit), so "
+                    "the screen cannot say where any measure is counted: add it, with its header from "
+                    "register-template/measures.csv, and " + cv.EFFECT[("measures", "counted_at")])
+    handles ={m["handle"] for m in M["alerts"]}
+    if runbooks:
+        err += old_remedy_id_failures(R)
+    for rid, rem in (M["remedies"].items() if runbooks else ()):
         if rem.get("kind") not in REMEDY_KINDS:
             err.append(f"remedies.csv {rid}: kind {rem.get('kind')!r} is not one of {', '.join(REMEDY_KINDS)}")
         for col in REMEDY_TEXT:
@@ -1031,34 +1225,18 @@ def check(M):
                 err.append(f"remedies.csv {rid}: {col} names {', '.join(named)}, a measure proposed for alerting; a "
                            "remedy is written once for every alert whose tests end at it, so its text names no alert: "
                            "say what to record in words that hold for any of them")
-    for r in M["fm"]:
+    for r in (M["fm"] if runbooks else ()):
         for col in ("failure", "test", "expected", "seen"):
             for x in dict.fromkeys(re.findall(r"§\s*\d+", r.get(col) or "")):
                 err.append(f"failure-modes.csv {r.get('mode_id', '?')}: {col} names a runbook section ({x}); the "
                            "register does not know the runbook's sections")
-    covered = {}
-    for r in M["fm"]:
-        for mv in ids(r["moves"]):
-            covered.setdefault(mv, []).append(r)
-    for mv in sm:
-        rows = covered.get(mv, [])
-        if not rows:
-            err.append(f"lifecycle {mv} ({moves[mv]['move']}): no failure mode at all")
+    for mv in (sm if runbooks else ()):
+        owed = required_failure_rows(M, mv)
+        if not owed[0]["met"]:  # no failure mode at all on the move: that one error stands for the rest
+            err.append(owed[0]["error"])
             continue
-        for h in M["hops"][mv]:
-            for c in R["hop-failures"]:
-                if c["hop_kind"] == h and not any(r["hop"] == h and r["mode"] == c["mode"] for r in rows):
-                    err.append(f"lifecycle {mv}: hop {h}, mode {c['mode']!r} has no failure mode row (write one, or "
-                               f"ending 'not possible' with the citation)")
-        for need in M["needs"][mv]:
-            for c in R["hop-failures"]:
-                if c["hop_kind"] == "needs" and not any(r["hop"] == "needs" and need in parts_of(r) and r["mode"] == c["mode"]
-                                                        for r in rows):
-                    err.append(f"lifecycle {mv}: need {need} ({name(M, need)}), mode {c['mode']!r} has no failure mode row")
-        for part in M["carried"][mv]:
-            if not any(part in parts_of(r) for r in rows):
-                err.append(f"lifecycle {mv}: carrier {part} ({name(M, part)}) has no failure mode row")
-    for b in M["branch_states"]:
+        err += [o["error"] for o in owed[1:] if not o["met"]]
+    for b in (M["branch_states"] if runbooks else ()):
         seen = {}
         for r in M["fm"]:
             if r.get("ending") == "not possible" or b not in branch_of(M, r):
@@ -1073,7 +1251,7 @@ def check(M):
     # measure reaches (`reach`). Every drafted alert, at any level, meets the basis and expectation checks: those this
     # stage's outputs hold, and those that reach no stage at all, which no stage's outputs would hold.
     here = stage_alerts(M)
-    drafted = here + [m for m in M["alerts"] if not M["reach"].get(m["handle"])]
+    drafted = (here + [m for m in M["alerts"] if not M["reach"].get(m["handle"])]) if alerts else []
     for m in drafted:
         if level(m) != "stage" or m.get("counted_on") != "cases":
             where = M["reach"].get(m["handle"])
@@ -1082,7 +1260,7 @@ def check(M):
                         ("drafted on every stage it reaches (" + ", ".join(s for s, _ in where) + "), and each stage's "
                          "runbook works its own tests for it" if where else
                          "it reaches no stage of the register, so no alert page or runbook entry holds it"))
-    if not here:
+    if alerts and not here:
         warn.append(f"note: no alert is proposed on stage {sid}, its steps, the parts they use or its flow, so no ALERT "
                     "page is written for it and its runbook says so. Whether to alert, and on what, is the team's "
                     "decision")
@@ -1095,10 +1273,11 @@ def check(M):
                        "and separated by `;`, the expectations.csv rows (e..) the alert guards. A register made with an "
                        "earlier version of this kit has no such column or table: add expectations.csv and the column, "
                        "and fill them from the expectation the basis names")
+    err += person_text_failures(M, drafted)
     # the stage's own counts of cases: the moves they count, and what they cannot see
     mine = [m for m in M["alerts"] if m.get("stage") == sid and m.get("counted_on") == "cases"]
     stands = ("A warning whose reason the basis gives stands, and does not stop the outputs being written")
-    for m in mine:
+    for m in (mine if alerts else ()):
         named = counted_moves(m)
         if m.get("form") not in WAITING and not named:
             err.append(f"measures.csv {m['handle']}: counts cases leaving the stage, and its `counted_moves` is empty: "
@@ -1112,7 +1291,7 @@ def check(M):
         if other:
             err.append(f"measures.csv {m['handle']}: `counted_moves` names {', '.join(other)}, not a move of stage "
                        f"{sid}: an alert of the stage counts cases leaving by the stage's own moves")
-    for m in mine:
+    for m in (mine if runbooks else ()):
         counts = counted_recoveries(M, m)
         if m.get("form") in WAITING or not counts:
             continue
@@ -1123,8 +1302,8 @@ def check(M):
                         f"moves its `counted_moves` names count only cases whose recovery is {' or '.join(sorted(counts))}: it "
                         "cannot see what those tests explain. Name the measure that does in their `measures`, or say "
                         "why in the basis")
-    parked = [mv for mv in sm if moves[mv].get("from_kind") == "park"]
-    waits_only = mine and all(m.get("form") in WAITING for m in mine)
+    parked = [mv for mv in sm if moves[mv].get("from_kind") == "park"] if alerts else []
+    waits_only = alerts and mine and all(m.get("form") in WAITING for m in mine)
     if parked and mine and not any(m.get("form") in WAITING for m in mine):
         warn.append(f"stage {sid}: cases wait in it ({', '.join(parked)} leave a park), and no measure proposed for "
                     "alerting counts cases waiting too long. If cases waiting too long breaks the "
@@ -1136,13 +1315,13 @@ def check(M):
                     "stranded, or say in "
                     "the basis why waiting is the loss that matters. " + stands)
     leaving = [mv for mv in sm if moves[mv].get("path") in ("alternative", "exception")
-               or moves[mv].get("recovery") == "not created"]
+               or moves[mv].get("recovery") == "not created"] if alerts else []
     if leaving and waits_only:
         warn.append(f"stage {sid}: cases leave it by alternative or exception endings, or are failed back "
                     f"({', '.join(leaving)}), and every measure proposed for alerting counts cases "
                     "waiting. If cases leaving that way breaks the expectation, propose a measure of them. An "
                     "ending the party wants (their own cancellation, a rule's refusal) needs no alert. " + stands)
-    _, _, r_err, r_warn = receipt_failures(R, M["flow"]["flow_id"], M["stage"]["stage"])
+    _, _, r_err, r_warn = receipt_failures(R, M["flow"]["flow_id"], M["stage"]["stage"], M.get("measured"))
     bounds = cv.bound_failures({"flows": [M["flow"]], "stages": [M["stage"]]})
     return (err + bounds + expectation_failures(R, M["flow"]["flow_id"]) + r_err,
             warn + r_warn + citation_failures(R))
@@ -1388,8 +1567,8 @@ def alert(M):
                                            ", ".join(f"{mv} {move_name(M, mv)}" for mv in g) + f" ({why})"
                                            for why, g in grouped(stranded, lambda mv: moves[mv]["if_not"]))))
 
-    rows += [("Runbook link", "<br>".join(f"**{m['handle']}** [its entry in RUNBOOK.md]({entry_link(m)})"
-                                          for m in paging)),
+    rows += [("Runbook link", RUNBOOK_LATER if M.get("runbook_pending") else
+              "<br>".join(f"**{m['handle']}** [its entry in RUNBOOK.md]({entry_link(m)})" for m in paging)),
              ("Grouping", "<br>".join(alert_grouping(M, m, len(paging) > 1) for m in paging)),
              ("Threshold", THRESHOLD),
              ("No data", "Each alert also fires when its measure cannot be counted: the query or search itself fails for "
@@ -1406,16 +1585,20 @@ def alert(M):
              ("Symptom, not cause", symptom(paging)),
              ("Exists today", "; ".join(f"{m['handle']}: {exists_today(m, 'yes, ')}" for m in paging))]
     used = list(dict.fromkeys(h for r in M["fm"] if r.get("ending") != "not possible" for h in ids(r["measures"])))
+    pending = M.get("runbook_pending")
     out = [f"# Proposed alert{'s' if len(paging) > 1 else ''} for \"{stage['name']}\": "
            + "; ".join(f"{m['handle']} {m['measure']}" for m in paging), "",
            f"**Stage {stage['order']} of {len(M['stages'])}:** {stage['name']}, in flow {M['flow']['name']}. Its process steps: "
            f"{'; '.join(step_title(M['labels'], s) for s in M['steps'])}. " +
-           ("Each measure below is its own alert; whichever fires, follow its own entry in [RUNBOOK.md](RUNBOOK.md)"
-            if len(paging) > 1 else "When it fires, follow its entry in [RUNBOOK.md](RUNBOOK.md)") +
-           " (the runbook link below).", "",
+           (("Each measure below is its own alert. " if len(paging) > 1 else "") + RUNBOOK_LATER if pending else
+            ("Each measure below is its own alert; whichever fires, follow its own entry in [RUNBOOK.md](RUNBOOK.md)"
+             if len(paging) > 1 else "When it fires, follow its entry in [RUNBOOK.md](RUNBOOK.md)") +
+            " (the runbook link below)."), "",
            "| | |", "|---|---|"] + [f"| **{k}** | {v} |" for k, v in rows]
-    out += ["", "## Companion measures", "", "Read by the runbook's tests, not proposed for alerting:", ""]
-    out += once(f"- {h} {M['measures'][h]['measure']}" for h in used if h in M["measures"] and h not in [m["handle"] for m in paging])
+    if not pending:
+        out += ["", "## Companion measures", "", "Read by the runbook's tests, not proposed for alerting:", ""]
+        out += once(f"- {h} {M['measures'][h]['measure']}" for h in used
+                    if h in M["measures"] and h not in [m["handle"] for m in paging])
     return "\n".join(out) + "\n"
 
 
@@ -3127,10 +3310,13 @@ def alert_html(M):
     timings = "; ".join(step_timings(M))
     out = ['<section class="doc">' + ps.frame_head(  # the runbook page's frame, with the runbook as the last step
                [(ps.MAP, f"../{MAP_FILE}"), (flow_words(M), f'../flow-{M["flow"]["flow_id"]}/FLOW.html'),
-                (stage_words(M), STAGE_FILE), ("Runbook", "RUNBOOK.html")], f"Alerts proposed: {stage['name']}"),
-           "<p>Each is its own alert. When one fires, follow its own entry in "
-           '<a href="RUNBOOK.html">the runbook</a>. Thresholds, windows and whether an alert pages a person are the '
-           "operators’ values, not set here.</p></section>"]
+                (stage_words(M), STAGE_FILE),
+                ("Runbook (not yet written)", None) if M.get("runbook_pending") else ("Runbook", "RUNBOOK.html")],
+               f"Alerts proposed: {stage['name']}"),
+           ("<p>Each is its own alert. " + esc(RUNBOOK_LATER) if M.get("runbook_pending") else
+            "<p>Each is its own alert. When one fires, follow its own entry in "
+            '<a href="RUNBOOK.html">the runbook</a>.') + " Thresholds, windows and whether an alert pages a person "
+           "are the operators’ values, not set here.</p></section>"]
     if not paging:
         out.append('<section class="doc"><p>No alert is proposed for this stage in the register.</p></section>')
     for m in paging:
@@ -3158,15 +3344,17 @@ def alert_html(M):
                  ("Exists today", "yes" + (f", but misleading: {say(M, m['defect'])}" if m.get("defect") else "")
                   if m.get("exists") == "yes" else "no, proposed")]
         out += [f'<section class="doc" id="alert-{esc(h)}"><h2>{esc(m["measure"])}</h2>',
-                f'<p><a href="RUNBOOK.html#alert-{esc(h)}">Its entry in the runbook ›</a></p>',
+                ("" if M.get("runbook_pending") else
+                 f'<p><a href="RUNBOOK.html#alert-{esc(h)}">Its entry in the runbook ›</a></p>'),
                 '<div class="tw"><table>'] + [f"<tr><th>{k}</th><td>{v}</td></tr>" for k, v in rows]
         out += ["</table></div>", '<details class="small"><summary>For maintainers: register ids and sources'
                 f"</summary><ul><li>Measure: {esc(h)}</li><li>Emitted at: {esc(m.get('source_ref') or '—')}</li>"
                 f"<li>Basis as written: {esc(m.get('alert'))}</li></ul></details></section>"]
-    used = list(dict.fromkeys(x for r in live(M) for x in ids(r["measures"])))
-    comp = [M["measures"][x]["measure"] for x in used if x in M["measures"] and x not in [m["handle"] for m in paging]]
-    out += ['<section class="doc"><h2>Companion measures</h2><p>Read by the runbook’s checks, not proposed for '
-            "alerting:</p><ul>"] + once(f"<li>{esc(x)}</li>" for x in comp) + ["</ul></section>"]
+    if not M.get("runbook_pending"):
+        used = list(dict.fromkeys(x for r in live(M) for x in ids(r["measures"])))
+        comp = [M["measures"][x]["measure"] for x in used if x in M["measures"] and x not in [m["handle"] for m in paging]]
+        out += ['<section class="doc"><h2>Companion measures</h2><p>Read by the runbook’s checks, not proposed for '
+                "alerting:</p><ul>"] + once(f"<li>{esc(x)}</li>" for x in comp) + ["</ul></section>"]
     return page_html(M, f"Alerts: {stage['name']}", "\n".join(out), "frame rbpage")
 
 
@@ -3182,7 +3370,12 @@ def main(argv=None):
     ap.add_argument("stage")
     ap.add_argument("--out")
     ap.add_argument("--check", action="store_true")
+    stage_of_work = ap.add_mutually_exclusive_group()
+    stage_of_work.add_argument("--alerts", action="store_true")
+    stage_of_work.add_argument("--runbooks", action="store_true")
+    stage_of_work.add_argument("--measures", action="store_true")
     a = ap.parse_args(argv)
+    part = "alerts" if a.alerts else "runbooks" if a.runbooks else "measures" if a.measures else "all"
     R = load(a.register)
     flows = [f["flow_id"] for f in R["flows"]]
     if a.flow not in flows:
@@ -3194,12 +3387,54 @@ def main(argv=None):
         return 2
     M = build(R, a.flow, a.stage)
     M.update(register=a.register, out=a.out or "<dir>")
-    err, warn = check(M)
+    depth = (go.load(a.register) or {}).get("depth")
+    measures_only = a.measures  # what this call writes: a measured stage's pages, its alert pages, or all of them
+    alerts_only = a.alerts
+    if depth is not None:  # the person chose which stages are measured: the receipt owes theirs and the flow's
+        M["measured"] = {s for s, d in depth.items() if d != "none"}
+        if not (a.alerts or a.runbooks or a.measures):
+            # with no stage of work named (as when a stale stage is regenerated), a stage is checked and written for
+            # what its depth does, never for more
+            d = depth.get(a.stage, "none")
+            part = {"none": "measures", "measure": "measures", "alerting": "alerts"}.get(d, "all")
+            measures_only, alerts_only = d in ("none", "measure"), d == "alerting"
+    has_pick, picked = go.pick_state(a.register)
+    if a.out and has_pick and not picked:
+        print("REFUSED: the person has not picked how far each stage goes, so nothing is measured yet. Show them the "
+              f"mapped stages, and record their answer with: python go.py {a.register} --depth \"<id>=measure,...\" "
+              "--words \"<their words>\"")
+        return 2
+    if a.runbooks and a.out and stage_alerts(M) and not (pathlib.Path(a.out) / "ALERT.md").is_file():
+        print(f"REFUSED: the runbooks stage comes after the alerting stage, and {pathlib.Path(a.out) / 'ALERT.md'} "
+              f"is not there. Run the alerting stage first: python flow_outputs.py {a.register} {a.flow} {a.stage} "
+              f"--out {a.out} --alerts, and "
+              "have the person review the alerts.")
+        return 2
+    if a.out and not (alerts_only or measures_only):  # a runbook, by --runbooks or plain --out, follows the review
+        has_row, reviewed = go.review_state(a.register)
+        if has_row and not reviewed:
+            print("REFUSED: the person has not said go on the proposed alerts, so no runbook is written. Show them the "
+                  f"alerts, and record their answer with: python go.py {a.register} --alerts-reviewed --decision "
+                  "go|changes --words \"<their words>\"")
+            return 2
+    if a.out and not measures_only and not a.alerts:
+        # alert pages written again, at alerting or runbooks depth, must still be the alerts the person reviewed; only the
+        # alerting stage run by name (--alerts) writes changed alerts, and it reopens their review
+        done = (go.load(a.register) or {}).get("alerts_reviewed")
+        if done and done.get("alerts") != go.alert_fingerprint(a.register):
+            print("REFUSED: the alerts have changed since the person reviewed them (an alert's basis, expectation or "
+                  "counted moves in measures.csv). Run the alerting stage again: python flow_outputs.py "
+                  f"{a.register} {a.flow} {a.stage} --out {a.out} --alerts, and bring the change to them.")
+            return 2
+    if a.runbooks:
+        # the alert rules run again: a change made after the review must not reach the alert pages unchecked
+        part = "all"
+    err, warn = check(M, part)
     for w in warn:
         print(w if w.startswith("note: ") else "warning: " + w)
     for e in err:
         print("ERROR:", e)
-    rec, gapped, r_err, r_warn = receipt_failures(M["R"], a.flow, a.stage)
+    rec, gapped, r_err, r_warn = receipt_failures(M["R"], a.flow, a.stage, M.get("measured"))
     print(f"receipt for {a.flow}: {len(rec)} elements, {sum(r['covered'] for r in rec)} covered by a candidate, "
           f"{sum((r['element'], r['question']) in gapped and not r['covered'] for r in rec)} gapped, "
           f"{sum(e.startswith('receipt:') for e in r_err + r_warn)} neither; "
@@ -3213,12 +3448,27 @@ def main(argv=None):
         out = pathlib.Path(a.out)
         out.mkdir(parents=True, exist_ok=True)
         alerting = bool(stage_alerts(M))
-        for fname in ("STRUCTURE.md", "MEASURES.md") + (() if err else ("ALERT.md", "RUNBOOK.md", "ALERT.html", "RUNBOOK.html")):
-            if fname.startswith("ALERT.") and not alerting:  # no alert, no alert page: one left by an earlier run goes
+        if alerts_only:
+            # the alerts are under review: a runbook left by an earlier run no longer follows from them; only the
+            # alerting stage itself, run by name, opens the review again
+            M["runbook_pending"] = True
+            if a.alerts:
+                go.reset_review(a.register)
+            for fname in ("RUNBOOK.md", "RUNBOOK.html"):
                 (out / fname).unlink(missing_ok=True)
-                continue
-            (out / fname).write_text(WRITERS[fname](M) + stamp(a.register, a.flow, a.stage), encoding="utf-8")
-            print("wrote", out / fname)
+        owed = (() if measures_only else ("ALERT.md", "ALERT.html") if alerts_only else
+                ("ALERT.md", "RUNBOOK.md", "ALERT.html", "RUNBOOK.html"))
+        # a stage measured on its own is done only when its measure check passes: its measures page waits for that
+        always = ("STRUCTURE.md",) if measures_only else ("STRUCTURE.md", "MEASURES.md")
+        if measures_only:
+            owed = ("MEASURES.md",)
+        with ps.home_beside(out.parent):  # the map sits one folder up from a stage's pages
+            for fname in always + (() if err else owed):
+                if fname.startswith("ALERT.") and not alerting:  # no alert, no alert page: one left by an earlier run goes
+                    (out / fname).unlink(missing_ok=True)
+                    continue
+                (out / fname).write_text(WRITERS[fname](M) + stamp(a.register, a.flow, a.stage), encoding="utf-8")
+                print("wrote", out / fname)
     return 1 if err else 0
 
 

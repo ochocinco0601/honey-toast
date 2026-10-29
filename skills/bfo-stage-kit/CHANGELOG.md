@@ -8,6 +8,157 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 5 — 2026-10-28
+
+### What you will notice
+
+- **A home screen.** Every run draws `index.html` beside the map: one row per flow, each milestone shown as its
+  status (not started, draft or reviewed), and a drop-down per milestone with what there is to review and links to
+  the kit's own pages for it. The map and every page drawn once the home screen is beside it link back to Home. While the run waits on your pick
+  of a flow or of how far each stage goes, the home carries the ticks and a box for your words.
+  Effect: none.
+- **The home screen's dots say only what the kit knows.** The dots for Instrumented, Dashboards built and Team
+  prepared never fill, since that work is other teams'; Instrumented keeps its count of measures sent to monitoring,
+  read from the code at design time. Runbooks written fills once drafted, as runbooks are never reviewed, and the
+  legend says what fills each dot. The open page checks for changes by itself from the moment it loads, however long
+  the run takes, and shows each redraw within about 15 seconds, sooner just after a Done. It never reloads over
+  ticks or words you have not sent: it says at its top that the run has moved on, and updates once you save or
+  clear them. Opening or closing a drop-down is not a change.
+  Effect: none.
+- **The home screen is served safely and says when it has stopped updating.** The page's listener serves only the
+  run's own pages, by any spelling of the address, and never its tables, its answers or its run state. One listener
+  serves the whole run, so the page you have open shows each new choice in the same tab; once the run ends and
+  Claude Code stops watching it, the page says so and to carry on in the chat. Saying "read it" never takes answers
+  already recorded: with nothing newer, Claude asks in the chat. A ticked topic names its milestone once in the run
+  record.
+  Effect: none.
+- **Each measure says where it is counted.** Beside the kind of record it is taken from, every measure now names
+  the place in plain words a reader knows without the code: the table and the database it lives in, the log and the
+  service that writes it, or the system whose own status it is, such as the message broker or the database server.
+  Where the code does not show one, it says what it would take. The home screen shows it with each stage's measures.
+  A server's own status names the product, and a measure counted from two places names both. A measure that cites
+  its source and leaves the place blank, or names it as the code spells it, keeps the run from being done, and so do
+  two measures naming one place that disagree on whether it exists; the check says which.
+  Effect: fill from each row's citation: open the line each measure's `source_ref` cites and write the place it names
+  in the new `counted_at` column; nothing is walked again.
+- **Whether a measure exists today follows from its signal, not its kind.** A count of a request metric the
+  framework already records, a join of log lines and spans the code already writes, a count over rows the code
+  already stores, or a server's own answer to a probe, now says it exists today,
+  citing the emitting lines; only a measure that needs the code to write something new says it does not. The
+  worked example's six measures of that kind are corrected.
+  Effect: fill from each row's citation: where a measure says it does not exist and its citation shows the signal
+  already written, set it to exist and cite the emitting line.
+- **Regenerating a stage writes what you picked for it and no more.** A stage you chose to map or measure only gets
+  its slice and measures, a stage taken to alerts its alert pages, and only a stage taken to runbooks waits for your
+  review of the alerts. An alert changed since you reviewed it is never written again unseen: it comes back to you.
+  A stage you left mapped only is not regenerated. Once you have picked how far each stage goes, the status line and the brief that picks a run
+  up again say that pick, a run stopped at the pick shows you the stages again, and the run record keeps your words
+  on it under Plan and go, with *not picked* for the phases it leaves out.
+  Effect: none.
+- **A blank drawing no longer passes.** The final check opens the map and every flow, stage, step and part page,
+  and a page that draws nothing keeps the run from being done. A frame, lane, key or row of empty lifelines is
+  nothing: a step must show its messages, a stage its work, a flow its stages and a part its operations or steps.
+  A step or stage the register gives nothing to draw (a step carried out outside the application) is not held to it.
+  On the map page each drawing is judged on its own, so one drawn figure no longer carries a blank one, and the map
+  itself must show its stages and the lines between them. Every flow, stage, step and part page the map's build
+  writes is now an expected output, so the count of expected outputs goes up and a page left unwritten is MISSING.
+  Effect: none.
+- **A run picked up again calls its work drafted.** The brief that picks a run up again lists what the run has
+  drafted so far, never as done, and leaves your picks and review to what was decided. The launch says the status
+  line shows what has been drafted. A split run's sponsor page ends on *Draft complete, for your review*, saying the
+  done check found every output, as a draft for review, not accepted.
+  Effect: none.
+- **The pick of how far each stage goes says when mapping changed the stages.** When the stages found by mapping
+  the code differ from those the first look proposed, the message says so and names both.
+  Effect: none.
+- **The status line says what the run has drafted and what comes next, and calls it a draft.** It never names one
+  piece of work as both drafted and next: describing the flow, naming the capability and measuring are each
+  reported in two parts, and your picks and review are never reported as the run's work. Once the flow is mapped
+  it names the stages mapped. `Done:` is now `Drafted:`, the end of a run reads *Draft complete, for your review*,
+  and the final check's DONE line says every expected output exists as a draft for review, not accepted.
+  Effect: none.
+- **When the done check cannot find the session's record, it says what to set.** A session started outside the
+  register's folder keeps its record where the check does not look; the check now says so and names the folder to
+  put in `BFO_TRANSCRIPTS`, and the re-read check says the same instead of blaming the tool that wrote the verdicts.
+  USE.md says when it is needed.
+  Effect: none.
+- **The first look's survey is not charged to the read check.** The services and entry points the survey lists are
+  not the map's findings, so a file only the survey names no longer keeps the run from being done.
+  Effect: none.
+- **Your go on the alerts covers the alerts you were shown.** If they change after the review message reaches you,
+  your go is not recorded until you have seen them again.
+  Effect: none.
+- **Once you have picked how far each stage goes, you can take a stage further but not back.** Taking a stage less
+  far than already picked is refused for now, with a message saying so, and your earlier pick stands.
+  Effect: none.
+- **The first brief asks you one thing: which flow to start with.** It shows, rather than asks, which services it
+  will read and how many independent checks read each finding; say so if you want either changed. Which stages get
+  measures, alerts and runbooks you pick once the flow is mapped. The pick of how far each stage goes now also prints
+  the status line for the reply.
+  Effect: none.
+- **The text you read when reviewing an alert is checked when it is written.** An alert's reason, the question it
+  answers and the expectation it guards may not carry the kit's own words, a table or file name, or an id, as you
+  would read them in the review; the check refuses the alert pages until they are reworded. The worked example's two
+  reasons that did are reworded.
+  Effect: fill from each row's citation: an alert whose reason names a table, a file or the register is reworded in
+  plain words, from what the reason already says.
+
+- **The code reader no longer counts the kit's own files as your application's.** Installed in the folder it reads,
+  the reader would find its own test samples and count them among the application's routes and calls, overstating
+  them. It now leaves its own folder out, and its counts cover only what it could place
+  in one of your services, with the rest counted apart.
+  Effect: none: a first look made with the kit installed in the workspace overstated its counts, and running the
+  code reader again corrects them.
+
+- **You can map a flow and stop there, or choose which stages are measured.** Mapping the flow (the case, its
+  lifecycle, stages, steps, parts and the capability) is one piece of work; measuring is chosen per stage after it.
+  The run stops once the flow is mapped and asks how far each stage goes: mapped only, measured, on to alerts, or on
+  to runbooks (`go.py --depth`). A map-only run is done once the map is drawn, with no measure owed. A measured stage
+  owes its own measures, the flow's, and those of the parts it uses; `flow_outputs.py --out <dir> --measures` writes
+  its structure and measures pages alone. The questions only measuring answers (what is at stake, an expectation's
+  indicator) are asked only of measured stages.
+  Effect: none: a run whose person made no such choice is checked as before.
+
+- **You can see a stage's alerts before its runbook is written.** `flow_outputs.py --out <dir> --alerts` checks only
+  what the alerts rest on (the register's structure, and each alert's basis, the expectation it guards and the moves
+  it counts) and writes the alert pages alone, with the runbook shown as still to come. `--out <dir> --runbooks` then
+  checks the failure modes, their tests and remedies, and writes the runbook and the alert pages with their runbook
+  links; it refuses while the stage has alerts and no alert page. Plain `--out` still does both at once, unchanged.
+  Effect: none: plain `--out` writes the same files from the same register.
+- **A run stops for your review of the alerts before it writes any runbook.** Phase 5 is now alerting (5a), your
+  review, then runbooks (5b): the alerts are chosen from the health measures alone, and the ways the work can fail,
+  their tests and remedies are worked out only after your go. The run record has a row for each, and the status
+  line says when the run waits on your review.
+  Effect: none: a register you already have keeps its run record; a new run uses the three rows.
+
+- **The run introduces itself first.** Before it looks at anything, its first message says what it is for, how you
+  will work together (six activities, where you decide, how you are kept informed) and what it needs from you to
+  begin. Nothing about setup reaches you; if setup fails you get one plain sentence on why the run is blocked.
+  Effect: none.
+- **A first look, then a brief for someone who does not know the system, then a stop for your picks.** It reads the
+  entry points, routes and documents only, and sends a brief rendered by `brief.py` from `orientation.json`: what the
+  work is, what the system does and what one case is, every business flow found so far with its stages, what it
+  looked at and what is open, the services and which to include, and where to start and what remains. Nothing is
+  read in depth before you answer. It replaces the plan's work breakdown; `PLAN.md` now holds the brief.
+  Effect: none: a register you already have keeps its `PLAN.md`.
+- **Every message opens with one line saying where things stand**, made by `brief.py status` from the run's files:
+  the flow, the stage, the activity, what is done, what is next, and what waits on you. **Coming back to a stopped
+  run, you first get a re-entry brief** that stands on its own: what the work is, the capability, what is done and
+  found, what was decided and by whom, where it stands, and what is next.
+  Effect: none.
+- **Your picks at the go are kept as data the run follows.** `go.py` records the flow, the services in and out,
+  the stages that get alerts and runbooks, and your words, in `scope.json`, and the number of judges per row in
+  `run-settings.json`. It refuses a service the survey does not have, one left unnamed, or one named both in and out.
+  The done check takes the scope's stages from `scope.json` when it is there.
+  Effect: none: a register with no `scope.json` is judged from its `RUN.md` Scope line, as before.
+- **A call to a service you left out reads "out of scope", not "unmatched".** It is listed in
+  `merge/out-of-scope-calls.csv` and drawn to the left-out service, marked out of scope; it sends nothing back to be
+  re-read.
+  Effect: none.
+- **The done check uses the number of judges you set.** Below three, it says so beside DONE: the checks
+  that catch wrong rows are built for three judges per row.
+  Effect: none.
+
 ## Release 4 — 2026-10-27
 
 ### What you will notice

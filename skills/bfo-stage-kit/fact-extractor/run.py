@@ -581,6 +581,13 @@ def coverage_warnings(facts, reach_block=None, partial_parse_files=0):
 
 def main():
     root, service_map = parse_args(sys.argv[1:])
+    # **The reader never reads itself.** Installed in the workspace it reads (a kit installed per project sits in the
+    # workspace's skills folder), the package it ships in, its test fixtures among it, lies under the root, and its fixtures
+    # would be counted as the application's code, often outnumbering the application's own facts. The package folder,
+    # the one holding this reader's folder, is left out wherever it sits under the root.
+    package = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    own = os.path.relpath(package, os.path.abspath(root)).replace("\\", "/")
+    own = "" if own == "." or own.startswith("..") else own
     # **The encoding is stated, not inherited.** `text=True` alone decodes the analyser's
     # output with the platform default, which on Windows is cp1252: one non-ASCII byte
     # anywhere in the JSON — a typographic quote in a matched line, an accented identifier —
@@ -588,7 +595,8 @@ def main():
     # An estate that scans clean on a UTF-8 platform fails this way on Windows, and the
     # failure is total rather than partial.
     proc = subprocess.run(
-        [SEMGREP, "--config", RULES, "--json", "--quiet", "--metrics=off", "--disable-version-check", root],
+        [SEMGREP, "--config", RULES, "--json", "--quiet", "--metrics=off", "--disable-version-check",
+         *(["--exclude", own] if own else []), root],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     if proc.returncode != 0 and not proc.stdout:
@@ -612,6 +620,8 @@ def main():
     for hit in report.get("results", []):
         abs_path = os.path.abspath(hit["path"])
         rel = os.path.relpath(abs_path, root_abs).replace("\\", "/")
+        if own and (rel == own or rel.startswith(own + "/")):
+            continue  # the reader's own package, whatever the analyser made of the exclusion
         kind = hit["extra"]["metadata"]["fact_kind"]
         ext = os.path.splitext(rel)[1]
         facts.append({
@@ -670,9 +680,12 @@ def main():
         deduped.append(fact)
     facts = deduped
 
-    counts, by_language = {}, {}
+    # **The counts are the application's.** With a service map, a fact no service owns is reported apart, by kind,
+    # never inside `counts`; without one, nothing can be attributed and every fact counts.
+    counts, unattributed_counts, by_language = {}, {}, {}
     for fact in facts:
-        counts[fact["kind"]] = counts.get(fact["kind"], 0) + 1
+        into = unattributed_counts if service_map and fact["service"] is None else counts
+        into[fact["kind"]] = into.get(fact["kind"], 0) + 1
         ext = os.path.splitext(fact["file"])[1]
         by_language[ext] = by_language.get(ext, 0) + 1
 
@@ -693,6 +706,7 @@ def main():
         "counts": counts,
         "by_language": by_language,
         "unattributed": sum(1 for f in facts if f["service"] is None),
+        "unattributed_counts": unattributed_counts,
         "in_test": sum(1 for f in facts if f["in_test"]),
         "reach": reach_block,
         "multi_kind_locations": multi_kind_report(facts),
