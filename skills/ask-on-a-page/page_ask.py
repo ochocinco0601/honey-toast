@@ -2,6 +2,9 @@
 
   python -u page_ask.py serve DIR   serve DIR on 127.0.0.1; save each POST /answers to DIR/answers/
   python -u page_ask.py watch DIR   print one line per answers file not yet announced (run under Monitor)
+  python -u page_ask.py poll DIR SECONDS
+                                    the same, but exit after the first pass that announces anything,
+                                    or print TIMEOUT and exit after SECONDS (run as a background task)
 """
 import json, os, sys, time, uuid
 from functools import partial
@@ -81,26 +84,53 @@ def serve(site):
     httpd.serve_forever()
 
 
-def watch(site):
+def announce_new(site):
     answers = os.path.join(site, "answers")
     seen_path = os.path.join(answers, ".announced")
     os.makedirs(answers, exist_ok=True)
+    try:
+        with open(seen_path, encoding="utf-8") as f:
+            seen = set(f.read().split())
+    except FileNotFoundError:
+        seen = set()
+    found = 0
+    for name in sorted(os.listdir(answers)):
+        if name.endswith(".json") and name not in seen:
+            # Ledger first: a caller that stops the process on reading the line cannot cause a repeat.
+            with open(seen_path, "a", encoding="utf-8") as f:
+                f.write(name + "\n")
+            print("ANSWERS " + os.path.join(answers, name), flush=True)
+            found += 1
+    return found
+
+
+def watch(site):
     while True:
-        try:
-            with open(seen_path, encoding="utf-8") as f:
-                seen = set(f.read().split())
-        except FileNotFoundError:
-            seen = set()
-        for name in sorted(os.listdir(answers)):
-            if name.endswith(".json") and name not in seen:
-                print("ANSWERS " + os.path.join(answers, name), flush=True)
-                with open(seen_path, "a", encoding="utf-8") as f:
-                    f.write(name + "\n")
+        announce_new(site)
+        time.sleep(0.5)
+
+
+def poll(site, timeout):
+    end = time.time() + timeout
+    while not announce_new(site):
+        if time.time() >= end:
+            print("TIMEOUT no answers yet", flush=True)
+            return
         time.sleep(0.5)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3 or sys.argv[1] not in ("serve", "watch"):
+    args = sys.argv[1:]
+    if len(args) == 2 and args[0] in ("serve", "watch"):
+        site = os.path.abspath(args[1])
+        serve(site) if args[0] == "serve" else watch(site)
+    elif len(args) == 3 and args[0] == "poll":
+        try:
+            timeout = float(args[2])
+        except ValueError:
+            timeout = 0
+        if timeout <= 0:
+            sys.exit(__doc__)
+        poll(os.path.abspath(args[1]), timeout)
+    else:
         sys.exit(__doc__)
-    site = os.path.abspath(sys.argv[2])
-    serve(site) if sys.argv[1] == "serve" else watch(site)

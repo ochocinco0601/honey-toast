@@ -3,6 +3,10 @@ import json, os, subprocess, sys, time, urllib.request, urllib.error
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.path.join(HERE, "page_ask.py")
 
+# A proxy set in the environment would otherwise carry the test client's loopback requests.
+os.environ["NO_PROXY"] = ",".join(filter(None, [os.environ.get("NO_PROXY"), "127.0.0.1", "localhost"]))
+os.environ["no_proxy"] = os.environ["NO_PROXY"]
+
 
 def start(tmp_path, mode):
     p = subprocess.Popen([sys.executable, "-u", SCRIPT, mode, str(tmp_path)],
@@ -173,3 +177,65 @@ def test_watch_announces_each_file_once_across_restarts(tmp_path):
         assert wait_line(p, "ANSWERS ").endswith("answers-2.json")
     finally:
         p.kill()
+
+
+def test_watch_records_a_file_before_announcing_it(tmp_path):
+    answers = tmp_path / "answers"
+    answers.mkdir()
+    (answers / "answers-1.json").write_text("{}", encoding="utf-8")
+    p = start(tmp_path, "watch")
+    try:
+        wait_line(p, "ANSWERS ")
+        assert "answers-1.json" in (answers / ".announced").read_text(encoding="utf-8")
+    finally:
+        p.kill()
+
+
+def run_poll(tmp_path, *args):
+    return subprocess.run([sys.executable, "-u", SCRIPT, "poll", str(tmp_path), *args],
+                          capture_output=True, text=True, timeout=30)
+
+
+def test_poll_announces_every_unseen_file_and_exits(tmp_path):
+    answers = tmp_path / "answers"
+    answers.mkdir()
+    (answers / "answers-1.json").write_text("{}", encoding="utf-8")
+    (answers / "answers-2.json").write_text("{}", encoding="utf-8")
+    out = run_poll(tmp_path, "10")
+    assert out.returncode == 0
+    lines = out.stdout.split()
+    assert [l for l in lines if l.endswith(".json")] == [
+        str(answers / "answers-1.json"), str(answers / "answers-2.json")]
+
+
+def test_poll_skips_what_was_announced_and_times_out(tmp_path):
+    answers = tmp_path / "answers"
+    answers.mkdir()
+    (answers / "answers-1.json").write_text("{}", encoding="utf-8")
+    assert run_poll(tmp_path, "10").returncode == 0
+    start_t = time.time()
+    out = run_poll(tmp_path, "1")
+    assert out.returncode == 0
+    assert out.stdout.startswith("TIMEOUT")
+    assert "ANSWERS" not in out.stdout
+    assert time.time() - start_t < 10
+
+
+def test_poll_wakes_on_a_file_arriving_while_it_waits(tmp_path):
+    p = subprocess.Popen([sys.executable, "-u", SCRIPT, "poll", str(tmp_path), "20"],
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    try:
+        time.sleep(1)
+        (tmp_path / "answers" / "answers-9.json").write_text("{}", encoding="utf-8")
+        assert wait_line(p, "ANSWERS ").endswith("answers-9.json")
+        assert p.wait(timeout=10) == 0
+    finally:
+        p.kill()
+
+
+def test_poll_with_a_bad_timeout_prints_the_usage(tmp_path):
+    for bad in ("soon", "0", "-5"):
+        out = run_poll(tmp_path, bad)
+        assert out.returncode != 0
+        assert "Traceback" not in out.stderr
+        assert "poll DIR SECONDS" in out.stderr
