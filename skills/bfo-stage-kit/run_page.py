@@ -484,6 +484,9 @@ def render(reg, now=None, done_check=done_check):
 
 
 def main(argv):
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
+    import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
+    run_lock.refuse_unless_register(argv)
     if len(argv) != 1:
         print("python run_page.py <register folder>")
         return 2

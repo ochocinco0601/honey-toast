@@ -4,11 +4,16 @@ Usage: python units.py <register folder> [--unit-lines N]
 
 Reads survey.csv (survey.py) and fact-base.json (the code reader) in the register folder and writes units/units.csv,
 in the form split-run-formats.md sets. The first unit is `flow`, the lead's own flow-level tables at the register's
-root. Then one unit per surveyed deployable, in survey order. A deployable whose source lines (as the survey counts
-them: non-blank, outside tests) exceed the unit size is cut into units `<deployable>-1`, `-2`, ... by folder: whole
-folders are packed in order, a folder larger than the size is cut by its own folders, and files directly in a cut
-folder are a part of their own. The parts together cover every file of the deployable, so nothing in it goes unread.
-The unit size is --unit-lines, else `unit_lines` in run-settings.json, else 4000. The same inputs give the same file."""
+root. Then one unit per surveyed service (survey `kind` `service`: configuration folders are not units), in survey
+order. A deployable whose source lines (as the survey counts them: non-blank, outside tests) exceed the unit size is
+cut into units `<deployable>-1`, `-2`, ... by folder: whole folders are packed in order, a folder larger than the size
+is cut by its own folders, and files directly in a cut folder are a part of their own. The parts together cover every
+file of the deployable, so nothing in it goes unread. The unit size is --unit-lines, else `unit_lines` in
+run-settings.json, else 4000. The same inputs give the same file.
+
+units.csv only grows, since every flow of the register reads the same units: a later run keeps every row already
+listed, as it is and in its order, never cuts again a deployable already listed (whatever its size now), and adds
+units only for services not yet listed, after the others."""
 import csv
 import json
 import pathlib
@@ -87,12 +92,21 @@ def unit_lines(reg):
     return settings.number(s, "unit_lines")
 
 
-def main(argv):
-    if not argv:
-        sys.exit(__doc__)
-    reg = pathlib.Path(argv[0]).resolve()
+def survey_services(reg):
+    """The surveyed services (survey.csv rows of kind `service`), in survey order; [] with no survey.csv."""
+    p = pathlib.Path(reg) / "survey.csv"
+    if not p.is_file():
+        return []
+    with p.open(encoding="utf-8-sig", newline="") as f:
+        return [s for s in csv.DictReader(f) if (s.get("kind") or "").strip() == "service"]
+
+
+def derive(reg, size=None, kept=None):
+    """The rows units.py writes to units.csv: `kept` (the rows listed already, as they are; [] for a fresh cut) and a
+    unit, or a cut of units, for every surveyed service not listed in them."""
+    reg = pathlib.Path(reg).resolve()
     ws = reg.parent.parent
-    size = int(argv[argv.index("--unit-lines") + 1]) if "--unit-lines" in argv else unit_lines(reg)
+    size = unit_lines(reg) if size is None else size
     with (reg / "survey.csv").open(encoding="utf-8-sig", newline="") as f:
         services = list(csv.DictReader(f))
     fb = reg / "fact-base.json"
@@ -102,10 +116,15 @@ def main(argv):
         return sum(1 for x in facts if any(x.get("file", "") == p or x.get("file", "").startswith(p.rstrip("/") + "/")
                                            for p in paths))
 
-    rows = [dict(unit="flow", deployable="", repository="", paths="", files="", lines="", reader_facts="",
-                 calls="", called_by="", note="the lead's flow-level tables at the register's root")]
+    kept = [{c: r.get(c) or "" for c in FIELDS} for r in (kept or [])]
+    rows = kept if any(r["unit"] == "flow" for r in kept) else [
+        dict(unit="flow", deployable="", repository="", paths="", files="", lines="", reader_facts="", calls="",
+             called_by="", note="the lead's flow-level tables at the register's root")] + kept
+    listed = {r["deployable"].strip() for r in rows if r["unit"] != "flow"}
     for s in services:
         name, path = s["service"].strip(), s["path"].strip()
+        if (s.get("kind") or "").strip() != "service" or name in listed:
+            continue  # a configuration folder is not a unit; a deployable listed already is never cut again
         folder = ws / path
         lines = int(s.get("lines") or 0)
         parts = [[path]] if lines <= size or not folder.is_dir() else joined(cut(folder, ws, size), ws, size)
@@ -118,7 +137,68 @@ def main(argv):
                              reader_facts=str(facts_in(paths)), calls=s.get("calls", "").strip().replace("; ", ";"),
                              called_by=s.get("called_by", "").strip().replace("; ", ";"),
                              note="" if len(parts) == 1 else f"part {i} of {len(parts)} of {name}"))
+    return rows
+
+
+def baseline(reg):
+    """The units list units.py would have kept: the longest a finished flow left (units.csv only grows), else []."""
+    got = []
+    # earlier-flows/<id>/judged/units/units.csv: the units list as a finished flow left it
+    for p in sorted((pathlib.Path(reg) / "earlier-flows").glob(f"*/judged/{layout.UNITS_CSV}")):
+        rows = tables.dicts(p)
+        if len(rows) > len(got):
+            got = rows
+    return got
+
+
+def _deployable(r):
+    return (r.get("deployable") or "").strip() or (r.get("unit") or "").strip()
+
+
+def _shape(r):
+    return ((r.get("unit") or "").strip(), _deployable(r),
+            ";".join(p.strip() for p in (r.get("paths") or "").split(";") if p.strip()))
+
+
+def differences(reg, took=None):
+    """How units.csv differs from what units.py derives for the go's scope: for each service the go
+    took in (`took`, lower-cased names; None for every surveyed service), the units, their deployable and the paths
+    each covers must be exactly those units.py lists, kept rows as a finished flow left them. Lines, files and reader
+    facts are not compared: they move whenever the workspace or the code reader's findings do. [] when they match."""
+    reg = pathlib.Path(reg)
+    services = survey_services(reg)
+    names = {(s.get("service") or "").strip().lower(): (s.get("service") or "").strip() for s in services}
+    scope = sorted(names) if took is None else sorted(took)
+    out = [f"the go took in {n!r}, which survey.csv lists as no service, so units.py lists no unit for it"
+           for n in scope if n not in names]
+    scope = [n for n in scope if n in names]
+    if not scope:
+        return out
+    listed = tables.dicts(reg / layout.UNITS_CSV)
+    want = [_shape(r) for r in derive(reg, kept=baseline(reg)) if _deployable(r).lower() in scope]
+    have = [_shape(r) for r in listed if (r.get("unit") or "").strip() != "flow" and _deployable(r).lower() in scope]
+    for n in scope:
+        w = [x for x in want if x[1].lower() == n]
+        h = [x for x in have if x[1].lower() == n]
+        if not h:
+            out.append(f"{names[n]}, a service the go took in, has no unit in {layout.UNITS_CSV}; units.py lists "
+                       + ", ".join(f"{u} ({p})" for u, _, p in w))
+        elif sorted(w) != sorted(h):
+            out.append(f"the units of {names[n]} are " + ", ".join(f"{u} ({p})" for u, _, p in h)
+                       + "; units.py lists " + ", ".join(f"{u} ({p})" for u, _, p in w))
+    return out
+
+
+def main(argv):
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
+    import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
+    run_lock.refuse_unless_register(argv)
+    if not argv:
+        sys.exit(__doc__)
+    reg = pathlib.Path(argv[0]).resolve()
+    size = int(argv[argv.index("--unit-lines") + 1]) if "--unit-lines" in argv else unit_lines(reg)
     out = reg / layout.UNITS_CSV
+    rows = derive(reg, size, tables.dicts(out))
     out.parent.mkdir(exist_ok=True)
     tables.write(out, FIELDS, rows)
     print(f"{len(rows) - 1} reading units of at most {size} lines, plus the flow unit: {out}")

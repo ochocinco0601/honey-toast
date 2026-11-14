@@ -1,6 +1,6 @@
 # Runbook for "Place the order"
 
-One entry per proposed alert, then the stage's shared section. Each alert's runbook link ([ALERT.md](ALERT.md)) points at its own entry. The shared section holds what the alerts have in common and writes every test once; an entry names the tests it runs, bounded to its own cases and window. Generated from the register by `flow_outputs.py`: each test after the opening checks is a row of `failure-modes.csv`. State: draft, never rehearsed. Process steps are numbered within their stage, the same in every stage file.
+One entry per proposed alert, then the stage's shared section. Each alert's runbook link ([ALERT.md](ALERT.md)) points at its own entry. The shared section holds what the alerts have in common and writes every test once; an entry names the tests it runs, bounded to its own cases and window. Process steps are numbered within their stage, the same in every stage file.
 
 - [Alert M300: Checkouts that ended with no order](#alert-m300-checkouts-that-ended-with-no-order)
 - [Shared section: Place the order](#shared-section-place-the-order)
@@ -11,11 +11,13 @@ One entry per proposed alert, then the stage's shared section. Each alert's runb
 
 **M300 Checkouts that ended with no order** is above the operators' threshold for longer than their window ([ALERT.md](ALERT.md)).
 
-**The expectation it guards:** a checkout that reaches Ordering API and writes no order leaves the customer with no order and, on the web front end, an emptied basket and the orders page, so the customer is not told (lifecycle L01, recovery not created; WebApp/Services/BasketState.cs:107-108; WebApp/Components/Pages/Checkout/Checkout.razor:111-116). A checkout that never reaches Ordering API fails in front of the customer and is not counted here; nor is an order call refused at authentication, which writes no command line (Ordering API's answers by status show it).
+**The expectation it guards:** a checkout that reaches the shop leaves the customer with an order, or tells them it did not.
+
+**Why it is an alert:** a checkout that reaches Ordering API and writes no order leaves the customer with no order and, on the web front end, an emptied basket and the orders page, so the customer is not told (lifecycle L01, recovery not created; WebApp/Services/BasketState.cs:107-108; WebApp/Components/Pages/Checkout/Checkout.razor:111-116). A checkout that never reaches Ordering API fails in front of the customer and is not counted here; nor is an order call refused at authentication, which writes no command line (Ordering API's answers by status show it).
 
 - Leaving by L01 (The order is placed): M300 counts those cases
 
-**Its cases:** those that left by L01 from the case is created in the alert's window. A case still in the stage is not one of M300's.
+**Its cases:** those that went through L01, where the case is created, in the alert's window. A case still in the stage is not one of M300's.
 
 **Window:** from when the earliest of its cases entered the stage, to now: what sent a case out wrongly can come before it left.
 
@@ -34,7 +36,7 @@ Hold each case M300 lists where it is now (Submitted): move none of them on unti
 Work them over the window, on its cases only, in order; each is written in [S4](#s4-every-test-once). Where a test's command asks for a time span in angle brackets (a `--since` or a time range), give it this entry's window, whatever the placeholder says. Where it asks for case ids in angle brackets (`<case ids>`, `<id>`), give it the ids of the cases you are working: this entry's own, or those the test that sent you to it listed. Every result has a route:
 
 - the expected result: go on to the next test;
-- a match: it explains the cases it lists. Take the line's ending for those cases; if the alert counts cases it did not list, go on to the next test for the rest. Where the line says to run linked tests as well, run them on the same cases: the register ties those causes together ([S5](#s5-causes-the-alerts-share));
+- a match: it explains the cases it lists. Take the line's ending for those cases; if the alert counts cases it did not list, go on to the next test for the rest. Where the line says to run linked tests as well, run them on the same cases: those causes are tied together ([S5](#s5-causes-the-alerts-share));
 - a check whose evidence lists no cases (a match in a log or a metric) explains no case by itself: note it, if the match falls inside the look-back, and go on; a case no later check explains takes the ending of every check noted for it, each named in the hand-over; where those endings differ, escalate rather than restore;
 - anything else (an unclear answer, a step you cannot run): note it for the hand-over and go on.
 
@@ -180,9 +182,9 @@ One alert is proposed for this stage, so no cause is shared between alerts.
 
 **Escalate** (hand over to the owning tier) when you cannot restore with S6; when a test ends in *Broken — cannot restore* (T9, T8, T6); or when a remedy needs approval (use the change-approval path).
 
-**Escalate to the owner of the part that failed**: the part the test that matched names. The owners as the register records them, with the date each was recorded; *not in the map yet* means the register names none, a gap to fill and not a reason to stop. Links to the on-call and change records are the operators' to add.
+**Escalate to the owner of the part that failed**: the part the test that matched names. The owners with the date each was named; *none named yet* is a gap to fill and not a reason to stop. Links to the on-call and change records are the operators' to add.
 
-| Part | Owner (register) | As of | Responder (register) | Tests that end in escalation to it |
+| Part | Owner | As of | Responder | Tests that end in escalation to it |
 |---|---|---|---|---|
 | WebApp | proposed: the team that deploys the eShop AppHost, which ships every service and store together (eShop.AppHost/Program.cs:1-104); no source names a team | 2026-08-28 | proposed: that team's on-call; no source names one | — |
 | ClientApp | proposed: the team that builds and distributes the mobile app, which the AppHost does not deploy (eShop.AppHost/Program.cs:1-104 has no project for it); no source names a team | 2026-08-28 | proposed: that team's on-call; no source names one | — |
@@ -219,6 +221,7 @@ Operator links to fill in, one per measure the tests read:
 
 - **Owner:** not stated.
 - **Last validated:** never. It has not been rehearsed cold.
+- **Made from:** the register; each test after the opening checks is a row of `failure-modes.csv`, generated by `flow_outputs.py`.
 - **To change it:** change the register (`lifecycle.csv`, `failure-modes.csv`, `remedies.csv`, `measures.csv`) and generate it again. Never edit this file.
 
 | Test | Failure mode | Lifecycle rows | Part | Source |
@@ -229,4 +232,4 @@ Operator links to fill in, one per measure the tests read:
 | T8 | FM79 in-process: the act fails | L01 | Ordering API | Ordering.API/Application/Commands/IdentifiedCommandHandler.cs:36-105; Ordering.API/Application/Behaviors/LoggingBehavior.cs:9-11 |
 | T9 | FM74 call: callee returns an error | L01 | Ordering API | Ordering.API/Apis/OrdersApi.cs:118-166; WebApp/Services/OrderingService.cs:12-18 |
 
-<!-- bfo-generated-from {"flow": "F1", "stage": "ST1", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "f3ef7b5dbcfd", "measures": "b0ad6bcbbe1a", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->
+<!-- bfo-generated-from {"flow": "F1", "stage": "ST1", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "alerts": "35bb2336b8dd", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "4cdeb4c58baf", "measures": "7c78f31e5930", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->

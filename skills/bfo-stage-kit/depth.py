@@ -14,7 +14,7 @@ milestone it is for, the task line, its items (each with a name, recommended yes
 status and `opts`, the ticks offered), the add line, and `choice_id`, a hash of what the person is asked.
 
 Nothing here is "done" or "reached": what the run writes is a draft, and `reviewed` is only where the person gave a
-go (the review of the alerts). A milestone or concern the person's pick leaves out says `not picked` in `picked`;
+go (the review of the measures, the review of the alerts). A milestone or concern the person's pick leaves out says `not picked` in `picked`;
 one with no pick recorded says `no pick recorded`; one picked and not yet worked says `not started` in `status`.
 Exit 0 written, 2 refused. Python standard library only."""
 import contextlib
@@ -73,16 +73,18 @@ def capability_name(reg, o):
     return about[0].get("system") if about else None
 
 
+# A part is a piece of the system a step runs on (home.PART): a person who carries a step, and the case, are not
+# parts, though the walk lists them among a step's carriers.
+NOT_PARTS = ("person", "case")
+
+
 def stop_of(reg):
-    """(the activity now, or None; the run's current stop as the person reads it: `no run record`, `draft complete`, or
-    the phase now), from RUN.md."""
+    """(the activity now, or None; the run's current stop as the person reads it: `no run record`, or where the run
+    stands as the status line decides it: the person's pick of the next flow, `draft complete`, a phase blocked, or the
+    phase now), from RUN.md."""
     if not (pathlib.Path(reg) / "RUN.md").is_file():
         return None, "no run record"
-    st = brief.state(reg)
-    if st is None:
-        return None, "not started"
-    current = st[0]
-    return current, ("draft complete" if current is None else brief.short(current))  # a draft, never "finished"
+    return brief.where_it_stands(reg)
 
 
 def page(reg, rel):
@@ -117,16 +119,21 @@ def receipt_item(r, gapped):
             "gap_kind": gapped.get(key) if state == "gapped" else None, "measures": list(r["by"])}
 
 
-def holes(VM, st):
-    """The view questions of a stage and its steps not answered: each against its item, empty or gapped by kind."""
+def holes(VM, st, reaches=None):
+    """The view questions of a stage and its steps not answered: each against its item, empty or gapped by kind.
+    `reaches`, the levels the stage's recorded pick takes it to (REACHES), or None with no pick recorded: a question
+    only measuring, alerting or the runbooks answer is asked only of a stage taken that far, by view_questions' own
+    lists, as run_status counts them; with no pick recorded every stage is asked, as there."""
     import view_questions as vq
+    owed = {"measure": vq.MEASURE_ONLY, "alerting": vq.ALERTING_ONLY, "runbooks": vq.RUNBOOK_ONLY}
+    skip = set() if reaches is None else {q for lv, qs in owed.items() if lv not in reaches for q in qs}
     out = []
-    for q in [q for q in vq.QUESTIONS if q.startswith("stage:")]:
+    for q in [q for q in vq.QUESTIONS if q.startswith("stage:") and q not in skip]:
         got, kind = vq.status(VM, q, st["stage"])
         if got != "answered":
             out.append({"item": st.get("name"), "of": "stage", "question": q, "state": got, "gap_kind": kind})
     for x in st.get("_steps") or []:
-        for q in [q for q in vq.QUESTIONS if q.startswith("step:")]:
+        for q in [q for q in vq.QUESTIONS if q.startswith("step:") and q not in skip]:
             got, kind = vq.status(VM, q, x["step"])
             if got != "answered":
                 out.append({"item": x.get("name"), "of": "step", "question": q, "state": got, "gap_kind": kind})
@@ -137,6 +144,11 @@ def alerts_reviewed(reg, scope):
     """Whether the person's go on the alerts covers the alerts as they are now."""
     r = (scope or {}).get("alerts_reviewed") or {}
     return bool(r) and r.get("alerts") == go.alert_fingerprint(reg)
+
+
+def measures_reviewed(reg, scope, fid):
+    """Whether the person's go on the flow's measures covers its measures as they are now."""
+    return bool((scope or {}).get("measures_reviewed")) and not go.measures_changed(reg, fid)
 
 
 def stage_record(reg, R, fid, st, depth, scope, rec, gapped, vm):
@@ -155,8 +167,9 @@ def stage_record(reg, R, fid, st, depth, scope, rec, gapped, vm):
                      for s in M["steps"]],
            "parts": [{"part": p, "name": fo.name(M, p),
                       "role": "carries a step" if any(p in M["performers"][s["step"]] for s in M["steps"])
-                      else "needed by a step"} for p in M["parts"]],
-           "holes": holes(*vm) if vm else []}
+                      else "needed by a step"} for p in M["parts"]
+                     if M["subj"].get(p, {}).get("part_kind") not in NOT_PARTS],
+           "holes": holes(*vm, reaches) if vm else []}
     concerns = {}
     for key, level, own_file, page_file in CONCERNS:
         picked = NO_PICK if reaches is None else (PICKED if level in reaches else NOT_PICKED)
@@ -167,6 +180,9 @@ def stage_record(reg, R, fid, st, depth, scope, rec, gapped, vm):
     concerns["measures"].update(handles=sorted(reached), count=len(reached),
                                 defined=[measure_item(m) for m in R["measures"] if m.get("handle") in reached],
                                 items=[receipt_item(r, gapped) for r in rec if sid in r["stages"]])
+    measured = pick in ("measure", "alerting", "runbooks")
+    if concerns["measures"]["status"] == DRAFT and measured and measures_reviewed(reg, scope, fid):
+        concerns["measures"]["status"] = REVIEWED
     alerts = fo.stage_alerts(M)
     expect = {e.get("expectation_id"): e.get("expectation") for e in R["expectations"]}
     if concerns["alerts"]["status"] == DRAFT and alerts_reviewed(reg, scope) and pick in ("alerting", "runbooks"):
@@ -174,7 +190,7 @@ def stage_record(reg, R, fid, st, depth, scope, rec, gapped, vm):
     concerns["alerts"].update(
         count=len(alerts),
         items=[{"handle": m["handle"], "measure": m.get("measure"), "watches": m.get("question_it_answers"),
-                "guards": [expect[e] for e in re.split(r"\s*;\s*", m.get("expectation") or "") if e in expect],
+                "guards": [expect[e] for e in fo.guards(m) if e in expect],
                 "signal": brief.signal_kind(m.get("layer")), "layer": m.get("layer"), "level": fo.level(m),
                 "exists_today": m.get("exists") == "yes", "why": fo.basis(m)} for m in alerts],
         considered_not_proposed=sorted(reached - {m["handle"] for m in alerts}))
@@ -303,6 +319,15 @@ def open_choice(reg, R, o, scope, current, stop):
                   "status": "proposed", "opts": ["Accept", "Reject"]} for h, m in shown.items()]
         c = {"milestone": "Alerts defined", "task": "Review the alerts proposed", "items": items,
              "add": "Make any other measure an alert"}
+    elif scope is not None and go.flows_left(reg) and go.run_finished(reg):
+        # the flow worked until now is done and the first look found more: the next one is added to this register
+        what = {f.get("name"): f.get("what") for f in (o or {}).get("flows") or []}
+        rec = brief.next_flow_recommended(reg) or {}  # the session's recommendation at this stop (brief.py next)
+        items = [{"key": n, "name": n, "recommended": n == rec.get("flow"),
+                  "reason": rec.get("why") if n == rec.get("flow") else what.get(n), "status": "proposed",
+                  "opts": [FLOW_OPT]} for n in go.flows_left(reg)]
+        c = {"milestone": "Mapped", "task": "Choose the next flow to map", "items": items,
+             "add": "Add a flow the first look did not find, and map it next"}
     else:
         return None
     if not c["items"]:  # an empty choice would record a pick the person was never shown: none is offered
@@ -324,7 +349,9 @@ def build(reg):
         VM = quiet(vq.load, reg)
     scoped = scoped_flow_id(R, scope)
     o_flows = {f.get("name"): f for f in (o or {}).get("flows") or []}
-    flows = [flow_record(reg, R, f, o_flows.get(f.get("name")), scope, f["flow_id"] == scoped, VM) for f in R["flows"]]
+    records = {go.flow_id_of(reg, s): s for s in go.load_all(reg)}  # each flow started here, with its own pick
+    flows = [flow_record(reg, R, f, o_flows.get(f.get("name")), records.get(f["flow_id"], scope),
+                         f["flow_id"] == scoped or f["flow_id"] in records, VM) for f in R["flows"]]
     known = {f.get("name") for f in R["flows"]}
     flows += [flow_record(reg, R, {"name": n}, of, scope, False, None) for n, of in o_flows.items() if n not in known]
     return {"version": VERSION, "register": reg.name, "capability": capability_name(reg, o), "stop": stop,
@@ -381,6 +408,9 @@ def record_recommendation(reg, text):
 
 
 def main(argv):
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
+    import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
+    run_lock.refuse_unless_register(argv)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     args, recommend = list(argv), None

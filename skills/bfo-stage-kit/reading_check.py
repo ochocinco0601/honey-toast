@@ -19,8 +19,11 @@ Exit status 0 only when every cited location is covered.
 Unit mode, for a split run: python reading_check.py --unit <unit> [--ws <workspace>] <register folder>
 
 Checks one reading unit of `units/units.csv`. Its tables are `units/<unit>/*.csv` except `files.csv`; its run is the
-session records that wrote into `units/<unit>/` (with the subagents of a main session that did), so one unit's reader
-is never credited with another's reading. Code-reader facts count only in files under the unit's `paths`, so two units
+sessions of the flow worked now that themselves wrote into `units/<unit>/` with Write or Edit, by the tool's resolved
+path, as the unit's reader or a fixer of it (provenance.py): never a re-read of an unmatched call, never a session
+that only launched them, never by a shell command's text, so one unit's reader is never credited with another's
+reading, nor with the judges'. Every cell of the unit's tables must be accounted for by those writes, and every writer
+must be a `general-purpose` subagent (provenance.py); each problem is named and fails the unit. Code-reader facts count only in files under the unit's `paths`, so two units
 cut from one deployable are not charged with each other's findings; a call, route, message or write the reader found
 there must be cited by one of the unit's rows, or its file listed `not relevant` in `files.csv`. And every source file
 under the unit's `paths` must be read in full: every line inside the unit's Read calls (offset/limit; no limit
@@ -71,14 +74,16 @@ def cited_in(text):
 
 
 NOT_CHARGED = {"survey.csv"}  # the first look's inventory of services and entry points, not a register row
+SET_ASIDE = "set-aside.csv"  # what the map leaves out: its citations are read, but touch no service
 
 
-def citations(reg):
+def citations(reg, skip=()):
     """Distinct (path lowercased, first, last) cited anywhere in the register's tables, except survey.csv: the
-    survey lists where each service starts, and the files only it names are not owed a read."""
+    survey lists where each service starts, and the files only it names are not owed a read. Tables named in
+    `skip` (lowercased file names) are left out too."""
     got = set()
     for p in sorted(pathlib.Path(reg).glob("*.csv")):
-        if p.name.lower() in NOT_CHARGED:
+        if p.name.lower() in NOT_CHARGED or p.name.lower() in skip:
             continue
         for path, a, b in cited_in(p.read_text(encoding="utf-8", errors="replace")):
             got.add((path.lower(), a, b))
@@ -107,10 +112,15 @@ def project_folders(reg, config=None, stop=None):
 
 
 def tool_uses(path):
+    """(name, input) of every tool call in transcript `path`, from its assistant records only: other records (an
+    api-request-blob) replay the request body and would count each call again."""
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
             try:
-                content = (json.loads(line).get("message") or {}).get("content")
+                d = json.loads(line)
+                if d.get("type") != "assistant":
+                    continue
+                content = (d.get("message") or {}).get("content")
             except (ValueError, AttributeError):
                 continue
             if isinstance(content, list):
@@ -180,11 +190,14 @@ def _cites(cited, path, line):
 
 def unaccounted_leads(reg, fb, cited):
     """Calls, routes, messages and writes the reader found in a service the register cites, that no row cites and
-    set-aside.csv does not name: the absences a run settles by reading (reflexion models)."""
-    services = {f.get("service") for f in fb if _cites(cited, path_rule.norm(f.get("file", "")), int(f.get("line") or 0))
+    set-aside.csv does not name: the absences a run settles by reading (reflexion models). A service is touched by
+    a citation in any table but set-aside.csv: setting a part aside by citing one of its lines accounts for the
+    leads it names and does not make the part one the map touches, so its other leads are not owed a read."""
+    touched = citations(reg, skip={SET_ASIDE})
+    services = {f.get("service") for f in fb if _cites(touched, path_rule.norm(f.get("file", "")), int(f.get("line") or 0))
                 or any(path_rule.norm(f.get("file", "")).endswith("/" + c) or path_rule.norm(f.get("file", "")) == c
-                       for c, _, _ in cited)}
-    aside = pathlib.Path(reg) / "set-aside.csv"
+                       for c, _, _ in touched)}
+    aside = pathlib.Path(reg) / SET_ASIDE
     aside = {(p.lower(), a, b) for p, a, b in cited_in(aside.read_text(encoding="utf-8"))} if aside.is_file() else set()
     out = []
     for f in fb:
@@ -390,7 +403,7 @@ class UnitResult(Result):
             return [f"Reading unit {self.unit}: NOT READ: {self.error}"]
         out = [f"Unit {self.unit}. " + x if i == 0 else x for i, x in enumerate(super().lines())]
         if not self.sessions:
-            return out
+            return out + [f"  {p}" for p in self.problems if p.startswith("provenance: ")][:50]
         head = f"Whole files: {self.files_full} of {self.files_total} files read in full"
         out.append(head + (", every file cited or set aside: ok" if not self.problems else
                            f": NOT READ: {len(self.problems)} file problem(s)"))
@@ -409,7 +422,9 @@ def check_unit(reg, unit, transcripts=None, ws=None):
         return UnitResult(unit, Result(0, 0, 0, [], 0, folders, None),
                           error=f"no unit '{unit}' in {reg / layout.UNITS_CSV}")
     udir = layout.unit_dir(reg, unit)
-    sessions = run_sessions(folders, udir, wrote=writes_into_folder)
+    import provenance  # noqa: E402  (it reads transcripts through judges.py, which imports this module)
+    who = provenance.unit(reg, unit, transcripts=folders)
+    sessions = [s.path for s in who.readers]
     opened = reads(sessions)
     ws = pathlib.Path(ws).resolve() if ws else workspace(reg, paths)
     low = [p.lower() for p in paths]
@@ -442,7 +457,8 @@ def check_unit(reg, unit, transcripts=None, ws=None):
                         and f["file"] not in aside})
 
     files, absent = source_files(ws, paths)
-    problems = [f"unit path not found in the workspace {ws}: {p}" for p in absent]
+    problems = [f"provenance: {p}" for p in who.problems]
+    problems += [f"unit path not found in the workspace {ws}: {p}" for p in absent]
     if not files and not absent:
         problems.append(f"no source files under the unit's paths in the workspace {ws}: {'; '.join(paths)}")
     full = 0

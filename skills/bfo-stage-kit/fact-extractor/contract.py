@@ -59,6 +59,16 @@ PATHLIKE = re.compile(r"[/\\]|^[A-Za-z]:|(?:^|\.)(?:c|users|home|opt|var|tmp|mnt
 ABSOLUTE = re.compile(r"^(?:[A-Za-z]:|[/\\])")
 
 
+def extended(path):
+    """`path` as Windows must be given it past the 260-character path limit (`\\\\?\\` and the absolute path);
+    unchanged elsewhere. Without it a citation in a deeply nested file reads as unopenable."""
+    path = str(path)
+    if os.name != "nt" or path.startswith("\\\\?\\"):
+        return path
+    path = os.path.abspath(path)
+    return "\\\\?\\UNC\\" + path[2:] if path.startswith("\\\\") else "\\\\?\\" + path
+
+
 def fail(check, detail, examples=None):
     return {"check": check, "passed": False, "detail": detail, "examples": (examples or [])[:5]}
 
@@ -120,7 +130,7 @@ def c4_citation_integrity(root, facts, sample):
     """
     checked, mismatched, unreadable = 0, [], []
     for f in sample:
-        path = os.path.join(root, f["file"].replace("/", os.sep))
+        path = extended(os.path.join(root, f["file"].replace("/", os.sep)))
         try:
             with open(path, "r", encoding="utf-8", errors="replace") as handle:
                 lines = handle.read().splitlines()
@@ -251,6 +261,41 @@ def c8_reach(base):
               f"{len(silent)} silent deployable(s), {len(reasons)} stated reason(s); "
               f"{len(unread)} file type(s) no rule reads, "
               f"which is information rather than a defect)")
+
+
+UNREAD_WARNING = "files the reader could not read"
+
+
+def c12_unread_files(base):
+    """Files under the root the reader could not read are named, and the run does not call itself complete.
+
+    **Reported, not failed, when the run discloses them** -- the C3 and C8 pattern: conformance is about the fact
+    base, and an honest list of what could not be read is what a conforming one says. Failing it would refuse every
+    run on an estate holding one file nobody can open, with nothing the run could do about it. What fails is the
+    silent or contradictory form: files went unread while `reach.complete` is true, or while no stated reason in
+    `reach.incomplete_because` names them. The list is carried into the verdict's `warnings` under a fixed name, so
+    whatever reads the verdict can show the person which files are missing from the map.
+    """
+    unread = base.get("unread_files")
+    if unread is None:
+        return ok("C12 unread files", "the fact base does not say which files it could not read; "
+                                      "a reader that does not list them cannot show they were all read")
+    if not unread:
+        result = ok("C12 unread files", "every file under the root was read")
+        result["reported"] = []
+        return result
+    reach = base.get("reach") or {}
+    names = [u.get("file") if isinstance(u, dict) else str(u) for u in unread]
+    reasons = " ".join(reach.get("incomplete_because") or [])
+    if reach.get("complete") or not all(n and n in reasons for n in names):
+        return fail("C12 unread files",
+                    f"{len(unread)} file(s) could not be read and the reach block does not say so -- "
+                    "reach.complete must be false and incomplete_because must name each one",
+                    names)
+    result = ok("C12 unread files", f"{len(unread)} file(s) could not be read, each named with the reason; any "
+                                    "facts in them are absent: " + "; ".join(names))
+    result["reported"] = unread
+    return result
 
 
 def c9_attribution(base, facts):
@@ -387,16 +432,26 @@ def main():
         c8_reach(base),
         c9_attribution(base, facts),
         c11_tool_identity(base),
+        c12_unread_files(base),
     ]
     if args.compare:
         results.append(compare(args.fact_base, args.compare))
 
     conforms = all(r["passed"] for r in results)
+    # A conforming fact base can still be missing part of the code. Named here under a fixed name, apart from the
+    # checks, so the run that reads this verdict shows the person which files are not in the map and why.
+    unread = base.get("unread_files") or []
+    warnings = [{"name": UNREAD_WARNING,
+                 "files": [f"{u.get('file')} ({u.get('reason')})" if isinstance(u, dict) else str(u) for u in unread],
+                 "means": "these files could not be read, so anything in them is absent from the fact base and from "
+                          "every count drawn from it. Read them another way, or tell the person they are missing"}
+                ] if unread else []
     print(json.dumps({
         "conforms": conforms,
         "fact_base": args.fact_base,
         "facts": len(facts),
         "citations_verified": len(sample),
+        "warnings": warnings,
         "checks": results,
         "means": "Conformance is necessary and not sufficient. It says the fact base has the "
                  "shape and the citation integrity the passes require. It does not say the "

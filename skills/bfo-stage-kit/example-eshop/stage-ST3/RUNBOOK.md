@@ -1,6 +1,6 @@
 # Runbook for "Ship the order"
 
-One entry per proposed alert, then the stage's shared section. Each alert's runbook link ([ALERT.md](ALERT.md)) points at its own entry. The shared section holds what the alerts have in common and writes every test once; an entry names the tests it runs, bounded to its own cases and window. Generated from the register by `flow_outputs.py`: each test after the opening checks is a row of `failure-modes.csv`. State: draft, never rehearsed. Process steps are numbered within their stage, the same in every stage file.
+One entry per proposed alert, then the stage's shared section. Each alert's runbook link ([ALERT.md](ALERT.md)) points at its own entry. The shared section holds what the alerts have in common and writes every test once; an entry names the tests it runs, bounded to its own cases and window. Process steps are numbered within their stage, the same in every stage file.
 
 - [Alert M14: Paid orders waiting to ship, and the oldest's age](#alert-m14-paid-orders-waiting-to-ship-and-the-oldests-age)
 - [Shared section: Ship the order](#shared-section-ship-the-order)
@@ -11,7 +11,9 @@ One entry per proposed alert, then the stage's shared section. Each alert's runb
 
 **M14 Paid orders waiting to ship, and the oldest's age** is above the operators' threshold for longer than their window ([ALERT.md](ALERT.md)).
 
-**The expectation it guards:** a paid order still waiting has not been shipped when the customer expects the goods, and nothing moves it but a person recording the shipment: no timer watches Paid orders and nothing in the application calls the ship endpoint (lifecycle L13, recovery stranded). How long a wait is too long is the operators' dispatch target, not set here.
+**The expectation it guards:** a paid order is shipped when the customer expects the goods.
+
+**Why it is an alert:** a paid order still waiting has not been shipped when the customer expects the goods, and nothing moves it but a person recording the shipment: no timer watches Paid orders and nothing in the application calls the ship endpoint (lifecycle L13, recovery stranded). How long a wait is too long is the operators' dispatch target, not set here.
 
 **Its cases:** those held in the stage past the time limit (the time limit in [ALERT.md](ALERT.md)). A case not past the time limit is not one of M14's.
 
@@ -32,7 +34,7 @@ No hold is needed: the cases M14 counts are still in the stage, and nothing more
 Work them over the window, on its cases only, in order; each is written in [S4](#s4-every-test-once). Where a test's command asks for a time span in angle brackets (a `--since` or a time range), give it this entry's window, whatever the placeholder says. Where it asks for case ids in angle brackets (`<case ids>`, `<id>`), give it the ids of the cases you are working: this entry's own, or those the test that sent you to it listed. Every result has a route:
 
 - the expected result: go on to the next test;
-- a match: it explains the cases it lists. Take the line's ending for those cases; if the alert counts cases it did not list, go on to the next test for the rest. Where the line says to run linked tests as well, run them on the same cases: the register ties those causes together ([S5](#s5-causes-the-alerts-share));
+- a match: it explains the cases it lists. Take the line's ending for those cases; if the alert counts cases it did not list, go on to the next test for the rest. Where the line says to run linked tests as well, run them on the same cases: those causes are tied together ([S5](#s5-causes-the-alerts-share));
 - a check whose evidence lists no cases (a match in a log or a metric) explains no case by itself: note it, if the match falls inside the look-back, and go on; a case no later check explains takes the ending of every check noted for it, each named in the hand-over; where those endings differ, escalate rather than restore;
 - anything else (an unclear answer, a step you cannot run): note it for the hand-over and go on.
 
@@ -186,9 +188,9 @@ One alert is proposed for this stage, so no cause is shared between alerts.
 
 **Escalate** (hand over to the owning tier) when you cannot restore with S6; when a test ends in *Broken — cannot restore* (T8, T9); or when a remedy needs approval (use the change-approval path).
 
-**Escalate to the owner of the part that failed**: the part the test that matched names. The owners as the register records them, with the date each was recorded; *not in the map yet* means the register names none, a gap to fill and not a reason to stop. Links to the on-call and change records are the operators' to add.
+**Escalate to the owner of the part that failed**: the part the test that matched names. The owners with the date each was named; *none named yet* is a gap to fill and not a reason to stop. Links to the on-call and change records are the operators' to add.
 
-| Part | Owner (register) | As of | Responder (register) | Tests that end in escalation to it |
+| Part | Owner | As of | Responder | Tests that end in escalation to it |
 |---|---|---|---|---|
 | Ordering API | proposed: the team that deploys the eShop AppHost, which ships every service and store together (eShop.AppHost/Program.cs:1-104); no source names a team | 2026-08-28 | proposed: that team's on-call; no source names one | T8 |
 | Catalog API | proposed: the team that deploys the eShop AppHost, which ships every service and store together (eShop.AppHost/Program.cs:1-104); no source names a team | 2026-08-28 | proposed: that team's on-call; no source names one | — |
@@ -198,7 +200,7 @@ One alert is proposed for this stage, so no cause is shared between alerts.
 | Webhooks API | proposed: the team that deploys the eShop AppHost, which ships every service and store together (eShop.AppHost/Program.cs:1-104); no source names a team | 2026-08-28 | proposed: that team's on-call; no source names one | — |
 | Webhooks database | proposed: the team that deploys the eShop AppHost, which ships every service and store together (eShop.AppHost/Program.cs:1-104); no source names a team | 2026-08-28 | proposed: that team's on-call; no source names one | — |
 | Webhook subscriber endpoint | proposed: each subscriber; no source names one | 2026-08-28 | proposed: each subscriber | — |
-| Fulfilment staff | not in the map yet | — | not in the map yet | — |
+| Fulfilment staff | none named yet | — | none named yet | — |
 | Identity API | proposed: the team that deploys the eShop AppHost, which ships every service and store together (eShop.AppHost/Program.cs:1-104); no source names a team | 2026-08-28 | proposed: that team's on-call; no source names one | — |
 
 **Declare an incident** when a second team is needed, customers can see the problem, it is unsolved after a time box of concentrated work, or the impact threshold in S2 is crossed. Keep working the entry in parallel.
@@ -225,6 +227,7 @@ Operator links to fill in, one per measure the tests read:
 
 - **Owner:** not stated.
 - **Last validated:** never. It has not been rehearsed cold.
+- **Made from:** the register; each test after the opening checks is a row of `failure-modes.csv`, generated by `flow_outputs.py`.
 - **To change it:** change the register (`lifecycle.csv`, `failure-modes.csv`, `remedies.csv`, `measures.csv`) and generate it again. Never edit this file.
 
 | Test | Failure mode | Lifecycle rows | Part | Source |
@@ -239,4 +242,4 @@ Operator links to fill in, one per measure the tests read:
 | T12 | FM114 person: nobody acts | L13 | Fulfilment staff | Ordering.API/Apis/OrdersApi.cs:12, 51-78; Ordering.Domain/AggregatesModel/OrderAggregate/Order.cs:119-140 |
 | T13 | FM127 needs: unavailable | L13 | Identity API | eShop.ServiceDefaults/AuthenticationExtensions.cs:33-50 |
 
-<!-- bfo-generated-from {"flow": "F1", "stage": "ST3", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "f3ef7b5dbcfd", "measures": "b0ad6bcbbe1a", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->
+<!-- bfo-generated-from {"flow": "F1", "stage": "ST3", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "alerts": "35bb2336b8dd", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "4cdeb4c58baf", "measures": "7c78f31e5930", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->

@@ -9,7 +9,7 @@ Columns renamed since an earlier release (RENAMED) are read under their new name
 reconciled. `--migrate` rewrites a register in place to the current names: the columns, the receipt questions that
 carry the name (in measure-gaps.csv `question` and measures.csv `receipt_question`), the agent-system.csv `element`
 values renamed (RENAMED_ELEMENTS: an act inside an agent's run is now an action), the measures.csv `agent_question`
-values renamed (RENAMED_AGENT_QUESTIONS), and a code citation inside `customer`, which moves to the row's `source`. It also renames remedy ids `R1`, `R2`, ... to `RM1`, `RM2`, ...
+values renamed (RENAMED_AGENT_QUESTIONS), and a code citation inside `customer`, which moves to the row's `source`. It moves the alert columns an earlier release kept in measures.csv (`alert`, `counted_moves`) into alerts.csv, the expectation an alert guards into its `guards`, in the register and in each finished flow's copy under earlier-flows/. It fills measures.csv `for_flow`, the flow each measure was proposed for, once, where the column is missing, from where the measure sits (its stage's flow, its `flow`, the finished flow whose kept copy first held it, or the flow worked now), and says so in one line. It also renames remedy ids `R1`, `R2`, ... to `RM1`, `RM2`, ...
 (interaction ids keep `R01`): in remedies.csv `remedy`, in failure-modes.csv `remedy`, and where a remedy's
 `action`, `expected` or `if_different` names another remedy of the register. The register's own prose (how-made.csv
 notes, a citation) is never rewritten. An earlier `promise` moves to `bound_in_code` only where it cites code (a file
@@ -17,7 +17,14 @@ and line in the cell or in the row's `source`) or names no limit; any other is a
 left empty and the value is written to expectations.csv as the objective of its stage (or of the flow), party
 `not stated`, each move named. It closes by naming what it leaves for a person: the stage-<id> folders generated from
 the register as it was (it never regenerates them), and the defined columns each table still lacks, to be filled
-on every row as FILL-STEPS says (it never adds them). Point it at a copy.
+on every row as FILL-STEPS says (it never adds them).
+
+Upgrading a register an older kit wrote, which the run does without asking (the migration changes no content, and
+this kit cannot run the old form): back the register folder up to a folder outside the workspace (inside it, the
+start step would take the backup for an earlier register); run --migrate on the register itself, in place; run the
+register check again (capability_views.py --check); and restart the page's listener so the page runs this kit
+(listener.py stop <work folder>, then wait_on_page.py <register>). Tell the person in one line what was done and
+where the backup is. Only if the check still fails, stop and tell them.
 
 The workspace is the folder every citation starts from (default: two levels above the new register, as for
 bfo-work/<application>/). The report goes to <new register>/reconciliation-<earlier folder name>.md unless --out says.
@@ -86,6 +93,11 @@ RENAMED_ELEMENTS = {"operation": "action"}
 # measures.csv `agent_question` values renamed: the run-grain question "operations" collided with "operation" (a tool
 # or route), so it is "operating health".
 RENAMED_AGENT_QUESTIONS = {"operations": "operating health"}
+# measures.csv columns of an earlier release that are now alerts.csv's, which only choosing the alerts writes.
+ALERT_MOVED = ("alert", "counted_moves")
+ALERT_COLUMNS = ("handle", "alert", "guards", "counted_moves")
+# measures.csv: the flow a measure was proposed for, added since an earlier release; --migrate fills it once.
+FOR_FLOW = "for_flow"
 # An optional lifecycle column added since an earlier release; --migrate adds it empty, beside carried_by.
 ADDED_LIFECYCLE = "started_by"
 # Receipt questions that carried a renamed column's name.
@@ -233,14 +245,19 @@ def add_objectives(reg, moved, notes):
         w.writerows(rows)
 
 
-def migrate(reg, notes=None):
+def migrate(reg, notes=None, for_flow=None):
     """Rewrite one register in place to the current column names (RENAMED) and receipt questions
     (RENAMED_QUESTIONS), agent-system.csv element values (RENAMED_ELEMENTS) and measures.csv agent_question values
-    (RENAMED_AGENT_QUESTIONS), folding a code citation out of `customer` into `source`, and to the current remedy
+    (RENAMED_AGENT_QUESTIONS), folding a code citation out of `customer` into `source`, moving the alert columns into alerts.csv
+    (move_alerts), and to the current remedy
     ids (`RM1`). An earlier `promise` that cites no code moves to expectations.csv (unbound). Returns the files
     changed; `notes`, where given, gets one line per bound moved."""
     reg = pathlib.Path(reg)
     notes = [] if notes is None else notes
+    if for_flow is None:  # where each measure sat, read once from the register itself, before any file is rewritten
+        sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+        import go
+        for_flow = go.inferred_for_flow(reg)
     old = set(old_remedy_ids(reg))
     changed, moved = [], []
     for name in sorted(p.name for p in reg.glob("*.csv")):
@@ -267,12 +284,22 @@ def migrate(reg, notes=None):
                                                            for q in r["receipt_question"].split(";")))
                         if any(q.strip() in RENAMED_QUESTIONS for q in (r["receipt_question"] or "").split(";"))
                         else r for r in new_rows]
+        if name == "measures.csv" and set(ALERT_MOVED) & set(new_fields):
+            new_fields, new_rows = move_alerts(reg, new_fields, new_rows)
+            changed.append("alerts.csv")
         if old:
             new_rows = renamed_remedies(name, new_rows, old)
         if name == "lifecycle.csv" and fields and ADDED_LIFECYCLE not in new_fields:
             at = new_fields.index("carried_by") + 1 if "carried_by" in new_fields else len(new_fields)
             new_fields = new_fields[:at] + [ADDED_LIFECYCLE] + new_fields[at:]
             new_rows = [dict(r, **{ADDED_LIFECYCLE: ""}) for r in new_rows]
+        if name == "measures.csv" and fields and FOR_FLOW not in new_fields:
+            new_fields = new_fields + [FOR_FLOW]
+            new_rows = [dict(r, **{FOR_FLOW: for_flow.get((r.get("handle") or "").strip(), "")}) for r in new_rows]
+            if reg.parent.name != "earlier-flows":
+                notes.append(f"measures.csv: the flow each of its {len(new_rows)} measures was proposed for, filled "
+                             "once from where it sits (its stage, its flow, the finished flow that kept it, or the "
+                             "flow worked now)")
         if new_fields == fields and new_rows == rows:
             continue
         with p.open("w", encoding="utf-8", newline="") as f:
@@ -283,7 +310,78 @@ def migrate(reg, notes=None):
     if moved:
         add_objectives(reg, moved, notes)
         changed = sorted(set(changed) | {"expectations.csv"})
+    for kept in sorted(p for p in (reg / "earlier-flows").glob("*") if p.is_dir()):
+        # a finished flow's rows as they were: kept in the same layout as the map, so the done check compares like
+        changed += [f"earlier-flows/{kept.name}/{n}" for n in migrate(kept, notes, for_flow)]
+    if reg.parent.name != "earlier-flows" and add_kit_section(reg):
+        changed.append("RUN.md")
+        notes.append("RUN.md: the section that marks a run of this kit (Earlier registers) added, as the start step "
+                     "reads it; none found when it was written, as nothing recorded one")
     return changed
+
+
+KIT_SECTION = "## Earlier registers"
+
+
+def add_kit_section(reg):
+    """A run record written before the kit marked its runs by the "Earlier registers" section (a register Release 7 or
+    earlier wrote) gets the section, as the template has it, with nothing found: without it the start step takes the
+    upgraded register for another tool's output and refuses to pick it up. True when it was added."""
+    p = pathlib.Path(reg) / "RUN.md"
+    if not p.is_file():
+        return False
+    text = p.read_text(encoding="utf-8")
+    if KIT_SECTION in text:
+        return False
+    tpl = (HERE / "register-template" / "RUN.md").read_text(encoding="utf-8")
+    section = tpl[tpl.index(KIT_SECTION):]
+    nxt = section.find("\n## ", 1)
+    section = (section[:nxt + 1] if nxt != -1 else section).rstrip("\n") + "\n"
+    section = re.sub(r"^- \*\*Found:\*\*.*(?:\n  .*)*$", "- **Found:** none recorded: this run record was written "
+                     "before the section existed, and was brought up to this version's form.", section, count=1,
+                     flags=re.M)
+    p.write_text(text.rstrip("\n") + "\n\n" + section, encoding="utf-8", newline="\n")
+    return True
+
+
+def move_alerts(reg, fields, rows):
+    """(fields, rows) of measures.csv without the alert columns of an earlier release, and alerts.csv written with
+    them: one row per measure whose `alert` or `counted_moves` is set, its `guards` the measure's `expectation` where
+    the alert is proposed (`yes`). A row alerts.csv already holds for the measure is kept as it is."""
+    p = reg / "alerts.csv"
+    have = tables.read_rows(p)[0] if p.is_file() else []
+    held = {(r.get("handle") or "").strip() for r in have}
+    add = [{"handle": r.get("handle", ""), "alert": r.get("alert") or "",
+            "guards": (r.get("expectation") or "") if (r.get("alert") or "").strip().lower().startswith("yes") else "",
+            "counted_moves": r.get("counted_moves") or ""}
+           for r in rows if ((r.get("alert") or "").strip() or (r.get("counted_moves") or "").strip())
+           and (r.get("handle") or "").strip() not in held]
+    with p.open("w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=ALERT_COLUMNS, lineterminator="\n", extrasaction="ignore")
+        w.writeheader()
+        w.writerows(have + add)
+    keep = [c for c in fields if c not in ALERT_MOVED]
+    return keep, [{c: r.get(c) for c in keep} for r in rows]
+
+
+def unclassed_agents(reg):
+    """How many of the register's AI agent tools, replies and chained actions are not classed as decisions or not
+    (FILL-STEPS Step 7). An older kit classed them while proposing the measures, after mapping, so a register it wrote may hold some."""
+    sys.path.insert(0, str(HERE))
+    import run_status as rs
+    return len(rs.agent_classing(reg)) if (pathlib.Path(reg) / "participation.csv").is_file() else 0
+
+
+def unclassed_line(n):
+    """The one line the upgrade's announcement carries for them, which the person reads: plain words, no file or step.
+    A re-walk, so announced before it starts; the session's own route for it (FILL-STEPS Step 7, and a correction to
+    mapping in corrections.csv for a finished flow's rows) is in its instructions, not here."""
+    if not n:
+        return ""
+    return (f"{n} of the AI agent's actions (its tool calls, its replies to a person, and steps whose output a later "
+            f"step relies on) {'is' if n == 1 else 'are'} not yet marked as decisions or not: before the run is done, "
+            f"the mapping re-reads the code behind {'it' if n == 1 else 'each'} and marks "
+            f"{'it' if n == 1 else 'them'}; this is said now, before it starts, and goes ahead unless you object.")
 
 
 def still_owed(reg):
@@ -739,6 +837,9 @@ def render(old, new, report):
 
 
 def main(argv):
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
+    import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
+    run_lock.refuse_unless_register(argv)
     if argv[:1] == ["--migrate"]:
         if len(argv) < 2:
             sys.exit("usage: python reconcile.py --migrate <register> [<register> ...]")
@@ -750,10 +851,20 @@ def main(argv):
             run_lock.guard(reg)
             notes = []
             print(f"{reg}: " + (", ".join(migrate(reg, notes)) or "already current"))
+            filled = [n for n in notes if n.startswith("measures.csv: the flow")]
+            for n in filled:  # the one line the announcement of the upgrade carries for it
+                print(n)
+            agents = unclassed_line(unclassed_agents(reg))
+            if agents:  # likewise: the re-walk it announces before it starts
+                print(agents)
+            notes = [n for n in notes if n not in filled]
             if notes:
                 print("Bounds moved to expectations.csv:")
                 print("\n".join(f"  {n}" for n in notes))
             print("\n".join(still_owed(pathlib.Path(reg))))
+        print(f'Next: run python "{HERE / 'capability_views.py'}" --check on each register again, and restart the '
+              f'page\'s listener so the page runs this kit: python "{HERE / 'listener.py'}" stop "<work folder>", then '
+              f'python "{HERE / 'wait_on_page.py'}" "<register>".')
         return 0
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("old")

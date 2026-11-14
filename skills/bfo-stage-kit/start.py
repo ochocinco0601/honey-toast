@@ -3,12 +3,20 @@ run picks up a run of this kit or starts fresh.
 
 Usage: python start.py <workspace root>                    find earlier work and decide
        python start.py <workspace root> --resume <folder>  carry on the run in that folder (the person's pick)
+                                                           (a finished run too, named to take it further)
        python start.py <workspace root> --system "<name>"  as above, for the system the person named: only a run
                                                            of that system is picked up; another system's unfinished
                                                            run is listed beside (OTHER lines) and the run starts fresh
        python start.py <workspace root> --new              the person asked for new work: start fresh beside any
                                                            unfinished run (BESIDE lines), leaving it as it is
        python start.py <workspace root> --first-look-ended  a first look stopped short of its brief: end its mark
+       ... --gave code|name|nothing                         on the run's first call: what the request gave to look
+                                                           at, which fills the launch's last part (default: name
+                                                           with --system, else code when the workspace holds any)
+       ... --request "<the person's request, word for word>"   with any of the above: the request kept as data, so a
+                                                           later stop it already answers is not asked (on a fresh
+                                                           start, or a first look finished; a run picked up keeps
+                                                           the request it was started with)
        python start.py <workspace root> --release <folder> --words "<the person's words>"
                                                            the person says the other chat on that run has stopped:
                                                            its lock passes to this run, and the run is picked up
@@ -29,21 +37,120 @@ earlier register: a tool's output, never a base. Then it decides, and prints the
 Picking a run up takes its lock for this run (run_lock.py), so the helper doing the first look and the session that
 launched it hold it together, and a second session is refused. With nothing naming the run, it refuses.
 
-Then a line `FOLDER: <folder>` for each run named, a line `EARLIER: <folder>` for each earlier register found, and,
-when there is something for the person, a line `MESSAGE:` followed by that text, which is sent to the person exactly
-as printed. Exit 0, or 2 when refused. Python standard library only."""
+Then a line `FOLDER: <folder>` for each run named, a line `EARLIER: <folder>` for each earlier register found; on
+resume at a stop where the page takes a pick (the go, the pick, the next flow), a line `WAIT:` with the wait the
+session starts before it ends its turn; and, when there is something for the person, a line `MESSAGE:` followed by
+that text, last, which is sent to the person exactly as printed. On the run's first call (no --resume, --release or
+--new) MESSAGE is the run's whole first message: the launch (LAUNCH.md, its last part filled from --gave), then what
+the decision says (on fresh or finish-first-look, that the page is open), then the page's one address. A run whose phases are all done is picked up too while the
+first look found flows it has not started: the next flow goes into its register. Exit 0, or 2 when refused. Python standard library only."""
 import datetime
+import hashlib
 import json
+import os
 import pathlib
+import shutil
 import sys
+import tempfile
 import time
+
+HERE = pathlib.Path(__file__).resolve().parent
+# The kit-version check comes first and uses the standard library only: a partial copy may lack the very modules
+# imported below, so it is caught here, before any of them is imported.
+MARKER = "KIT-VERSION.txt"  # in each built skill folder: the build it is, and every file it holds
+MARKER_HEAD = ("The version of this skill folder, written when it was built: the release and date it was built "
+               "as, then every file with the first 12 characters of a hash of its text (line endings aside). "
+               "The start step checks the folder against it at every launch and resume.")
+
+
+def _digest(p):
+    return hashlib.sha256(pathlib.Path(p).read_bytes().replace(b"\r\n", b"\n")).hexdigest()[:12]
+
+
+def _files(folder):
+    folder = pathlib.Path(folder)
+    return sorted(p.relative_to(folder).as_posix() for p in folder.rglob("*")
+                  if p.is_file() and p.name != MARKER and p.suffix != ".pyc"
+                  and not any(x == "__pycache__" or x.startswith(".") for x in p.relative_to(folder).parts))
+
+
+def write_marker(folder, release, date):
+    """Write KIT-VERSION.txt for a folder: the release, its date, and each file's digest."""
+    folder = pathlib.Path(folder)
+    lines = [MARKER_HEAD, f"Build: {release} {date}"] + [f"{_digest(folder / r)}  {r}" for r in _files(folder)]
+    (folder / MARKER).write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+
+
+def marker_files(folder):
+    """{relative path: digest} as the folder's marker lists them, or None with no marker."""
+    p = pathlib.Path(folder) / MARKER
+    if not p.is_file():
+        return None
+    out = {}
+    for line in p.read_text(encoding="utf-8").splitlines()[2:]:
+        digest, _, rel = line.partition("  ")
+        if rel:
+            out[rel] = digest
+    return out
+
+
+def kit_check(folder=None):
+    """(the build the folder says it is, [warnings]): a file the marker lists that is missing or changed, or one it
+    does not list, is a partial copy or one mixed with another version, named plainly."""
+    folder = pathlib.Path(folder or HERE)
+    listed = marker_files(folder)
+    if listed is None:
+        return "of no known build", [f"no version marker ({MARKER}) in {folder}: this copy was made before the kit "
+                                     "had one, or copied in part; install the kit again from its source before "
+                                     "going on"]
+    head = (folder / MARKER).read_text(encoding="utf-8").splitlines()[1].split()
+    built = f"built from {head[1] if len(head) > 1 else 'an unknown release'} on {head[2] if len(head) > 2 else 'an unknown date'}"
+    have = set(_files(folder))
+    missing = sorted(set(listed) - have)
+    changed = sorted(r for r in set(listed) & have if _digest(folder / r) != listed[r])
+    extra = sorted(have - set(listed))
+
+    def some(names):
+        return ", ".join(names[:8]) + (f" and {len(names) - 8} more" if len(names) > 8 else "")
+    parts = ([f"{len(missing)} missing ({some(missing)})"] if missing else []) + \
+            ([f"{len(changed)} changed ({some(changed)})"] if changed else []) + \
+            ([f"{len(extra)} not in that build ({some(extra)})"] if extra else [])
+    if not parts:
+        return built, []
+    return built, [f"this copy of the kit at {folder} does not match the build it says it is: " + "; ".join(parts)
+                   + ". It is a partial copy, or mixed with another version: install the kit again from its source "
+                   "before going on"]
+
+
+def is_source(folder=None):
+    """A development copy of the kit (BFO_KIT_SOURCE=1), which carries no marker, rather than an installed one."""
+    folder = pathlib.Path(folder or HERE)
+    return os.environ.get("BFO_KIT_SOURCE") == "1" and not (folder / MARKER).is_file()
+
+
+def kit_line(folder=None):
+    """The KIT line the start step prints first at every launch and resume."""
+    folder = pathlib.Path(folder or HERE)
+    if is_source(folder):
+        return "KIT: a development copy, not an installed one"
+    built, warnings = kit_check(folder)
+    return f"KIT: {built}" + "".join(f"; WARNING: {w}" for w in warnings)
+
+
+BLOCKED = ("DECISION: blocked\nThis copy of the kit does not match its build (the KIT line above names what is "
+           "missing or changed). Nothing was written. Tell the person in one line, through brief.py say, that this "
+           "copy of the kit is incomplete or out of date and needs installing again from its source; once it is, "
+           "run the start step again.")
+if __name__ == "__main__" and not is_source() and kit_check()[1]:
+    print(kit_line())
+    print(BLOCKED)
+    sys.exit(2)
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import brief  # noqa: E402
 import register_layout as layout  # noqa: E402
 import run_lock  # noqa: E402
 
-HERE = pathlib.Path(__file__).resolve().parent
 TABLES = ("steps.csv", "lifecycle.csv")
 KIT_SECTION = "## Earlier registers"
 STARTED = "run-started.json"  # in the work folder: {"run": <the run's name>, "started": <ISO time>}
@@ -51,6 +158,64 @@ STARTED = "run-started.json"  # in the work folder: {"run": <the run's name>, "s
 # "folder"}. Two first looks inside one session carry one session id, so the lock cannot part them; this mark does.
 FIRST_LOOK = "first-look.json"
 FIRST_LOOK_MINUTES = 45
+
+
+UPGRADE_SAID = ("Before carrying on, I brought this work's saved records up to the form this version reads: what they "
+                "say is unchanged, and a copy of them as they were is kept outside your workspace.")
+FILL_SAID = "each measure now also records the flow it was proposed for, filled in from where it already sat"
+FILL_NOTE = "measures.csv: the flow"  # the start of the upgrade's own note for that fill (reconcile.migrate)
+
+
+def changes_said(changed, notes):
+    """Everything the upgrade changed, in the person's words: the flow fill, the stated time limits moved to where
+    they are kept as expected outcomes, the alert choices moved to a list of their own, and names brought up to date."""
+    what = [FILL_SAID] if any(n.startswith(FILL_NOTE) for n in notes) else []
+    limits = [n for n in notes if not n.startswith(FILL_NOTE)]
+    if limits:
+        what.append(f"{len(limits)} stated time limit{'s' if len(limits) != 1 else ''}, which no code sets, "
+                    f"{'are' if len(limits) != 1 else 'is'} now kept as {'expected outcomes' if len(limits) != 1 else 'an expected outcome'}, "
+                    "still to be confirmed")
+    if any(c.endswith("alerts.csv") for c in changed):
+        what.append("the choices of what to alert on are now kept in a list of their own")
+    accounted = {"measures.csv", "alerts.csv", "expectations.csv"}
+    if any(pathlib.Path(c).name not in accounted for c in changed) or (
+            any(pathlib.Path(c).name == "measures.csv" for c in changed) and not what):
+        what.append("some names were brought up to the ones this version uses")
+    return "What changed: " + "; ".join(what) + "." if what else ""
+
+
+def upgrade_if_old(reg):
+    """A register an older kit wrote, upgraded in place at the start, announced and never asked: the upgrade is tried on a copy of its tables first, and only where it changes something
+    is the register backed up outside the workspace (BFO_BACKUPS, else the system's temporary folder) and upgraded.
+    Returns (the backup, the files changed, the upgrade's notes, what it leaves owed, the line the person is told),
+    or None when nothing needs it. The line is UPGRADE_SAID, with the upgrade's own line for AI agent actions not yet
+    marked (a re-walk, announced before it starts) where there are any."""
+    import importlib
+    import go
+    try:  # by name: the measures skill carries no reconcile.py (an upgrade is mapping's), and there none is tried
+        reconcile = importlib.import_module("reconcile")
+    except ImportError:
+        return None
+    reg = pathlib.Path(reg)
+    for_flow = go.inferred_for_flow(reg)
+    with tempfile.TemporaryDirectory() as t:
+        trial = pathlib.Path(t) / reg.name
+        trial.mkdir()
+        for p in reg.glob("*.csv"):
+            shutil.copy2(p, trial / p.name)
+        for p in reg.glob("earlier-flows/*/*.csv"):
+            (trial / p.parent.relative_to(reg)).mkdir(parents=True, exist_ok=True)
+            shutil.copy2(p, trial / p.relative_to(reg))
+        if not reconcile.migrate(trial, [], for_flow):
+            return None
+    base = pathlib.Path(os.environ.get("BFO_BACKUPS") or pathlib.Path(tempfile.gettempdir()) / "bfo-backups")
+    backup = base / f"{reg.name}-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    shutil.copytree(reg, backup, ignore=shutil.ignore_patterns("__pycache__"))
+    notes = []
+    changed = reconcile.migrate(reg, notes, for_flow)
+    said = " ".join(x for x in (UPGRADE_SAID, changes_said(changed, notes),
+                                reconcile.unclassed_line(reconcile.unclassed_agents(reg))) if x)
+    return backup, changed, notes, reconcile.still_owed(reg), said
 
 
 def first_look_open(site):
@@ -94,14 +259,18 @@ def made_by_this_kit(folder):
 
 
 def resumable(folder):
-    """A run of this kit whose phases are not all done or passed over."""
+    """A run of this kit whose phases are not all done or passed over, or whose flow is done while the first look
+    found flows it has not started: the next flow is added to the same register."""
     reg = pathlib.Path(folder)
     if not made_by_this_kit(reg):
         return False
     if not brief.phases(reg):
         return True  # a record with no status table yet: the run stopped before it began its first phase
     st = brief.state(reg)
-    return st is not None and st[0] is not None
+    if st is not None and st[0] is not None:
+        return True
+    import go
+    return st is not None and go.load(reg) is not None and bool(go.flows_left(reg))
 
 
 def registers(root):
@@ -213,40 +382,179 @@ def held_message(reg):
 
 
 def open_the_page(root):
-    """The start step's first act: the work page up, served from the workspace's work folder (made if need be), so
-    the person has it while the rest runs. Prints the PAGE line; a listener that cannot start never stops the run."""
+    """The start step's first act: the run status view up, served from the workspace's work folder (made if need
+    be), so the person has it while the rest runs: before any run folder exists it shows the first look under way,
+    and its address then leads to the run's own; it links to the work page and the run's home. Prints the PAGE line;
+    a listener that cannot start never stops the run."""
     import listener
+    import operator_page
     site = pathlib.Path(root).resolve() / listener.WORK
     try:
-        print(listener.say(*listener.up(site)))
+        line = listener.say(*listener.up(site, operator_page.FILE))
+        # the address reaches the person once, at the end of MESSAGE, never also typed from this line
+        print(line.split(" Give the person the address", 1)[0] + " Its address goes to the person in MESSAGE below.")
     except OSError as e:
         print(f"PAGE: not brought up ({e}); the run goes on without it. Do not tell the person the page is open: "
-              "say, in one plain sentence through brief.py say, that the page for this work could not be opened "
-              "and the work goes on without it")
+              "MESSAGE below says that the page for this work could not be opened and the work goes on without it")
     return site
 
 
-def record_start(site):
-    """When this run started, in the work folder, for the page's "running N minutes": kept while the same run calls
-    the start step again, written new for another run."""
+def started_by(folder=None):
+    """Which skill this start step belongs to: "mapping" for the mapping skill (its folder holds MAPPING-STEPS.md and
+    no FILL-STEPS.md), else "kit"."""
+    folder = pathlib.Path(folder or HERE)
+    return "mapping" if (folder / "MAPPING-STEPS.md").is_file() and not (folder / "FILL-STEPS.md").is_file() else "kit"
+
+
+REQUEST = "- **Request:**"  # RUN.md's line under Plan and go: the person's request, word for word, as data
+
+
+def record_request(reg, words, when=None):
+    """The person's request, word for word, in the register's RUN.md, once: a run picked up keeps the request it was
+    started with. Nothing is written without words or a RUN.md."""
+    p = pathlib.Path(reg) / "RUN.md"
+    if not (words or "").strip() or not p.is_file():
+        return
+    text = p.read_text(encoding="utf-8")
+    if REQUEST in text:
+        return
+    when = when or datetime.datetime.now().astimezone().isoformat(timespec="minutes")
+    line = f'{REQUEST} "{words.strip()}" (the person, {when})'
+    lines = text.splitlines()
+    at = next((i for i, x in enumerate(lines) if x.startswith("- **Plan:**")), None)
+    if at is None:
+        lines += ["", line]
+    else:
+        lines.insert(at, line)
+    p.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+
+
+def request_of(reg):
+    """The request RUN.md keeps, word for word, or ""."""
+    import re
+    p = pathlib.Path(reg) / "RUN.md"
+    text = p.read_text(encoding="utf-8") if p.is_file() else ""
+    m = re.search(r'^- \*\*Request:\*\* "(.*)" \(the person, [^)]*\)\s*$', text, re.M)
+    return m.group(1) if m else ""
+
+
+def record_start(site, request=None):
+    """When this run started, and which skill started it, in the work folder: for the page's "running N minutes" and
+    the status line's count of activities. Kept while the same run calls the start step again, written new for
+    another run. The person's request, given, is kept with it, for the register started next (start_register.py)."""
     run = run_lock.identity()
     p = pathlib.Path(site) / STARTED
     try:
         d = json.loads(p.read_text(encoding="utf-8"))
         if d.get("run") == run and d.get("started"):
+            if (request or "").strip() and not d.get("request"):
+                d["request"] = request.strip()
+                p.write_text(json.dumps(d), encoding="utf-8")
             return d
     except (OSError, ValueError):
         pass
-    d = {"run": run, "started": datetime.datetime.now().astimezone().isoformat(timespec="seconds")}
+    d = {"run": run, "started": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
+         "skill": started_by()}
+    if (request or "").strip():
+        d["request"] = request.strip()
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(d), encoding="utf-8")
     return d
 
 
-def emit(decision, folders=(), earlier=(), message=""):
+def wait_line(reg):
+    """At a stop where the page takes a pick (the go, the pick, the next flow), the page made ready for it and the
+    wait the session starts before it ends its turn, as at every stop; else ''."""
+    import depth
+    import wait_on_page
+    c = depth.build(reg)["open_choice"]
+    if not c or c["task"] not in wait_on_page.ON_PAGE:
+        return ""
+    depth.write_quietly(reg)
+    return ("Start the wait on the page before you end your turn, as at every stop. "
+            + wait_on_page.how_to_wait(wait_on_page.commands(reg)))
+
+
+LAUNCH = "LAUNCH.md"  # in each skill folder that starts a run: the launch, the first message of every run
+PAGE_OPEN_LOOK = "The page for this work is open in your browser, and the first look over the system is under way."
+PAGE_OPEN = "The page for this work is open in your browser."
+PAGE_NOT_OPEN = "The page for this work could not be opened; the work goes on without it."
+SEND = ("SEND: the text after MESSAGE is your whole reply to the person this turn, copied exactly, with nothing before "
+        "or after it (but for the skill's proposal of where to look, when only a name was given and its code is not "
+        "here), and the last thing you write this turn. Write no text before it, not even a line that you are "
+        "starting the helper. On fresh or finish-first-look, start the first-look helper first, as the skill says, "
+        "and then send it.")
+
+
+def launch_file(folder=None):
+    """The skill's LAUNCH.md, in its own folder; a development copy takes the stage kit's."""
+    folder = pathlib.Path(folder or HERE)
+    for p in (folder / LAUNCH, folder / "bfo-stage-kit" / LAUNCH):
+        if p.is_file():
+            return p
+    return None
+
+
+def gave_of(root, system=None, gave=None):
+    """What the request gave to look at: the kind the session named (`--gave`), else a name when it named one, else
+    code when the workspace holds any folder or file besides the kit's own, else nothing."""
+    if gave in ("code", "name", "nothing"):
+        return gave
+    if (system or "").strip():
+        return "name"
+    import listener
+    own = {".claude", ".git", ".vscode", listener.WORK}
+    return "code" if any(p.name not in own for p in pathlib.Path(root).iterdir()) else "nothing"
+
+
+def launch(gave, system=None, folder=None):
+    """The launch, its last part filled from what the request gave; "" for a skill with no launch of its own."""
+    import re
+    p = launch_file(folder)
+    if p is None:
+        return ""
+    t = p.read_text(encoding="utf-8")
+    body = t.split("<!-- launch -->", 1)[1].split("<!-- /launch -->", 1)[0].strip("\n")
+    m = re.search(r"<!-- begin %s -->\n(.*?)\n<!-- /begin -->" % gave, t, re.S)
+    begin = m.group(1).strip().replace("{system}", (system or "").strip() or "this system")
+    return body.replace("{begin}", begin)
+
+
+def first_message(launch_text, body, address):
+    """The run's first message, whole: the launch, then what the decision says (the page line, a brief), then the one
+    address. One status line: the launch's, unless what follows opens with its own, which then leads."""
+    import brief
+    parts = [launch_text.strip()] if launch_text.strip() else []
+    body = body.strip()
+    if parts and body.startswith(brief.STATUS_LEAD):
+        status, _, body = body.partition("\n\n")
+        parts = [status, parts[0].partition("\n\n")[2]]
+    if body:
+        parts.append(body)
+    if address:
+        parts.append(address)
+    return "\n\n".join(parts)
+
+
+def address_line(site, reg=None):
+    """The one address the first message gives: the run's home, on a run picked up that has one (the person's pick
+    waits there); else the run status page."""
+    import brief
+    import listener
+    import operator_page
+    if reg is not None and (pathlib.Path(reg) / "index.html").is_file():
+        return brief.page_line(reg)
+    url = listener.serving(site)
+    return brief.PAGE_LEAD + url + operator_page.FILE if url else ""
+
+
+def emit(decision, folders=(), earlier=(), message="", wait="", extra=()):
     out = [f"DECISION: {decision}"] + [f"FOLDER: {f}" for f in folders] + [f"EARLIER: {e}" for e in earlier]
+    out += list(extra)
+    if wait:
+        out.append(f"WAIT: {wait}")
     if message:
-        out += ["MESSAGE:", message.rstrip("\n")]
+        out += [SEND, "MESSAGE:", message.rstrip("\n")]
     print("\n".join(out))
 
 
@@ -270,6 +578,16 @@ def main(argv):
         i = args.index("--system")
         system = args[i + 1] if i + 1 < len(args) else ""
         args = args[:i] + args[i + 2:]
+    request = None
+    if "--request" in args:
+        i = args.index("--request")
+        request = args[i + 1] if i + 1 < len(args) else ""
+        args = args[:i] + args[i + 2:]
+    gave = None
+    if "--gave" in args:
+        i = args.index("--gave")
+        gave = args[i + 1] if i + 1 < len(args) else ""
+        args = args[:i] + args[i + 2:]
     words = ""
     if "--words" in args:
         i = args.index("--words")
@@ -285,11 +603,31 @@ def main(argv):
               "only when the person says the other chat has stopped. Nothing written.", file=sys.stderr)
         return 2
     site = open_the_page(args[0])  # first, so the person has the page while the rest runs
+    print(kit_line())  # which build this is, and a partial or mixed copy named, before any work
+    if not is_source() and kit_check()[1]:  # a broken copy takes no lock, writes no mark, upgrades nothing
+        print(BLOCKED)
+        return 2
     if ended:
         end_first_look(site)
         print("ENDED: the mark of a first look under way is removed; run the start step again.")
         return 0
     found, earlier = to_pick_up(args[0])
+    gave = gave_of(args[0], system, gave)
+    launch_text = launch(gave, system) if picked is None and not new else ""  # the run's first call only
+
+    def said(decision, body="", reg=None):
+        """MESSAGE: on the first call the launch leads it; on fresh or finish-first-look the page line follows;
+        the one address ends it."""
+        if decision in ("fresh", "finish-first-look"):
+            if not launch_text:
+                return ""
+            import listener
+            if not listener.serving(site):
+                body = PAGE_NOT_OPEN
+            else:
+                body = PAGE_OPEN_LOOK if gave == "code" or decision == "finish-first-look" else PAGE_OPEN
+        return first_message(launch_text, body, address_line(site, reg))
+
     other = []
     if system and system.strip() and picked is None and not new:
         other = [r for r in found if not of_system(r, system)]
@@ -299,18 +637,17 @@ def main(argv):
             print(first_look_refusal(first_look_open(site), args[0]), file=sys.stderr)
             return 2
         mark_first_look(site)
-        record_start(site)
-        emit("fresh", earlier=earlier)
-        print("\n".join(f"OTHER: {f}" for f in other))
-        print('NEW: the unfinished work here is for another system. Start the register with start_register.py --new '
-              '--words "<the person\'s request, word for word>", which records them.')
+        record_start(site, request)
+        emit("fresh", earlier=earlier, message=said("fresh"), extra=[f"OTHER: {f}" for f in other] + [
+            'NEW: the unfinished work here is for another system. Start the register with start_register.py --new '
+            '--words "<the person\'s request, word for word>", which records them.'])
         return 0
     if new:  # the person asked for new work: the unfinished runs are left as they are, beside it
         if first_look_open(site):
             print(first_look_refusal(first_look_open(site), args[0]), file=sys.stderr)
             return 2
         mark_first_look(site)
-        record_start(site)
+        record_start(site, request)
         emit("fresh", earlier=earlier)
         if found:
             print("\n".join(f"BESIDE: {f}" for f in found))
@@ -319,7 +656,9 @@ def main(argv):
         return 0
     if picked is not None:
         reg = pathlib.Path(picked).resolve()
-        if reg not in found:
+        # a finished run of this kit, named, is picked up to take it further (the measures skill on a flow whose
+        # mapping is finished): it takes the run's hold and upgrades an earlier version's register as any pickup does
+        if reg not in found and not made_by_this_kit(reg):
             print(f"REFUSED: {picked} is not a run of this kit that can be picked up. Those that can: "
                   + (", ".join(map(str, found)) or "none") + ". Nothing written.", file=sys.stderr)
             return 2
@@ -329,30 +668,49 @@ def main(argv):
             print(first_look_refusal(first_look_open(site), args[0]), file=sys.stderr)
             return 2
         mark_first_look(site)
-        record_start(site)
-        emit("fresh", earlier=earlier)
+        record_start(site, request)
+        emit("fresh", earlier=earlier, message=said("fresh"))
         return 0
     if len(found) > 1:
-        emit("choose", folders=found, earlier=earlier, message=choose_message(found))
+        emit("choose", folders=found, earlier=earlier, message=said("choose", choose_message(found)))
         return 0
     reg = found[0]
     if release_words is not None:
         run_lock.release(reg, release_words)
     refused, note = run_lock.hold(reg, take_missing=True)
     if refused:
-        emit("held", folders=[reg], earlier=earlier, message=held_message(reg))
+        emit("held", folders=[reg], earlier=earlier, message=said("held", held_message(reg)))
         return 0
     if note:
         print(note, file=sys.stderr)
     record_start(site)  # the decision has cleared: this run is the one under way
+    try:
+        upgraded = upgrade_if_old(reg)
+    except Exception as e:  # noqa: BLE001 - the run goes on; the upgrade rule is followed by hand
+        upgraded = None
+        print(f"UPGRADE: not done ({type(e).__name__}: {e}). Run the register check (capability_views.py --check); "
+              "if it names reconcile.py --migrate, follow the upgrade rule it states", file=sys.stderr)
+    if upgraded:
+        backup, changed, notes, owed, told = upgraded
+        print(f"UPGRADED: this register was written by an older kit and is upgraded in place ({', '.join(changed)}); "
+              f"its backup as it was is at {backup}. Before you send anything: run capability_views.py --check and "
+              "restart the page's listener (listener.py stop <work folder>, then wait_on_page.py <register>). The "
+              "message below tells the person; with no message, tell them in one line through brief.py say: " + told)
+        print("\n".join(f"  {x}" for x in notes + owed if x))
     decision, message = resume(reg)
+    if upgraded and message:
+        lead, _, rest = message.partition("\n\n")
+        message = f"{lead}\n\n{upgraded[4]}\n\n{rest}"
     if decision == "finish-first-look":
         # a release, on the person's word, is the run carrying on its own first look, never a second one
         if first_look_open(site) and release_words is None:
             print(first_look_refusal(first_look_open(site), args[0]), file=sys.stderr)
             return 2
         mark_first_look(site, reg)
-    emit(decision, folders=[reg], earlier=earlier, message=message)
+        record_request(reg, request)  # its first look is this run's own: the request is the one it starts with
+    message = said(decision, message, reg) if message or decision == "finish-first-look" else message
+    emit(decision, folders=[reg], earlier=earlier, message=message,
+         wait=wait_line(reg) if decision == "resume" else "")
     return 0
 
 

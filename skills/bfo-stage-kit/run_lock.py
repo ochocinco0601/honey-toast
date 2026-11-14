@@ -192,8 +192,74 @@ def release(reg, words):
     return None
 
 
+WORK = "bfo-work"
+ANSWERS = "answers"
+
+
+def is_register(d):
+    """A register: its RUN.md, or any of the register's tables (a .csv file); the kit's answers folder never."""
+    d = pathlib.Path(d)
+    if d.name.lower() == ANSWERS:
+        return False
+    try:
+        return (d / "RUN.md").is_file() or any(f.is_file() for f in d.glob("*.csv"))
+    except OSError:
+        return False
+
+
+def registers_in(work):
+    """The register folders directly in a work folder (is_register)."""
+    try:
+        return sorted(d.resolve() for d in pathlib.Path(work).iterdir() if d.is_dir() and is_register(d))
+    except OSError:
+        return []
+
+
+def not_a_register(folder):
+    """The refusal for a script handed `folder` as the register when it is not one, else None. Not a register: the
+    kit's answers folder (where the page saves what the person sends, in the work folder or in a register), and the
+    work folder itself when it is not a register too. Any other folder may be a register being started, whose first
+    script writes its first table, so it is not judged here."""
+    p = pathlib.Path(folder)
+    if not p.is_dir():
+        return None
+    p = p.resolve()
+    answers = p.name.lower() == ANSWERS
+    if not answers and (p.name != WORK or is_register(p)):
+        return None
+    work = next((a for a in (p, p.parent, p.parent.parent) if a.name == WORK), None)
+    found = registers_in(work) if work else []
+    if not found and answers and is_register(p.parent):
+        found = [p.parent]
+    what = ("the kit's answers folder, where the page saves what the person sends" if answers else
+            "the work folder, which holds the registers")
+    take = ("Take <your-folder> from the FOLDER line that start.py or start_register.py printed, never from a "
+            "listing of the work folder.")
+    if not found:
+        again = "No register folder was found beside it."
+    elif len(found) == 1:
+        again = f'Run the command again with the register folder: "{found[0]}".'
+    else:
+        again = ("Run the command again with this run's register folder, one of: "
+                 + "; ".join(f'"{r}"' for r in found) + ".")
+    return f"REFUSED: {p} is not a register folder: it is {what}. Nothing was written. {again} {take}"
+
+
+def refuse_unless_register(args):
+    """For a script's arguments: exit 2 with the refusal when a folder among them is not a register (not_a_register);
+    an option, a file, a missing path and a folder outside a work folder pass."""
+    for a in args:
+        refusal = not_a_register(a) if str(a) and not str(a).startswith("-") else None
+        if refusal:
+            print(refusal, file=sys.stderr)
+            sys.exit(2)
+
+
 def guard(reg, take_missing=None):
-    """For a script about to write `reg`: exit 2 with the refusal when another run holds it; say any take-over."""
+    """For a script about to write `reg`: exit 2 with the refusal when `reg` is not a register (not_a_register; the
+    start step starting a folder is not judged) or another run holds it; say any take-over."""
+    if not take_missing:
+        refuse_unless_register([reg])
     refusal, note = hold(reg, take_missing)
     if refusal:
         print(refusal, file=sys.stderr)

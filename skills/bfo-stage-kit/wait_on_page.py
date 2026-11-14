@@ -10,8 +10,9 @@ serves the run from its first stop to its end, and the page open in the person's
 itself, so it shows each new choice in the same tab within about 15 seconds (it holds while ticks or words on it are
 not yet sent, and says so at its top). Then it prints the wait the session starts (the watch under the Monitor tool
 with timeout_ms 1800000, or, where the session has no Monitor tool, a poll run as a background task and run again
-each time it exits), what answers a stop, and how the wait and the listener are stopped at the run's end.
-At the go and at the pick the page takes the person's pick; at any other stop it takes only topics to talk about.
+each time it exits), what answers a stop, and when the wait and the listener are stopped: once no flow is left
+to offer after the run's end, or the person says stop at the offer of the next flow. At the go, at the pick and
+at the offer of the next flow the page takes the pick; at the other stops, topics to talk about.
 Exit 0 ready, 2 refused. Python standard library only."""
 import pathlib
 import sys
@@ -26,7 +27,11 @@ import run_lock  # noqa: E402
 RESUME = "resume.md"
 PAGE_ASK = HERE / "page" / "page_ask.py"
 WATCH_MS = 1800000
-ON_PAGE = ("Choose the flow to map first", "Pick how far each stage goes")
+ON_PAGE = ("Choose the flow to map first", "Pick how far each stage goes", "Choose the next flow to map")
+REVIEWS = {depth.brief.MEASURES_REVIEW: ("the review of the measures", "--measures-reviewed"),
+           depth.brief.REVIEW: ("the review of the alerts", "--alerts-reviewed")}  # answered in the chat
+STOP_WHEN = ("once no flow is left to offer after the run's end, or the person says stop at the offer of the next "
+             "flow (the page and its wait stay up through that offer)")
 
 
 def how_to_wait(cmd):
@@ -50,6 +55,11 @@ def commands(reg):
 def resume_text(reg, c, cmd, address):
     asked = (f"{c['task']} (milestone: {c['milestone']}), choice id `{c['choice_id']}`" if c and c["task"] in ON_PAGE
              else "no pick is taken on the page now; it takes topics to talk about")
+    review = REVIEWS.get(depth.stop_of(reg)[0])
+    if review:  # a review is answered in the chat; the page takes topics while it waits
+        asked += (f". The run waits on {review[0]}: record the person's answer, typed in the chat, with "
+                  f"`python \"{HERE / 'go.py'}\" \"{pathlib.Path(reg).resolve()}\" {review[1]} --decision go|changes "
+                  "--words \"<their answer, word for word>\"`")
     return "\n".join([
         "# Waiting on the person, on the home screen",
         "",
@@ -57,7 +67,7 @@ def resume_text(reg, c, cmd, address):
         f"- **Stop:** {asked}",
         f"- **The page:** {address or 'could not be started: take the answer in the chat'} (it may have changed after "
         "a restart, so run the command below first, which opens it again)",
-        f"- **At the run's end:** stop the listener with `{cmd['stop']}`",
+        f"- **When to stop it:** {STOP_WHEN}: stop the listener with `{cmd['stop']}`",
         "",
         "## When an answers file arrives (`ANSWERS <path>` from the watch or a finished poll)",
         "",
@@ -83,6 +93,9 @@ def resume_text(reg, c, cmd, address):
 
 
 def main(argv):
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
+    import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
+    run_lock.refuse_unless_register(argv)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     if len(argv) != 1 or not pathlib.Path(argv[0]).is_dir():
@@ -116,7 +129,7 @@ def main(argv):
           f"{how_to_wait(cmd)}")
     print("Keep the wait's task id (the watch, or the poll running now). A stop is answered only when go.py records a "
           "pick; a post of topics alone, words with no tick at the pick, and a refusal leave it waiting. Stop the "
-          f"wait by its task id, and the listener with {cmd['stop']}, once the run's report is sent at its end.")
+          f"wait by its task id, and the listener with {cmd['stop']}, {STOP_WHEN}.")
     return 0
 
 

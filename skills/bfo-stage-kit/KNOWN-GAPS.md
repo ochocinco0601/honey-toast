@@ -40,6 +40,26 @@
   would record its scope without the earlier pick. Until it is, pick every stage's depth in the one run, at the pick.
 - **Taking a stage less far than already picked is refused,** because the pages already written for it would stay.
 
+## The reviews
+
+- **The review of the alerts accepts a go on alerts the person was not shown.** The review of the measures refuses
+  a go until the measures have been shown (`brief.py measures`), and refuses one on measures that changed since. The
+  review of the alerts refuses only a go on alerts that changed since they were shown: where they were never shown,
+  it takes the go. Show the alerts before recording the answer on them. Making that review as strict is for the
+  later work on choosing the alerts.
+- **A register migrated from an earlier release can have measures that do not say which flow they were proposed
+  for.** Where the migration cannot place a measure, `for_flow` is left blank and the inspection of the measures
+  (rule 6) reports each one; the rows are filled the next time that register is run.
+- **Migrating an older register can give a part's measure the wrong flow.** Where a measure has no stage, the
+  one-time fill of `for_flow` (`reconcile.py --migrate`) takes the flow whose kept copy first held it, ordered by
+  when each flow's go was given. On a register where a flow was taken up again and finished again before the
+  migration, that order can name a later flow. The fill runs once and lists each row it filled: on such a
+  register, check those rows and correct any that name the wrong flow.
+- **The check of the alerts does not look at an alert placed on a process step.** It reads a stage's alerts by the
+  stage they name, so for an alert on one of the stage's process steps it does not check the moves it says it
+  watches, and its warnings about what the stage's alerts cover leave that alert out. Read each such alert's moves
+  against the moves of its stage yourself.
+
 ## How far to trust a run
 
 Check the parts: a process step's dependency on a database can be left out, or a mobile app drawn as a web front end
@@ -76,11 +96,36 @@ part it is several times longer.
   answering with an error or slowly keeps its databases as tests of their own.
 - **Nothing checks a sweep's command.** The check confirms only that a sweep's parts are of one kind, each in a
   listed move. Whether its command reaches every part and names the one that matched is the drafter's to verify.
-- **One stage's reading is still one session's.** The code reader (`fact-extractor/`) finds routes, calls, messages
-  and writes, but the reading itself is the run's, and there is no rule for sharing one stage between sessions.
-  Stage by stage is the only split.
-- **Citations are verified by sample.** The sample's size is stated per run, not derived. Boilerplate citations
-  written in bulk pass the check, and only the sample can catch them.
+- **What checking every finding cannot see.** Mapping reads each service in its own reading unit, and every row
+  that cites code is checked against its cited lines by readers who wrote none of it. That check sees only the rows
+  written and the lines they cite:
+  - **Missing rows.** A step, part or call no reader wrote is never judged. Only the reading check (every file of a
+    unit opened, or listed as not relevant with the reason) and the map's inspection bear on what is missing.
+    Nothing cross-checks the lifecycle against the participation rows either: a service the lifecycle names as
+    carrying a step can have no participation row for that step, and nothing flags it (for example, a step whose
+    lifecycle names a shipping service as a carrier, with no participation row for it).
+  - **Claims true at the cited lines and false given code elsewhere.** A judge judges a row against the lines it
+    cites, so a claim those lines support but code elsewhere contradicts (an override, a later branch, a setting
+    that changes it) passes.
+  - **Rows with no citation** are not judged: they are labelled `proposed:` or name what no code could show.
+  - **A row still in doubt after the last round** stays on the map labelled disputed, shown as not confirmed by the
+    code, never as fact.
+  - **The flow-level rows are written by the session that talks to you, and nothing checks who fixes them.** The
+    case, its lifecycle, stages, process steps, Business Impact and the like are the session's own rows, by design.
+    The rule that a flagged row is fixed only by a separate fixer is checked for the services' rows, never for these:
+    if the session edits a flagged flow-level row itself, the edit is judged again like any fix, but nothing records
+    that it was not a fixer's.
+  - **"No hand-written rows" for the services' rows rests on Claude Code's transcripts, against a careless session,
+    not a determined one.** A service's row is written by a reader or fixer launched on a prompt the kit wrote, or
+    changed by a correction in words you typed into the session; the check refuses the session's own Writes, shell
+    writes, agents it dictated a prompt to, and words you never typed. It does not stop anyone who edits the record
+    files by hand: `corrections-applied.csv` or `prompts/emitted.txt` changed by hand would pass.
+  - **A problem in a service's row found by the map's own inspection goes to that service's fixer**, which reads the
+    code again and changes or adds the row, or says the code does not show it. One the code does not show is named to
+    you as still open when mapping stops.
+- **No limit on how much of the computer a run uses.** A run launches its readers and judges many at once, and
+  nothing holds them back when the computer runs short of memory, so a run on a large capability may leave the
+  computer slow. Claude Code itself stops work running in background shells when the computer is low on memory.
 - **No rule for one flow carried by parallel sets of services.**
 - **Several repositories are not yet proven on a large capability.** Citations from the workspace root are checked
   against `sources.csv`; a capability spread over many repositories is not yet proven. A shared library's version is cited from
@@ -93,10 +138,6 @@ part it is several times longer.
 - **M28** is named for orders cancelled because payment failed, but it counts the Payment Processor's publish
   attempts. That line is written even when the publish fails, so it also counts stranded orders.
 - **ClientApp** is drawn as a web front end. It is the mobile app.
-- **FM44 and FM46** (the ordering database or the broker down, in the shared tests) lead to the re-drive RM1, which
-  cannot run while either is down. FM11 and FM14, the same checks in the `Submitted` branch, lead to the real
-  restores, RM5 and RM4. When a database reaches its connection limit, FM45 and FM49 say restore while FM13 says
-  escalate.
 - **RM1** sends orders back to `Submitted`, so the ones already in `StockConfirmed` pass through payment again, with
   no guard. It is safe only because payment is simulated, and the runbook does not say so.
 - **Log tests use `az containerapp logs show --tail 300`.** By the time someone is paged, the failure lines may
@@ -142,12 +183,12 @@ Failure-mode ids (`FM..`) are the register's; each runbook test names the mode i
 - The generated "What changed" test sends any change, an unplanned restart included, to a rollback through the
   change-approval path or the change owner. An unplanned restart has no change to roll back: escalate to the owner of the part that restarted.
 - No worked example shows a stage whose work never waits (a chain of synchronous calls that succeeds or fails within
-  seconds), where the alerts count cases leaving wrongly (Step 9). The eShop example's stage waits, and proposes an alert on
+  seconds), where the alerts count cases leaving wrongly (the measures skill). The eShop example's stage waits, and proposes an alert on
   both kinds of loss.
 - `flow_outputs.py --check` tests the register's structure and coverage. It cannot tell whether a citation says what
   the row claims: that is the verification pass in Step 11, which the assistant runs on its own work. That pass does
   not catch every wrong citation, so someone who did not draft the register checks a sample afterwards (USE.md,
   'Before you take it to anyone').
-- **The runbook's tests have not been run.** Step 11 asks for each test to be checked against one known case, and an
-  assistant working from the code alone has no case to run it on. Until the code's engineers have run each test once,
+- **The runbook's tests have not been run.** Step 11 has the run write how to check each test against one known
+  case, and never run it itself. Until the code's engineers have run each test once,
   on a case whose answer they know, read every test as a proposal.

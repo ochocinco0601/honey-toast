@@ -75,6 +75,10 @@ def main(argv):
     if len(args) != 1 or words == "" or root == "":
         sys.exit(__doc__)
     reg = pathlib.Path(args[0])
+    if reg.name.lower() == run_lock.ANSWERS:  # the page saves what the person sends into a folder by this name
+        print(f"refused: {reg} is named {run_lock.ANSWERS}, the name of the folder the page saves the person's answers "
+              "in. Start the register in a folder named for the system. Nothing was copied.", file=sys.stderr)
+        return 2
     held = sorted(p.name for p in reg.glob("*.csv")) if reg.is_dir() else []
     if held:
         print(f"refused: {reg} already holds a register ({', '.join(held)}). Nothing was copied, so the earlier "
@@ -115,8 +119,14 @@ def main(argv):
         shutil.copy2(TEMPLATE / "RUN.md", reg / "RUN.md")
     if new and beside:
         record_new(reg / "RUN.md", words, beside)
+    try:  # the person's request, as the start step kept it, recorded as data in the new run record
+        d = json.loads((pathlib.Path(root) / "bfo-work" / start.STARTED).read_text(encoding="utf-8"))
+        start.record_request(reg, d.get("request") or "", (d.get("started") or "")[:16] or None)
+    except (OSError, ValueError):
+        pass
     run_lock.guard(reg, take_missing=True)  # again, now RUN.md is here to record a lock not taken
     print(f"register started: {reg}")
+    print(f"FOLDER: {reg.resolve()}")  # the register folder: the <your-folder> of every later command
     return 0
 
 

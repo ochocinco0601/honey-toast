@@ -7,12 +7,14 @@ Instrumented, Dashboards built, Alerts defined, Runbooks written, Team prepared.
 status in depth.json (`not started`, `draft`, `reviewed`); the other three are done by other teams, and their dots
 never fill (Instrumented carries a count read from the code at design time). A dot opens a
 drop-down under its flow with what is there to review at that milestone and links to the kit's own pages for it,
-each in the same tab. Recommendations and their reasons stay in depth.json and are never drawn. Nothing is ticked
-for the person, except a stage's depth already recorded.
+each in the same tab. Reasons stay in depth.json and are never drawn; the one recommendation drawn is the
+recommended flow at the go, marked. Nothing is ticked for the person, except a stage's depth already recorded.
 
 While a choice waits on the person at the go or at the pick (depth.json's open choice), the page carries the form
 for it, as a listener serving the page reads it: a hidden `choice_id`, one free-text `words`, and per item a
-checkbox group named by the item's key whose values are the milestones ticked. The review of the alerts is not
+checkbox group named by the item's key whose values are the milestones ticked. At the go, which flow is mapped
+first, those ticks, the words and Done sit at the top of the page, one row per flow found, seen without opening a
+dot; while any choice is open, the line under the flows says the run is waiting on it. The review of the alerts is not
 taken from a page, so it has no form. Every other tick is a topic to talk about with Claude, named
 `talk:<milestone>:<item key>` with its label as the value, and each drop-down's words `talk-words:<milestone>`; any
 Done sends them all, and the page reloads once the run has redrawn it.
@@ -32,6 +34,7 @@ sys.path.insert(0, str(HERE))
 import capability_views as cv  # noqa: E402
 import depth  # noqa: E402
 import run_lock  # noqa: E402
+import step_sequence as ss  # noqa: E402
 
 FILE = "index.html"
 TEMPLATE = HERE / "home.template.html"
@@ -61,6 +64,8 @@ FILLED_WHEN = {IDENT: ("draft", "reviewed"), MAPPED: ("draft", "reviewed"), MEAS
 TALK = "Tick what you want to talk about with Claude · say what in your words"
 WORDS_ONLY = "Your words go to Claude"
 AT_THE_GO = "Tick the flow to map in the next run · one flow per run"
+FIRST_TASK = "Choose the flow to map first"  # depth.py's open choice at the go: picked at the top of the page
+AT_THE_FIRST = "Tick the flow to map first · one flow per run · anything else, in your words"
 AT_THE_PICK = ("Tick what gets more work · say what in your words · ticking a milestone brings the ones "
                "before it")
 
@@ -71,10 +76,13 @@ STAGE_Q = {"in the stage": "How many cases are in this stage now", "oldest's age
 MAP_Q = {"stage: a case enters": "how a case enters", "stage: expected outcomes": "the outcome expected",
          "stage: other outcomes": "what else can happen", "stage: cannot be undone": "what cannot be undone",
          "stage: at stake": "what is at stake", "stage: expected by each party": "what each party expects",
+         "stage: alerts": "its alerts",
          "step: moves": "its moves in the code", "step: trigger": "what starts it",
          "step: right outcome": "its right outcome", "step: if it does not happen": "what happens if it does not",
-         "step: timeouts": "its time limits"}
+         "step: timeouts": "its time limits", "step: interactions": "the calls between its parts, in order",
+         "step: where each part sits": "which parts carry it"}
 LEVEL = {"flow": 0, "stage": 1, "step": 2, "part": 3}
+PART = "A part is a piece of the system a step runs on: a service, a data store or an outside system."
 
 
 def plain(text):
@@ -82,15 +90,29 @@ def plain(text):
     return re.sub(r"\s*\([^()]*(?:\([^()]*\)[^()]*)*\)", "", text or "").strip()
 
 
-def unproposed(text):
-    return re.sub(r"^\s*proposed:\s*", "", plain(text or ""))
+def marked(text):
+    """A register cell without its citations, a leading `proposed:` read as the "(proposed)" mark after it, as the
+    stage's own page marks a drafted value (stage_flow_views.headline)."""
+    body, prop = ss.unproposed(plain(text or ""))
+    body = body.strip()
+    return body + (" (proposed)" if prop and body else "")
 
 
 def short(text):
-    """A stage's entry or exit as the state it names: the text before any explanation after a colon, no move ids."""
-    t = re.sub(r"\s*\((?:lifecycle )?L\d\d[^)]*\)", "", text or "")
-    t = re.sub(r"^(implicit|proposed): ", "", t).split(":")[0].strip()
-    return "the start" if t.lower() == "the starting event" else t
+    """A stage's entry or exit as the states it names: each without its explanation after a colon, its `implicit:`
+    (no system records the state) or its move ids, in any bracket that holds one; a `proposed:` one marked
+    "(proposed)"; several ways out joined by "or"."""
+    t, whole = ss.unproposed(re.sub(r"\s*\([^()]*\bL\d\d\b[^()]*\)", "", text or ""))
+    # a cell drafted as a whole marks every way out in it; otherwise each way out carries its own mark
+    split = r"[;,]\s*or\s+" if whole else r"[;,]\s*or\s+(?=(?:implicit|proposed)\s*:)"
+    alts = []
+    for a in re.split(split, t, flags=re.I):
+        body, prop = ss.unproposed(re.sub(r"^\s*implicit\s*:\s*", "", a, flags=re.I))
+        body = re.sub(r"^\s*implicit\s*:\s*", "", body, flags=re.I).split(":")[0].strip()
+        body = "the start" if body.lower() == "the starting event" else body
+        if body:
+            alts.append(body + (" (proposed)" if prop or whole else ""))
+    return ("; or " if any("," in a for a in alts) else ", or ").join(alts)
 
 
 def nn(n, w):
@@ -98,16 +120,40 @@ def nn(n, w):
 
 
 def about(f):
-    """(one case, starts, ends) in a few words each."""
-    ends = "; ".join(x.rstrip(".") for i, x in enumerate(plain(f.get("ends")).split(". ")) if i == 0 or x.startswith("Or "))
-    return plain(f.get("case")).split(":")[0], plain(f.get("starts")).split(":")[0], ends
+    """(one case, starts, ends) in a few words each. Ends keeps the ending the party waits for and the one where they
+    definitively do not, as a register writes them: "… Or definitively not: …", or "Main: … Does not: …".
+    A drafted value (`proposed:`, whole or per ending) keeps its words before the cut and reads "(proposed)" after."""
+    def lead(text):
+        body, prop = ss.unproposed(plain(text))
+        body = body.split(":")[0].strip()
+        return body + (" (proposed)" if prop and body else "")
+
+    ends, whole = ss.unproposed(plain(f.get("ends")))
+    keep = []
+    for i, x in enumerate(ends.split(". ")):
+        x = x.strip().rstrip(".")
+        if i == 0:
+            x, prop = ss.unproposed(re.sub(r"^Main:\s*", "", x))
+            x = x[:1].upper() + x[1:]
+        elif x.startswith("Or "):
+            head, sep, rest = x.partition(": ")
+            rest, prop = ss.unproposed(rest)
+            x = head + sep + rest
+        elif x.startswith("Does not:"):
+            rest, prop = ss.unproposed(x[len("Does not:"):])
+            x = "Or it does not: " + rest.strip()
+        else:
+            continue
+        if x.strip():
+            keep.append(x + (" (proposed)" if prop or whole else ""))
+    return lead(f.get("case")), lead(f.get("starts")), ". ".join(keep)
 
 
 def sub_line(f):
     case, starts, ends = about(f)
     if not case:
         return f.get("what") or ""
-    return " · ".join([case, "from: " + starts.lower(), "to: " + ends.lower()])
+    return " · ".join([case, "from: " + starts.lower(), "to: " + ends[:1].lower() + ends[1:]])
 
 
 # ---------------------------------------------------------------- Instrumented: where each measure is counted
@@ -206,8 +252,9 @@ def item(text, subs=(), more_title="", more=()):
     return (text, list(subs), more_title, list(more))
 
 
-def level_rows(levels, cells_for, width):
-    """Rows of a table read by level: the level's own row, then its items numbered, or why there are none."""
+def level_rows(levels, cells_for, width, numbered=()):
+    """Rows of a table read by level: the level's own row, then its items, or why there are none. Only the items of a
+    level in `numbered`, which run in order, carry a number: a number on facts or on a set reads as a stage's."""
     trs = []
     for t, means, xs, empty in levels:
         trs.append(("blk lv", [t, "", means] + [""] * (width - 3)))
@@ -219,7 +266,7 @@ def level_rows(levels, cells_for, width):
                 trs.append(("gap", ["", "", x["what"], x["hole"]] + [""] * (width - 4)))
             else:
                 n += 1
-                trs.append(("", ["", str(n)] + cells_for(x)))
+                trs.append(("", ["", str(n) if t in numbered else ""] + cells_for(x)))
     return trs
 
 
@@ -343,39 +390,53 @@ class Flow:
             return {k: self.alert_pane(s) for k, s in self.choices()}
         return {str(k): self.runbook_pane(s) for k, s in enumerate(self.stages)}
 
+    def selected(self, s):
+        """A pane's section headers, naming the flow and the stage selected: (flow, stage, step, part)."""
+        flow = f"Flow {self.i + 1}, {self.f.get('name')}, as a whole"
+        if not s:
+            return (flow, "each stage: select one in the tree", "each step of a stage",
+                    "each part doing a stage’s steps")
+        st = f"Stage {s.get('order')}, {s.get('name')}"
+        return flow, st + ", as a whole", "each step of " + st, "each part doing the steps of " + st
+
     def choices(self):
         return [("-1", None)] + [(str(k), s) for k, s in enumerate(self.stages)]
 
     def hole(self, h, who):
-        why = "not answered yet" if h.get("state") == "empty" else (
+        """A question not answered: "Not known yet" only where nothing is said; a gap reads as its kind."""
+        why = "not known yet" if h.get("state") == "empty" else (
             "the code keeps no record of it" if h.get("gap_kind") == "no record" else KIND.get(h.get("gap_kind"), h.get("gap_kind") or ""))
-        return {"what": "↳ " + MAP_Q.get(h.get("question"), h.get("question") or ""), "hole": "Not known: " + why,
+        return {"what": "↳ " + MAP_Q.get(h.get("question"), h.get("question") or ""), "hole": why[:1].upper() + why[1:],
                 "who": who}
 
     def map_pane(self, s):
         case, starts, ends = about(self.f)
         flow = [{"item": a, "known": b} for a, b in (("One case", case), ("Starts", starts), ("Ends", ends),
-                                                    ("Serves", self.f.get("serves") or ""))]
+                                                    ("Serves", marked(self.f.get("serves"))))]
         stage, steps, parts = [], [], []
         if s:
-            holes = s.get("holes") or []
+            # a question only measuring, alerting or the runbooks answer is the map's to ask only of a stage whose
+            # recorded pick takes it that far: before any pick, and past a stage's pick, it is not asked here
+            import view_questions as vq
+            reach = depth.REACHES.get(s.get("recorded_depth") or "none", ())
+            owed = {"measure": vq.MEASURE_ONLY, "alerting": vq.ALERTING_ONLY, "runbooks": vq.RUNBOOK_ONLY}
+            later = {q for lv, qs in owed.items() if lv not in reach for q in qs}
+            holes = [h for h in s.get("holes") or [] if h.get("question") not in later]
             stage = [{"item": "Enters", "known": short(s.get("entry"))}, {"item": "Leaves", "known": short(s.get("exit"))}]
-            stage += [{"item": "Expected by " + (e.get("party") or "").lower(), "known": unproposed(e.get("expectation"))}
+            stage += [{"item": "Expected by " + marked(e.get("party")).lower(), "known": marked(e.get("expectation"))}
                       for e in s.get("expects") or []]
             stage += [self.hole(h, "") for h in holes if h.get("of") == "stage"]
             for x in s.get("steps") or []:
-                right = unproposed(x.get("right_outcome"))
+                right = marked(x.get("right_outcome"))
                 steps.append({"item": x.get("name"), "known": "Right outcome: " + right if right else ""})
                 steps += [self.hole(h, x.get("name")) for h in holes if h.get("of") == "step" and h.get("item") == x.get("name")]
             parts = [{"item": x.get("name"), "known": x.get("role")} for x in s.get("parts") or []]
         none = "Nothing known at this level"
         pick = "Shown when a stage is selected"
-        levels = [("Flow", "the whole flow", flow, none),
-                  ("Stage", "this stage as a whole" if s else "each stage: select one in the tree", stage, none if s else pick),
-                  ("Step", "each step of this stage" if s else "each step of a stage", steps, none if s else pick),
-                  ("Part", "each part doing this stage’s steps" if s else "each part doing a stage’s steps", parts,
-                   none if s else pick)]
-        trs = level_rows(levels, lambda x: [x["item"], x["known"]], 4)
+        hf, hs, hp, hpt = self.selected(s)
+        levels = [("Flow", hf, flow, none), ("Stage", hs, stage, none if s else pick),
+                  ("Step", hp, steps, none if s else pick), ("Part", hpt, parts, none if s else pick)]
+        trs = level_rows(levels, lambda x: [x["item"], x["known"]], 4, numbered=("Step",))
         return (table(["Level", "", "Item", "What is known"], trs)
                 + note("Mapped from one case traced through the code to each of its endings. A step or part the "
                        "trace missed would not show here."))
@@ -394,11 +455,9 @@ class Flow:
                           for r in (s.get("measures") or {}).get("items") or []
                           if r.get("state") != "measured" and gap_level(r) == k]
         none, pick = "Nothing is asked at this level here", "Shown when a stage is selected"
-        levels = [("Flow", "the whole flow", flows, none),
-                  ("Stage", "this stage as a whole" if s else "each stage: select one in the tree", at(1), none if s else pick),
-                  ("Step", "each step of this stage" if s else "each step of a stage", at(2), none if s else pick),
-                  ("Part", "each part doing this stage’s steps" if s else "each part doing a stage’s steps", at(3),
-                   none if s else pick)]
+        hf, hs, hp, hpt = self.selected(s)
+        levels = [("Flow", hf, flows, none), ("Stage", hs, at(1), none if s else pick),
+                  ("Step", hp, at(2), none if s else pick), ("Part", hpt, at(3), none if s else pick)]
         trs = level_rows(levels, lambda x: [x["what"], x["measure"]], 4)
         return (table(["Level", "", "What it answers", "Measure"], trs)
                 + note("What working means: each question at each level, and the measure that answers it, or why "
@@ -516,16 +575,26 @@ CLEAR_PAGE = ('<button type="button" class="ab2" data-clear="page" title="Undo e
               'Clear</button>')  # the top line's: the whole page
 
 
+def at_the_first(d):
+    """Whether the open choice is the go's, which flow is mapped first: then it is picked at the top of the page."""
+    return bool(form_of(d)) and d["open_choice"].get("task") == FIRST_TASK
+
+
 def form_html(d):
     """The form beside its ticks: the choice it answers, the person's words, Done, and what happened. The ticks are
-    the named checkboxes in the drop-downs; a tick the choice does not take has no name."""
+    the named checkboxes in the drop-downs; a tick the choice does not take has no name. At the go the pick at the
+    top of the page carries it instead."""
     c = d.get("open_choice")
-    if not form_of(d):
+    if not form_of(d) or at_the_first(d):
         return ""
+    add = ""
+    if c.get("task") == "Choose the next flow to map":  # a flow the first look missed: added, and mapped next
+        add = (f'<span class="mute">{E(c.get("add") or "")}</span><input type="text" class="wi" name="add" '
+               f'aria-label="{E(c.get("add") or "")}" placeholder="Its name" autocomplete="off">')
     return (f'<div id="answers" hidden><input type="hidden" name="choice_id" value="{E(c["choice_id"])}" '
             'autocomplete="off"><div class="tdone" id="ask"><span class="mute"></span>'
             '<input type="text" class="wi" name="words" aria-label="Your words" placeholder="Your words" '
-            'autocomplete="off">'
+            'autocomplete="off">' + add +
             '<button type="button" class="ab2 dn" data-done>Done</button>' + CLEAR +
             '<span class="mute" data-status></span></div></div>')
 
@@ -540,6 +609,35 @@ def tick(attrs, label):
 TALK_KEY, TALK_WORDS = "talk:", "talk-words:"  # topics to talk about with Claude, never recorded as a pick
 
 
+def pick_html(d):
+    """At the go: every flow found, one row each with its tick to map it first (the go's own tick, named by the flow,
+    so go.py --answers records it as the flow), the recommended one marked, then the words and Done. Drawn at the top
+    of the page, so the pick is seen without opening anything; the drop-downs carry no second tick for it. Its own
+    `data-dd` scopes its Clear to it."""
+    if not at_the_first(d):
+        return ""
+    c = d["open_choice"]
+    rows = []
+    for i in c.get("items") or []:
+        box = tick(f' name="{E(i["key"])}" value="{E(depth.FLOW_OPT)}" data-flowtick', f"Map {i.get('name')} first")
+        mark = '<span class="recm">Recommended</span>' if i.get("recommended") else ""
+        rows.append(f'<div class="it"><label class="trow">{box}<span class="pnm">{E(i.get("name") or "")}</span>'
+                    f'{mark}</label></div>')
+    return (f'<div class="card pick" id="pick" data-dd="pick"><div class="dh"><b>{E(c["task"])}</b>'
+            '<span class="mute">The run waits on this pick. One flow per run; the others follow into the same map.'
+            f'</span></div>{"".join(rows)}<div id="answers"><input type="hidden" name="choice_id" '
+            f'value="{E(c["choice_id"])}" autocomplete="off"><div class="tdone" id="ask"><span class="mute">'
+            f'{E(AT_THE_FIRST)}</span><input type="text" class="wi" name="words" aria-label="Your words" '
+            'placeholder="Your words" autocomplete="off"><button type="button" class="ab2 dn" data-done>Done</button>'
+            + CLEAR + '<span class="mute" data-status></span></div></div></div>')
+
+
+def where_it_stands(d):
+    """The line under the flows: what the run waits on while a choice is open, else the run's stop."""
+    task = (d.get("open_choice") or {}).get("task")
+    return f"waiting on you to {task[:1].lower() + task[1:]}" if task else d.get("stop")
+
+
 def talk_tick(milestone, key, label):
     """A tick outside the open choice: a topic to talk about, sent with every Done. The value is the item's own label;
     go.py names the milestone before it."""
@@ -550,7 +648,8 @@ def dropdown(fl, p, d):
     f, i = fl.f, fl.i
     name, q, _ = COLS[p]
     choice = form_of(d)
-    flow_choice = bool(choice and choice[0] == "Mapped" and p == MAPPED and f.get("name") in choice[1])
+    flow_choice = bool(choice and choice[0] == "Mapped" and p == MAPPED and f.get("name") in choice[1]
+                       and not at_the_first(d))  # at the go the pick sits at the top of the page
     stage_keys = set(choice[1]) if choice and choice[0] == "Measures defined" else set()
     stage_choice = p in KEY and fl.mapped and any(s["stage"] in stage_keys for s in fl.stages)
     held = recorded(d, stage_keys) if stage_choice else {}
@@ -601,7 +700,7 @@ def dropdown(fl, p, d):
             glyph = "└─" if k == n - 1 else "├─"
             tree.append(f'<div class="trow"><div class="tn d2"><span class="tg">{glyph}</span><span class="tl">'
                         f'<span class="lvl">Stage {E(str(s.get("order")))}</span> {E(s.get("name") or "")}</span></div></div>')
-    tree_note = {MAPPED: "A part shared by several stages counts in each.",
+    tree_note = {MAPPED: PART + " A part shared by several stages counts in each.",
                  MEAS: "A question is one of the standard questions a measure should answer. A part shared by several "
                        "stages counts in each, so the stages add up to more than the flow’s measures.",
                  INSTR: "A part shared by several stages counts in each."}.get(p) if fl.mapped else None
@@ -642,7 +741,8 @@ def row(fl):
 
 def render(reg, d):
     reg = pathlib.Path(reg)
-    d = dict(d, _title=d.get("capability") or d.get("register") or reg.name)
+    name, prop = ss.unproposed(d.get("capability") or "")  # a drafted capability name reads "(proposed)" too
+    d = dict(d, _title=(name.strip() + (" (proposed)" if prop else "")) if name.strip() else d.get("register") or reg.name)
     counted = counted_at_stand_in(reg)
     flows = [Flow(reg, d, i, f, counted) for i, f in enumerate(d.get("flows") or [])]
     head = ('<div class="trk hd"><span>Flow</span>' + "".join(
@@ -652,17 +752,20 @@ def render(reg, d):
     the_map = (f'<a class="go" href="{MAP_FILE}">The map</a>' if (reg / MAP_FILE).is_file()
                else '<span class="off">The map</span>')
     sources = '<a class="go" href="sources.html">Sources</a>' if (reg / "sources.csv").is_file() else ""
+    status = '<a class="go" href="operator.html">Run status</a>' if (reg / "RUN.md").is_file() else ""
     nav = (f'<div class="nav"><span class="sys">{E(d["_title"])}</span><a class="go on" href="{FILE}" '
-           f'aria-current="page">Home</a>{the_map}{sources}<span class="sp2"></span></div>')
+           f'aria-current="page">Home</a>{the_map}{sources}{status}<span class="sp2"></span></div>')
     blind = ("Found is only what has been found so far; a traced flow shows only what its trace found."
              if any(fl.mapped for fl in flows) else "Found is only what has been found so far.")
-    source = f"Drawn from depth.json in the register {d.get('register') or reg.name}. Where the run stands: {d.get('stop')}."
+    source = f"Drawn from depth.json in the register {d.get('register') or reg.name}. Where the run stands: {where_it_stands(d)}."
+    import progress  # while a flow is mapped, the last part of the map written, as the chat said it
+    source += (" " + progress.latest(reg)) if progress.latest(reg) else ""
     generated = ("<!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.\n     Source: depth.json in this folder, and "
                  "home.template.html\n     Builder: home.py\n     Build: python home.py <register folder>\n-->")
     page = TEMPLATE.read_text(encoding="utf-8")
     for k, v in (("<!--GENERATED-->", generated), ("<!--TITLE-->", E("Home · " + d["_title"])), ("<!--NAV-->", nav),
                  ("<!--HEAD-->", head), ("<!--ROWS-->", rows), ("<!--BLIND-->", E(blind)),
-                 ("<!--SOURCE-->", E(source)), ("<!--FORM-->", form_html(d)), ("<!--CLEAR-->", CLEAR_PAGE)):
+                 ("<!--SOURCE-->", E(source)), ("<!--FORM-->", form_html(d)), ("<!--PICK-->", pick_html(d)), ("<!--CLEAR-->", CLEAR_PAGE)):
         page = page.replace(k, v, 1)
     # the watch compares this stamp, not the first page it fetches, so a redraw before its first check is still seen
     stamp = hashlib.sha256(page.encode("utf-8")).hexdigest()[:16]
@@ -691,6 +794,9 @@ def write(reg):
 
 
 def main(argv):
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
+    import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
+    run_lock.refuse_unless_register(argv)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     if len(argv) != 1 or not pathlib.Path(argv[0]).is_dir():

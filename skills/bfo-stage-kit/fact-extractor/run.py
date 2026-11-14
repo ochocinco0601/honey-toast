@@ -57,10 +57,55 @@ def attribute(rel_path, service_map):
     return best[1] if best else None
 
 
+def extended(path):
+    """`path` as Windows must be given it past the 260-character path limit: `\\\\?\\` and the absolute path (UNC
+    paths as `\\\\?\\UNC\\server\\share`). Unchanged elsewhere.
+
+    **Without it a long path is not an error, it is an absence.** Windows will not list, stat or open a path of 260
+    characters or more, so the analyser handed the root never sees the file and a directory walk never yields it:
+    part of an estate goes unread with nothing saying so. Every path the reader emits stays the plain relative one.
+    """
+    path = str(path)
+    if os.name != "nt" or path.startswith("\\\\?\\"):
+        return path
+    path = os.path.abspath(path)
+    return "\\\\?\\UNC\\" + path[2:] if path.startswith("\\\\") else "\\\\?\\" + path
+
+
+def plain(path):
+    """The ordinary form of a path `extended` produced, for computing what the reader emits."""
+    path = str(path)
+    if path.startswith("\\\\?\\UNC\\"):
+        return "\\\\" + path[8:]
+    return path[4:] if path.startswith("\\\\?\\") else path
+
+
+# Files the reader could not read, relative path -> reason. A file that cannot be read is named, never counted as
+# empty in silence: its facts are absent, and the run says so in `unread_files` and in `reach.incomplete_because`.
+_unread = {}
+
+
+def note_unread(path, root, reason):
+    path = os.path.abspath(plain(path))
+    try:
+        rel = os.path.relpath(path, os.path.abspath(plain(root))) if root else path
+    except ValueError:
+        rel = path
+    _unread.setdefault(rel.replace("\\", "/"), reason)
+
+
+def unread_files():
+    return [{"file": f, "reason": why} for f, why in sorted(_unread.items())]
+
+
+def why(error):
+    return error.strerror or type(error).__name__
+
+
 _line_cache = {}
 
 
-def source_line(path, start, end=None):
+def source_line(path, start, end=None, root=None):
     """The cited source, trimmed. Read once per file, at the location the tool reported.
 
     Spans start..end rather than one line, because a match often begins above the thing
@@ -71,10 +116,11 @@ def source_line(path, start, end=None):
     """
     if path not in _line_cache:
         try:
-            with open(path, "r", encoding="utf-8", errors="replace") as handle:
+            with open(extended(path), "r", encoding="utf-8", errors="replace") as handle:
                 _line_cache[path] = handle.read().splitlines()
-        except OSError:
+        except OSError as error:
             _line_cache[path] = []
+            note_unread(path, root, why(error))
     lines = _line_cache[path]
     last = min(end or start, start + 2, len(lines))
     if not 0 < start <= len(lines):
@@ -413,12 +459,15 @@ def reach(facts, service_map, root, partial_parse_files=0):
     # and a `main`, and zero facts is the right answer. A deployable with thousands of lines
     # and no facts was not read. The check cannot tell them apart; this number can, and without
     # it every silent deployable costs someone a manual look.
+    def unlisted(error):  # a folder that cannot be listed is named, as a file that cannot be opened is
+        note_unread(error.filename, root, why(error))
+
     sizes = {}
     for prefix, name in service_map.items():
         if name not in silent:
             continue
         total = 0
-        for dirpath, dirnames, filenames in os.walk(os.path.join(root, prefix)):
+        for dirpath, dirnames, filenames in os.walk(extended(os.path.join(root, prefix)), onerror=unlisted):
             dirnames[:] = [d for d in dirnames if d not in {".git", "target", "build", "obj",
                                                             "bin", "__pycache__", ".venv"}]
             for filename in filenames:
@@ -427,8 +476,8 @@ def reach(facts, service_map, root, partial_parse_files=0):
                         with open(os.path.join(dirpath, filename), "r",
                                   encoding="utf-8", errors="replace") as handle:
                             total += sum(1 for line in handle if line.strip())
-                    except OSError:
-                        pass
+                    except OSError as error:
+                        note_unread(os.path.join(dirpath, filename), root, why(error))
         sizes[name] = total
 
     # **Lines, not just files, per suffix.** A file count cannot separate a language that is
@@ -437,7 +486,7 @@ def reach(facts, service_map, root, partial_parse_files=0):
     # beside `.json: 6`, and by file count the two look alike. In lines they do not.
     present, present_lines = {}, {}
     read = {"." + f["file"].rsplit(".", 1)[-1].lower() for f in facts if "." in f["file"]}
-    for dirpath, dirnames, filenames in os.walk(root):
+    for dirpath, dirnames, filenames in os.walk(extended(root), onerror=unlisted):
         dirnames[:] = [d for d in dirnames
                        if d not in {".git", "node_modules", "target", "build", "obj", "bin",
                                     "__pycache__", ".venv", "vendor", "dist", "out"}]
@@ -450,8 +499,8 @@ def reach(facts, service_map, root, partial_parse_files=0):
                               encoding="utf-8", errors="replace") as handle:
                         present_lines[suffix] = present_lines.get(suffix, 0) + sum(
                             1 for line in handle if line.strip())
-                except OSError:
-                    pass
+                except OSError as error:
+                    note_unread(os.path.join(dirpath, name), root, why(error))
     unread = {suffix: count for suffix, count in present.items() if suffix not in read}
 
     # **A language present in program quantity that produced no fact at all.** This is the
@@ -486,6 +535,11 @@ def reach(facts, service_map, root, partial_parse_files=0):
         incomplete_because.append(
             f"the parser could not fully read {partial_parse_files} file(s); facts inside "
             "those regions are absent and unrecoverable")
+    unread_list = unread_files()
+    if unread_list:
+        incomplete_because.append(
+            f"{len(unread_list)} file(s) could not be read, so any facts in them are absent: " + "; ".join(
+                f"{u['file']} ({u['reason']})" for u in unread_list))
 
     return {
         "deployables_declared": len(set(service_map.values())),
@@ -596,7 +650,7 @@ def main():
     # failure is total rather than partial.
     proc = subprocess.run(
         [SEMGREP, "--config", RULES, "--json", "--quiet", "--metrics=off", "--disable-version-check",
-         *(["--exclude", own] if own else []), root],
+         "--exclude", ".claude", *(["--exclude", own] if own else []), extended(root)],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     if proc.returncode != 0 and not proc.stdout:
@@ -616,12 +670,20 @@ def main():
                  + "\n".join(str(error.get("message", error))[:400] for error in fatal[:3]))
     facts, counts, by_language = [], {}, {}
     root_abs = os.path.abspath(root)
+    # A file the analyser named and could not take apart at all is unread, as one the reader cannot open is. A
+    # partial parse is counted apart (`partial_parse_files`): the rest of that file was read.
+    for error in report.get("errors", []):
+        if error.get("path") and "PartialParsing" not in str(error.get("type")):
+            note_unread(error["path"], root_abs, f"the analyser: {str(error.get('type'))[:80]}")
 
     for hit in report.get("results", []):
-        abs_path = os.path.abspath(hit["path"])
+        # The analyser reports a path in the form it was given the root, extended on Windows; facts carry it plain.
+        abs_path = plain(os.path.abspath(hit["path"]))
         rel = os.path.relpath(abs_path, root_abs).replace("\\", "/")
         if own and (rel == own or rel.startswith(own + "/")):
             continue  # the reader's own package, whatever the analyser made of the exclusion
+        if ".claude" in rel.split("/")[:-1]:
+            continue  # every installed skill (another kit's copy of this reader, its fixtures): never the application
         kind = hit["extra"]["metadata"]["fact_kind"]
         ext = os.path.splitext(rel)[1]
         facts.append({
@@ -639,7 +701,7 @@ def main():
             # what gives a fact identity: without it a fact is a coordinate, and a coordinate
             # can only be counted, never matched against an independently declared population.
             # Reading a line at a tool-supplied location is deterministic; nothing is inferred.
-            "evidence": source_line(abs_path, hit["start"]["line"], hit.get("end", {}).get("line")),
+            "evidence": source_line(abs_path, hit["start"]["line"], hit.get("end", {}).get("line"), root=root_abs),
             # The type this fact sits inside. Not a claim about behaviour — a coordinate the
             # join needs, because a call site never names the service it reaches.
             "in_type": enclosing_type(abs_path, hit["start"]["line"]),
@@ -719,6 +781,9 @@ def main():
         # Same-kind facts merged at one location, so an overlap between two rules reads as a
         # number rather than as more structure than the estate has.
         "duplicate_locations_collapsed": collapsed,
+        # Every file under the root the reader could not read, with the reason. Never skipped in silence: any
+        # facts in them are absent, and `reach.incomplete_because` says so too.
+        "unread_files": unread_files(),
         "semgrep_errors": report.get("errors", []),
         "facts": facts,
     }, sys.stdout, indent=2)

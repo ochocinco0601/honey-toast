@@ -1,0 +1,52 @@
+{
+  "why": "rules.yaml records precision evidence per estate under `checked:`. This maps every estate name that may appear there to the language it is written in, so a `checked` entry naming an estate in another language is caught mechanically. A search forward from a rule id can land on the next rule's `checked:` block and give it another rule's samples. Real estates are polyglot and the map must say so; narrower entries make the control cry wolf, which is the failure mode that gets a control switched off.",
+  "languages": {
+    "petclinic": [
+      "java"
+    ],
+    "petclinic-micro": [
+      "java",
+      "javascript"
+    ],
+    "java-kafka": [
+      "java"
+    ],
+    "bank-of-anthos": [
+      "java",
+      "python"
+    ],
+    "microservices-demo": [
+      "python",
+      "go"
+    ],
+    "camel-examples": [
+      "java",
+      "python"
+    ],
+    "dotnet/eShop": [
+      "csharp",
+      "javascript",
+      "typescript"
+    ],
+    "eshop": [
+      "csharp",
+      "javascript",
+      "typescript"
+    ],
+    "django-realworld": [
+      "python"
+    ],
+    "angular-realworld": [
+      "javascript",
+      "typescript"
+    ],
+    "nestjs-realworld": [
+      "javascript",
+      "typescript"
+    ],
+    "express-realworld": [
+      "javascript",
+      "typescript"
+    ]
+  }
+}

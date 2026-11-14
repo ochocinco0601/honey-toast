@@ -62,10 +62,11 @@ CONTRACT = {
     "expectation: indicator": GAP_OK,  # a business health or impact measure naming it, or a gap with its kind
 }
 QUESTIONS = tuple(CONTRACT)
-# Questions only measuring answers: what is at stake (the case attributes, written with the measures and costs) and an
-# expectation's indicator (the measure that shows it is met). In a run whose person chose which stages to measure,
-# they count only for those stages, and for the flow and its own expectations once any stage is measured.
-MEASURE_ONLY = ("stage: at stake", "expectation: indicator")
+# Questions only measuring answers: what each party expects of a stage (the first part of MEASURES-STEPS.md Step 9) and an expectation's
+# indicator (the measure that shows it is met). In a run whose person chose which stages to measure, they count only
+# for those stages, and for the flow's own expectations once any stage is measured. What is at stake is mapping's
+# (Step 10), so it is owed for every stage.
+MEASURE_ONLY = ("expectation: indicator", "stage: expected by each party")
 # Questions only alerting answers (the alerts and the expectation each guards), and those only the runbooks answer
 # (an alert's tests and what to contain first come from the failure modes, which are runbook work): each counts only
 # for stages taken that far.
@@ -357,7 +358,7 @@ def indicators(M, eid):
     a stage or a step, whose `expectation` names it. A measure whose `defect` is set counts wrongly, so it does not."""
     import flow_outputs as fo
     return [m for m in M["R"].get("measures", []) if m.get("layer") in fo.BUSINESS
-            and eid in cv.ids(m.get("expectation")) and not (m.get("defect") or "").strip()]
+            and eid in fo.evidence_of(m) and not (m.get("defect") or "").strip()]
 
 
 # ---------------------------------------------------------------- the predicates
@@ -406,8 +407,8 @@ def answered(M, q, el, ctx=None):
     if view == "flow":
         f = _flow(M, el)
         cols = {"flow: one case": "case", "flow: starts": "starts_at", "flow: ends": "ends_at"}
-        if q == "flow: serves":
-            return bool(flow_row(M, f, "customer")) and bool(expectations(M, flow=el, stage=""))
+        if q == "flow: serves":  # whom the flow serves is mapping's; what each party expects is the measures skill's
+            return bool(flow_row(M, f, "customer"))
         if q in cols:
             return bool(flow_row(M, f, cols[q]))
         if q == "flow: delivers":

@@ -1,6 +1,6 @@
 ---
 name: bfo-stage-kit
-description: Map the business flows of an application's capability from its code, one flow per run, and for the stages the person picks propose what to measure, what to alert on, and a runbook per alert, then draw the whole flow as one map. Load it before writing anything to the person, because its first message introduces the work. Use when asked to map a business flow or business capability for operations, to work out what to monitor or alert on for a flow, or to write runbooks for a flow's alerts, starting from the code and sources the person points at (repositories, documents, diagrams, process descriptions) and following the flow's calls into any code the run can get. Design time only - it reads code, documents and recorded answers, never a running system. Use this rather than the older capability-views skill, which draws an earlier form of the same map and writes no alerts or runbooks.
+description: Take an application's business flows past the map: for the stages the person picks, propose what to measure, what to alert on and a runbook per alert, from the code and sources the person points at (repositories, documents, diagrams, process descriptions), mapping each flow first with the bfo-mapping skill and drawing the whole flow as one map. Load it before writing anything to the person, because its first message introduces the work. Use when asked what to monitor, measure or alert on for a business flow or capability, or to write runbooks for its alerts. For a map only (the whole capability's flows mapped first, with measures, alerts and runbooks left for later), use bfo-mapping instead. Design time only - it reads code, documents and recorded answers, never a running system. Use this rather than the older capability-views skill, which draws an earlier form of the same map and writes no alerts or runbooks.
 ---
 
 # Business flow observability: the whole capability, one flow per run
@@ -9,6 +9,17 @@ This folder is the kit. Everything below calls it **the skill folder**. Wherever
 `<skill>`, it means this folder, and the folders it names (`register-template/`, `reference/`, `method/`) are
 inside this folder too.
 
+**Start here, before you write anything to the person.** Your first action is a tool call, the start step:
+`python "<skill>/start.py" "<workspace root>" --request "<their request, word for word>" --gave <code, name or
+nothing>` ("The start step", below, says which). It prints the run's whole first message after its `MESSAGE:` line:
+the launch, which introduces the work, then the line that the page for this work is open, with the page's address.
+Never write the launch or that line yourself, and write no text this turn before that reply, not even a line
+that you are starting something. Your reply this turn is the
+text after `MESSAGE:`, exactly as printed, whole, and the last thing you write in the turn: where the decision starts
+the first-look helper, start it first, then send it. The one addition: when only a name was given and its code is not
+here, the proposal of where to look follows it, through `say --after`. A script's output left inside its tool call never reaches the
+person.
+
 ## The job this serves
 
 A person who oversees operations needs each business capability their teams run to be supported in production:
@@ -16,17 +27,21 @@ someone can tell whether it is healthy, is told when it is not, and knows what t
 the business who depend on it get what they need, and when something breaks the impact on them is found and limited
 first. This skill's step in that job is the design-time map of the capability: from the code and the documents, it
 finds the business flows the capability carries, and in batches, one flow per run, describes a flow and for the stages
-the person picks drafts what to measure, what to alert on and a runbook per alert. The job is the whole capability,
+the person picks drafts what to measure, what to alert on and a runbook per alert. It runs the whole of that work,
+handing the mapping to the mapping skill and the proposing of the measures to the measures skill, both installed
+beside it, and keeping the person's stops and the checks itself. The job is the whole capability,
 every flow; one run is one batch, and each run says what remains. It receives what the person points at, as much or
 as little as they have (a system's name or only an idea of it, some repositories or all, documents, diagrams,
 notes), directly or through the service reliability room; for what is not there it proposes where to look, taken
 from the environment it runs in, and searches only where they agree. It hands the person,
-the room's seats or the team that runs the capability a register and its generated outputs, each claim cited to its
-source or marked proposed. The person oversees the work but is not an expert in this system or this kit. So, like any
+the room's seats or the team that runs the capability a register, the capability's one map, which grows flow by
+flow (each further flow is added beside the finished ones and changes none of their rows), and its generated
+outputs, each claim cited to its source or marked proposed. The person oversees the work but is not an expert in this system or this kit. So, like any
 team taking on work for an overseer, the run first introduces itself and how the two will work together; then, after
 a first look, it briefs them in plain words on the capability, every flow found so far with its stages, and where it
 recommends starting, and it waits for their picks before reading in depth; once the flow is mapped it stops again
-for their pick of how far each stage goes, so a flow can be mapped and left there, or measured stage by stage, and a
+for their pick of how far each stage goes (where their request already answered either, it records that from the
+request, says so in a line and goes on), so a flow can be mapped and left there, or measured stage by stage, and a
 map-only run hands on the map and each stage's page with no measure; before any runbook it shows the proposed
 alerts, chosen from the health signals, and what each rests on, and waits for their go, because which signals
 deserve an alert is a different question from the ways the work can fail; every message says where things stand, and
@@ -38,61 +53,22 @@ are complete enough for the next step (measures built, alerts wired, runbooks us
 
 ## Your first message: the launch
 
-**Before any tool call, before you look at the workspace or open any file, your first message to the person is the
-launch below.** It is the same whatever the workspace holds. Send it as it is, changing only the last part to what
-their request already gave you. Say nothing before it.
+The launch is in `LAUNCH.md` in the skill folder. The start step prints it as the first part of its MESSAGE, with
+its last part ("What I need to begin") filled from `--gave`: `code` when the request pointed at the system's code
+(its repositories, a link to its code, or "this application" with its code open here); `name` when it named only
+the system, with `--system "<the system's name, as the person said it>"`; `nothing` otherwise. It is the same
+whatever the workspace holds, and it never repeats a path, a folder name or a file name from their request. Where
+and how to search is taken from the environment the run is in (its own instructions, tools and sources), never from
+a fixed place, and the run searches only where the person agrees.
 
-> **Where things stand:** Starting · Nothing read yet · Next: finding whether this work was started before, then a first look over the system · Waiting on you: nothing
->
-> **What this is for.** This works out, from a system's code and documents, how to tell whether the business work it
-> does is getting done, and what to do when it is not. A *business flow* is one piece of work the system carries for
-> its customers from start to finish, such as placing an order. For each flow it describes the stages the work goes
-> through and the services that carry each stage, proposes what to measure, and for the stages you choose drafts the
-> alerts and a runbook (the steps a responder follows) for each alert. Everything it says is traced to the code, or
-> marked as a proposal for someone to confirm. The job is the whole capability: every business flow the system
-> carries. Each run maps one flow, a batch of the job, and says what remains.
->
-> **How we work together.** There are six activities:
-> 1. A first look over the system: what it does, and the business flows it carries. Then I stop for you to pick which
->    flow comes first.
-> 2. Describing that flow from the code: its stages, its steps, and the services that carry them.
-> 3. Naming the capability and drawing the map of the flow. Then I stop for you to pick, stage by stage, how far to
->    go: mapped only, measured, measured with alerts, or on to runbooks. Then I propose what to measure for the stages
->    you take that far.
-> 4. For the stages you take to alerts: first the alerts, chosen from the health measures, which I stop for you to
->    review; then, for the stages you take to runbooks, what can go wrong, and a runbook for each alert.
-> 5. Checking every finding against the code, and drawing the map again with what was added.
-> 6. A final check and a report, with what remains.
->
-> If this work was started before, I first tell you in full where it stands. Otherwise, at the end of the first look,
-> you pick which flow comes first; I show you which services I will read and how my findings will be checked
-> against the code, and you change those only if you want to. Once the flow is mapped you pick how far each stage goes. You
-> review the proposed alerts before any runbook is written. Otherwise I come back to you only when something needs
-> your judgement, each time with a recommendation. Every message from me opens with a line like the one above: the
-> flow, the stage, the activity, what has been drafted, what is next, and what waits on you. Your tools may ask you to approve
-> my reading the system's files or running my checks; that is expected, and approving them lets the work go on.
-> A page for this work opens in your browser as I start; its address is in my messages too.
->
-> **What I need to begin.** *[If the request pointed at the system's code (its repositories, or a link to
-> its code): "You have pointed me at <the system, by its name> and its code; that is all I need to begin the first
-> look." If it named only the system, or an idea of it: "You have named <the system, by its name>. I will first look
-> for its code in what is open here; if it is not here, I will propose where to look, and search only where you
-> agree." Otherwise: "Which system should I look at? Tell me what you have, as much or as little as you know:
-> its name or only an idea of it, some of its repositories or all of them, documents about it. For what is not here,
-> I will propose where to look, and search only where you agree."]*
-
-In that last part, name what the person gave in their terms (the system's name, its code, its documents) and what is
-still needed, and never repeat a path, a folder name or a file name from their request. Where and how to search is
-taken from the environment the run is in (its own instructions, tools and sources), never from a fixed place, and
-the run searches only where the person agrees.
-
-If the request pointed at the system's code, go straight on in the same turn. If it named only the system, run the
-start step (below) first; on finish-first-look or fresh, look, without reading any file in depth, at whether the
+If the request pointed at the system's code, start the helper in the same turn, then send MESSAGE. If it named only
+the system, on finish-first-look or fresh, look, without reading any file in depth, at whether the
 folders open here hold that system's code (their names and top-level files): if they do, go on to the helper as for
-code; if they do not, write to the person, through `say`, as "When the system's code is not here" says, and end your turn, so
-nothing is searched before their yes. Otherwise end the turn and wait, after the start step as it says below; when
-they answer, start the helper with their answer as the request, without running the start step again. Once a helper
-is started, write nothing more until its reply.
+code; if they do not, send MESSAGE exactly as printed, then the proposal "When the system's code is not here" names,
+through `say --after`, and end your turn, so nothing is searched before their yes. Otherwise send MESSAGE exactly as
+printed and end the turn and wait; when they answer, start the helper with their answer as the request, without
+running the start step again. Once a helper is started, write nothing more until its reply, except as below when
+the person writes.
 
 **When the system's code is not here.** If that look finds no code of the named system, or the helper returns
 blocked for want of code, write to the person, through `say`: that
@@ -105,25 +81,23 @@ the helper again with their request and their answer, naming each repository add
 the helper records it as a source. If the search finds nothing, say so in a sentence, through `say`, and ask them to point at the code, and start
 nothing. When they point at code, start the helper with their answer added to the request.
 
-**The start step comes first, in this session, by script.** Right after the launch, in the same turn, your first
-tool call is `python "<skill>/start.py" "<workspace root>"` (in a multi-root workspace, the first folder), with
+**The start step comes first, in this session, by script.** Before any other tool call or any text, run
+`python "<skill>/start.py" "<workspace root>" --request "<their request, word for word>" --gave <code, name or
+nothing>` (in a multi-root workspace, the first folder), with
 `--system "<the system's name, as the person said it>"` added when the request names one, run by this
 session, never inside the helper, and whatever the request gave. With a name, only that system's unfinished run is
 picked up: another system's is listed on OTHER lines, and the run starts fresh for the named system with
-`start_register.py --new --words "<their request, word for word>"`. When the request gave nothing to look at, run the start
-step first and only then end the turn and wait, as above. In this order it brings up the work page, searches for
+`start_register.py --new --words "<their request, word for word>"`. When the request gave nothing to look at, send its MESSAGE
+and end the turn and wait, as above. In this order it brings up the run status page, searches for
 earlier work, takes the lock on the register it picks up, decides, and, unless another chat holds the work or the
 person is still to choose, records when the run started ("The run", below).
 If it prints `OPEN FAILED`, open the address in the person's browser yourself, as that line says, before anything
-else; either way, the page's address reaches the person in your next message from a script: `say` and the briefs
-end with it, and after a message sent as it is, `python "<skill>/brief.py" page "<your-folder>"` prints it. Right
-after the start step, before the first-look helper starts, send one line through `say` saying the page for this work
-is open; `say` ends it with the page's address. If it printed `PAGE: not brought up`, that line says instead that the
-page could not be opened and the work goes on without it. On DECISION resume, choose
-or held, your message is exactly the text it printed after MESSAGE, then what `python "<skill>/brief.py" page "<your-folder>"` prints (the
-page's address; on resume, `<your-folder>` is the one FOLDER line; on choose or held, run it on the workspace root
-instead, since no one register is the person's yet), and nothing else, and
-you end your turn: no helper starts. Send it even when the person's request names other work: the message offers to start new work instead, and their answer decides. On finish-first-look or fresh, start the helper below, which writes into the
+else. Its MESSAGE ends with the page's one address; never type the address yourself. If it printed `PAGE: not
+brought up`, the MESSAGE says instead that the page could not be opened and the work goes on without it. On
+DECISION resume, choose or held, your message is exactly the text it printed after MESSAGE (the launch, then the
+re-entry brief or the question, and the page's address at its end), and nothing else, and
+you end your turn: no helper starts. When it printed a `WAIT:` line (on resume at a stop where the page takes a
+pick: the go, the pick, the next flow), start that wait before you end your turn, as at every stop. Send it even when the person's request names other work: the message offers to start new work instead, and their answer decides. On finish-first-look or fresh, start the helper below, which writes into the
 folder the page is already serving; `start_register.py` refuses a new register until the start step has run for this
 run.
 From then until the first look's brief, a second start step on
@@ -132,24 +106,39 @@ returns blocked and the run starts over, end that mark first with `python "<skil
 --first-look-ended`.
 
 **The first look runs in one helper, so nothing of the setup reaches the person.** After the start step, in the
-same turn, start one subagent with the Agent tool (general-purpose), **with `run_in_background: false`**, so you wait
-for it and your turn ends on the brief and the stop (a helper left in the background ends your turn with nothing for
-the person, and nothing may wake you when it finishes). Give it: the person's request word for word;
-the skill folder's path; the start step's DECISION, FOLDER and EARLIER lines as printed; and this task: *"Follow
-`<skill>/SKILL.md`, section 'The run', from the start step's decision through the stop for the person's word in
-phase 0, using `<skill>/FILL-STEPS.md` 'Before you start'. Write nothing for the person. The start step has run;
+same turn, before any text, start one subagent with the Agent tool (general-purpose). Claude Code
+runs it in the background: in an interactive session (terminal, VS Code, desktop app) a session cannot wait for a
+subagent while fork mode is on, as it is by default (Claude Code's documentation,
+code.claude.com/docs/en/sub-agents: "Which subagents run in the background", "Let Claude wait for a subagent",
+"Turn fork mode off"); the ways it names to wait are settings, none of them an argument of the call. So the start step's MESSAGE is the
+turn's reply, sent exactly as printed once the helper is started: end your turn on it, with nothing after it. The helper's reply reaches you later as a
+completion notification, in a turn of its own, and that turn sends the brief. Where Claude Code waits for the helper
+instead, send MESSAGE exactly as printed before its brief, in the same turn. A later turn that starts the helper
+(on their answer, or after a search) does the same with one line that the first look is under way: run `say` on it,
+start the helper, then send what `say` printed, exactly as printed, and the turn ends on it. If the person writes while the first-look helper is still running, answer in one line
+through `say` that the first look is still under way and its brief follows when it is done, and start nothing: no
+second helper, no start step. Give the helper: the person's request word for word;
+the skill folder's path and the mapping skill's (`<mapping>`, phases 0 to 3 below); the start step's DECISION, FOLDER
+and EARLIER lines as printed; on fresh, the register folder you name for it, `bfo-work/<the system's name>/` at the
+workspace root, which is `<your-folder>` from then on; and this task: *"Follow
+`<mapping>/SKILL.md`, section 'The run', from the start step's decision through the stop for the person's word in
+phase 0, using `<mapping>/MAPPING-STEPS.md` 'Before you start'. Write nothing for the person. The start step has run;
 never run it again or decide by your own reading. On finish-first-look, finish the first look in the folder it
-names; on fresh, start a new register folder with `start_register.py` and do the first look there. Write each of
+names; on fresh, start the register folder you were given with `start_register.py` and do the first look there. Write each of
 the sources list, the survey and the code reader's facts as soon as it is complete, so the page shows the progress.
-Then run `brief.py capability`, and your final reply is exactly the text that script printed, and nothing
-else. If the run is blocked, your
+Then run `brief.py capability`, with `--from-request` when the request asked
+for every flow, as that phase says, and your final reply is exactly the text that script printed, and nothing
+else. With `--from-request`, end there too: start no wait and do not begin phase 1; the session that started you
+does both. If the run is blocked, your
 final reply is what `brief.py say` printed for one plain sentence saying why and what
 would unblock it, in the person's terms (with no code to read,
 or only code that is not the named system's: that the system's code is needed, and that they can point at it or agree to a search for it)."* When it returns
 blocked for want of code, see "When the system's code is not here" above. Otherwise, when it returns, your message is its reply, sent as it is, and nothing else: no sentence before it ("Here is the brief", "I'll pass this along"), none after it. Its first line
 is already the status line. Then end your turn: the brief ends with what it waits on, the person's picks or one question
-whether to carry on. Write nothing between the launch and that message, except the one line, after the start step,
-that the page is open.
+whether to carry on. **When the brief opens by saying their request asked for every flow**, the go is already
+recorded and nothing waits on them: send it as it is, start the wait on the home screen (below) so a stop or a
+change reaches you, and carry on in the same turn with phase 1 (below, "0. to 3."), in this session. Write nothing between the start step's MESSAGE and that message, except the one line that a later helper's first look is
+under way.
 
 **When the person answers the brief**, record their picks with `go.py` (phase 0, "Their answer is recorded as data"),
 unless they agreed to a search: then search first and brief again, as phase 0 says there. `go.py` prints a status line;
@@ -157,7 +146,9 @@ then write a sentence or two saying what was recorded and what happens next, thr
 `say` printed, whose status line takes the place of the one `go.py` printed. When they answer which earlier work to carry on (DECISION choose), run `python "<skill>/start.py"
 "<workspace root>" --resume "<that folder>"`, the FOLDER lines being in the order the list numbers them, and follow
 its DECISION as at the start step: send what it prints after MESSAGE, as it is, or on finish-first-look start the
-helper on that folder. When they answer a re-entry brief or that list by asking for new work instead,
+helper on that folder. A flow the re-entry brief lists, named as what to do next, is the next flow of that register,
+recorded with `go.py --flow` there, never new work; new work is another system, or this capability started over.
+When they answer a re-entry brief or that list by asking for new work instead,
 run `start.py` with `--new`, which decides fresh beside the unfinished work, then start the helper as above with
 their request and these words, and tell it to start the new register with `start_register.py --new --words "<their
 words, word for word>"`, which records them; without them it refuses a new register while a run is not finished. When they answer DECISION held (another chat is working on that work) by saying that chat has stopped, run
@@ -168,28 +159,34 @@ follow its DECISION the same way; never release it without their say-so.
 - **Every later message opens with the status line**, copied exactly from `python "<skill>/brief.py" status
   "<your-folder>"` run just before you write it, or as `say` or a script prints it. Never type the line yourself,
   and never send two.
-- **Write to the person only at the points this file names:** the launch, the one line after the start step that the
-  page is open, the capability brief or the re-entry brief,
-  the pick of how far each stage goes (after phase 3), the review of the proposed alerts (phase 5a), a question that
+- **Write to the person only at the points this file names:** the start step's MESSAGE (the launch and the line
+  that the page is open), the capability brief or the re-entry brief, each line of mapping's progress (below),
+  the pick of how far each stage goes (after phase 3), the review of the proposed measures (end of phase 4), the
+  review of the proposed alerts (phase 5a), a question that
   needs their judgement, a plain message that the run
-  is blocked and why, and the report. Between
+  is blocked and why, the report, and the offer of the next flow after it (phase 7). Between
   tool calls, write nothing to them: no narration of what you are about to do.
+- **Bookkeeping is never said to the person:** the run record and its phases, the wait on the page and starting it
+  again, the listener, the lock and the kit's files are kept silently. A line such as "the page's watch for your
+  answers is running again" or "phase 6 isn't marked done yet; I'll set it" is never sent. Any text you do send goes
+  through `say`, which refuses those words.
 - **Plain words.** They know the business but not this kit and not this system. Name flows, stages, steps and
   services by their names, never by an id; no file names, script names, folder names or the kit's own vocabulary
   (register, unit, phase numbers, judges, merge); define a term the first time you use it. Setup (Python, scripts,
   folders, the kit's files) is never their concern: if it fails, tell them in one plain sentence, through `say`, that the run is blocked, why, and what would
   unblock it.
-- **Every message you write yourself goes through `say`.** After the launch, which is sent as this file writes it,
+- **Every message you write yourself goes through `say`.** After the start step's MESSAGE, which is sent exactly as printed,
   write each message to a file outside the system's code and run
   `python "<skill>/brief.py" say "<your-folder>" "<message file>"` (before a register folder exists, the workspace
   root): it prints the status line and then your message, and you send what it printed, exactly; a line you
-  add after a script's message goes through `say --after`, which prints no status line. It refuses, listing them, the
+  add after a script's message goes through `say --after`, which prints neither a status line nor the page's address. It refuses, listing them, the
   ids, file names and kit process words it knows; say each in the person's terms and run it again. The names the
   register gives (a flow, stage, step, service or measure), words quoted back in double quotes as the person said
   them, and a web address pass: they are how the person knows the system. It does not catch every shorthand, so
   write in plain words first. Only when Python itself cannot run, send the one plain sentence that says the run is
-  blocked without it. While a listener serves the work, `say` and the briefs end with the page's address; after a
-  script's message sent as it is, `python "<skill>/brief.py" page "<your-folder>"` prints it. Never type the address
+  blocked without it. While a listener serves the work, `say` without `--after` and the briefs end with the page's address; after a
+  script's message sent as it is, `python "<skill>/brief.py" page "<your-folder>"` prints it, except after the start
+  step's MESSAGE, which already ends with it. Never type the address
   yourself. That covers: the sentence after a pick is recorded (after a pick is recorded);
   the line back on their topics (you asked to talk about); a question needing judgement; a blocked message; a refusal
   reply; the read-it reply; the report's own prose; the carry-on answer after a re-entry brief; and the proposal of
@@ -198,22 +195,38 @@ the line back has opened it: write those in the same plain words, with no ids, p
 
 ## The run
 
-A run is eight phases, done in order, the fifth in two parts with the person's review of the alerts between them.
+A run is eight phases, 0 to 7, done in order: phase 4 ends with the person's review of the measures, and phase 5 is
+in two parts with their review of the alerts between them.
 Between the first and the second, the run shows the person its plan and
 waits for their go, whatever the run's size. Each phase has an **In → Out**, and the files it names are what prove it done. The
 work goes in the **register folder**, `bfo-work/<application>/` at the workspace root (in a multi-root workspace,
 the first folder), never in the skill folder;
-it is `<your-folder>` in `FILL-STEPS.md`. Run the kit's scripts from the skill folder, exactly as `FILL-STEPS.md`
+it is `<your-folder>` in `FILL-STEPS.md`. Take `<your-folder>` from the `FOLDER:` line `start.py` printed for the
+run picked up (on choose, the one the person picked), or on fresh the folder you named for the first-look helper,
+which `start_register.py` prints back on its own `FOLDER:` line; never from a listing of the work folder. `bfo-work/`
+also holds `answers/`, where the page saves what the person sends, and a listing can put it first: the home screen is
+then drawn in the wrong folder and the person's page shows an error instead of it. A script handed a folder that is
+not a register refuses it and names the register folders it found; run the command again with the one it names. Run the kit's scripts from the skill folder, exactly as `FILL-STEPS.md`
 writes them, with `<skill>` replaced by the skill folder's path.
 
-**After the launch, the run's first work is the start step, by script, silently:** `python "<skill>/start.py"
-"<workspace root>"` (in a multi-root workspace, the first folder), run by the session itself before any helper.
-First it brings up the work page, served from the workspace's `bfo-work/` folder (made if need be), so the person
-has the page while the rest runs; once its decision clears, it records when the run started
+**The run's first work is the start step, by script, before any text:** `python "<skill>/start.py"
+"<workspace root>" --request "<their request, word for word>" --gave <code, name or nothing>` (in a multi-root
+workspace, the first folder), run by the session itself before any helper; its MESSAGE, sent exactly as printed, is
+the run's first message. On a fresh start it keeps the request, and the new register's run record
+records it, so a later stop the request already answers reads it from there.
+First it brings up the run status page, served from the workspace's `bfo-work/` folder (made if need be), so
+the person has the page while the rest runs: before the register exists it shows step 1, Discovery, under way, then
+the run's own; it links to the work page and, once drawn, the home. Then it prints a `KIT:` line: the build this copy of the kit is, as its
+`KIT-VERSION.txt` names it (the release and date it was built as). A `WARNING` on that line means the copy is
+partial, mixed with another version, or made before the kit had a version marker (a file missing, changed, or from another build, or
+no marker at all), and the start step stops there with DECISION blocked, before it takes any lock or writes
+anything: tell the person in one line, through `say`, that this copy of the kit is incomplete or out of date and
+needs installing again from its source, and once it is, run the start step again. Once its decision clears, it records when the run started
 (`bfo-work/run-started.json`). It searches the whole workspace, not only
 `bfo-work/`, for every folder holding `steps.csv` or `lifecycle.csv`, leaving out the kit's own folders, and decides;
 the run follows its decision and never decides by its own reading. A folder whose `RUN.md` has the section *Earlier
-registers* was made by this version of the kit, and if its phases are not all done the run picks it up: DECISION
+registers* was made by this version of the kit, and if its phases are not all done, or its flow is done and the first
+look found flows no run has mapped yet, the run picks it up: DECISION
 resume prints the re-entry brief (below), finish-first-look names the folder whose first look is to be finished,
 choose, when there are several, asks the person which, and held says another chat is working on it. DECISION fresh means there is none, and the first look
 starts in a new register folder. Two scripts hold the same line: `brief.py capability` refuses a run past its first
@@ -229,7 +242,7 @@ chat is working on this work, and stop writing. When the refusal says the run is
 lock is held by the run whose start step began this work), it gives the exact release command: ask the person, through `say`, to
 confirm no other chat is working on it, and on their yes run it with their words; never wait out the lock's age. DECISION held is the same refusal at the start: its message asks
 the person whether that chat has stopped. A lock no run has written for four hours is taken over by the next run that
-writes, which says so and records it in `RUN.md`, so a crashed run never leaves its register unusable.
+writes, which says so and records it in `RUN.md`, so a crashed run never leaves its register unusable. When that happens, tell the person in one line, through `say`, that an earlier chat's hold on this work had lapsed and this run has taken it over.
 **Every other one is an earlier register: a tool's output, never a source and never a base.** The run never writes
 into it, never copies the template over it, and never starts from it: it walks fresh from the code and the person's
 sources into a new register folder (`bfo-work/<application>-<yyyy-mm-dd>/` when `bfo-work/<application>/` is taken),
@@ -248,16 +261,52 @@ what the phase does and the files it must leave. Then set Phase 0 to *doing*.
 next to *doing*. A phase that cannot be done is set to *blocked* with the reason (for example "python is not on
 the path") and what would unblock it, and the run says so in the chat. No phase is skipped silently, and the run
 never stops without saying where it stands. **If `RUN.md` already exists**, because the run is resuming or a new
-chat has started, read it first. If it waits on their review of the alerts, the re-entry brief carries the alerts
-as last put to them, so they have them in front of them. Your next message to the person, right after the launch, is the **re-entry brief**:
+chat has started, read it first. If it waits on their review of the measures or of the alerts, the re-entry brief
+carries the measures or the alerts as last put to them, so they have them in front of them. Your next message to the person is the **re-entry brief** (on a pickup, the start step's MESSAGE carries it after the launch):
 the text `python "<skill>/brief.py" reentry "<your-folder>"` prints, sent as it is. It says what the work is, what
 the capability is, what has been drafted and found, what was decided and by whom, where it stands, and what is next. Never ask
 "shall we pick up where we left off?". When it waits on nothing, it ends by asking whether to carry on with what
 is next, recommending yes; on their answer, your reply goes through `say`, and on their yes, continue from the
 first phase that is not done.
 
-**Waiting on the home screen**, at the two stops where the run waits on the person's pick: the flow to map first,
-and how far each stage goes. Before you send that stop's message, run `python "<skill>/wait_on_page.py"
+**A run written by an earlier release of this kit is upgraded without asking.** When the start step picks a run up,
+it does this itself, once it holds the lock and before it writes the brief: it backs the register folder up outside
+the workspace, migrates it in place, prints `UPGRADED:` with what changed, where the backup is and the lines it
+leaves owed, and the re-entry brief carries the line that tells the person, with the count of AI agent actions not
+yet marked where there are any (with no brief, send that line through `say`). Before you send the brief, run the
+check (`python "<skill>/capability_views.py" "<your-folder>" --check`) and restart the page's listener, as below; the
+columns to fill and the stage folders to regenerate that `UPGRADED:` lists are the run's own work, done as FILL-STEPS
+says, and only a check failure they do not explain is a reason to stop and tell the person, through `say`. When the register was
+written by an older kit some other way (the kit updated mid-run; the check says so and names `--migrate`), the
+migration changes no content and this kit cannot run the old form, so: back the register folder up
+to a folder outside the workspace (inside it, the start step would take the backup for an earlier register); run
+`python "<skill>/reconcile.py" --migrate "<your-folder>"`, which rewrites the register itself in place; run the check
+again; and restart the page's listener so the page runs this kit: `python "<skill>/listener.py" stop "<work folder>"`,
+then `python "<skill>/wait_on_page.py" "<your-folder>"`, and start the wait again. Tell the person in one line,
+through `say`, what was done and where the backup is. Where the upgrade names AI agent rows not classed, that line
+also says how many, and that mapping re-reads the code behind each tool, reply and chained action and classes it
+(Step 7) before the run is done: a re-walk, announced before it starts and going ahead unless they object, as a
+correction to mapping (`corrections.csv` for a finished flow's rows). Only if the check still fails after migrating, stop and tell
+them, through `say`. An earlier register, made by another run, is never written into (above).
+
+**The next flow goes into the same register.** When a flow is finished and the first look found more, the run
+offers the next flow at the end of its report, in the same session (phase 7), and the re-entry brief offers it to a
+chat that picks the register up later; both wait on the home screen (below). Record their pick as the go is recorded
+(`go.py --flow`, or `--answers` from the page): `go.py` keeps the finished flow's go, pick and review, keeps a copy
+of every row the map holds, and sets phases 1 to 7 to do again for the new flow; phase 0 stands. A flow already
+mapped is never picked again with `--flow`, and `go.py` refuses it: a stage of it is taken further with `--depth`,
+and only between flows, while no flow is under way. `--depth` naming a stage of a flow finished earlier makes that
+flow the one worked now again, keeps the flow just finished as the next flow's start keeps it, and reopens the
+phases its new pick needs from phase 4, and the check, the done check and the report; when it is finished the offer
+of the next flow comes again. While a flow is under way, `go.py` refuses it, and another flow too: finish the
+current flow first, and tell the person so, through `say`. If they name a flow the first look missed, it is a flow of this capability, never new work: record it with `go.py --add-flow "<its name>" --words "<their words, word for word>"`, which adds it to the flows found, then record their pick of it with `--flow`; the page's field for a flow the first look missed does both. Map the new flow as `<mapping>/SKILL.md`
+says, by `<mapping>/MAPPING-STEPS.md` "The next flow, in a map that holds a finished one": rows are added, none is
+changed, and ids continue after the highest the map holds. Then carry on from phase 1 as for the first flow.
+`run_status.py` holds every flow to its own pick, and says NOT DONE on a changed row of a finished flow or an id used
+twice; the map inspection reports both.
+
+**Waiting on the home screen**, at each stop where the run waits on the person's pick: the flow to map first,
+how far each stage goes, and the next flow once one is done. Before you send that stop's message, run `python "<skill>/wait_on_page.py"
 "<your-folder>"`. It writes `depth.json`, draws the home screen (`index.html`, by `home.py`) and writes `resume.md`,
 and brings up the page itself: it starts the listener when none is serving (it outlives the call) and opens the
 person's browser on this run's home screen unless the page is already open there. If it prints `OPEN FAILED`, open
@@ -276,7 +325,10 @@ topics at any time. Check for Monitor each time you start a wait, and never run 
 later stop it says the listener is already serving, and the open page, which checks for changes by itself, shows the
 new choice within about 15 seconds (unless ticks or words on it are not yet sent: it then says so at its top and
 waits for them to be sent or cleared); then start the wait only if none is running (a poll has exited once it
-announced the last stop's answers). **On an `ANSWERS <path>` line** (a watch event, or a line in a finished poll's output), read that file, record it with
+announced the last stop's answers). **On a `PROGRESS` line** (a watch event, or a line in a finished poll's output,
+printed while a flow is mapped, each time a part of the map is written), send that line to the person as it is,
+without the word PROGRESS, with no status line and nothing else, and end your turn: it is how they see the mapping
+move. The work page and the home screen show the same line. **On an `ANSWERS <path>` line** (a watch event, or a line in a finished poll's output), read that file, record it with
 `python "<skill>/go.py" "<your-folder>" --answers "<path>"`, and say back in a line or two what was recorded, then
 "you asked to talk about: ..." with the topics `go.py` printed after that phrase, and talk with the person about
 them, through `say`. A tick at any other milestone (talk:) and the words typed in any drop-down are those topics: recorded in
@@ -290,153 +342,103 @@ changes nothing. If the
 person says "read it", read the newest file that `go.py` has not recorded already in `<your-folder>/answers/`, or else in the `answers/` of the folder above it when that is the work folder, and record it the same way; if there is none,
 ask the question in the chat, through `say`. An answer typed in the chat is recorded with `--flow` or `--depth`, as below. When the
 wait ends (the watch expires, or a poll exits), start it again the same way. After a restart, or in a new chat that
-picks the run up at a stop, run `wait_on_page.py` again first: it brings the page back if its listener has gone, and opens it; give the person its address with what `python "<skill>/brief.py" page "<your-folder>"` prints. When you start the wait, keep its task
+picks the run up at a stop, run `wait_on_page.py` again first: it brings the page back if its listener has gone, and opens it; in a new chat whose start step sent its MESSAGE, that already gave the person the address, so give no second one; after any other restart, give the address with what `python "<skill>/brief.py" page "<your-folder>"` prints. When you start the wait, keep its task
 id (for a poll, the newest run's). A stop is answered only when `go.py` records a pick; a post of topics alone, words with no tick
-at the pick, and a refusal are not answers, so the run still waits there. Keep the wait running between stops; once
-the run's report is sent at its end, stop the wait by its task id, with the tool that stops a background task, and
+at the pick, and a refusal are not answers, so the run still waits there. Keep the wait running between stops, and
+through the offer of the next flow; once the run's report is sent at its end and no flow is left to offer, or the
+person says stop at that offer, stop the wait by its task id, with the tool that stops a background task, and
 the listener with the stop command it printed.
 
-0. **Frame, gather, survey and plan** (FILL-STEPS "Before you start").
-   In: whatever the person points at in their request (repositories, pages, diagrams, process descriptions,
-   documents, notes), and what is already in the workspace. Out: the register's CSV files, copied from
-   `register-template/` by `python "<skill>/start_register.py" "<your-folder>"`, never by hand: it copies only into
-   a folder holding no CSV file, keeps the `RUN.md` already there, and refuses to write over an existing table;
-   `sources.csv` with one row per source, pass `1`, and in `note` the step that will use it
-   (the table in "Before you start"); `about.csv` → `sources_examined` and `what_it_is`; the first rows of
-   `how-made.csv`; and `RUN.md` → *Sources*, listing what was gathered and what is still missing.
-   **Write each file as soon as it is complete, never all at the end:** `sources.csv` once the sources are listed,
-   then the survey, then the code reader's facts, each run as soon as what it reads is in place. The work page reads
-   these files, so the person sees the first look move.
-   **First, prove the scripts run:** `python "<skill>/run_status.py" "<your-folder>"`. It says NOT DONE at this
-   point, and that is expected. If the command itself fails (no python, a version older than 3.9), set Phase 0
-   *blocked* with the error and stop there: every later phase ends in a script, so nothing is drafted that cannot be
-   generated.
-   **Get every source with your own tools**, whatever its form: you already know how to clone a repository and how
-   to read a page, a diagram or a PDF. Put each repository you fetch at the workspace root, as its own folder, because
-   every citation starts with that folder. **Every repository the run uses is a folder of the open workspace** (a
-   multi-root workspace when there are several), never a temporary folder: the environment's code tools reach only the
-   open workspace. If you cannot add folders to the workspace yourself, set Phase 0 *blocked*, name the repositories,
-   and tell the person, through `say`, to open them as one multi-root workspace and start again; write the same in `RUN.md`. A source you cannot reach (no access, a dead link) is listed under
-   *still missing* in `RUN.md` with what you tried, and the run goes on: a missing source changes what the map is
-   worth, never whether the run continues.
-   **Check the repository set is complete.** The first look resolves references only against the workspace and what
-   the person gave; it does not search a code host. (a) For every reference the code makes that no folder in the
-   workspace answers (a host or service name, a client package, a queue or topic, an image, a configuration key, a
-   URL), and (b) the other way, for the repositories that may call, consume from or deploy this flow's services, write
-   an item in `orientation.json`'s `unresolved`: what is open and where the run proposes to look, in plain words like
-   the rest of the brief, taking where and how to search from the environment the run is in (its own instructions,
-   tools and sources). Write each so the brief's plain-words check passes: name the service and the kind of
-   reference ("the address the basket service calls for payments"), never the address, path, file name or id
-   itself. The brief lists them under what is still open. At the brief the person can say yes to any of these
-   searches. Search only on that yes, with the person's own access and read-only: a yes is a change to the brief
-   (below, "If they ask for changes to the brief"), and (c) what the repositories found reference is brought to the
-   person the same way. Record each repository found in `sources.csv` with the search that found it, add it to the
-   workspace as a further folder, read-only, and write in `RUN.md` *Sources* what the person agreed to search; what
-   is found and cannot be had goes under *still missing*, and what the person does not agree to search goes under
-   *still missing* too. `RUN.md`'s Phase 0 line answers "Is this the complete set of
-   repositories?" with that evidence, and Phase 0 is not done while a reference is neither resolved nor put to the
-   person with a proposal. If the person's request says to use only the sources they name, do not
-   search: list each unresolved reference under *still missing* instead. The same holds when the run cannot search (no
-   access to a code host, or the person has said nothing is to be fetched): list each one, with why it was not searched.
-   **This phase lists and places; it does not read everything.** Read each source only far enough to say what it
-   is and which step uses it. Code is read in full from Phase 1 on, every service the flow touches, as the rules for
-   the whole run below say.
-   Keep the documents identifiable as a set: Step 8 hands them, without the walk, to a separate pass.
-   **Then survey and plan** (FILL-STEPS "Before you start", items 6 and 7): `python "<skill>/survey.py"
-   "<your-folder>"` writes `survey.csv`, each service's place, size, entry points and calls, counted by script;
-   then the code reader, `python "<skill>/fact-extractor/run.py"`, writes `fact-base.json` in the register folder:
-   routes, calls, messages and writes with file and line, found by rule. It is a module: any tool whose output
-   `fact-extractor/contract.py` accepts can take its place. Its findings are leads to read, each later cited by a
-   row or set aside with the reason; what it misses is found by reading and labelled `proposed:`, a call citing both
-   ends.
-   **Then the first look, and the capability brief.** Read, shallowly, only what names the business flows: each
-   service's entry points and routes (the storefront's pages and its API), its interface definitions, the deployment
-   files and the documents. Read no service in depth: that waits for the person's picks. From what you read and the
-   survey, write `orientation.json` in the register folder, in the person's words, as FILL-STEPS item 7 sets out:
-   what the work is for and what this run will produce, in your own words (it is how the person judges that the run
-   understood its job); the capability (what it does, for whom, what one case is); every service the survey lists,
-   what it does, and whether you recommend including it; every business flow found so far, each with its stages and
-   one sentence per stage, and where in the code you saw it; what you looked at and what is still open; any earlier
-   map found and what it changes for this run; and your recommendation (which flow to start with and why, and which
-   flows remain after this run). Say nothing here about which stages get measures, alerts or runbooks: the person
-   picks that once the flow is mapped. Then run `python "<skill>/brief.py" capability
-   "<your-folder>"`. It refuses an incomplete or jargon-bearing `orientation.json` and says why: fix it and run it
-   again. When it passes it writes `PLAN.md` and prints the **capability brief**.
-   **Stop for the person's word.** `brief.py` marks the stop in `RUN.md`; send the printed brief as
-   your message, exactly as printed, wait on the home screen (below), and end your turn. Read nothing further until
-   they answer.
-   **Their answer is recorded as data, by script, never by hand:** `python "<skill>/go.py" "<your-folder>" --flow
-   "<flow, as named in the brief>" --words "<their answer, word for word>"`, with `--test` when the answer is a test
-   standing in for the person. The go asks only which flow comes first; where they accepted the recommendation, the
-   recommendation is their pick. The services read are those the brief marked include, and the checks per finding
-   three, as the brief showed them; only when they say otherwise add `--in <service,...> --out <service,...>` (every
-   service named once) or `--judges <n>`. `go.py` refuses `--stages`: the stages are picked after mapping, with
-   `--depth`. It writes `scope.json` (with what remains after this run) and `run-settings.json`, and the go and scope
-   lines of `RUN.md`; it refuses a flow or service the brief did not name. Map their words to the brief's names
-   yourself where the match is plain (a spelling, a shortened name); ask only when their answer matches nothing in the
-   brief. If they ask for changes to the brief instead, change `orientation.json`, run `brief.py capability` again and
-   wait again. A yes to a search the brief proposed is such a change, and records no go: search there, add each
-   repository found as above, run `survey.py` and the code reader again, update `orientation.json` (its services,
-   flows and what is still open), run `brief.py capability` again and wait again. If the same answer also picked a
-   flow, make that flow the recommendation, so the next stop asks them only to confirm it. From the home screen the
-   yes comes in the words: with a flow ticked, `go.py --answers` records the go at once, so search and survey as
-   above, update `orientation.json` with each service found and whether you recommend including it, then record the
-   go again with `python "<skill>/go.py" "<your-folder>" --flow "<the flow they ticked>" --words "<their words>"`,
-   which replaces it and takes its services from the new survey and those recommendations, and tell them in a short message, through `say`, which services were added, your recommendation for each, and any flow or open question the search
-   turned up, so they can change it; with no flow ticked, `go.py` refuses the answer, and its words, where they agree to a
-   search, are that yes all the same: search, survey and brief again. A topic sent from the home screen that agrees
-   to a search is that yes too. A run's done is not the capability's done: the done check owes what their pick of how far each stage
-   goes asks for, and reports every other stage as not yet covered; until that pick it says NOT DONE. With no pick of
-   how far each stage goes (an earlier run, whose go named stages), record the ids of exactly the stages they named
-   with `python "<skill>/go.py" "<your-folder>" --stage-ids <id>,<id>` once Phase 2 cuts them, and the done check owes
-   alerts and runbooks for those stages only. If their answer also says to stop there, stop after recording it.
-   Under the service reliability room, the room's own agreement with the person is the go: its chief engineer
-   records it with `go.py`. `run_status.py` names any work written before the go.
-1. **The case and its lifecycle** (Steps 1 and 2).
-   In: the sources. Out: `flows.csv` (the case, whose expectation, start and end), `lifecycle.csv`. The flow is the one the person chose at the go, from the plan's
-   decision (their own, or the recommendation they accepted); write it into `RUN.md`.
-2. **Stages, process steps, parts and agents** (Steps 3 to 7).
-   In: the lifecycle. Out: `stages.csv`, `steps.csv`, `subjects.csv`, `participation.csv`, `set-aside.csv`,
-   `agent-system.csv`. Which stages go on to measures, alerts and runbooks is the person's pick once the flow is
-   mapped (phase 3), never decided here. An earlier run whose go named stages records their ids with `go.py
-   --stage-ids`, adding none and dropping none. Only a run whose `RUN.md` has no *Plan and go* section chooses for
-   itself: the stage the person named; else, if the register already has
-   `stage-<id>` folders, the next stage with none; else the stage where a case most often waits or can be left
-   stranded.
-3. **The capability** (Step 8).
-   In: the walk so far, and the documents read apart from it. Out: `capabilities.csv`.
-   **Mapping ends here, and the run stops for the person's pick of how far each stage goes.** Mapping (phases 1 to
+0. to 3. **Mapping, by the mapping skill.** `<mapping>` is the mapping skill's folder, `bfo-mapping`, installed beside
+   this skill folder. Load `<mapping>/SKILL.md` and follow its section "The run" from phase 0 to the map stop, in
+   this run's register folder, with `<mapping>/MAPPING-STEPS.md` as the steps; skip its launch, since this kit's
+   launch has been sent and its start step run. Its phases 0 to 3 are this run's phases 0 to 3. At the map stop,
+   come back here for the pick.
+   **The pick of how far each stage goes.** Mapping (phases 1 to
    3) is the whole flow, because the stages come out of it; measuring is chosen per stage. Draw the map
-   (`capability_views.py --check`, then `one_canvas.py`, Step 12) so they can see the stages. The message is
+   (`capability_views.py --check`, then `one_canvas.py`, Step 12) so they can see the stages.
+   **When the person's request already said how far each stage goes** (for example "take each flow to mapped only",
+   or "measure the payment stage"), do not stop to ask it again. Record it from the request:
+   `python "<skill>/brief.py" depth "<your-folder>" <flow id> --from-request`, which reads the request the run
+   record keeps (the start step recorded it, word for word), with `--depth "<id>=measure|alerting|runbooks,..."` when it takes any stage past mapped only
+   (a stage not named stays mapped only). A request that asks only for every flow, or for the map, without saying
+   how far stages go, has not said it: stop and ask, as below. It records the pick with the request's words, marks it as taken from the
+   request, and prints a status line and one line saying so, which ends by telling them they can take a stage
+   further. Send what it printed, do not wait, and carry on in the same turn with phases 6 and 7 and then the offer of
+   the next flow. If they later say to take a stage further, record it with `go.py --depth` as below. It reads the request the start step kept, word for word, in the run record; when the record keeps none (a register from before this release), it refuses, and you ask instead.
+   Otherwise the message is
    rendered: `python "<skill>/brief.py" depth "<your-folder>" <flow id> --recommend "<which stages to measure, and
-   which of those to take on to alerts and runbooks, and why>"`; it names each stage with its process steps and marks
-   the stop, and your recommendation is the only text you write. Record the same recommendation per stage with
+   which of those to take on to alerts and runbooks, and why>"`. It refuses a flow none of whose steps has a Business
+   Impact recorded, as in a register an earlier release made: fill it first (FILL-STEPS Step 10, from each step's own
+   citation) and run it again. It opens with the question and your recommendation, what a yes does and the choices;
+   then the map's inspection as a count, naming only a rule that fails (`check_map.py`: rules that hold whatever the
+   map says; it reports and never blocks, and ends with one line when any file of the code could not be read); then
+   each stage with its number of process steps and what is at stake if it fails, under the question whether the
+   stages match how the business sees the work. The steps themselves are on the page. It marks
+   the stop, and your recommendation is the only text you write: one clause that reads after "I recommend:", for
+   example "leave all three stages mapped only for now, as you asked". Record the same recommendation per stage with
    `python "<skill>/depth.py" "<your-folder>" --recommend "<id>=none|measure|alerting|runbooks: <one-line reason>;
    ..."`, which writes `depth.json` with the open choice, then `python "<skill>/home.py" "<your-folder>"`, which
    draws the home screen, `index.html`, from it. Send what `brief.py` printed, exactly as printed, wait on the
    home screen (below), and end your turn. Record their answer with `python "<skill>/go.py" "<your-folder>" --depth
    "<id>=measure|alerting|runbooks,..." --words "<their answer, word for word>"` (`--test` for a test standing in for
    them); a stage not named stays mapped only, and an empty answer makes the run a map only. They may later take a
-   stage further with the same command; taking a stage less far than already picked is not supported yet, and
+   stage further with the same command, which reopens the phases the new pick needs and phases 6 and 7, so the
+   pages are drawn, checked and reported again; taking a stage less far than already picked is not supported yet, and
    `go.py` refuses it, so tell them so, through `say`, and keep their earlier pick. It sets the phases their
    pick leaves out to *not picked*, which counts as passed. Nothing is measured before their pick: `flow_outputs.py`
    refuses. A map-only run is done once the map is drawn: the done check owes each stage's page and the map, and no
    measure. This pick decides which stages get alerts and runbooks; in an earlier run whose go named stages, those
    stages stand until the person picks.
-4. **Measures and costs** (Steps 9 and 10), for the stages the person chose to measure.
-   In: the register so far. Out: `measures.csv`, `measure-gaps.csv`, `step-impact.csv`, `case-attributes.csv`, and
+4. **Measures, by the measures skill**, for the stages the person took past mapped only. `<measures>` is the measures
+   skill's folder, `bfo-measures`, installed beside this skill folder. Load `<measures>/SKILL.md` and follow its
+   step 3 of "The run", "Propose the measures", in this run's register folder, with `<measures>/MEASURES-STEPS.md` as
+   the steps, as its section "Run alone, or by the stage kit" says under "Run by the stage kit": skip its first message and its steps 1, 2, 4 and 5, since
+   this kit's launch has been sent, its start step run, the register's hold taken and the person's pick recorded.
+   Run every command it gives from this skill folder (where it writes `<skill>`, put this skill folder's path): the
+   kit carries the same scripts, and run from here they keep this run's status line and stops. When its step 3 is
+   done, come back here for the review below.
+   For a further flow, this phase and phases 5a and 5b add rows for that flow's stages and change none of a
+   finished flow's: its measures, alerts, failure modes and runbooks stay as they are, a part a finished flow already
+   measures keeps those measures, and each new id continues after the highest the map holds.
+   In: the register so far, and any open row of `corrections.csv` naming `measures`, `expectations` or
+   `measure-gaps`, which a later step filed and this phase reads first and sets `taken up` or `turned down`.
+   Out: `expectations.csv`, `measures.csv`, `measure-gaps.csv`, any `product-names.csv` rows, the `how-made.csv` rows
+   of proposing the measures (step `9`), and
    for each measured stage `STRUCTURE.md` and `MEASURES.md` in `stage-<id>/`, written by `flow_outputs.py --out <dir>
-   --measures`. Step 9's stage, step and part levels run only for the measured stages; the flow's own measures are
+   --measures`. The measures' stage, step and part levels run only for the stages picked past mapped only (to
+   measure, alerts or runbooks); the flow's own measures are
    owed as soon as any stage is measured, and a part shared by several stages is measured if any of its stages is.
    The measure receipt owes exactly that, and nothing for the stages left mapped only.
+   Then **stop for the person's review of the measures**, one per flow, before any alert is chosen: measures and
+   alerts answer different questions, and a stage taken only to measure has no other review. The message is
+   rendered from the register: `python "<skill>/brief.py" measures "<your-folder>" <flow id> <stage id>...
+   --recommend "<your recommendation and its reason>"`, every measured stage named. It gives the status line, then per
+   stage what each party counts on, a short list of its measures (what each shows, whether the system produces it
+   today, whether anything collects it), what a measure produced today gets wrong, and each part with no measure and
+   why; the measures several stages share and the flow's own; the coverage list and the measures inspection in its
+   two halves as counts with anything that fails (`check_measures.py`: it reports and never blocks); your
+   recommendation; and their options: keep, drop, change or add a measure, or go on. The detail one level down
+   (where each measure is produced, and the coverage list item by item) is written beside it as
+   `measures-review-detail.md`; send it, whole or for one stage, when the person asks. Your recommendation is the
+   only text you write; the script refuses the message while it, or register text it shows, carries an id, a file
+   name or a kit term: fix the recommendation or the row the text comes from. Run `wait_on_page.py` (below) so the page stays up and takes topics, send what `brief.py` printed,
+   exactly as printed, and end your turn. Record their answer, typed in the chat, with `python "<skill>/go.py"
+   "<your-folder>" --measures-reviewed --decision go|changes --words "<their answer, word for word>"` (`--test` for a
+   test standing in for them). `go` keeps a snapshot of this flow's own measures, expectations and coverage reasons;
+   it is refused when they changed after the message was rendered, so render it again. `changes` sends the run back
+   to the measures skill's step 3, as above, then to this review. Running `flow_outputs.py --measures` again, or a new pick of how far a stage goes, opens the review
+   again. Until their go, `flow_outputs.py --alerts` refuses, and so does any write of an alert page for this flow;
+   the done check owes the go for every measured stage and names any of this flow's measures, expectations or
+   coverage reasons changed after it.
 5. **Alerts for the stages taken to alerting, then runbooks for those taken to runbooks** (Step 11), in two parts
    with the person's review between them.
    Deciding what to alert on and working out the ways the work can fail are different concerns: the alerts are
    chosen from the health measures alone, and the failure modes are what a responder tests once an alert has fired.
    In: the register and the person's pick: 5a for each stage taken to alerting or runbooks, 5b for each taken to
    runbooks. Run 5a for every such stage, then one review for all of them, then 5b for every stage taken to runbooks.
-   **5a. Alerting** (Step 11, "Alerting"). Out: the alert choices in `measures.csv` (each alert's basis, the
-   expectation it guards and, for a count of cases, the moves it counts), and `stage-<id>/` holding `STRUCTURE.md`,
+   **5a. Alerting** (Step 11, "Alerting"), only after their go on the measures. Out: the alert choices in `alerts.csv`, the only table of the register it
+   writes (each alert's basis, the expectation it guards and, for a count of cases, the moves it counts), and `stage-<id>/` holding `STRUCTURE.md`,
    `MEASURES.md`, `ALERT.md` and `ALERT.html`, written by `flow_outputs.py --out <dir> --alerts`. It writes the alert
    pages only when the alerting check passes; they show the runbook as still to come. Then **stop for the person's
    review of the alerts**. The message is rendered from the register: `python "<skill>/brief.py" alerts
@@ -450,15 +452,26 @@ the listener with the stop command it printed.
    go|changes --words "<their answer, word for word>"` (`--test` for a test standing in for them): `go` when they
    accept the alerts and say go on, `changes` when they ask for any change. Only `go` closes the review and keeps the
    alert set they reviewed, which is the set the message showed them: a `go` is refused when the alerts changed after
-   the message was rendered, so render it again and show them what changed. A change they ask for goes back into `measures.csv`; 5a runs again, which opens the
-   review again, and they review again.
+   the message was rendered, so render it again and show them what changed. A change they ask for goes back into `alerts.csv`; 5a runs again, which opens the
+   review again, and they review again. An alert they ask for on something no proposed measure shows rests
+   on a measure the measures skill must propose first: record their answer as `changes`, file a row in `corrections.csv` (table
+   `measures`, row and column blank, proposed: what to measure, at which part, and why; why: their request; status
+   `open`), and run `python "<skill>/go.py" "<your-folder>" --back-to-measures <id>` (FILL-STEPS Step 11,
+   "Alerting"). The measures are reviewed again, then 5a and this review.
    **5b. Runbooks** (Step 11, "Runbooks"), only after their go on the alerts. Out: `failure-modes.csv`,
-   `remedies.csv`, and `RUNBOOK.md` and `RUNBOOK.html` in `stage-<id>/`, written by `flow_outputs.py --out <dir>
+   `remedies.csv`, `corrections.csv` for anything it finds missing or wrong in the map (it never edits the map's
+   tables: only mapping does), and `RUNBOOK.md` and `RUNBOOK.html` in `stage-<id>/`, written by `flow_outputs.py --out <dir>
    --runbooks`, which also writes the alert pages again with their runbook links. It refuses while a stage that has
    alerts has no `ALERT.md`, while their review is not recorded, and when the alerts have changed since they reviewed
    them; and it writes the runbook only when the check passes, so a missing runbook means the check failed: fix the
-   register. A measure added in 5b for a test is a companion measure, never a new alert: changing an alert's basis,
-   expectation or counted moves takes the run back to 5a and their review.
+   register. 5b never writes `measures.csv`: a measure a test needs that no row holds (a companion measure, never a
+   new alert) is a row in `corrections.csv` (table `measures`, row and column blank, proposed: what to measure, at
+   which part, and why; status `open`),
+   and `python "<skill>/go.py" "<your-folder>" --back-to-measures <id>` takes the run back to phase 4: the measures skill takes
+   it up, the person reviews the measures again, and after their go the run comes back to 5b, with a second review
+   of the alerts only if an alert changed. `--runbooks` is refused meanwhile, and after any change to the measures
+   since their go. Changing an alert's basis, the expectation it guards or its counted moves, all in `alerts.csv`,
+   takes the run back to 5a and their review.
    A stage no proposed alert reaches (on the stage, its process steps, the parts they use or the flow) gets no
    `ALERT.md` or `ALERT.html`, and its runbook says so; `flow_outputs.py --check` notes it, and does not fail, but a
    stage taken to alerting or runbooks still owes its alert at the done check. Regenerate every other stage their pick takes
@@ -466,7 +479,10 @@ the listener with the stop command it printed.
    `--out` writes what each stage's depth in their pick owes and no more, asks for the alerts' review only on a stage
    taken to runbooks, and refuses an alert changed since their review, which goes back through `--alerts`.
 6. **Check and draw** (Step 12).
-   In: the register. Out: the three checks of Step 12 run, every failure fixed in the step that produced it;
+   In: the register. Out: the three checks of Step 12 run, every failure fixed in the step that produced it (a
+   stage's own check, `flow_outputs.py <register> <flow> <stage> --check`, judges only the work the run has reached:
+   the measures before the alerts are done, the alerts before the runbooks; run it bare in phase 6, and with
+   `--measures` or `--alerts` to judge one step's work alone);
    `views.html` and `how-this-map-was-made.html` in the register folder, written by `one_canvas.py`. The done check
    opens every drawing page (the map, and each flow, stage, step and part page) and says NOT DONE for one whose
    drawing shows none of what it exists to show (a step's messages, a stage's work, a flow's stages, a part's
@@ -474,8 +490,14 @@ the listener with the stop command it printed.
    on its own, and the map by its stage boxes and the lines between them. Every page the map's build writes is
    owed, so one it did not write is MISSING. Find why it came out empty and draw it again. A flow found but not mapped owes no drawing.
 7. **Reconcile, done check and report.**
+   **When flows remain, the report ends on the offer of the next flow, in the same message.** Once this flow's
+   outputs are done and the first look found flows not yet mapped, render the offer ("Then the next flow", below)
+   and send it at the end of the report: a report that lists the other flows under What remains and asks nothing is
+   not finished, and `go.py --report-sent` refuses to record it until the offer has been rendered.
    **First, reconcile each earlier register** that `RUN.md` → *Earlier registers* names (skip this when it says
-   none): `python "<skill>/reconcile.py" "<earlier register>" "<your-folder>"`. The script matches rows by what they
+   none, and, for a further flow, skip each one *Reconciled* already lists): `python "<skill>/reconcile.py" "<earlier
+   register>" "<your-folder>"`. An earlier register is another folder; this register's own finished flows are never
+   reconciled: they are kept as they were, and the done check holds them so. The script matches rows by what they
    say, classes each earlier row by its citation, checks each code citation against the files the new walk read, and
    writes `reconciliation-<name>.md` in your folder. It never writes to the earlier register. **In this release the
    reconciliation only reports: add nothing from it to the new register.** The new register is the fresh walk alone.
@@ -487,6 +509,15 @@ the listener with the stop command it printed.
    only checks that a citation resolves; whether the line says what the row claims is this step's.
    Then the done check. In: the register folder. Run `python "<skill>/run_status.py" "<your-folder>"`. It lists every output the run
    owes and ends DONE or NOT DONE. **The run is done only when it says DONE**; never say so on your own reading.
+   On a register mapped in reading units, as every run from the go on is, every finding that cites code was judged
+   in mapping (the mapping skill's phases 1 to 3), and the done check holds that judging, the merge and every call
+   between units re-read: no sample is drawn, there is no re-read to wait on, and a flow's report is owed once its
+   outputs are done. What follows on a re-read applies only to a register mapped before reading units.
+   It keeps its verdict with the map it judged, and says the two states apart: "this flow's outputs: done; its
+   re-read: pending" (or passed), each flow's outputs, re-read and report, and what remains. A flow's report is sent when its own re-read passes, and recorded with `go.py --report-sent <flow id>`; while an earlier flow's re-read is still pending, a later flow's report names it under What remains (`run_status.py` says which); phase 7, the run's close, is done when every flow's report is sent. The
+   kit's scripts count phase 7 done only then: a phase 7 set done by hand before still counts as under way. The next
+   flow opens once this flow's outputs are done, its re-read apart. After a further flow's rows land, it names each earlier flow's page they made out of date (STALE, with
+   the command that draws it again): draw each again, so no page on disk says what the map no longer does.
    DONE also needs every field a view requires answered or gapped (FILL-STEPS Step 12). If it says NOT DONE, go
    back to the phase that owes the missing file or writes the empty field, or mark that phase blocked with the reason.
    Then write how far each flow has gone: `python "<skill>/depth.py" "<your-folder>"` writes `depth.json` in the
@@ -496,17 +527,36 @@ the listener with the stop command it printed.
    `index.html` is in the folder links back to it.
    Out: `RUN.md` with every phase done, blocked, or *not picked* by the person, and the report to the person: the register folder, the flow and
    stage, the check results, the stages that still have no Step 11, each earlier register and what its reconciliation found (added,
-   carried forward, not supported, not assessed, disagreements, each named), anything you could not do, and the output of
-   `run_status.py` pasted as it is; your own prose in the report goes through `say`, and what the report must
-name as it is (the register folder, each earlier register's folder, the pasted output, the guides it points at) is sent beside it, unchecked. End the report with **What would make this map fuller**: the deployables the map
+   carried forward, not supported, not assessed, disagreements, each named), anything you could not do, and what the done
+   check found, in plain words: done or not done; what was checked of the map, exactly as `python
+   "<skill>/brief.py" checked "<your-folder>"` prints it, sent as it is (never "checked and done", nor a headline
+   that claims more than it says: until every finding is checked one by one, a sample was); and for each thing it owes that is not done, what is missing and how
+   much of it, never its output copied in, its script names, row ids or the commands it suggests; your own prose in the
+   report goes through `say`, and what the report must
+name as it is (the register folder, each earlier register's folder, the guides it points at) is sent beside it, unchecked. End the report with **What would make this map fuller**: the deployables the map
    stops at (every part under *still missing*, and every external dependency with no source of its own), then the
    `proposed:` rows counted by the kind of source that would settle them, read off the table in FILL-STEPS "Before
    you start".
+   **Then the next flow, when the first look found flows not yet mapped.** Once the done check says this flow's
+   outputs are done, render the offer, whether or not its re-read has passed (phase 7 stays *doing* until every flow's report is
+   sent; this flow's report waits for its own re-read): `python "<skill>/brief.py" next "<your-folder>" --flow "<the flow you recommend next>" --recommend "<why
+   that one>" --after`. It lists the flows still to add, your recommendation and the ask, and marks your
+   recommendation on the page; `--after` leaves out its status line, for when it follows the report, which opened
+   with one, in the same message. On a register mapped in reading units there is no re-read, so the report goes with
+   the offer and `--after` is given. Only on a register mapped before them, while its re-read is pending, there is no
+   report yet: leave out `--after`, so the offer opens with its own status line. Wait on the home screen (above), send it as printed, and end your turn, with the wait and the
+   listener still up. On their pick, record it with `go.py --flow` (or `--answers`) and carry on with the next flow
+   from phase 1. **When the person's request already asked for every flow** (for example "map every business flow", or "the whole capability's map first"), do not stop to ask which flow comes next: add `--from-request` to the same command, which reads the request the run record keeps. It records your recommended flow as their pick, with the request's words, and prints one line saying which flow comes next and why, what is still to add, and that they can say stop or name another. Send it as printed, do not wait, and carry on with that flow from phase 1 in the same turn; keep the wait on the home screen running, so a stop or another pick reaches you. It reads the request the start step kept, word for word, in the run record; when the record keeps none (a register from before this release), it refuses, and you ask instead.
+   If they name a flow the first look missed, it is a flow of this capability, never new work: record it with `go.py --add-flow "<its name>" --words "<their words, word for word>"`, which adds it to the flows found, then record their pick of it with `--flow`; the page's field for a flow the first look missed does both. When no flow is left, or they say stop, stop the wait and the listener. A
+   stop is not recorded: the register stays open with those flows still to add, and a chat that picks it up later
+   offers them again. When a chat picks the register up at this stop and the re-entry brief asks for the next flow
+   with no recommendation (no offer was rendered), render the offer as above with `--after` and send it in the same
+   message, after the re-entry brief.
 
 ## Rules for the whole run
 
 - Read `FILL-STEPS.md`, then `register-template/REGISTER.md` and the reference files `FILL-STEPS.md` cites in
-  `reference/`, before Phase 1. Look at `example-eshop/` only to see what a finished register and its outputs look
+  `reference/`, before Phase 1, and `<measures>/MEASURES-STEPS.md` before phase 4. Look at `example-eshop/` only to see what a finished register and its outputs look
   like. It is a different application and never a source of facts.
 - Step 11 covers the stages the person picked; a flow is covered when every stage has had one, and the capability
   when every flow is.
@@ -519,8 +569,10 @@ name as it is (the register folder, each earlier register's folder, the pasted o
   it, and you read the operations this flow calls and what those call (FILL-STEPS Step 5); how far into an outside
   service to go is Step 6's. If you cannot reach it, it stays a part cited by how you identified it, an external
   dependency, and goes under *still missing* in `RUN.md`.
-- **Read in full every service the flow touches.** Steps 1 to 8, the mapping, cover the whole flow and read every
-  service it runs through, whatever stage it carries. Steps 9 and 10, the measures and costs, cover only the stages
+- **Read in full every service the flow touches.** Steps 1 to 8 and Step 10, the mapping and its Business Impact,
+  cover the whole flow and read every service it runs through, whatever stage it carries: the readers read each
+  unit in full, and the lead reads only what its own rows need. The measures (the measures
+  skill) cover only the stages
   the person picked to measure, with the flow's own measures and the parts those stages use. Step 11 covers only the
   stages picked for alerts and runbooks. A run is cut shorter only when the person asks for it (`USE.md`). `KNOWN-GAPS.md` "At scale" says what is
   still open at size.
@@ -528,9 +580,13 @@ name as it is (the register folder, each earlier register's folder, the pasted o
   from a script that searches the code and emits rows; a script may find where to look. The done check takes what
   was read from Claude Code's own record of the session, not from anything the run writes: every location a row
   cites must have been opened with Read, its lines inside the part read, or be a fact the code reader produced. A
-  file shown by a shell command does not count. Before the done check, `python "<skill>/reread.py" "<your-folder>"`
-  draws `re-read.csv`, a sample of rows; one agent that wrote none of the rows opens each row's cited lines and
-  writes whether the code says what the row claims (FILL-STEPS "The run ends with `run_status.py`").
+  file shown by a shell command does not count. Every row of mapping that cites code is also checked by readers
+  that wrote none of it (the mapping skill's phases 1 to 3), so no sample is drawn for mapping's rows. A row of a
+  finished flow found wrong is never edited by hand: it is filed in `corrections.csv` and applied with `go.py
+  --apply-correction`, which records it; a row of a reading unit changes so only in words the person typed after the go
+  (`--words`), and one you find wrong yourself goes to that unit's fixer (`readers.py prompt ... <unit> --mode
+  stop --reason "<what is wrong>"`). A register mapped before reading units keeps its sampled re-read (FILL-STEPS
+  "Then the sampled re-read").
 - **Talk to the person in names, not ids**, as "Talking to the person" above says: name parts, process steps and
   stages by their names ("the Ordering API", "Accept the order"), never by id, in every message and report.
 - Never stop to ask the person a fact you can infer: where the sources do not say something, infer it and label it

@@ -23,10 +23,12 @@ the run's process).
 | cv-69 | capability_views.py | declared_value_failures | 139 | warning | a | is not one of the values REGISTER.md declares | each value of a column REGISTER.md declares a `One of:` list for is in that list (today subjects.band, lifecycle.from_kind and path, measures.form and receipt_question); a warning, so no register in use turns red |
 | cv-02 | capability_views.py | column_failures | 179 | error | a (migration) | {'; '.join((f'{o} is now | Renamed column |
 | cv-03 | capability_views.py | column_failures | 186 | error | a | {t}.csv has no {', | every column REGISTER.md defines, Optional ones aside, is present (read from REGISTER.md) |
+| cv-73 | capability_views.py | column_failures | 235 | error | a (migration) | now in alerts.csv, which only | measures.csv holds no alert column of an earlier release (`alert`, `counted_moves`): they are alerts.csv's |
 | cv-04 | capability_views.py | column_failures | 193 | warning | a (migration) | {RETIRED[t, c]} | Retired column present |
 | cv-05 | capability_views.py | column_failures | 197 | warning | a | {', '.join(extra)} {'are' if | no column REGISTER.md does not define (read from REGISTER.md) |
 | cv-06 | capability_views.py | unique | 245 | error | a | a row has no | the id column is filled, in capabilities, flows, stages, steps, subjects, measures |
 | cv-07 | capability_views.py | unique | 247 | error | a | {col} {v} appears twice | the id is unique, in the same six tables |
+| cv-74 | capability_views.py | check | 313 | error | b | names no measure in measures.csv; an alert is | alerts.handle -> measures, reported by the register check as well as the stage check (fo-78) |
 | cv-08 | capability_views.py | check | 252 | error | a | needs exactly one row, | Cardinality 1 |
 | cv-09 | capability_views.py | check | 261 | error | b | parent {r['parent']} is not | capabilities.parent -> capability_id |
 | cv-10 | capability_views.py | check | 264 | warning | a | delivers no capability | flows.delivers is filled; the same rule gates view question `flow: delivers` (vq-q19), where it is not a warning but a gate |
@@ -71,7 +73,8 @@ the run's process).
 | cv-48 | capability_views.py | check | 401 | error | a | impact_category {r.get('impact_category')} is not | step-impact.impact_category is in method/impact.csv |
 | cv-49 | capability_views.py | check | 403 | error | a | recovery must be 'moves | step-impact.recovery is moves on, stranded, not created or blank (RECOVERY) |
 | cv-50 | capability_views.py | check | 406 | error | b | =case-attributes.csv {r.get('attribute')}: flow {r.get('flow')} is not a flow | case-attributes.flow -> flows |
-| cv-51 | capability_views.py | check | 416 | warning | b | its case {sid} is | Conditional-required through a join |
+| cv-51 | capability_views.py | check | 488 | warning | b | its case {sid} is | Conditional-required through a join: a measure of a shared case with no step and no stage names its flow (a stage's measure takes its stage's flow) |
+| cv-75 | capability_views.py | check | 483 | warning | b | a stage's measure names flow | measures.flow, where filled on a stage's measure, is that stage's flow (stages.flow) |
 | cv-52 | capability_views.py | check | 423 | error | b | agent {a} is not | agent-system.agent -> a subject whose part_kind is an agent kind |
 | cv-70 | capability_views.py | check | 442 | error | a (migration) | element {r['element']} is now | Renamed agent-system.element value (operation is now action) |
 | cv-53 | capability_views.py | check | 425 | error | a | element must be one | agent-system.element is run, action, agent part or dependency |
@@ -90,15 +93,19 @@ the run's process).
 | cv-66 | capability_views.py | check | 466 | error | a | done_by {x} is not | Enum list |
 | cv-67 | capability_views.py | check | 472 | warning | d (text) | no citation | CITE regex over cells |
 | cv-68 | capability_views.py | bound_failures | 501 | error | d (text) | bound_in_code {v} cites no | flows/stages.bound_in_code that names a time limit cites code; also run by flow_outputs.py --check for its flow and stage |
+| fo-77 | flow_outputs.py | alert_table_failures | 60 | error | a (migration) | the alert columns of an earlier release | measures.csv holds no alert column of an earlier release; the stage check says so too |
+| fo-78 | flow_outputs.py | alert_table_failures | 66 | error | b | names no measure in measures.csv | alerts.handle -> measures |
+| fo-80 | flow_outputs.py | alert_table_failures | 69 | error | a | appears twice; one row per measure | alerts.handle unique |
+| fo-79 | flow_outputs.py | alert_table_failures | 75 | error | b | `guards` names {', '.join(unknown)}, | alerts.guards -> expectations |
 | fo-01 | flow_outputs.py | old_remedy_id_failures | 59 | error | a (migration) | remedy {', '.join((f'{x} is | Old id form |
-| fo-02 | flow_outputs.py | expectation_failures | 347 | error | b | `expectation` names {', '.join(unknown)}, | measures.expectation -> expectations |
+| fo-02 | flow_outputs.py | expectation_failures | 347 | error | b | `expectation` names {', '.join(unknown)}, | measures.expectation -> expectations (read for coverage only) |
 | fo-03 | flow_outputs.py | expectation_failures | 354 | error | a | objective {obj} is proposed; | expectations.objective is not `proposed` |
 | fo-04 | flow_outputs.py | expectation_failures | 357 | error | a | objective is set with | dependentRequired |
-| fo-05 | flow_outputs.py | chain_failures | 530 | error | a | decision_point is set on | Conditional column |
-| fo-06 | flow_outputs.py | chain_failures | 533 | error | a | class it in decision_point, | agent-system.decision_point starts `yes:` or `no:` |
-| fo-07 | flow_outputs.py | class_failures | 558 | error | a* | class the agent's reply | Required on rows whose subject is an LLM agent |
-| fo-08 | flow_outputs.py | class_failures | 564 | error | a* | class its tool as | participation.decision_point classes the tool of an LLM agent's operation |
-| fo-09 | flow_outputs.py | class_failures | 573 | error | b | classed yes at step | One (agent, tool) has one class across rows |
+| fo-05 | map_record.py | chain_failures | 144 | error | a | decision_point is set on | Conditional column; mapping's: run by run_status.py (rs-s6) and check_map.py, not by the coverage receipt |
+| fo-06 | map_record.py | chain_failures | 147 | error | a | class it in decision_point, | agent-system.decision_point starts `yes:` or `no:`; mapping's: run by run_status.py (rs-s6) and check_map.py, not by the coverage receipt |
+| fo-07 | map_record.py | class_failures | 191 | error | a* | class the agent's reply | Required on rows whose subject is an LLM agent; mapping's: run by run_status.py (rs-s6) and check_map.py, not by the coverage receipt |
+| fo-08 | map_record.py | class_failures | 196 | error | a* | class its tool as | participation.decision_point classes the tool of an LLM agent's operation; mapping's: run by run_status.py (rs-s6) and check_map.py, not by the coverage receipt |
+| fo-09 | map_record.py | class_failures | 202 | error | b | classed yes at step | One (agent, tool) has one class across rows; mapping's: run by run_status.py (rs-s6) and check_map.py, not by the coverage receipt |
 | fo-10 | flow_outputs.py | gap_rows | 735 | warning | c | the code sets no | Gap names a non-element |
 | fo-11 | flow_outputs.py | gap_rows | 739 | error | c | {key[1]} is a view | From the vq CONTRACT |
 | fo-12 | flow_outputs.py | gap_rows | 743 | error | a | question {key[1]} is not | Enum (vocabulary built from the receipt and vq) |
@@ -113,10 +120,12 @@ the run's process).
 | fo-20m | flow_outputs.py | receipt_failures | 882 | warning | c | not measured in this run | the receipt, where the person chose which stages to measure: an element only of stages not measured is a warning, never owed |
 | fo-21 | flow_outputs.py | receipt_failures | 808 | error | c | ={msg} | the receipt: each element of the run's stage or flow is covered by a measure or gapped |
 | fo-21p | flow_outputs.py | person_text_failures | 426 | error | c | a person reads when reviewing this alert | an alert's basis, question and guarded expectations, as the person reviewing it reads them, carry no id, file name or kit term (the review's own term list) |
-| fo-22 | flow_outputs.py | watched_failures | 827 | error | a | watched is set and | Same-row conditional |
-| fo-23 | flow_outputs.py | watched_failures | 830 | error | a | watched {w or 'blank'} | measures.watched is yes, in the app only, no or unknown |
-| fo-24 | flow_outputs.py | watched_failures | 832 | error | a | watched is {w} with | dependentRequired |
-| fo-25 | flow_outputs.py | watched_failures | 835 | error | a | watched is {w} on | Same-row conditional |
+| fo-22 | flow_outputs.py | watched_failures | 837 | error | a | watched is set and | Same-row conditional |
+| fo-23 | flow_outputs.py | watched_failures | 840 | error | a | watched {w or 'blank'} | measures.watched is yes, in the app only, only if configured, development only, no or unknown |
+| fo-24 | flow_outputs.py | watched_failures | 842 | error | a | watched is {w} with | dependentRequired |
+| fo-25 | flow_outputs.py | watched_failures | 845 | error | a | watched is {w} on | Same-row conditional |
+| fo-25c | flow_outputs.py | watched_failures | 848 | error | a | watched is only if configured and | Same-row conditional: only if configured cites the setting that decides it |
+| fo-25u | flow_outputs.py | watched_failures | 851 | error | a | watched is unknown on a collection setting | Same-row conditional: unknown never rests on a collection setting read and cited, unless the source says what was not read |
 | fo-73 | flow_outputs.py | counted_at_failures | 953 | error | a | and says no counted_at | dependentRequired: a measure with a source_ref names the place it is counted at; run_status.py says NOT DONE on the same rows |
 | fo-75 | flow_outputs.py | counted_at_failures | 1010 | error | a | counted_at names {hit}, a name only | measures.counted_at is a plain name, never a code identifier (flow_outputs.code_name: backticked, a quoted word not a log line, snake_case, an inner capital starting a word, a dotted lower-case name not a file, host or number) |
 | fo-76 | flow_outputs.py | same_place_failures | 985 | error | b | the same counted_at | two measures naming the same place agree on exists |
@@ -147,7 +156,7 @@ the run's process).
 | fo-49 | flow_outputs.py | check | 939 | error | d (declarable) | ending restore needs a | Join plus value |
 | fo-50 | flow_outputs.py | check | 941 | error | d (declarable) | the case is stranded, so its remedy | Join plus value |
 | fo-51 | flow_outputs.py | check | 944 | error | a | the case is stranded, so its ending | Same-row conditional |
-| fo-52 | flow_outputs.py | check | 947 | error | a | defect is set and | Same-row conditional |
+| fo-52 | flow_outputs.py | defect_failures | 781 | error | a | defect is set and | Same-row conditional |
 | fo-53 | flow_outputs.py | check | 955 | error | a | kind {rem.get('kind')} is not | remedies.kind is restore, re-drive, roll back, none exists or do not |
 | fo-54 | flow_outputs.py | check | 959 | error | d (text) | {col} names a runbook section ({x}); the register does not know the runbook's sections: | Regex over remedy text |
 | fo-55 | flow_outputs.py | check | 963 | error | d (text) | {col} names {', '.join(named)}, | Regex over remedy text |
@@ -159,11 +168,11 @@ the run's process).
 | fo-61 | flow_outputs.py | check | 1000 | error | d (declarable) | same measures and same | Unique (derived branch, measures, seen) |
 | fo-62 | flow_outputs.py | check | 1067 | note (printed as `note:`, never stops the outputs) | d | proposed for alerting on its | Reports where an alert not on a stage's count of cases is drafted: every stage it reaches (its step's stage, every stage of its flow, or each stage its part serves), or that it reaches none. Was an error in earlier releases: the register says which measures alert, at any level |
 | fo-63 | flow_outputs.py | check | 1073 | note (printed as `note:`, never stops the outputs) | d | no alert is proposed on stage | Reports a stage with no alert reaching it: no ALERT page is written and its runbook says so. Was an error ("each run stage has at least 1 alert") in earlier releases: whether to alert is the team's decision |
-| fo-64 | flow_outputs.py | check | 1078 | warning | a | proposed for alerting with | measures.alert proposed for alerting starts `yes:` with its basis, on every drafted alert at any level |
+| fo-64 | flow_outputs.py | check | 1078 | warning | a | proposed for alerting with | alerts.alert proposed for alerting starts `yes:` with its basis, on every drafted alert at any level |
 | fo-65 | flow_outputs.py | check | 1091 | error | a | counts cases leaving the | Conditionally required (form not backlog or cycle time), on an alert of the stage counted on cases |
-| fo-66 | flow_outputs.py | check | 1081 | error | a | proposed for alerting, and | measures.expectation filled on every drafted alert at any level; fo-02 checks the ids it names, and view question `alert: expectation it guards` (vq-q20) that one is known |
-| fo-67 | flow_outputs.py | check | 1096 | error | b | `counted_moves` names {', '.join(unknown)}, | measures.counted_moves -> lifecycle |
-| fo-68 | flow_outputs.py | check | 1100 | error | b | `counted_moves` names {', '.join(other)}, | measures.counted_moves -> a move of the measure's stage |
+| fo-66 | flow_outputs.py | check | 1081 | error | a | proposed for alerting, and | alerts.guards filled on every drafted alert at any level; fo-79 checks the ids it names, and view question `alert: expectation it guards` (vq-q20) that one is known |
+| fo-67 | flow_outputs.py | check | 1096 | error | b | `counted_moves` names {', '.join(unknown)}, | alerts.counted_moves -> lifecycle |
+| fo-68 | flow_outputs.py | check | 1100 | error | b | `counted_moves` names {', '.join(other)}, | alerts.counted_moves -> a move of the measure's stage |
 | fo-69 | flow_outputs.py | check | 1043 | warning | d | its runbook entry works | Domain advisory |
 | fo-70 | flow_outputs.py | check | 1051 | warning | d | cases wait in it | Domain advisory |
 | fo-71 | flow_outputs.py | check | 1056 | warning | d | no move leaves a | Domain advisory |
@@ -173,8 +182,12 @@ the run's process).
 | vq-03 | view_questions.py | refusal | 88 | error | d (text) | the reason cites no | CITE regex |
 | rs-01 | run_status.py | view_questions | 174 | not done | c | {q} {len(C[q]['empty'])} empty | each view question that gates is answered or gapped, for each element owed (vq-q01 to vq-q24) |
 | rs-02 | run_status.py | view_questions | 177 | not done | d (process) | {q} {len(unread)} gapped not | a gap of kind `not read` does not pass on a first run |
-| rs-03 | run_status.py | split_checks | 72 | not done | d (process) | rows not judged by | in a split run, every unit's rows are judged by the number of judges run-settings.json sets (default three) and flagged rows judged again, read from the transcripts (judges.py) |
+| rs-03 | run_status.py | split_checks | 91 | not done | d (process) | rows not judged by | every run maps in reading units: every row of the flow worked now that cites code, in each unit and in the lead's tables (`flow`), is judged by the number of judges the go records in run-settings.json (default three), flagged rows fixed and judged again, and a row still flagged after the last round labelled `disputed:`; read from the verdict files and the transcripts (judges.py) |
 | rs-04 | run_status.py | split_checks | 54 | not done | d (process) | the map is not the | in a split run, the map's tables are what a merge of the unit folders gives, every call matched or listed (merge.py) |
+| rs-05 | run_status.py | split_checks | 91 | not done | d (process) | calls between units not re-read | in a split run, every call between units the merge leaves unmatched is re-read on both sides and resolved: corrected so the merge matches it, or labelled `disputed:` by a re-read the transcripts show (merge.rereads) |
+| rs-06 | run_status.py | split_checks | 95 | not done | d (process) | calls between units unmatched, more than | more unresolved unmatched calls than `merge_rereads` (run-settings.json, default 50): the reason says to read again the units they call, not to re-read each call |
+| rs-07 | run_status.py | split_checks | 92 | not done | d (process) | units not read in full by their own reader | in a split run, every reading unit the go took in with rows of the flow worked now (and every unit of a service surveyed after the go that the go did not leave out) passes the unit reading check: read in full by its own reader, a `general-purpose` subagent, and every cell of its tables accounted for by its typed writers' replayed Writes and Edits, each writer launched on a prompt a kit script wrote (reading_check.py --unit, provenance.py); any other unit with a folder and rows of that flow has every cell accounted for (provenance.py) |
+| rs-08 | run_status.py | split_checks | 106 | not done | d (process) | is not what units.py derives for the go's | in a split run, `units/units.csv` is exactly the list units.py derives for the services the go took in, so no service of the go's scope goes without its reading unit and reader (units.py differences) |
 
 ## The view questions that gate
 
@@ -217,3 +230,12 @@ that is `count only` is counted and never gates, so it has no row.
 | rs-s3 | run_status.py | stale | not done | d (freshness) | no record of the register it was generated from | a stage output carries the stamp of the register it was generated from |
 | rs-s4 | run_status.py | stale | not done | d (freshness) | changed since it was generated | the register's tables are as they were when the output was generated |
 | rs-s5 | run_status.py | view_questions | not done | d (process) | view questions not counted | the view questions can be counted (the generators read the register) |
+| rs-s7 | run_status.py | report | not done | c | expected outputs missing | the reason for rs-s1 and rs-s2: every output owed exists |
+| rs-s8 | run_status.py | report | not done | d (freshness) | stale, generated from the register as it was | the reason for rs-s3 and rs-s4: no output is older than the register |
+| rs-s9 | run_status.py | report | not done | d (process) | cited code not read by the run | every code citation in the map names a file the run read (reading_check.py); check_map.py runs it at mapping's end (run_status.mapping_owed) |
+| rs-s10 | run_status.py | report | not done | d (process) | drawings with no content | no drawing page came out blank; check_map.py runs it at mapping's end (run_status.mapping_owed) |
+| rs-s11 | run_status.py | report | not done | a | measures with a citation and no counted_at | the done check's side of fo-73 |
+| rs-s12 | run_status.py | report | not done | b | rows of a finished flow changed | a finished flow's rows are as they were when the next flow began (go.changed_rows) |
+| rs-s13 | run_status.py | report | not done | a | ids used twice | an id is used once across the register (go.reused) |
+| rs-s14 | run_status.py | report | not done | c | view questions not answered | the reason for rs-01, rs-02 and rs-s5; check_map.py runs mapping's questions at mapping's end (run_status.mapping_owed) |
+| rs-s6 | run_status.py | report | not done | a | not classed as its decisions or not | every AI agent's tools, replies and chained actions are classed (fo-05 to fo-09), for every flow, at any depth; check_map.py reports the same in plain words |

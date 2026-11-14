@@ -8,7 +8,241 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
-## Unreleased
+## Release 8 — 2026-11-13
+
+This release is three skills that work together: the stage kit (`bfo-stage-kit`), the mapping skill
+(`bfo-mapping`) and the measures skill (`bfo-measures`). Install all three side by side, each as a whole folder
+(USE.md, "What you need").
+
+### How far this release is proven
+
+**What is verified.** Verified on Online Boutique, a public sample shop, mapping one flow ("Place an order") to the
+map, mapped only:
+
+- Each service is read in parallel, one reader per service.
+- Every finding that cites code is checked against it by three readers who wrote none of it, and each finding they
+  doubt is corrected and checked again.
+- The map is drawn, and the report says what was checked.
+- The done check passes.
+
+Measures, alerts, runbooks and the rule for runbook tests come after the map and are not covered by that
+verification.
+
+**Not yet proven.**
+
+- A run from start to finish without help.
+- The launch, the page line in the chat, the Run status page and the page opening in the right place, over a whole
+  run.
+- A second flow added to the same map; measures, alerts and runbooks since the changes to mapping; and a run on the
+  larger eShop sample.
+
+**Known limits** (KNOWN-GAPS.md, "At scale").
+
+- A run sets no limit on how much of the computer it uses.
+- Checking every finding cannot see a row that no reader wrote.
+
+### What you will notice
+
+- **The run never runs a runbook test itself.** For each test it writes how to check it against one known case (a
+  seeded or demo row, or a reproduced failure), for you to try in an environment you choose, and records that the
+  tests were not tried. It tries a test only when you say yes and name a local or demo environment, and records
+  each result (FILL-STEPS Step 11).
+  Effect: none.
+- **The version file names the release it was built as,** with its date, instead of a commit; the start step still
+  checks every file against it.
+  Effect: none.
+- **USE.md says more about what runs on your machine:** how the page's server is stopped, the optional headless
+  helpers, the settings file's `on_change` command, and what the done check reads from Claude Code's session records.
+  Effect: none.
+- **A run opens on its Run status page.** From the start of a run, the browser opens on the Run status page, which
+  shows step 1, Discovery, under way during the first look, then the run's own steps once its record exists. Its bar
+  links to the page with the sources and progress until the home page is drawn, then to the home page. That page
+  carries a Run status link at its top. At each stop the page where you answer still opens, beside an open Run
+  status tab.
+  Effect: none.
+- **Proposing the measures is the measures skill's, not the kit's.** The kit no longer carries the instructions for
+  proposing the measures: it hands that step to the measures skill (`bfo-measures`), installed beside it, as it hands
+  the mapping to the mapping skill, and takes the run back for your review of the measures. What you see does not
+  change: the same measures, the same review and the same messages. Install the measures skill beside the kit
+  (USE.md, "What you need").
+  Effect: none.
+- **The next flow is added to the same map.** When a flow is done and the first look found more, the run offers
+  the next flow at the end, with the one it recommends and why, on the page and in the chat; picking the run up
+  later offers it too. The flow you finished keeps everything: how far you
+  picked to take each stage, your words, your review of its alerts, its rows in the map and its pages. Before, a go
+  on a second flow replaced the record of the first. The done check now holds every flow to its own pick, and says
+  not done if a finished flow's row is changed or an id is used twice. A flow the first look missed can be added
+  at the offer, in your words. To take a stage of a finished flow further, say so between flows: that flow is taken
+  up again, only the work its new pick needs is done, its pages are checked and reported again, and the offer comes
+  back; while a flow is under way, the run finishes it first.
+  Effect: none. A map from Release 7 is read as it is; its flow is kept the same way once the next one starts.
+- **A flow's pages show only its own measures and alerts.** A part both flows use is drawn on each stage with only
+  the measures its stage uses; an alert on that part is one decision, kept with the flow that made it, and is not
+  asked of the next flow again. When the next flow adds to the map, the done check names each earlier page that is now
+  out of date, and the run draws it again.
+  Effect: none; the done check names any page to draw again.
+- **The final check holds.** The run's last phase counts as done only while the done check says DONE on the map as
+  it stands, and the next flow is offered only then.
+  Effect: none; a map from Release 7 has its done check run once more.
+- **The pick asks for what is at stake first.** A flow brought to the pick with no Business Impact recorded, as in a
+  map from Release 7, is filled from each step's own citation before the pick is shown.
+  Effect: fill from each row's citation: Business Impact (FILL-STEPS Step 10) for a flow with none, asked for at the
+  pick by the script that shows it.
+- **The alerts have a table of their own.** Which measures alert, each alert's basis, the expectation it guards and
+  the moves it counts are in `alerts.csv`, which only choosing the alerts writes; `measures.csv` holds the measures
+  alone, and its `expectation` says only what each measure is evidence of. Changing a measure no longer touches an
+  alert, and a finished flow's alerts are kept like its other rows.
+  Effect: rename: reconcile.py --migrate; it moves `alert` and `counted_moves` out of `measures.csv`, and the
+  check refuses the register until it runs.
+- **A run made with an earlier release is upgraded without asking you.** The run backs its register up outside the
+  workspace, migrates it in place, checks it again and restarts the page so the page runs the new kit, then tells
+  you in one line what it did and where the backup is. It stops for you only if the check still fails (USE.md, "If
+  the kit is updated while a run is under way").
+  Effect: none.
+- **Mapping says which of an AI agent's actions are its decisions.** Whether each tool call, each reply to a person
+  and each step whose output a later step relies on is the agent's own decision is now settled while the flow is
+  mapped (FILL-STEPS Step 7), not later when the measures are proposed, because it is a fact about who decides at a
+  step. The map's inspection checks it as its tenth rule (`check_map.py`), and the done check says NOT DONE while
+  any agent action is left unmarked, however far each stage is taken. Proposing the measures reads the marks and no
+  longer checks them.
+  Effect: re-walk the agent actions left unmarked: a map whose measures were never proposed, or that an earlier
+  release left part-marked, may hold some. The upgrade's line says how many; mapping re-reads the code behind each
+  before the run is done, and says so before it starts.
+- **The run-at-work page shows "Where things stand:" in bold** instead of with asterisks; nothing to do.
+  Effect: none.
+- **A service is named after its service folder.** A service whose build file sits in a generic folder below its
+  service folder (such as `src/cartservice/src`) is now named after the service folder (`cartservice`). Two folders
+  that would share a name are told apart by their paths. An existing register keeps its old names until it is
+  re-surveyed.
+  Effect: none; the names change only when the survey is run again.
+- **Every finding of the map is checked, and the reading runs in parallel.** Mapping now reads each service in its
+  own reading unit, several readers at once, and every finding that cites code is checked against it by three
+  readers who wrote none of it (or the number you give at the go). A finding they doubt is corrected and checked
+  again; one still in doubt is shown as not confirmed by the code. The run's own session launches every helper and
+  picks up as each finishes, from what is on disk. No sample of ten is drawn for the map any more, and a flow's
+  report no longer waits on one. `KNOWN-GAPS.md` "At scale" says what this checking cannot see.
+  Effect: re-walk mapping for a register mapped before this release if you want its findings checked: it has no
+  reading units, so it keeps its sampled re-read until it is mapped again.
+- **The page line reaches the chat.** The first look starts in the background, as Claude Code runs it, and the page
+  line reaches the chat: the run writes it before the helper starts and ends its turn on it; the brief follows when
+  the helper's reply arrives.
+  Effect: none.
+- **The report says the final check's result in plain words,** without pasting its output; USE.md's launch prompt
+  likewise asks for it in plain words.
+  Effect: none.
+- **The home page's Mapped and Measures panels read in plain words.** Each section names the flow or stage selected,
+  only steps are numbered, a stage's ways out and a flow's endings read in plain words, a gap says its kind instead
+  of "Not known", a stage is no longer asked about alerts or runbooks it was not taken to, and the tree says what a
+  part is. Values drafted without a source read "(proposed)", including a drafted flow start, ending, party,
+  customer or capability name; a flow's ending keeps its failure case.
+  Effect: none; the pages change on a redraw only (`depth.py` then `home.py`), with no register change.
+- **A split run is not done while a call between units is unmatched.** A split run whose merge leaves a call between
+  units unmatched now reads NOT DONE until that call is corrected, or disputed by its own re-read. The split-run
+  modules are pinned.
+  Effect: re-walk each call between units left unmatched in a split register: such a register now shows NOT DONE
+  until each is corrected or disputed by its own re-read.
+- **A row judged again can now pass.** Verdicts carry the row's content hash, and a relaunch replaces only a
+  breached verdict.
+  Effect: re-walk the judging of each split register once: its verdicts were written without the row's content hash.
+- **A finished flow's split-run record is kept as it was.** Stored verdicts now carry a fingerprint over the units'
+  tables and verdict files. Registers that are not split runs are unaffected.
+  Effect: re-walk the done check once per split register: its stored verdicts have no fingerprint yet. For a flow
+  ended before this release, run `--mapping-ends` again, within the 30-day transcript window.
+- **The split run's readers, judges and fixers run as subagents, many at once.** `judges.py emit` and
+  `readers.py prompt` write each agent's prompt to a file and print one line per launcher, each launching up to 150
+  of them. A judge must be a `general-purpose` subagent. A reader or fixer that runs any shell is relaunched over
+  its own writes. The lead's judged rows now include `set-aside` and the lead's own parts, and never the measures
+  step's tables. Each fix of a flagged row is counted by kind. A later flow judges only its own rows. Each verdict
+  file now names the flow it was judged in and the row as it was judged (`flow`, `row_hash`), and counts only while
+  both match the row and the flow worked now.
+  Effect: re-walk the judging of each split register once: its judges were not checked as typed subagents, its
+  `set-aside` rows were never judged, and its verdict files, in the earlier seven columns, are no longer read.
+- **The run record, the page address, the page's footer and its parts agree with the run.** A done first look and a
+  done go each name the files that prove them in the run record, and *Sources* keeps none of the template's text
+  under a line the run has written. A stop's message carries the page's address once. The page's "where the run
+  stands" reads the status line's own decision, so at the pick of the next flow, or when the run is blocked, the two
+  say the same. A stage's parts on the page are pieces of the system only, never a person or the case.
+  Effect: none; the pages change on a redraw only (`depth.py` then `home.py`), and a run record already past its
+  first look and go keeps its cells as they are.
+- **Each stop opens with its question.** The first look's brief, the pick of how far each stage goes and the
+  reviews of the measures and the alerts start with what is asked of you, the recommendation and what a yes does;
+  then only what you need to judge it, as lists. The first look's brief is short in the chat: each flow's stages,
+  each service and the open questions are in the full plan, shown when you ask. The check of the map is a count
+  that names only a rule that fails, and what is at stake at each stage is grouped by its cost.
+  Effect: none.
+- **What your request already answered is not asked again.** Your request is kept word for word when the work
+  starts. Where it already says to map every flow, the run starts with the flow it recommends and goes on to each
+  next flow, saying so in one line; where it already says how far each stage goes, the run records that and says
+  so in one line. You can still stop it, pick another flow, or take a stage further at any time.
+  Effect: none; a register from an earlier release keeps no request, so the run asks as before.
+- **The launch is a short view of the work, sent as plain text.** It says what goes in, what comes out, what the map
+  is made of and the steps, with the stops named in each, in short paragraphs and lists. The mapping skill's launch
+  says measures, alerts and runbooks are not part of it.
+  Effect: none.
+- **The status line is short, and each field says something.** A flow or stage not chosen yet is left out;
+  "Drafted" names what was made, never the activity; at the report, "Next" is what follows it; while the run waits
+  on you, the activity is not repeated.
+  Effect: none.
+- **What the chat says is the work, never the run's bookkeeping.** Every message goes through the kit's own sender,
+  which refuses words about the run record, the page's wait or the kit's files.
+  Effect: none.
+- **What one case is, is said per flow.** The first look's brief says, for each flow, what one case of it is, and no
+  longer fixes one case for the whole capability before a flow is picked.
+  Effect: none; a register written before keeps the capability's one case and its pick-up brief still reads.
+- **A change to the agreed stages is said plainly.** When mapping the code changes the stages agreed at the go, the
+  next message shows the first look's stages beside the ones found in the code, once.
+  Effect: none.
+- **A capability no flow delivers says what it means and what to do.** On the map, one that only the documents name
+  says so, and asks you to name the flow that carries it, or leave it.
+  Effect: none; the pages change on a redraw only (`depth.py` then `home.py`), with no register change.
+- **A claim that something is absent names its search, or is marked proposed.** The mapping steps now require it.
+  Effect: none.
+- **The report says exactly what was checked.** It says in the past tense what the checks established: for a map
+  read in units, that each finding was read against the code by the independent checks; for a register mapped
+  before this release, a sample of ten re-read by a separate reader and whether all ten held, and that the rest were
+  not checked one by one.
+  Effect: none.
+- **Mapping is not handed back until the map answers what the final check asks of a flow left mapped only.** A
+  service's operations and what it depends on are asked of the map before mapping ends, not at the final check.
+  Effect: none.
+- **A report with flows still to map ends on the offer of the next flow.**
+  Effect: none.
+- **Mapping's progress reaches the chat and the page as it happens.** One plain line per part of the map written.
+  Effect: none.
+- **The first flow is picked at the top of the home page.** While the run waits on which flow to map first, the home
+  page shows every flow found, each with its own tick, the recommended one marked, and your words and Done beside
+  them; before, the ticks sat inside each flow's Mapped drop-down, and nothing said so. While any pick is open, the
+  line under the flows says the run is waiting on it, not the phase that follows.
+  Effect: none; the page changes on a redraw only (`depth.py` then `home.py`), with no register change.
+- **The Mapped panel asks only what the stage's pick takes on.** Before the pick of how far each stage goes, and for
+  a stage left at mapped only, the panel no longer lists "its alerts" or "what each party expects" as not known yet.
+  Effect: none; the pages change on a redraw only (`depth.py` then `home.py`), with no register change.
+- **The run-at-work page says what it is for,** in one sentence under its heading.
+  Effect: none.
+- **Mapping is not finished while the done check would still fail on its rows.** The map stop's inspection now
+  runs the done check's own conditions that are mapping's (the questions about parts, stages, process steps and
+  the flow, the drawings, the code cited) and says in its first line when any is open, so mapping puts them right
+  before the pick of how far each stage goes, not after. A flow mapped only owes no coverage receipt, and the checks
+  now say "not owed" instead of counting one with 0 elements.
+  Effect: none.
+- **A Run status page shows where the run stands at a glance.** The home page's bar gains a Run status link. The
+  page shows the run's twelve numbered steps, from Discovery to Next flow, each with what it holds and the time of
+  each of your decisions; what the run needs from you now, or how to resume it in VS Code if its Claude Code tab is
+  closed; and any issue with what clears it. It is drawn from the run's record on each visit and reloads itself
+  every 15 seconds. An open Run status tab never stops the run opening the page that asks you something.
+  Effect: none; the page is drawn from the record as it stands, with no register change.
+- **Each recommendation's reason reaches you as one short plain sentence.** The reason given with the first flow to
+  map, with how far each stage goes, with the next flow, and with the measures and alerts for your review is
+  refused before you see it when it runs to more than one sentence, uses a semicolon, runs past 30 words or carries
+  an id, the kit's own words or the code's (calls, requests, handlers and the like, outside a name the map gives);
+  the refusal tells the run what to change.
+  Effect: none.
+- **The page's listener is stopped even when it answers late.** When the run stops its page's listener on a busy
+  machine, a listener slow to answer is now ended too, and its record is removed only once it has stopped; before,
+  it could keep serving for hours with nothing naming it.
+  Effect: none.
+
+## Release 7 — 2026-10-29
 
 ### What you will notice
 

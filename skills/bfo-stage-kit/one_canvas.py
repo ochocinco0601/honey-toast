@@ -637,11 +637,11 @@ def panel_data(M, docs=None):
                 "answers": m.get("question_it_answers", ""), "kind": fo.kind_of(method, m),
                 "counted_on": m.get("counted_on", ""), "how": m.get("counted_how", ""),
                 "exists_today": ("yes: " + (m.get("source_ref") or "")) if cls == "exists" else "no, " + said,
-                "runbook": entry(m), "guards": guards(m)}
+                "runbook": entry(m), "guards": evidence(m)}
 
     expectations = {r.get("expectation_id", "").strip(): r for r in sfv.expectations(M)}
 
-    def guards(m):  # the expectations a measure is evidence of, by party and in the party's words
+    def evidence(m):  # the expectations a measure is evidence of (coverage, never an alert's guard), by party and in the party's words
         rows = [expectations[i.strip()] for i in (m.get("expectation") or "").split(";") if i.strip() in expectations]
         return "; ".join(f"{sfv.labelled(M, r.get('party', ''))}: {sfv.labelled(M, r.get('expectation', ''))}"
                          for r in rows)
@@ -1371,6 +1371,9 @@ def drawing_pages(M):
 
 
 def main(argv=None):
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
+    import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
+    run_lock.refuse_unless_register(sys.argv[1:] if argv is None else argv)
     argv = sys.argv[1:] if argv is None else argv
     if len(argv) != 2:
         print(__doc__.strip().splitlines()[2].strip())

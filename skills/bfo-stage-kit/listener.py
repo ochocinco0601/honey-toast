@@ -22,6 +22,9 @@ HERE = pathlib.Path(__file__).resolve().parent
 WORK = "bfo-work"
 URL_FILE, PID_FILE, LOG_FILE, SEEN_FILE = "url.txt", "listener.pid", "listener.log", "seen.json"
 # the listener is on this machine: a proxy set for command-line tools never applies to it, as it never does in a browser
+# pages no open tab follows (page_ask.UNLED): the run status view reloads only itself, so a request for it is never
+# an open tab the run can lead
+UNLED = ("operator.html",)
 LOCAL = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
@@ -121,11 +124,21 @@ def tab_open(site):
         if isinstance(seen.get("/.tabs"), dict):
             return bool(seen["/.tabs"])
         closed = seen.pop("/.closed", None)
-        seen.pop("/.shown", None)
-        last = max(seen.values(), default=None)
+        last = max((t for k, t in seen.items() if not k.startswith("/.") and k.rsplit("/", 1)[-1] not in UNLED),
+                   default=None)
     except (OSError, ValueError, AttributeError, TypeError):
         return False
     return last is not None and (closed is None or last > closed)
+
+
+def status_open(site):
+    """True when a run status tab is open on this listener: one has said it is shown and not that it was left (its
+    own beacons, kept apart from the led tabs')."""
+    try:
+        tabs = json.loads((pathlib.Path(site).resolve() / SEEN_FILE).read_text(encoding="utf-8")).get("/.statustabs")
+    except (OSError, ValueError, AttributeError):
+        return False
+    return isinstance(tabs, dict) and bool(tabs)
 
 
 def asked_since(site, page, since, wait=0.0):
@@ -143,38 +156,109 @@ def asked_since(site, page, since, wait=0.0):
 def up(site, page="", opener=None, wait=10.0):
     """(address, started, opened): the browser opened on the page, judged by its own request. While a tab is open on
     this listener nothing is opened, as that tab follows to the page by itself; a tab closed since is opened again.
+    The run status page is opened likewise while a run status tab is open, which never stops another page opening.
     Otherwise the browser is opened, and `opened` is True only when it asks for the page within `wait` seconds."""
     site = pathlib.Path(site).resolve()
     url, started = start(site)
     page = page.lstrip("/")
     address = url + page
-    if not started and tab_open(site):
+    if not started and (tab_open(site) or (page.rsplit("/", 1)[-1] in UNLED and status_open(site))):
         return address, started, True
     t0 = time.time()
     launched = (opener or open_in_browser)(address)
     return address, started, bool(launched) and asked_since(site, page, t0, wait)
 
 
-def stop(site):
-    """True when a listener for `site` was running and is stopped. Only the process the listener itself names is
-    ended: a pid left in listener.pid by one that crashed may now be another program's, and is never touched."""
+def running(pid):
+    """True while process `pid` runs."""
+    if os.name == "nt":
+        import ctypes
+        k = ctypes.windll.kernel32
+        h = k.OpenProcess(0x1000, False, int(pid))  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return k.GetLastError() == 5  # access denied: it runs, as another user's
+        code = ctypes.c_ulong()
+        ok = k.GetExitCodeProcess(h, ctypes.byref(code))
+        k.CloseHandle(h)
+        return bool(ok) and code.value == 259  # STILL_ACTIVE
+    try:
+        if os.waitpid(int(pid), os.WNOHANG)[0]:  # one this process started, now ended: reaped
+            return False
+    except ChildProcessError:
+        pass
+    try:
+        os.kill(int(pid), 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def command_line(pid):
+    """The command line of process `pid`, "" when none runs, None when it cannot be read."""
+    if os.name == "nt":
+        cmd = ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+               f"(Get-CimInstance Win32_Process -Filter 'ProcessId={int(pid)}').CommandLine"]
+        kw = {"creationflags": subprocess.CREATE_NO_WINDOW}
+    else:
+        cmd, kw = ["ps", "-o", "args=", "-p", str(int(pid))], {}
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=60, **kw)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return p.stdout.strip() if p.returncode == 0 or not p.stderr.strip() else None
+
+
+def serves(line, site):
+    """Whether a command line is a listener (page_ask.py serve) of `site`."""
+    line, site = line.rstrip().rstrip('"'), str(site)
+    if os.name == "nt":
+        line, site = line.lower(), site.lower()
+    return "page_ask.py" in line and " serve " in line and line.endswith(site)
+
+
+def end(pid):
+    """Asks the system to end process `pid`."""
+    try:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True, check=False,
+                           creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
+            os.kill(pid, 15)
+    except OSError:
+        pass
+
+
+def stop(site, wait=10.0):
+    """True when a listener for `site` was running and is stopped. Only a listener of `site` is ended: the process
+    that answers /.alive for the folder or, when that answer is late (as on a busy machine), the process listener.pid
+    names while its command line is page_ask.py serve of the folder. A pid left by one that crashed may now be another
+    program's, and is never touched. The folder's files are removed only once no listener of it runs: a listener
+    still running keeps the pid file that names it."""
     site = pathlib.Path(site).resolve()
+    try:
+        named = int((site / PID_FILE).read_text(encoding="utf-8").strip())
+    except (OSError, ValueError):
+        named = None
     found = alive(site)
-    ended = False
-    if found:
-        try:
-            if os.name == "nt":
-                ended = subprocess.run(["taskkill", "/PID", str(found[1]), "/F"], capture_output=True, check=False,
-                                       creationflags=subprocess.CREATE_NO_WINDOW).returncode == 0
-            else:
-                os.kill(found[1], 15)
-                ended = True
-        except OSError:
-            ended = False
-    if ended or not found:
-        for f in (PID_FILE, URL_FILE, SEEN_FILE):
-            (site / f).unlink(missing_ok=True)
-    return ended
+    pid = found[1] if found else None
+    if pid is None and named is not None and running(named):
+        line = command_line(named)
+        if line is None:
+            return False  # what it is cannot be read: it and its record are left
+        if serves(line, site):
+            pid = named
+    if pid is not None:
+        end(pid)
+        until = time.time() + wait
+        while running(pid):
+            if time.time() >= until:
+                return False  # still running: its pid file stays
+            time.sleep(0.1)
+    for f in (PID_FILE, URL_FILE, SEEN_FILE):
+        (site / f).unlink(missing_ok=True)
+    return pid is not None
 
 
 def say(address, started, opened):
@@ -199,7 +283,12 @@ def main(argv):
             return 2
         return 0
     if len(argv) == 2 and argv[0] == "stop":
-        print("STOPPED" if stop(argv[1]) else "NOT RUNNING")
+        if stop(argv[1]):
+            print("STOPPED")
+        elif (pathlib.Path(argv[1]).resolve() / PID_FILE).is_file():
+            print("NOT STOPPED: the listener did not end; listener.pid still names it")
+        else:
+            print("NOT RUNNING")
         return 0
     print(__doc__.split("\n\n")[1], file=sys.stderr)
     return 2

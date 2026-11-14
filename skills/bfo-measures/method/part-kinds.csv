@@ -1,0 +1,22 @@
+part_kind,family,set_to_ask
+web front end,service,"rate, errors, duration, saturation"
+API service,service,"rate, errors, duration, saturation"
+identity provider,service,"rate, errors, duration, saturation"
+gateway,service,"rate, errors, duration, saturation"
+third-party API,service,"available, duration, errors, timeouts, throttled, right answer"
+LLM provider,service,"available, duration, errors, timeouts, throttled, right answer"
+worker,pipeline,"freshness, correctness, coverage, throughput"
+batch job,pipeline,"freshness, correctness, coverage"
+message consumer,pipeline,"throughput, lag, redeliveries, duplicates"
+database,store,"durability; right answer: timeliness, accuracy, completeness, validity"
+cache,store,"durability; right answer: timeliness, accuracy, completeness, validity"
+search index,store,"durability; right answer: timeliness, accuracy, completeness, validity"
+file store,store,"durability; right answer: timeliness, accuracy, completeness, validity"
+message broker,platform,"utilization, saturation, errors"
+host or runtime,platform,"utilization, saturation, errors"
+LLM agent,agent,its own system: see the agent's own view
+person,person,no set named by the method yet
+case,case,
+interaction,interaction,
+conversation memory,store,"durability; right answer: timeliness, accuracy, completeness, validity"
+platform service,platform,"utilization, saturation, errors"

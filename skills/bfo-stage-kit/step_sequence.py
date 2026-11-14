@@ -365,6 +365,13 @@ def clause_messages(M, sid, rows, pids, seq, calls, gaps):
                 prev = next((m for m in reversed(out) if m["kind"] in ("msg", "self", "found")), None)
                 last = [x for x in ((prev["to"], prev["frm"]) if prev else ()) if x in doers]
                 doer = named[0] if len(named) == 1 else (last[0] if last else None)
+            if not doer and len(pids) == 1 and pids[0] in doers and not calls:
+                # a step one part carries alone, with no call recorded: the work is that part's, whatever word the
+                # clause calls it by, and is drawn as the operation its participation row names, the clause under it
+                doer = pids[0]
+                op = next((p.get("operation", "").strip() for p in rows if p.get("operation", "").strip()), "")
+                if op:
+                    first = [message(kind="self", frm=doer, label=op, op=True, desc=text, hop=n)]
             if not doer:
                 gaps.append(text)
                 continue
@@ -603,10 +610,27 @@ def outside(M, calls, pids):
             f"taking part in it is {GAP}" for r in calls if not (r.get("from_id") in pids and r.get("to_id") in pids)]
 
 
+def own_work(rows):
+    """Each part taking part in a step drawn doing it: its operation, a message to itself, with its activity under
+    it, in participation.csv's order. A part with no operation on record draws nothing here."""
+    return [message(kind="self", frm=p["subject_id"], label=p["operation"].strip(), op=True,
+                    desc=plain(p.get("activity", "")))
+            for p in rows if (p.get("operation") or "").strip()]
+
+
 def scenario(M, sid):
     """Everything one step's drawing and card show, from the register's rows: `items` drawn in order, `norec` the
     calls of a step with no move whose order is not recorded, `other` the recorded calls no hop accounts for on a step
-    with hops (the card lists them), `gaps` what the register does not hold (the card's gap rows)."""
+    with hops (the card lists them), `gaps` what the register does not hold (the card's gap rows). A step on which
+    neither a hop nor a call between its parts can be drawn (work done inside one operation: a check, an error page)
+    draws each part that takes part doing its own operation (own_work), never lifelines alone."""
+    sc = _scenario(M, sid)
+    if not list(drawn(sc["items"])) and not list(drawn(sc["norec"])):
+        sc["items"] = own_work(sc["rows"])
+    return sc
+
+
+def _scenario(M, sid):
     rows = rows_of(M, sid)
     pids = list(dict.fromkeys(p["subject_id"] for p in rows))
     moves = moves_of(M, sid)
@@ -636,6 +660,12 @@ def scenario(M, sid):
     # drawn, not even under a call whose receiver makes it (where it runs in the order is not recorded)
     items = operands[0][1] if len(operands) == 1 else [
         {"kind": "alt", "operands": [(f"the case is in {fo.state(mv.get('from_state'))}", b) for mv, b in operands]}]
+    if not list(drawn(items)):
+        # no hop names a part the drawing can place (an exception or a poll, said in the business's words): the
+        # recorded calls are drawn as on a step with no move, in a frame whose order is not recorded, and the hops
+        # stay gap rows on the card
+        top, norec = frame_calls(M, sid, pids, calls)
+        return dict(base, chained=chained, items=top, norec=norec, other=[], gaps=gaps + outside(M, calls, pids))
     other = [message(frm=r["from_id"], to=r["to_id"], label=call_label(r))
              for r in left if r.get("from_id") in pids and r.get("to_id") in pids]
     return dict(base, chained=chained, items=items, norec=[], other=other, gaps=gaps + outside(M, left, pids))

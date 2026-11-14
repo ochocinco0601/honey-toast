@@ -28,9 +28,10 @@ blocked, with its reason.
 | The go on the plan | to do | | |
 | 1 The case and its lifecycle | to do | | |
 | 2 Stages, steps, parts and agents | to do | | |
-| 3 The capability | to do | | |
+| 3 The capability and Business Impact | to do | | |
 | Pick of how far each stage goes | to do | | |
-| 4 Measures and costs, for the stages picked | to do | | |
+| 4 Measures, for the stages picked | to do | | |
+| Review of the measures | to do | | |
 | 5a The picked stages' alerts | to do | | |
 | Review of the alerts | to do | | |
 | 5b The picked stages' failure modes and runbooks | to do | | |
@@ -51,6 +52,8 @@ says so ("test go, given by ..."). If the person asks for changes, revise `PLAN.
   as not yet covered._
 - **Depth picked:** _the person's pick of how far each stage goes, after mapping, word for word, and when; written
   by `go.py --depth`. Blank until they pick. Nothing is measured before it._
+- **Measures reviewed:** _the person's answer on the proposed measures, word for word, and when; written by
+  `go.py --measures-reviewed`. Blank until they answer. No alert is chosen before it._
 - **Alerts reviewed:** _the person's answer on the proposed alerts, word for word, and when; written by `go.py
   --alerts-reviewed`. Blank until they answer. No runbook is written before it._
 

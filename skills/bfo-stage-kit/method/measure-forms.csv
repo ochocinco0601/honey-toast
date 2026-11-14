@@ -10,3 +10,9 @@ duration,"application,technology",Time per request,RED; Four Golden Signals late
 saturation,"application,technology",Queued work beyond current capacity,Four Golden Signals; USE
 utilization,technology,Share of a resource in use,USE (Gregg)
 span gap,handoff,Time the work sits owned by nobody between one party releasing it and the next taking it up,"Distributed tracing: producer and consumer spans correlated by a propagated trace context (W3C Trace Context; OpenTelemetry)"
+availability,"application,technology",Share of calls or probes the part answered,"SLI type availability (Beyer et al., The Site Reliability Workbook, 2018, ch. 2 Implementing SLOs)"
+freshness,"application,technology",How old the newest data the part has processed or serves is,"SLI type freshness, pipelines (The Site Reliability Workbook, 2018, ch. 2 Implementing SLOs)"
+correctness,"application,technology",Share of outputs or answers that were right,"SLI type correctness, pipelines (The Site Reliability Workbook, 2018, ch. 2 Implementing SLOs)"
+coverage,"application,technology",Share of the data that should have been processed or held that was,"SLI type coverage, pipelines (The Site Reliability Workbook, 2018, ch. 2 Implementing SLOs)"
+durability,"application,technology",Share of written data that can still be read back,"SLI type durability, storage (The Site Reliability Workbook, 2018, ch. 2 Implementing SLOs)"
+configuration,"application,technology",The value of a setting that decides how the part behaves,"Configuration drift, watched as a signal (ITIL 4 Service configuration management practice: configuration items and their recorded state are verified against what is running)"

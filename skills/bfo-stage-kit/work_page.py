@@ -13,6 +13,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import brief  # noqa: E402
 import sources_page  # noqa: E402
 
+FOR = ("This page shows where the business flow observability run stands; when it waits on you, open its Home, "
+       "where you answer what it asks.")
 STARTING = f"{brief.STATUS_LEAD} Starting · Nothing read yet · Next: a first look over the system · Waiting on you: nothing"
 WATCH = """<script>
 (function () {
@@ -27,6 +29,16 @@ WATCH = """<script>
   setTimeout(check, 3000);
 })();
 </script>"""
+
+LABEL = brief.STATUS_LEAD.strip("*")
+
+
+def shown(line):
+    """The status line as HTML: its leading label, written in the chat's bold markup, drawn bold; the rest escaped as
+    written, so a `**` in a flow or stage name stays as it is."""
+    if line.startswith(brief.STATUS_LEAD):
+        return f"<strong>{html.escape(LABEL)}</strong>{html.escape(line[len(brief.STATUS_LEAD):])}"
+    return html.escape(line)
 
 
 def runs(site):
@@ -62,12 +74,19 @@ def render(site):
             listed = True
         if listed:
             link += f' <a href="/{html.escape(rel)}sources.html">Sources</a>'
-        rows.append(f'<li><span class="st">{html.escape(line)}</span>{link}</li>')
-    body = f'<ul>{"".join(rows)}</ul>' if rows else f'<p class="st">{html.escape(STARTING)}</p>'
+        try:
+            import progress  # while a flow is mapped, the last part of the map written, as the chat said it
+            moving = progress.latest(reg)
+        except Exception:  # noqa: BLE001
+            moving = ""
+        moving = f'<br><span class="mv">{html.escape(moving)}</span>' if moving else ""
+        rows.append(f'<li><span class="st">{shown(line)}</span>{link}{moving}</li>')
+    body = f'<ul>{"".join(rows)}</ul>' if rows else f'<p class="st">{shown(STARTING)}</p>'
     page = ("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
             "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>The run at work</title>"
             "<style>body{font:15px/1.5 system-ui,sans-serif;margin:24px;background:#FBFAF7;color:#1D1D1B}"
-            "ul{padding-left:18px}.st{font-weight:600}a{margin-left:8px}</style></head>"
-            f"<body><h1>The run at work</h1>{body}{WATCH}</body></html>")
+            "ul{padding-left:18px}.st{font-weight:600}a{margin-left:8px}"
+            ".top{margin:0 0 8px}.top a.rs{margin-left:0;font-weight:600;font-size:17px}</style></head>"
+            f'<body><p class="top"><a class="rs" href="/operator.html">Run status</a></p><h1>The run at work</h1><p class="for">{html.escape(FOR)}</p>{body}{WATCH}</body></html>')
     stamp = hashlib.sha256(page.encode("utf-8")).hexdigest()[:16]
     return page.replace('<meta charset="utf-8">', f'<meta charset="utf-8"><meta name="drawn" content="{stamp}">', 1)

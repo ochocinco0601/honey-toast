@@ -1,7 +1,8 @@
 """Serve a local question page and hand its answers to a waiting Claude Code session.
 
   python -u page_ask.py serve DIR   serve DIR on 127.0.0.1; save each POST /answers to DIR/answers/
-  python -u page_ask.py watch DIR   print one line per answers file not yet announced (run under Monitor)
+  python -u page_ask.py watch DIR   print one line per answers file not yet announced (run under Monitor), and
+                                    one PROGRESS line per part of the map written while a flow is mapped
   python -u page_ask.py poll DIR SECONDS
                                     the same, but exit after the first pass that announces anything,
                                     or print TIMEOUT and exit after SECONDS (run as a background task)
@@ -28,7 +29,22 @@ PAGES = (".html", ".css", ".js", ".svg")
 BEACON = (b'<script>(function(){if(!navigator.sendBeacon)return;var id=Math.random().toString(36).slice(2,12);'
           b'addEventListener("pagehide",function(){navigator.sendBeacon("/.closed?id="+id)});'
           b'addEventListener("pageshow",function(){navigator.sendBeacon("/.shown?id="+id)});})();</script>')
-TAB_EVENTS = ("/.closed", "/.shown")
+# The run status page says the same under its own names, kept apart (listener.status_open), so an open status tab
+# makes no second one when the start step runs again, and still never counts as a tab the run leads.
+STATUS_BEACON = BEACON.replace(b'"/.closed?id="', b'"/.status-closed?id="').replace(b'"/.shown?id="',
+                                                                                     b'"/.status-shown?id="')
+STATUS_EVENTS = ("/.status-closed", "/.status-shown")
+TAB_EVENTS = ("/.closed", "/.shown") + STATUS_EVENTS
+# A run's status page (operator.html) reloads only itself and never moves to the page where the person answers, so
+# it is not a tab the run can lead: it sends only its own beacons (STATUS_BEACON), and its requests, recorded so an open on it is judged by the
+# browser's own request, never count as an open tab (listener.tab_open), so an open status tab never stops the kit
+# opening the page that asks.
+UNLED = ("operator.html",)
+
+
+def led(bare):
+    """Whether a page served at this address is one an open tab follows to the page that asks."""
+    return bare.rsplit("/", 1)[-1] not in UNLED
 SEEN_LOCK = threading.Lock()
 
 
@@ -89,12 +105,13 @@ def _note(seen, path, page=None):
         got = {}
     got[path] = time.time()
     if page is not None:
-        tabs = got.get("/.tabs") if isinstance(got.get("/.tabs"), dict) else {}
-        if path == "/.shown":
+        key = "/.statustabs" if path in STATUS_EVENTS else "/.tabs"
+        tabs = got.get(key) if isinstance(got.get(key), dict) else {}
+        if path in ("/.shown", "/.status-shown"):
             tabs[page] = time.time()
         else:
             tabs.pop(page, None)
-        got["/.tabs"] = tabs
+        got[key] = tabs
     try:
         tmp = "%s.%d.tmp" % (seen, os.getpid())
         with open(tmp, "w", encoding="utf-8") as f:
@@ -102,6 +119,22 @@ def _note(seen, path, page=None):
         os.replace(tmp, seen)
     except OSError:
         pass
+
+
+def status_of(site):
+    """Where the work folder's run status address (/operator.html) leads: the newest run's own, once a run folder is
+    under the folder; else None, and the address draws the view itself (the folder's own run, or the first look under
+    way before any run folder exists). Read here, not from work_page, which a skill that only picks a run up does
+    not carry."""
+    site = pathlib.Path(site).resolve()
+    try:
+        found = [d for d in [site] + [p for p in site.iterdir() if p.is_dir()] if (d / "RUN.md").is_file()]
+        found.sort(key=lambda d: (d / "RUN.md").stat().st_mtime, reverse=True)
+    except OSError:
+        return None
+    if not found or found[0] == site:
+        return None
+    return "/" + found[0].name + "/operator.html"
 
 
 def home_of(site):
@@ -115,15 +148,23 @@ def home_of(site):
 
 def live(site, path):
     """The work page, drawn now from the folder's files, for the folder's root; a run's sources page, drawn now from
-    its sources.csv and RUN.md, for <run>/sources.html; else None."""
+    its sources.csv and RUN.md, for <run>/sources.html; a run's operator view, drawn now from its record, for
+    <run>/operator.html; else None."""
     bare = unquote(path.split("?")[0].split("#")[0])
     segs = bare[1:].split("/")
-    if segs[-1] == "sources.html" and len(segs) <= 2 and "\\" not in bare and ":" not in bare:
+    if segs[-1] in ("sources.html", "operator.html") and len(segs) <= 2 and "\\" not in bare and ":" not in bare:
         root = pathlib.Path(site).resolve()
         name = segs[0] if len(segs) == 2 else ""
         if name not in (".", "..", "answers"):
             run = root / name if name else root
-            if run.is_dir() and (run / "sources.csv").is_file():
+            if segs[-1] == "operator.html" and run.is_dir() and ((run / "RUN.md").is_file() or not name):
+                try:
+                    import operator_page
+                except ImportError:
+                    return None
+                # the work folder's own address before a run folder is in it: the first look under way
+                return operator_page.render(run, starting=not (run / "RUN.md").is_file()).encode("utf-8")
+            if segs[-1] == "sources.html" and run.is_dir() and (run / "sources.csv").is_file():
                 try:
                     import sources_page
                 except ImportError:
@@ -136,6 +177,30 @@ def live(site, path):
     except ImportError:
         return None
     return work_page.render(site).encode("utf-8")
+
+
+def not_found(site):
+    """The page for an address that does not exist: links to the run status view and to the home screen of each
+    register under the folder (the folder's own, when it is one), so the person is never left on a bare error."""
+    from html import escape
+    root = pathlib.Path(site).resolve()
+    try:
+        regs = [root] * (root / "RUN.md").is_file() + sorted(
+            d for d in root.iterdir() if d.is_dir() and d.name.lower() != "answers" and (d / "RUN.md").is_file())
+    except OSError:
+        regs = []
+    rows = []
+    for reg in regs:
+        name = escape(reg.name)
+        at = "" if reg == root else reg.name + "/"
+        rows.append('<li><a href="/%sindex.html">%s: home screen</a></li>' % (escape(at), name)
+                    if (reg / "index.html").is_file() else "<li>%s: home screen not drawn yet</li>" % name)
+    return ('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Page not found</title>'
+            '<meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font:16px/1.5 system-ui,'
+            'sans-serif;max-width:40rem;margin:2rem auto;padding:0 16px;color:#1d1d1f;background:#fff}'
+            '@media (prefers-color-scheme: dark){body{color:#eee;background:#1b1b1d}a{color:#8ab4f8}}</style></head>'
+            "<body><h1>This page does not exist</h1><p>The address is not one of the run's pages. Go to:</p><ul>"
+            '<li><a href="/operator.html">Run status</a></li>%s</ul></body></html>' % "".join(rows)).encode("utf-8")
 
 
 def serve(site):
@@ -166,8 +231,9 @@ def serve(site):
             body, bare = None, self.path.split("?")[0].split("#")[0]
             if bare == "/" or bare.endswith(".html"):
                 note_seen(site, bare)
-            to = home_of(site) if bare == "/" else None
-            if to:  # a run's home screen is drawn: the work page's address leads there, and its open tab follows
+            to = home_of(site) if bare == "/" else status_of(site) if bare == "/operator.html" else None
+            if to:  # the work page's address leads to the run's home once drawn, and its open tab follows; the run
+                # status address to the newest run's own status view
                 self.send_response(302)
                 self.send_header("Location", to)
                 self.send_header("Content-Length", "0")
@@ -182,16 +248,23 @@ def serve(site):
                 body, ctype = live(site, self.path), "text/html; charset=utf-8"
             else:
                 target = own_page(site, self.path)
-                if target is None:
-                    self.send_error(404)
+                if target is None:  # never a bare error: a page that leads to the run status and each home screen
+                    page = not_found(site)
+                    self.send_response(404)
+                    self.send_header("Content-Type", "text/html; charset=utf-8")
+                    self.send_header("Content-Length", str(len(page)))
+                    self.end_headers()
+                    if body_too:
+                        self.wfile.write(page)
                     return
                 ctype = self.guess_type(str(target))
                 ctype += "; charset=utf-8" if ctype.startswith("text/") and "charset" not in ctype else ""
             if body is None:
                 body = target.read_bytes()
             if ctype.startswith("text/html"):
+                said = BEACON if led(bare) else STATUS_BEACON
                 at = body.rfind(b"</body>")
-                body = body[:at] + BEACON + body[at:] if at >= 0 else body + BEACON
+                body = body[:at] + said + body[at:] if at >= 0 else body + said
             self.send_response(200)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
@@ -307,15 +380,35 @@ def announce_new(site):
     return found
 
 
+def announce_progress(site):
+    """One PROGRESS line per part of the map written since the last look (progress.py), which wakes the session to
+    send it to the person; the home screen is drawn again so the open page shows it too."""
+    try:
+        import progress
+        lines = progress.new_lines(site)
+    except Exception:  # noqa: BLE001 - a kit without it, or a record mid-write: never stop the wait on it
+        return 0
+    for line in lines:
+        print("PROGRESS " + line, flush=True)
+    if lines:
+        try:
+            import home
+            home.write(site)
+        except Exception:  # noqa: BLE001 - no home screen drawn yet: the line still reaches the session
+            pass
+    return len(lines)
+
+
 def watch(site):
     while True:
         announce_new(site)
+        announce_progress(site)
         time.sleep(0.5)
 
 
 def poll(site, timeout):
     end = time.time() + timeout
-    while not announce_new(site):
+    while not (announce_new(site) + announce_progress(site)):
         if time.time() >= end:
             print("TIMEOUT no answers yet", flush=True)
             return

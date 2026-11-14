@@ -9,6 +9,10 @@ start, item 7) is the first such point. The result is a filled register (the tab
 design-for-operations map, and from which `flow_outputs.py` generates each stage's slice, measures, alert and
 runbook.
 
+**A claim that something is absent or never happens** ("stored nowhere", "never joined", "no other service can be
+asked") cites the search that established it: what was searched for, and where (the files or folders read), named
+in the row; otherwise it is labelled `proposed:` with its reason. A cited line shows what is there, never what is not.
+
 These are design-time views. You are describing what the capability is and where it could be seen, not reading
 a running system. Nothing you write is a live value.
 
@@ -24,18 +28,37 @@ Three sources feed a register: the **code**, the **documents** (runbooks, archit
 entries, the business's own process descriptions), and anything people have said that was written down (notes,
 tickets, recorded answers). Code shows what carries each move. Owners, responders and volumes that no source
 states are inferred and labelled `proposed:`; volumes stay named for the operators to measure. A party's objective
-is never inferred: it is written only where a source states it (Step 3a).
+is never inferred: it is written only where a source states it (the measures skill's step "Propose the measures", the parties and their expectations).
 
 ## Before you start
+
+`<your-folder>` is the register folder: the one on the `FOLDER:` line `start.py` printed for the run picked up, or on a
+fresh start the one you were given or named, `bfo-work/<the system's name>/` (never `answers`), which
+`start_register.py` prints back on its own `FOLDER:` line. Never take it from a listing of the work folder: `bfo-work/`
+also holds `answers/`, where the page saves what the person sends, and a home screen drawn there leaves the person's
+page on an error. A script handed a folder that is not a register refuses it and names the register folders it found.
 
 1. Start the register with `python "<skill>/start_register.py" "<your-folder>"`, in a new folder named for the
    capability. It copies the CSV files in `register-template/` (not `REGISTER.md`), and refuses a folder that
    already holds a CSV file, so earlier work is never copied over. While the workspace holds a run of this kit that
    is not finished, it refuses a new folder unless given the person's words to start new (`--new --words`): such a
-   run is picked up, and `start.py` decides which. When a run of this kit made with an earlier release is picked
-   up, its upgrade is a point for the person's judgement after the re-entry brief, never the helper's: read the
-   effect lines in the kit's `CHANGELOG.md` and recommend the least work that brings it up to this kit (nothing,
-   fills from each row's citation, or the re-walks those lines name). The person decides. As you
+   run is picked up, and `start.py` decides which. When the run picked up was written by an earlier release of
+   this kit (a new chat, a resume, or the kit updated mid-run; the check says so and names `--migrate`), upgrade
+   it without asking, since the migration changes no content and this kit cannot run the old form: back the
+   register folder up to a folder outside the workspace (inside it, the start step would take the backup for an
+   earlier register); run `python "<skill>/reconcile.py" --migrate "<your-folder>"`, which rewrites the register
+   itself in place; run the check again; and restart the page's listener so the page runs this kit:
+   `python "<skill>/listener.py" stop "<work folder>"`, then `python "<skill>/wait_on_page.py" "<your-folder>"`,
+   and start the wait again. Tell the person in one line, through `say`, what was done and where the backup is.
+   Where the upgrade names AI agent rows not classed (an older kit classed them while proposing the measures), that line says how
+   many, and that mapping re-reads the code behind each tool, reply and chained action and classes it (Step 7)
+   before the run is done: a re-walk, announced before it starts and going ahead unless they object, as a
+   correction to mapping (`corrections.csv` for a finished flow's rows).
+   For what the effect lines in the kit's `CHANGELOG.md` still name: a fill from the register's own citations
+   runs on its own and is announced; a re-walk, which reads the code again, is announced before it starts, saying
+   what will be re-read and why, and goes ahead unless they object; only a failed check makes it a question, so if
+   the check still fails after migrating, stop and tell them, through `say`, with what you recommend.
+   This is the run's own register; an earlier register, made by another run, is never written into. As you
    do each step below, add a row to `how-made.csv`: what went in, which files came out, and who did it (a tool,
    a model drafting, a person confirming, or by hand). `RUN.md` from the same folder is the run's record of its
    phases: when the kit is run as a skill, the skill's `SKILL.md` says how it is written and kept.
@@ -63,13 +86,13 @@ is never inferred: it is written only where a source states it (Step 3a).
    | Source | What the method takes from it | Used in |
    |---|---|---|
    | Code, with its build and deployment definitions | The line that creates the case; states, moves, how each travels, what carries it, what it needs, timing and what happens if it does not happen; each part's repository; the configuration that runs | Before you start 4; Steps 1, 2, 5, 6 |
-   | A business process description (a process page, a process diagram, a procedure) | Whom the flow serves and what each party expects of it; where the case starts and ends; what the party would recognise as done, which places stage cuts; a stated bound (an objective); what a right outcome is | Steps 1, 3, 3a, 4 |
-   | Code: the text it shows a party (status messages, notifications, notices) and the rules it enforces | A party's expectation in the words the party is shown; an objective, where the shown text states a bound, or where an enforced rule states one and the code names the rule's authority; a party the code shows only as a persona, a role or a rule, labelled `proposed:` | Step 3a |
+   | A business process description (a process page, a process diagram, a procedure) | Whom the flow serves and what each party expects of it; where the case starts and ends; what the party would recognise as done, which places stage cuts; a stated bound (an objective); what a right outcome is | Steps 1, 3, 4, 9 |
+   | Code: the text it shows a party (status messages, notifications, notices) and the rules it enforces | A party's expectation in the words the party is shown; an objective, where the shown text states a bound, or where an enforced rule states one and the code names the rule's authority; a party the code shows only as a persona, a role or a rule, labelled `proposed:` | The measures skill |
    | An architecture page or diagram | The deployables the flow runs through, and where each one's code is; a cross-check of the parts the walk found, and of component against external dependency (whether its code can be had); an outside service's own parts, one level | Steps 5, 6 |
    | A service catalogue or configuration database entry | A part's registered id, owner and responder, with the date true | Step 5 |
    | A runbook, a support or incident page | Owner, responder, escalation; how a failure shows and what is done about it | Steps 5, 11 |
    | A document saying what the organisation is able to do | The capability, named from the documents alone | Step 8, second route |
-   | People's notes, tickets, recorded answers | Owners, responders, parties with their expectations and objectives, and volumes no other source states | Steps 3, 3a, 5; "When something new arrives" |
+   | People's notes, tickets, recorded answers | Owners, responders, parties with their expectations and objectives, and volumes no other source states | Steps 3, 5, 9; "When something new arrives" |
 
    A source is read only far enough here to place it in this table; the steps read it in full.
 
@@ -80,7 +103,7 @@ is never inferred: it is written only where a source states it (Step 3a).
    |---|---|---|
    | `stages.csv` → `source` (a cut) | A business process description; a person | Step 3 |
    | `stages.csv` and `flows.csv` → `bound_in_code`, where filled | The code or its configuration: the line that sets the timer, deadline or overdue rule | Step 3 |
-   | `expectations.csv` → `party`, `expectation`, `satisfied_when`; `objective` blank | A business process description; the text the business shows the party; a person | Step 3a |
+   | `expectations.csv` → `party`, `expectation`, `satisfied_when`; `objective` blank | A business process description; the text the business shows the party; a person | The measures skill |
    | `steps.csv` → `right_outcome` | A business process description; a person | Step 4 |
    | `subjects.csv` → `owner`, `responder`, `application_id` | A catalogue or configuration database entry; a runbook; a person | Step 5 |
    | `stages.csv` → `arrivals_per_period` and other volumes | The operators (never derived) | Step 3 |
@@ -151,6 +174,9 @@ is never inferred: it is written only where a source states it (Step 3a).
    not rows: each one in a service the flow touches is read, then cited by a row or set aside with the reason, and
    the done check names any left over. What it misses (most calls between services, in practice) is found by
    reading, labelled `proposed:`, and cites both ends, the call and the operation that receives it.
+   A file the survey or the code reader could not read is listed with the reason (`survey.csv` → `unread_files`,
+   and the fact base's `unread_files`); the capability brief and the map's inspection then tell the person how many,
+   and that mapping may have missed code in those files.
 7. **The first look, the capability brief, and the stop for the person's word.** The person knows the business but
    not this system and not this kit. Before anything is read in depth, they get a brief that shows the run understood
    its job and the system, and they pick which flow this run maps first.
@@ -164,10 +190,11 @@ is never inferred: it is written only where a source states it (Step 3a).
      {"activity": {"for": "what business flow observability is for, in your own words",
                    "this_run": "what this run will produce for this system"},
       "capability": {"name": "", "what": "what the system does, in one or two sentences",
-                     "for_whom": "who it serves", "one_case": "what one case is, the thing followed start to end"},
+                     "for_whom": "who it serves"},
       "services": [{"name": "exactly as in the survey", "does": "a phrase starting with a verb: holds, takes, decides",
                     "recommend": "in or out", "why": ""}],
-      "flows": [{"name": "", "what": "one sentence", "found_in": "where in the code you saw it (path:line; kept
+      "flows": [{"name": "", "what": "one sentence",
+                 "one_case": "what one case of this flow is, the thing followed start to end", "found_in": "where in the code you saw it (path:line; kept
                  for checking, never shown)", "stages": [{"name": "", "what": "one sentence"}]}],
       "searched": ["what you looked at"], "unresolved": ["what is still open, and where I propose to look"],
       "earlier": "an earlier map found, and what it changes for this run (leave out when none)",
@@ -175,14 +202,21 @@ is never inferred: it is written only where a source states it (Step 3a).
                          "remains": "what remains of the capability after this run"}}
      ```
      List every flow found so far, not only the one you recommend: one run maps one flow, and the job is the whole
-     capability. A flow you did not find may still exist; say what you searched. Each flow is labelled a proposal
+     capability. Each flow says what one case of it is: a case belongs to a flow (one order, one sign-up), so the
+     capability names none. A flow you did not find may still exist; say what you searched. Each flow is labelled a proposal
      until the walk confirms it. `this_run` says what this run produces as one batch of the job, never as the whole
      job ("this run maps the flow you pick, one batch"). The brief places each text inside a sentence: write `for_whom`,
      `one_case`, each `searched` and `unresolved` item, `why` and `remains` as phrases that continue a
      sentence, starting in lower case unless with a name; name tools in words joined by "and", never with slashes.
+     `why` is one short sentence, with no semicolons: the one reason that makes this flow the place to start, in
+     under 30 words ("it is where the shop takes the shopper's money, so a failure there costs the most"), never a
+     chain of reasons. The same holds for every recommendation you write for the person: the `--recommend` of
+     `brief.py depth`, `next`, `measures` and `alerts` is one short sentence, with no semicolons.
    - **Render the brief:** `python "<skill>/brief.py" capability "<your-folder>"`. It refuses, and says why, while a
      field is empty, the services are not the survey's, the recommended flow was not found, or the text
-     carries an id, a file name or kit vocabulary. When it passes it writes `PLAN.md` and prints the brief.
+     carries an id, a file name or kit vocabulary. When it passes it writes the full brief to `PLAN.md` and prints the short one for the chat: the question
+     and your recommendation first, what a yes does, the flows found as a list, and what else they can change.
+     When they ask for the detail (each flow's stages, each service and why, what is still open), show `PLAN.md`.
    - **Send the printed brief as your message, exactly as printed, and stop.** `brief.py` marks the stop in `RUN.md` itself.
      Read nothing further until the person answers. If they ask for changes, change `orientation.json`, render again
      and wait again. A yes to a search the brief proposed is such a change and records no go: search, add each
@@ -192,14 +226,136 @@ is never inferred: it is written only where a source states it (Step 3a).
    - **Record their answer by script:** `python "<skill>/go.py" "<your-folder>" --flow "<flow>" --words "<their
      answer, word for word>"` (add `--test` when a test stands in for the person). The go asks only which flow comes
      first; where they accepted the recommendation, it is their pick. The services read are those the brief marked
-     include, and the checks per finding three; add `--in <service,...> --out <service,...>` or `--judges <n>` only
-     when they say otherwise. `--stages` is refused: the stages are picked after mapping (`go.py --depth`). `go.py`
+     include, and the checks per finding three, as the brief said; add `--in <service,...> --out <service,...>` or
+     `--judges <n>` only when they say otherwise. Every finding that cites code is checked by that many readers who
+     wrote none of it ("Reading in units, and every finding checked", below).
+     `--stages` is refused: the stages are picked after mapping (`go.py --depth`). `go.py`
      writes `scope.json`, with what remains after this run, and `run-settings.json`, and fills the go and scope lines
      of `RUN.md`. A run's done is not the capability's done: `run_status.py` owes what their pick of how far each
      stage goes asks for, reports every other stage as not yet covered, and says NOT DONE while no go or no pick is
      recorded. With no pick of how far each stage goes (an earlier run, whose go named stages), `go.py
      "<your-folder>" --stage-ids <id>,<id>` records the ids of the stages it named once Phase 2 cuts them, and
      `run_status.py` owes alerts and runbooks for those stages only.
+
+### Reading in units, and every finding checked
+
+From the go on, every flow is read in **reading units**, one per service (a large service cut by folder), each read
+by its own reader, and every row that cites code is **checked by `judges` independent checks** (`run-settings.json`;
+three unless the person gave another number at the go), each a fresh agent that wrote none of the map. There is no
+other path and no sample. Steps 1 to 4 and 7, 8 and 10 below are the lead's; Steps 5 and 6 are what each reader does
+for its own service, in the unit formats (`split-run-formats.md`), and the lead does them only for its own parts (the
+case, the people who act).
+
+**Who does what.** The lead is the run's own session, the one that talks to the person: it writes the flow-level
+rows, launches every other agent and decides each next step. The first-look helper launches none, and nothing but
+the first-look helper is launched before the go. The lead never writes into `units/`, a verdict file or a unit's row itself: a unit holding the
+lead's writing fails its check. Every agent is launched with the Agent tool as `general-purpose`, never a fork, and
+every prompt is a file a script wrote: each Agent call carries only its pointer line. The check reads this from the
+transcripts: a reader, fixer or re-read whose first message is not the pointer line of a prompt `readers.py` or
+`judges.py` wrote, unchanged since, has its writes left out and fails its unit, named, until relaunched.
+
+**How agents are launched.** `readers.py prompt` and `judges.py emit` write the prompts under
+`<your-folder>/prompts/` and print a count, then one pointer line per launcher. Launch one launcher per printed
+pointer line: a `general-purpose` agent with that line as its whole prompt. For judges that is one launcher per unit,
+and for the `flow` unit one per lead table; readers and fixers share launchers. No launcher holds more than 150 agents
+(the scripts split a larger set across launchers). Each launcher launches its own agents, at most `parallel` at once
+(`run-settings.json`, default 6), and replies in one line. A launcher is an agent too, so keep running at once no
+more launchers, in all, than the count line names ("keep at most N launcher(s) running at once"); on "Concurrent
+subagent limit reached", launch nothing until a completion notification arrives. After launching, the lead ends its
+turn. Each launcher's reply comes back as a completion notification, in a turn of its own: decide the next step from
+the files on disk, never from the replies. Run the same command again (`judges.py emit`, `readers.py prompt`) at any
+time: it never launches an agent twice. It prints only the agents never launched, and the ones still running when
+their launcher replied (they stopped without replying) or when it stopped without its reply line (its transcript ended
+on other text, an error or out of turns, and has been quiet two minutes since: the command names it); an agent launched already, or waiting in a launcher still
+running, is named, `queued in a launcher still running`, `launched already, still running` or `launched already,
+finished`, and not printed, and a launcher still running is left as it is. So launch every pointer line it prints.
+Judges: it prints only judges whose verdict is still missing on disk. Readers: a unit is read for this flow once its
+`files.csv` was written after this flow's go (an earlier flow's reader left one too); `readers.py prompt
+"<your-folder>" --in-scope` writes a reader for every unit owed one and names the units read already, so you never
+work out yourself which units are owed. Fixers: a fixer that keeps a row as it is
+writes nothing, so the tables cannot say it is done; its transcript can. A fixer is the fix of its rows as the judges
+flagged them: a row flagged again after its fixer finished (in the next round, or when judged again at the map stop)
+gets a fixer of its own. Start round 2 once no fixer is named still
+running. A reader or fixer that ran a shell fails its unit's check, which names it and the relaunch command
+(`readers.py prompt "<your-folder>" <unit> --mode read` or `--mode fix`, with `--again`, which first puts back what
+that agent wrote); launch what it prints. A lead that lost count, or whose context was compacted, resumes the same
+way, from disk. **After a crash or a restart of your own session**, every agent and launcher you had launched died
+with it, though the files still name them running: run each command once with `--again`, which launches afresh only
+those, and never an agent that finished. Use `--again` only then: while your own launchers run, it would launch
+their agents a second time. If the person writes while agents are running, answer in one line, through `say`, that
+the mapping is under way and what is being done (reading, checking or fixing), and launch nothing.
+
+**The order.**
+1. Steps 1 to 4, by the lead: the case, its lifecycle, the stages and the process steps (`flows.csv`,
+   `lifecycle.csv`, `stages.csv`, `steps.csv`), and its own parts in `subjects.csv` and `participation.csv`. The
+   readers place their parts in these process steps, so these come first.
+2. `python "<skill>/units.py" "<your-folder>"` lists the reading units (`units/units.csv`). Then
+   `python "<skill>/readers.py" prompt "<your-folder>" --in-scope`, which writes a reader for every unit of a service
+   in the go's scope (`scope.json` `services_in`) not yet read for this flow, and launch as above. Each reader reads
+   its unit in full and writes only `units/<unit>/`; a unit it finds nothing of this flow in is recorded as read, with
+   no rows.
+3. When every reader is back (`readers.py prompt "<your-folder>" --in-scope` writes no reader and names none still
+   running): `python "<skill>/merge.py" "<your-folder>"` writes the map's parts and the calls between them. Each call
+   it leaves unmatched (`merge/unmatched-calls.csv`) is re-read by its own agent: `python "<skill>/readers.py" prompt
+   "<your-folder>" --mode reread` writes one re-read per call, and you launch as above; then merge again. A reader
+   cannot ask the person anything, so a call to a deployable whose code is not in the workspace reaches the lead
+   through the merge: the reader records it with `to_part` `external:<name>`, named from what the call shows, and the
+   merge draws each such name as an external dependency. For each external dependency that is a service (not a store
+   or a broker), the lead applies "Before you start", item 5: get its code if a search the person agreed to covers
+   it, otherwise ask them. Code that is got goes into the workspace (item 2), is surveyed and cut into units as the
+   rest was (the survey again, then `units.py`, which keeps the units already listed), and is read by its own reader
+   before judging starts: a service the survey lists that the go neither took in nor left out came after the go, and
+   `readers.py prompt "<your-folder>" --in-scope` writes its reader as for any service of the go's scope; code that cannot be had stays an external dependency, listed under *still missing*.
+4. The lead's rows after the merge: the parts set aside, the AI agents (Step 7), the capability (Step 8) and Business
+   Impact (Step 10). A row the lead adds to `subjects.csv` or `participation.csv` after the first merge goes in
+   `merge/lead-rows/`, then merge again. Judging starts only once these are written, so the flow-level rows written
+   after the merge are judged once written, in the same rounds as every other row. A row written or changed later has
+   no current verdict, and the next `emit` prints its judges.
+5. Round 1: `python "<skill>/judges.py" emit "<your-folder>" <unit> --round 1` for `flow` and for every unit with rows
+   of this flow, and launch. When `emit` prints nothing still missing for any unit:
+   `python "<skill>/judges.py" collect "<your-folder>"`.
+6. Fix: `python "<skill>/readers.py" prompt "<your-folder>" <unit> ... --mode fix` writes a fixer for each unit with
+   flagged rows, and for `flow` one fixer per lead table with flagged rows; launch. A unit's fixer writes only its
+   unit's folder, a lead table's fixer only its table. Merge again when a unit's rows changed.
+7. Round 2: `python "<skill>/judges.py" emit "<your-folder>" <unit> --round 2 --rows flagged` for each unit with
+   flagged rows, launch, then `collect`, which labels every row still flagged `disputed:`.
+
+So the order is round 1, `collect`, fix, round 2, `collect`, and only then the done check (`run_status.py`, or
+`go.py --mapping-ends` for mapping alone): never before the last `collect`, so the last label is on the map before
+its verdict is kept.
+
+**Fixing a flagged row.** One owner: the fix step above, by fixers. The lead never fixes a row itself, which keeps
+its own writing out of the units. A fixer may narrow the claim to what the cited lines show, or correct the citation
+to the lines that show it. It may also relabel the claim `proposed:` with the reason, drop a citation, or withdraw
+the row; each of these is counted apart in the report and never counted as fixed. It never changes a row's key (its
+first column): that counts as a withdrawn row plus a new, unjudged one. A row still flagged after round 2 stays on the
+map labelled `disputed:`, shown as not confirmed by the code, never as fact.
+
+### The next flow, in a map that holds a finished one
+
+The job is the whole capability, so each flow after the first is added to the same register. When the person picks
+the next flow (`go.py --flow`), `go.py` keeps a copy of every row the map holds, under `earlier-flows/<flow id>/`,
+and the walk is Steps 1 to 8 and Step 10 for that flow alone, read from the code again. Phase 0 is not done again:
+the sources, the survey and the first look stand, and a source this flow needs is added to `sources.csv` with the
+next id.
+
+- **Add rows; change none.** Every row already in the map stays as it is, word for word: an earlier flow's rows,
+  and the parts it listed. A part this flow uses that is listed already keeps its `subject_id`; add its
+  participation rows for this flow's steps (Step 6), and list only the parts not yet listed. What you find wrong in
+  an earlier flow's row goes in `corrections.csv`, never into the row. This flow's own row in `flows.csv` is
+  filled in as Step 1 says.
+- **Ids continue after the highest the map holds.** Stages from the next `ST<n>`, process steps from the next
+  number, moves from the next `L<nn>`, parts from the next `S<nn>` and relationships from the next `R<nn>`;
+  expectations, failure modes, remedies and measure handles the same way. An id is never used twice in the map.
+- **A further flow is a new pass.** Its `how-made.csv` rows take the next pass number: one above the highest pass
+  the map holds when the flow starts. The sources it reads again keep their rows and their pass: no row is added to
+  `sources.csv` for them, and the check accepts a pass for each flow the register holds. Only a source the flow adds
+  gets a row, with that pass; never `1`, which stays the first flow's.
+- **The same holds for Steps 9 and 11** when the person takes the new flow's stages on to measures, alerts and
+  runbooks: this flow's measures, failure modes and remedies are added; a finished flow's are never changed, and a
+  part a finished flow already measures keeps those measures.
+- The done check (`run_status.py`) says NOT DONE on an id used twice and on any row of a finished flow that is
+  changed or gone; the map inspection (`check_map.py`) reports both.
 
 ## Step 1. Declare the frame (*Assigning* Step 0; *Rules*, Rule 0)
 
@@ -208,14 +364,14 @@ Four declarations, written before anything else and never inferred silently:
 | Declaration | Where it goes | The rule |
 |---|---|---|
 | The case | `flows.csv` → `case` | One individual business item: one order, one application, one appointment. Never a system, a team, a batch, a request or a basket. A flow has one kind of case. Write its name only; where it is stored and what identifies it go in `case_identifier` |
-| Whom it serves | `flows.csv` → `customer` | The party counting on the outcome, the one whose outcome ends the flow: its role name only; a citation for it goes in the row's `source`. Every other party the flow serves or binds is named in Step 3a |
+| Whom it serves | `flows.csv` → `customer` | The party counting on the outcome, the one whose outcome ends the flow: its role name only; a citation for it goes in the row's `source`. Every other party the flow serves or binds is named in the first part of the measures skill's step "Propose the measures" |
 | The starting event | `flows.csv` → `starts_at` | **The act that first creates the case's record.** Cite the line that creates it. This is also where the party begins counting on an outcome: before it there is nothing for them to wait on |
 | The ending outcome | `flows.csv` → `ends_at` | Where the party has what they were waiting for, or definitively does not. Name both endings. **The flow runs to that outcome even where the code stops sooner:** an order is delivered, not "Shipped"; the stretch after the last state the system records is added by the reference-model check in Step 3, drawn as not assessed |
 
 `flows.csv` → `bound_in_code` is optional: fill it only where the application's code sets its own timer, deadline
 or overdue rule for one case, end to end, cited as for a stage's (Step 3), and leave it empty otherwise. A limit a
-source states is an objective (Step 3a). The four declarations and `delivers` (Step 8) are **required** for the view
-*How a case moves end to end*; whom it serves is led by the parties' expectations (Step 3a).
+source states is an objective (the measures skill's step "Propose the measures", the parties and their expectations). The four declarations and `delivers` (Step 8) are **required** for the view
+*How a case moves end to end*; whom it serves is led by the parties' expectations (the measures skill's step "Propose the measures", the parties and their expectations).
 
 **Everything before the case exists belongs to another flow.** Browsing, filling a basket, signing in, filling
 in a form: real work, and set aside for this one. Write each in `set-aside.csv` with kind `other flow` and the
@@ -308,10 +464,10 @@ message.
   applications do. Where the lifecycle's `timing` for the stage's moves shows a timer, a deadline or an overdue rule,
   write `proposed:` and the limit, cited. Otherwise leave the cell empty: never `none assumed`, and no gap is owed.
   **A bound a document or a person states, or one the business shows the party, never goes here**: it is
-  an objective, written in Step 3a in `expectations.csv` → `objective`. Where the code's limit and a stated
+  an objective, written in the first part of the measures skill's step "Propose the measures" in `expectations.csv` → `objective`. Where the code's limit and a stated
   objective disagree (the code marks a case overdue after 5 days, and the customer is told "1-2 weeks"), keep both:
   neither is corrected to the other, and the stage card shows the two side by side as a finding. The parties'
-  expectations (Step 3a) are the stage card's main content; *How a case moves through this stage* also needs the
+  expectations (the measures skill's step "Propose the measures", the parties and their expectations) are the stage card's main content; *How a case moves through this stage* also needs the
   entry, the main exit and what is at stake (Step 10). A stage with no alternative or exception
   exit is gapped `does not apply` for its other outcomes.
 - `arrivals_per_period`: `not stated: measured by the operators`, unless they give it.
@@ -321,60 +477,6 @@ message.
 standard process), from the starting event to the ending only. A stretch the reference model expects inside
 that frame that no lifecycle row carries is added as a stage or process step with no participation, drawn as not
 assessed. A stretch the reference model puts before the case exists is set aside (Step 1).
-
-## Step 3a. Name the parties and their expectations
-
-Numbered 3a so that the steps after it keep their numbers; in `how-made.csv` its `step` is `3a`.
-
-Write `expectations.csv`: whom the flow serves, and what each of them counts on, of the whole flow and of each
-stage. It is the flow's stakeholder register, one row per party per expectation. It comes after the stages because
-a stage's expectations are written per stage, and before the measures, because Step 9 ties each measure to the
-expectations it is evidence of.
-
-**Who counts as a party.** A party is someone the flow's outcome serves or binds: the customer (`flows.csv` →
-`customer`, the one party whose outcome ends the flow), a regulator whose rules the flow must keep, a sponsor. A
-person who carries out a process step (a row in `participation.csv`: a clerk, an underwriter) is a performer, and is a party
-only where a document or a person states what they expect of the flow. Name each party by the role the business
-uses, and write the customer exactly as `flows.csv` writes it. A party no document or person names, read from the
-code alone (a persona, an authorisation role, a rule the code enforces), is written `proposed: ` with that basis.
-
-**What each party expects.** For each party, the expectation of the whole flow (`stage` blank), and of each stage
-where they expect something of it, in their own words where a source has them, quoted and cited. Code is a source
-here for two things only: **the text the system shows the party** (status messages, notifications, notices) and
-**the rules the code enforces** (a notice that must be sent within a deadline). Where no source has the words,
-write `proposed: ` and the expectation. The customer has at least one expectation of the whole flow, and every
-stage has at least one expectation, the customer's included: the flow card's *Serves* and the stage card read them.
-
-**Expectations come before alerts.** Usually write each expectation from what a party is told or a source states,
-before any alert is drafted. An alert then names the expectation it guards (Step 9); the expectation is not written
-from the alert.
-
-**What satisfies it.** `satisfied_when` is the satisfaction condition: what one case would show if the expectation
-is met (its state, the record written, the values it carries), read from the lifecycle and the process steps. It is
-testable on one case. Write it `proposed:` unless a source states it, as for `right_outcome`. It holds the
-condition only: what the code cannot show (the last state it records falls short of the condition) is never
-appended after a `;`. Step 9 writes it as a `measure-gaps.csv` row of kind `no record`, whose `why` says which
-record is missing.
-
-**The objective is never drafted.** `objective` holds a bound only where a document or a person states one, and
-`objective_source` cites the statement. **Text the business shows the party is a stated objective**: "1-2 weeks"
-on the customer's status screen is the business stating a bound, cited to the line that shows it. Write it as
-stated: two bounds shown for one stage stay two, never summed or averaged. Where nothing states one, leave
-`objective` blank, never `proposed:`. A blank objective is a finding for the people who will later choose
-objectives, not a gap in the run.
-
-**A rule the code enforces is a stated objective only where the code names its authority** (a check that cites the
-regulation it implements). Then `objective_source` carries both the code line and the authority it names, for a
-person to confirm. Where the code names no authority, the bound is the code's own: it belongs in `bound_in_code`
-(Step 3), and `objective` stays blank.
-
-**Not found is not absent.** A party inferred from the rules the code enforces was read only as far as the code
-goes. Write in that row's `source`: `only the obligations this code enforces were read`. Obligations the code does
-not enforce were not looked for.
-
-**The code's limit and the objective stay apart.** `bound_in_code` is what the application assumes; `objective` is
-what a party has been told or a rule states. Where they disagree, both are kept, and the stage card shows the two
-as a finding (Step 3).
 
 ## Step 4. Write the process steps from the moves (*Assigning* Step 5; *Rules*, Rule 0)
 
@@ -499,6 +601,40 @@ An agent's conversation is a flow of its own only when it is one case's path the
 own start and end; otherwise the parts it uses carry process steps of an existing flow, recorded as participation rows
 (Step 6) like any other part's.
 
+**Which of the agent's actions are its decisions.** Class them here: it is a fact about who decides at a process
+step, read from the tool's arguments and the agent's code. Proposing the measures, later in the run, asks its questions
+of each one classed `yes:`; a run that stops at the map needs only the classes.
+
+**Class each tool first.** On every participation row of an agent, write `decision_point`. A tool call is a
+decision point, `yes:`, when the agent chooses a value that becomes the case's outcome or a person's basis for
+deciding it: a recommendation, a decision type, a condition's text, the inputs to a risk computation. A call that
+only records what a person stated or asked for is an action, `no:`: entering the borrower's details, acknowledging
+a disclosure. Class it by reading what the tool's arguments carry, and cite the signature. A tool that computes by
+fixed rules is a decision point only through the arguments the agent chose to pass it; say which. One agent's tool
+is classed one way on every row. Mapping's done check and its inspection fail on an agent row not classed, and on a
+tool classed both ways.
+
+**A tool whose class depends on the conversation is a decision point.** The same call can record an item the
+person named, or choose one the person only described (an add-to-basket call given a product's name against one
+given "something warm for winter"; an add-pet call with the owner the person named against the owner the model
+picked from a list). One class per row stays: write `yes:`, and the reason says **when** the call carries the
+agent's choice.
+
+**Then class each reply.** The agent's reply to a person is a decision point when the person relies on it: it
+reports or explains a result, such as a recommendation, a risk assessment or a check's outcome.
+Its operation is the agent's turn, not a tool, so a tool computed by fixed rules (classed `no:`) can still be
+reported by a reply that is a decision point. On the agent's row for that process step, write `reply_decision_point`:
+`yes:` where the person relies on the reply, `no:` where it only confirms what the person asked, asks for more, or
+replies to no person at that process step, and why, citing the prompt or the code that hands the tool's result to the
+model. The done check and the inspection fail on an agent row whose reply is not classed.
+
+**A model output a later call relies on is its own decision point.** Where the agent's chain writes something
+with one model call and a later call decides from it (a description of a room written from a photo, then fed to
+the call that chooses products), that first output is a judgment no tool or reply holds. Class it on the action row
+of `agent-system.csv` that makes the call, in `decision_point`: `yes:` and why, citing the line that feeds it on.
+Do not class an action whose output a tool's or a reply's decision point already holds: the model's choice of a tool's arguments is that
+tool's decision point.
+
 ## Step 8. Name the capability, twice (*Assigning* Steps 2 and 7)
 
 1. **From the walk:** what the whole path is for, what the business is thereby able to do, named apart from how
@@ -508,315 +644,23 @@ own start and end; otherwise the parts it uses carry process steps of an existin
 
 Write `capabilities.csv`: one row per capability, with both routes in `basis`. If they agree, say both
 produced it. If they disagree, keep both rows and say so; do not smooth them into one. A capability the sources
-name that the walk does not deliver is kept, delivered by no flow. Fill `flows.csv` → `delivers`.
+name that the walk does not deliver is kept, delivered by no flow. When you tell the person about one, say in plain words
+what it means and what they can do: only the documents name it, and no flow found in the code delivers it; if a flow
+of the system does carry it, they can name that flow, and it is added as a flow still to map; if not, it can be left,
+and it changes nothing in the map. Fill `flows.csv` → `delivers`.
 
 If an AI agent serves several flows, the register covers the lowest capability that holds all of them. List the
 other flows the capability carries in `flows.csv`; each is its own frame and walk, and a flow not yet walked has
 no stages.
 
-## Step 9. Propose the measures, question first (*Rules*, the form and Rule 1)
+The step that comes between Step 8 and Step 10, "Propose the measures", is the measures skill's (`bfo-measures`, its
+`MEASURES-STEPS.md`): this file does not carry it.
 
-This step proposes **candidate** measures: what could show whether the capability works. It does not choose which
-are wanted, and it sets no targets or thresholds. Choosing measures and making them service level indicators with
-objectives is done later, by people. The candidates are accounted for with three mechanisms adapted from a service onboarding practice, whose question set is published in the same collection as this
-kit (`packages/observability-practice/the-instrument-sud-v2.yaml`), so that a thin
-stage or an unmeasured agent step is caught rather than left unnoticed.
+## Step 10. Record Business Impact (*Rules*, Rule 3)
 
-**Measuring is chosen per stage; mapping is not.** Steps 1 to 8 map the whole flow. Then the person picks how far
-each stage goes (`go.py --depth`, SKILL.md after phase 3). This step's stage, step and part levels run only for the
-stages they chose to measure. The flow level runs as soon as any stage is measured, because the flow's own measures
-belong to the flow. A part shared by several stages is measured if any of its stages is. An expectation (Step 3a)
-stays with mapping: it is a business fact. Only its indicator, the measure that shows it is met, is this step's,
-and only for a measured stage or for the flow. With no stage measured this step is not done at all.
-
-Work down the levels, asking the question first and then naming the measure:
-
-1. **The flow** (its case subject, `flow` set, `step` and `stage` blank): cases started, finished, still open;
-   finished on time and right; where the code sets the flow a time limit, still open past it.
-2. **Each stage** (its case subject, `stage` set): cases in the stage now, the age of the oldest, the time to get
-   through, and, where the code sets the stage a time limit, cases past it. Counted from the case's state changes
-   at the stage's entry and exit. A stage measure counts cases, never requests. Mark each in `receipt_question` with
-   the candidates it answers (`in the stage`, `oldest's age`, `time through`, `past the time limit`); one measure
-   may answer two.
-3. **Each process step that matters** (one event per case): did it happen for this case, and was its outcome right. The
-   process steps that matter are each stage's **exits**, read from its moves in `lifecycle.csv` (a process step whose move takes
-   the case out of the stage, by the main move and by every alternative or exception ending, never the process step that
-   happens to be listed last), the flow's first process step, every process step with a step-impact row, and every process step an AI
-   agent serves (its participation rows, and its `agent-system.csv` run and actions). Mark each process step measure in
-   `receipt_question` with the question it answers.
-4. **Each part, its kind's set** (`method/part-kinds.csv`), at its layer: `application` for an application
-   component, `technology` for a system component. An external dependency is asked the same sets from the
-   calling side. An application component is asked **per operation** (mechanism 3). Every component that takes part
-   in a process step is asked, whatever its involvement: a store whose only rows are `records` (a basket store a restart
-   empties) is asked its set like one that performs. An AI agent is read at two grains (below): its judgment at
-   each **decision point**, and its operation at its **runs**. **An agent whose own component also serves a route**
-   (the agent is the deployable, and a caller reaches it by an HTTP route) is asked both: the agent questions, and
-   the application set for each route on its rows, keyed like any operation (`S06 POST /chatclient`). Hosting an
-   agent does not take the component's route out of the application layer. The receipt tells a route from a tool
-   by how `operation` is written, a method and a path (`POST /chatclient`) or `route` and a pattern; a handler of
-   another kind on an agent's row (a message consumer, a gRPC method) is not recognised yet, so write its
-   application candidate or gap by hand and say so in `why`.
-
-### The agentic layer: the decision point and the run
-
-**Class each tool first.** On every participation row of an agent, write `decision_point`. A tool call is a
-decision point, `yes:`, when the agent chooses a value that becomes the case's outcome or a person's basis for
-deciding it: a recommendation, a decision type, a condition's text, the inputs to a risk computation. A call that
-only records what a person stated or asked for is an action, `no:`: entering the borrower's details, acknowledging
-a disclosure. Class it by reading what the tool's arguments carry, and cite the signature. A tool that computes by
-fixed rules is a decision point only through the arguments the agent chose to pass it; say which. One agent's tool
-is classed one way on every row. The check fails on an agent row not classed, and on a tool classed both ways.
-
-**A tool whose class depends on the conversation is a decision point.** The same call can record an item the
-person named, or choose one the person only described (an add-to-basket call given a product's name against one
-given "something warm for winter"; an add-pet call with the owner the person named against the owner the model
-picked from a list). One class per row stays: write `yes:`, and the reason says **when** the call carries the
-agent's choice. Where telemetry can tell the two kinds of call apart, the candidates count only the judged calls,
-and say how in `counted_how`. Where it cannot, the reason says so, and every call is counted. The receipt cannot
-split the two; the reason is where the difference is kept.
-
-**Then class each reply.** The agent's reply to a person is a decision point when the person relies on it: it
-reports or explains a result, such as a recommendation, a risk assessment or a check's outcome.
-Its operation is the agent's turn, not a tool, so a tool computed by fixed rules (classed `no:`) can still be
-reported by a reply that is a decision point. On the agent's row for that process step, write `reply_decision_point`:
-`yes:` where the person relies on the reply, `no:` where it only confirms what the person asked, asks for more, or
-replies to no person at that process step, and why, citing the prompt or the code that hands the tool's result to the
-model. The check fails on an agent row whose reply is not classed. Each reply classed `yes:` is a decision point keyed, like a tool's, by the agent
-and the operation whose result it reports, element `S04 reply to uw_render_decision`, listing every process step it spans: a
-judge sampling the agent's replies after that operation is one measure whichever of those process steps the case is in. Its
-candidates name `reply` and the operation in `operation` (`reply; uw_render_decision`). A row naming no tool keys its
-reply by its process step (`S04 reply at step 17`), with `reply` in `operation` and the process step in `step`. **An agent with no
-tools** still has its reply as a decision point, keyed by the agent and the route that runs it: element
-`S03 reply on POST /`, candidates naming `reply; POST /`. The receipt writes `reply on` where the row's operation
-is a route and `reply to` where it is a tool.
-
-**A model output a later call relies on is its own decision point.** Where the agent's chain writes something
-with one model call and a later call decides from it (a description of a room written from a photo, then fed to
-the call that chooses products), that first output is a judgment no tool or reply holds. Class it on the action row
-of `agent-system.csv` that makes the call, in `decision_point`: `yes:` and why, citing the line that feeds it on.
-It is keyed by the agent and its place in the chain, element `S03 AS2`, and asked the same questions; its
-candidates name the action's id in `operation` (`AS2`). Only an action row classed `yes:` is asked. Do not class an action
-whose output a tool's or a reply's decision point already holds: the model's choice of a tool's arguments is that
-tool's decision point. Grounding comes first:
-does the reply say what the tool returned (a judge sampling replies against the tool's output, NIST AI 600-1
-MS-2.5-003). Correctness, traceability and drift take the forms below. Correctness comes from the person's
-agreement with the reply itself, never from a record of something else, such as agreement with a rule's result.
-Where nothing records that agreement, propose a labelled set or a judge, or write a gap. Traceability comes from
-the run and tool-call record: a record of the turn that carries the case, holding the tool's result beside the
-reply.
-
-**At each decision point** (`yes:`), the agent questions of grain `decision point` in
-`method/agent-questions.csv`. Write each candidate for that tool, naming it in `operation`, from what that tool
-writes, in these forms:
-
-- **correctness**, from the person's agreement with or override of that decision, where a record keeps it: NIST AI
-  600-1, *Generative Artificial Intelligence Profile*, MS-4.2-004, *"Monitor and document instances where human
-  operators … override the GAI's decisions"* (nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf). Where no record
-  keeps it, a judge or a labelled set re-run per release, or a gap.
-- **grounding**, from checking the decision against the inputs it claims to rest on: the values the tool wrote,
-  recomputed from the case's own records (NIST AI 600-1 MS-2.5-003, sources checked in ongoing monitoring).
-- **traceability**, from a run and tool-call record that carries the case: which decider, which inputs, which
-  case (the OpenTelemetry GenAI `invoke_agent` and `execute_tool` spans carry the agent's id and version, the
-  conversation and the tool; OpenTelemetry semantic conventions for generative AI, `docs/gen-ai/gen-ai-agent-spans.md`
-  and `gen-ai-spans.md`, status Development). A record keyed only by session does not carry the case: say so.
-- **drift**, from that decision point's inputs and outputs compared with a validated baseline, and the agent's
-  configuration (model, prompt, rules) compared with the one vetted (NIST AI 100-1, MEASURE 2.4, functionality and
-  behaviour monitored in production).
-
-A measure that names no tool answers for none of its decision points: the grain is the judgment. A measure listing
-every tool the agent has is not a decision-point candidate; write one per tool, against what that tool records.
-
-**At the run**, every agent, whatever its tools are classed: the agent question of grain `run`, `operating health`. One
-run is one invocation of the agent: a request in, the model and tool calls it makes, an answer out. Each of five
-metrics is its own element, covered by an `agentic` measure of the agent with `agent_question` `operating health` marked
-for it in `receipt_question`, or gapped:
-
-| Run metric | The field's form (OpenTelemetry GenAI semantic conventions, repository `open-telemetry/semantic-conventions-genai`, status Development: `docs/gen-ai/gen-ai-metrics.md`, `gen-ai-token-metrics.md`, `gen-ai-agent-spans.md`) |
-|---|---|
-| `run duration` | `gen_ai.invoke_agent.duration` per run; a model call's duration (`gen_ai.client.inference.duration`) is not a run's |
-| `failed tool calls` | `execute_tool` spans and calls per run, with `error.type` set |
-| `tokens` | input and output token usage per run (`gen-ai-token-metrics.md`) |
-| `refusals` | a run ended by a guardrail or the model declining: the finish reason, a shield's block |
-| `fallbacks to a person` | a run handed to a person, or ended telling the person to try later (NIST AI 600-1 MG-3.2-006: monitoring that triggers human intervention) |
-
-These are recorded at the agentic layer of the agent (`layer` `agentic`) as operational evidence, not judgments of whether it decided well. **Escalation and
-policy scope** stay `candidate` and are not asked; where an application emits a refusal per tool call by its role
-or authorisation check, propose one `policy scope` candidate from it.
-
-**A measure emitted but counting the wrong thing gets `defect`**: one line saying what it counts wrong, with the
-citation (a per-tool duration that is the batch's time split evenly; a label that never varies; a counter nothing
-increments; a summary serving generated data while its source is off). `source_ref` keeps only the emitting line.
-`defect` is written only where `exists` is `yes`: a proposed measure is not yet counting anything.
-
-`exists` is `yes` only where the system already emits it: cite the emitting line, or the setting that switches on
-a framework's built-in metric, in `source_ref`, and write `declared` in `source`. A log line counts, if it is
-written once per case: read where it is written and what triggers it. Everything else is `exists` `no`, `source`
-`proposed`.
-
-`exists` follows from whether the signal the measure is counted from is produced today, never from its kind in
-`taken_from`. A count of a request metric the framework already records is `yes`, like every other measure of that
-metric, even when no one has built the count yet. A join of log lines or spans the code already writes (orders
-cancelled while their payment went ahead, from the payment log line and the order's state) is `yes`, citing each
-emitting line: it needs a query, not a code change. Only a measure that needs the code to write something it does
-not write today is `no`. A record the code already stores is produced today: a count over rows of a table the code
-writes is `yes`, and so is a server's own answer to a probe, like its other statistics. Whether anything collects
-the signal is `watched`, not `exists`. Two measures counted from
-the same signal have the same `exists`.
-
-On every measure, write in `taken_from` the kind of record it is counted from, one of the eleven `REGISTER.md` lists: where
-`exists` is `yes`, the kind of the cited line; on a proposed measure, where it would be taken from, decided from what
-the measure counts and never from the tools at hand. For how a measure could be taken from each kind, and what each
-cannot do, see the implementing-a-measure skill, §2. Name the kind of the cited line itself, never of what it
-reports on: a part's own health check is the kind of record that runs it (a probe or a metric), never the case's own
-record or configuration.
-
-On every measure with a `source_ref`, write in `counted_at` the named place it is counted at: `taken_from` says the
-kind, `counted_at` says which one, so a reader can go and find it. It is a plain name a reader knows without the
-code: the table and the database it lives in (`order lines table, ordering database`, never `ordering.orderItems`),
-the log and the service that writes it (`Ordering API log, line 'CreateOrderCommand succeeded'`), a service's
-request metric or traces, or the system whose own status it is (a queue's depth is the message broker's own status,
-connections are the database server's own status, never a metric of the application that uses them). Never a code
-identifier: nothing dotted or backticked, nothing quoted unless it is a log line's own words (after `line`, or
-before `log line`), and no table, class or event name as the code spells it; say a state or an event in words.
-Product names, abbreviations such as e.g., and version numbers are plain names. A product whose own name has a
-capital inside a word (`SiteMinder`) and that the check refuses is declared in `product-names.csv` in the
-register: its name as one word, and in `source` where its vendor or the sources write it so. A declared name
-passes only as a whole word, and one holding a dot, underscore, backtick or slash is ignored; never declare a
-table, class or event name. A server's own status names the product where the code shows it:
-`database server's own status (PostgreSQL)`, `message broker's queue status (RabbitMQ)`. A measure counted from
-two places names both, as `X, against Y`: `orders table, ordering database, against the Payment Processor log`.
-`flow_outputs.py --check` refuses a name only the code knows, and two measures with the same `counted_at` and a
-different `exists`. Fill it per row from that row's own `counted_how` and citation:
-open the cited file and line, and name the system that holds what it shows.
-It is never filled by walking the code again. Where the cited code does not show the place (a proposed measure whose
-record does not exist yet), write `not in the code: ` and what it would take. Never leave it blank:
-`flow_outputs.py --check` fails on a row with a citation and no `counted_at`, and the run is not done.
-
-**A measure can be emitted and never collected.** On every measure whose `exists` is `yes`, write `watched`:
-`yes` where operations monitoring collects it, `in the app only` where an application screen shows it and nothing
-collects it, `no` where nothing does (a metrics endpoint no scrape configuration lists), or `unknown`; and
-`watched_source`, the collection configuration or screen read, with its citation. Watched is never settled by reading the
-emitting code. Where no collection configuration is within reach, write `unknown` and `no inventory reachable`; only
-`unknown` may rest on that. The page shows `watched` in an opened measure. Business measures count cases. No thresholds or targets unless a document or person states them, and
-then only as that source states them.
-
-### The three mechanisms
-
-**1. The coverage receipt**. Every element
-of every start-set below is either **covered** by at least one candidate in `measures.csv` or **gapped**: a row in
-`measure-gaps.csv` saying why no candidate is proposed, with its source. There is no third state. A gap is not a
-measure, so it is never a `measures.csv` row with the measure left blank. `flow_outputs.py --check` recomputes the
-receipt from the register, whichever stage it is run for, and fails on every element that is neither covered nor
-gapped: of the whole flow in a run with no pick of how far each stage goes; otherwise of the flow and of the stages
-picked to measure (a part shared with a measured stage included), and not at all when no stage is measured. A gap row with no `why` or no `source` does not count.
-
-Each gap row also says its `kind`, one of four, chosen by what stops a candidate for this question:
-`does not apply` (ruled out by design: the question cannot arise here, as when the stage lasts one request and no
-case waits in it), `counted by` (folded into another measure, named by its id in `why`: `folded into M38:`),
-`no record` (the code keeps nothing that could count it today; say what record it would need), or `not read` (not
-assessed in this run, as for a flow set aside). A gap that points at a decision point asked elsewhere is not
-`counted by`: that kind needs a measure. The map labels each gap from `kind`, never from the reason's wording, and
-`run_status.py` counts the gaps by it, so `not read` is kept for what the run did not look at. `--check` fails on
-a row with no `kind` or one not in the list, and on a `counted by` row whose `why` names no measure.
-
-| Start-set | Element (`element` in measure-gaps.csv) | Question (`question`) | Covered by a candidate that is |
-|---|---|---|---|
-| The flow, where its `bound_in_code` is filled | its id (`F1`) | `the time limit` | of the flow (stage and process step blank), counted on cases, `business health`, form `cycle time` or `completion rate` |
-| Every stage | its id (`ST2`) | `in the stage` | of the stage, counted on cases, `business health`, form `backlog`, marked `in the stage` in `receipt_question`: the cases in it now |
-| | | `oldest's age` | the same, marked `oldest's age`: the age of the oldest case in it |
-| | | `time through` | of the stage, counted on cases, `business health`, form `cycle time` or `completion rate`, marked `time through`: the time through |
-| | | `past the time limit`, only where the stage's `bound_in_code` is filled | of the stage, counted on cases, `business health` or `business impact`, form `backlog`, marked `past the time limit`: the cases in it older than its time limit |
-| Every process step that matters (item 3) | its process step id (`7`) | `did it happen` | of the process step, on its case subject, counted on cases, `business health` or `business impact`, with `did it happen` in `receipt_question` |
-| | | `was its outcome right` | the same, with `was its outcome right` in `receipt_question` |
-| Every operation (each `operation` in `participation.csv` of an application component that takes part in a process step, whatever its involvement) | the component's id and the operation (`S03 PATCH /api/applications/{id}`) | `application` | of the component, `application`, with the operation, written as participation writes it, in `operation` |
-| A component whose row names no operation | its id (`S12`) | `application` | of the component, `application` |
-| Every route an agent's own component serves (an `operation` on an agent's row written as a route) | the agent's id and the route (`S06 POST /chatclient`) | `application` | of the agent's component, `application`, with the route in `operation` |
-| Every system component (`band` `technology`) that takes part in a process step, whatever its involvement | its id (`S08`) | `technology` | of the component, `technology` |
-| Every decision point: an agent with a tool its participation rows class `yes:` in `decision_point` (the rows of one tool, at several process steps, are one decision point) | the agent's id and the tool (`S04 uw_render_decision`); for a row naming no tool, `S04 at step 15` | each agent question in `method/agent-questions.csv` whose `status` is `provisional` and `grain` is `decision point` | of the agent, `agentic`, with that `agent_question` and the tool in `operation` (for a row naming no tool, that `step`) |
-| Every reply relied on: an agent row classed `yes:` in `reply_decision_point`, one per agent and operation | the agent's id, `reply to` and the tool (`S04 reply to uw_render_decision`), or `reply on` and the route for an agent with no tool (`S03 reply on POST /`); a row naming no operation, `reply at step` and the step | the same agent questions | of the agent, `agentic`, with that `agent_question`, `reply` and the operation in `operation` (a row naming no operation: `reply` and that `step`) |
-| Every model output a later call relies on: an agent's action in `agent-system.csv` classed `yes:` in `decision_point` | the agent's id and the action's id (`S03 AS2`) | the same agent questions | of the agent, `agentic`, with that `agent_question` and the action's id in `operation` |
-| Every agent that performs or supports a process step, or whose `agent-system.csv` run serves one | its id (`S04`) | each run metric: `run duration`, `failed tool calls`, `tokens`, `refusals`, `fallbacks to a person` | of the agent, `agentic`, answering the agent question of grain `run` (`operating health`), with the metric in `receipt_question` |
-
-An agent question marked `candidate` is not asked until the agentic layer settles it. A tool classed `no:` is not a
-decision point, and its agent is still asked at the run.
-
-**2. The expectation chain** (that question set, q15b). Every
-expectation has a business candidate that would show whether it is met. The question set gives the reason: without
-it, candidates default to *whatever the service's API behavior suggests rather than what stakeholders need to know*.
-Here the expectations are the rows of `expectations.csv` (Step 3a) and each process step's `right_outcome`:
-
-- **Each row of `expectations.csv`** is covered by a candidate at `business health` or `business impact`, of the
-  flow, a stage or a process step, that names its id in `expectation`. Either business layer counts, which is broader than
-  the question set's business health alone: whether a case's outcome was right is often counted at business impact.
-  Read the row's `satisfied_when`, and name what one case would show if it did not hold. A tied measure whose
-  `defect` says it counts nothing does not answer it: propose another, or gap it. An expectation no candidate names
-  gets a `measure-gaps.csv` row: element its id (`e3`), question `expectation: indicator`, and its kind. Where
-  nothing records what `satisfied_when` names, the kind is `no record`, and `why` says which record is missing.
-- **Usually give each expectation at least one business health measure** (the cases that meet `satisfied_when`)
-  **and at least one business impact measure** (the cases that fail it), or a gap for each with its kind. Several
-  are fine. Consider tagging every business measure that counts against `satisfied_when`. A stage's exit-step
-  "did it happen" count is a place to start the health side, but it matches only where the stage has one wanted
-  exit: where the expectation also accepts other endings, it does not count what the expectation counts.
-- **A business impact measure that guards an expectation counts the cases that fail its `satisfied_when`.** A case
-  the condition counts as met never appears in it. Where cases ending some other way (cancelled, refunded) matter,
-  count them in a measure of their own.
-- **"Was its outcome right" is derived from the process step's `right_outcome`**: read that column, and name what one case
-  would show if it did not hold (the state, the values it should carry). Where nothing records the values the right
-  outcome names, the gap says which record is missing.
-
-Name the measure for what it counts (below). The flow's `the time limit` and each stage's questions are asked
-in mechanism 1, as the flow's and the stages' coverage; this mechanism adds no second gate on them.
-
-**3. Signals per operation** (that question set, q40 to q43). Where
-telemetry can tell a component's operations apart (a metric labelled by route or tool name, a log line naming the
-handler), each operation gets its own application candidate, naming it in `operation`. Where it cannot, or one
-candidate already answers for several, write the gap for each operation it folds in: `folded into M51:` and why.
-
-**Kept from the kit, not from that practice:** the stage level, and the stage's exits read from its moves in place of a
-"last step". **Not adopted:** that practice's targets, thresholds and authority, and its per-signal standing. Those
-belong to choosing measures, which people do later. Nothing here is fixed: where the procedure misses an element
-or asks a useless question, change it.
-
-**Name a measure for what it counts.** A count of wrong outcomes is "Orders confirmed with an unknown item", never
-"Stock confirmed rightly": a reader takes a rising count of a thing named "rightly" as good news.
-
-**Draft alerts as proposals, and say what each rests on.** Each names the expectation it guards. Whether to alert,
-and on what, at any level (the flow, a stage, a process step or a part), is the team's decision; the register only drafts.
-Choosing the alerts is phase 5a's work (Step 11, "Alerting"), done once the measures are complete; this is how it is
-written. Mark each measure you propose for alerting in `alert`, as `yes:` and its basis, required for the alert's runbook
-entry, and **name the expectation it guards by id in `expectation`** (Step 3a). `--check` fails on an alerting
-measure whose `expectation` is blank or names an id `expectations.csv` does not hold, at whatever level it is. The
-alert is drafted on every stage its measure reaches: a process step's stage, every stage of a flow, each stage a part
-serves. The runbook generator works a stage's tests for each of them, which fits best a stage's measures counted
-on cases (Step 11). A stage no alert reaches gets no alert page, and its runbook says so; `--check` notes it and
-does not fail. The measures, the alerts and the runbook are generated from that column, so they cannot disagree.
-Whether an alert pages a person, opens a ticket or shows on a dashboard is the operators' decision, not the
-register's.
-
-A stage usually loses cases in three ways. Consider each; where one would break the expectation, a measure of it
-is a candidate to propose:
-
-- **Cases wait too long**: the cases in the stage older than they should be (past its time limit, where the code
-  sets one; otherwise past an age the operators set). Where a move out of a park stops, they pile
-  up here.
-- **Cases leave wrongly**: cases leaving by an alternative or exception ending the expectation does not want (failed
-  back, cancelled because a part failed), or left stranded, counted against the cases that entered. A stage whose
-  work never waits loses cases mostly this way. Say which record counts one event per case at those exits; if none
-  does, the measure is `proposed` and names the record it needs. **`counted_moves` lists the moves (`L..`) the
-  cases leave by**, by id: the alert's runbook entry works the tests of the state those moves leave from. An ending the party wants
-  (their own cancellation, a rule's refusal) is not a loss.
-- **Cases leave with a wrong outcome**: the main ending, reached with the wrong values (a stale read, a wrong
-  decision from a rules engine or a model). The process step measures of item 3, "was its outcome right", count it. Where a record
-  shows the wrong outcome per case, one may be proposed for alerting.
-
-A measure not proposed for alerting is still read by the runbook's tests. Where the stage proposes alerts of its own,
-the check warns where its moves show a kind of loss no proposed measure counts. Consider proposing one, or say in the
-basis why not: a warning whose reason the basis gives stands, and does not stop the outputs being written. Only
-errors do.
-
-## Step 10. Record what a failure costs (*Rules*, Rule 3)
-
-For the stages picked to measure (all of them in a run with no such pick), for each lifecycle move whose `if_not`
+Part of mapping: done right after Step 8, for every stage of the flow, before the person picks how far each stage
+goes, so the pick shows what each stage's failure costs, and before the measures skill's step "Propose the measures", which measures every process step with a
+Business Impact row. For each lifecycle move whose `if_not`
 hurts the case, a `step-impact.csv` row on the process step it belongs to: the
 category from `method/impact.csv`, the unit counted in cases, and `recovery` copied from the lifecycle. A case
 acknowledged to the party and then lost fits no recovery value: leave `recovery` blank and begin `note` with
@@ -827,7 +671,7 @@ acknowledged to the party and then lost fits no recovery value: leave `recovery`
 
 For each stage picked for alerts (and runbooks), or every stage in a run with no pick of how far each stage goes.
 The runbook is written for every such stage, and the alert page for every one an alert reaches, at
-whatever level the alert is drafted (Step 9). The alerts and the runbook are **generated**, never written: what you
+whatever level the alert is drafted (Alerting, below). The alerts and the runbook are **generated**, never written: what you
 write is the worksheet they are generated from.
 
 **Step 11 is done in two parts, with the person's review between them.** Deciding what to alert on is one concern;
@@ -835,15 +679,50 @@ the ways the work can fail, which a responder tests once an alert has fired, are
 not decide the alerts.
 - **Alerting** (phase 5a): the expectations and the alerts of item 1, chosen from the health measures alone: which
   business, application and technology signals deserve an alert, each with its basis, the expectation it guards
-  and, for a count of cases, its `counted_moves`; then item 6's check of what the alerts rest on. Generate with
+  and, for a count of cases, its `counted_moves`, written in `alerts.csv` and in no other table (Alerting, below); then item 6's check of what the alerts rest on. Generate with
   `--alerts` (item 7), then stop for the person's review.
 - **Runbooks** (phase 5b), after their go on the alerts: the runbook entries of item 1, then items 2 to 6, the
   failure modes hop by hop, their tests, endings and remedies, one configuration, and the claims verified against
   the code. Generate with `--runbooks` (item 7).
 
-1. **The expectations** are the stage's rows in `expectations.csv` (Step 3a), each alert naming the one it guards
-   in `expectation`, with the stage's time limit in the code where the code sets one (Step 3) and the right outcome of each process step that takes a case out of
-   the stage. **The alerts** fire on the measures marked in `alert` (Step 9). **The runbook has one short entry per
+### Alerting: choosing the alerts (phase 5a)
+
+**Draft alerts as proposals, and say what each rests on.** Each names the expectation it guards. Whether to alert,
+and on what, at any level (the flow, a stage, a process step or a part), is the team's decision; the register only drafts.
+Choosing the alerts is phase 5a's work, done once the measures are complete, and it writes only `alerts.csv`: one row
+per measure proposed for alerting, `handle` naming the measure. Write its basis in `alert`, as `yes:` and the basis,
+required for the alert's runbook entry, and **name the expectation it guards by id in `guards`** (the measures skill's step "Propose the measures", the parties
+and their expectations). `measures.csv` → `expectation` is the measures step's, read for coverage only: never change it
+to choose an alert. `--check` fails on an alert whose `guards` is blank or names an id `expectations.csv` does not hold,
+at whatever level it is, and on an `alerts.csv` row whose `handle` names no measure. The
+alert is drafted on every stage its measure reaches: a process step's stage, every stage of a flow, each stage a part
+serves. The runbook generator works a stage's tests for each of them, which fits best a stage's measures counted
+on cases (Step 11). A stage no alert reaches gets no alert page, and its runbook says so; `--check` notes it and
+does not fail. The measures, the alerts and the runbook are generated from that table, so they cannot disagree.
+Whether an alert pages a person, opens a ticket or shows on a dashboard is the operators' decision, not the
+register's.
+
+**An alert rests on a measure the measures skill proposed; choosing the alerts never writes `measures.csv`.** Where the person,
+at the review of the alerts, asks for an alert on something no proposed measure shows, record their answer as changes
+(`go.py --alerts-reviewed --decision changes`), file a row in `corrections.csv` (`table` `measures`, `row` and
+`column` blank, `proposed` saying what to measure, at which part, and why, `why` their request, `status` `open`),
+and take the run back with `python "<skill>/go.py" "<your-folder>" --back-to-measures <id>`. The measures skill takes it up or
+turns it down, the person reviews the measures again, and after their go the run comes back to choosing the alerts
+and their review.
+
+Choose from the three ways a stage loses cases (the measures skill's step "Propose the measures"). For cases that leave wrongly, **`counted_moves` lists the moves
+(`L..`) the cases leave by**, by id: the alert's runbook entry works the tests of the state those moves leave from.
+For cases that leave with a wrong outcome, where a record shows the wrong outcome per case, one may be proposed for
+alerting.
+
+A measure not proposed for alerting is still read by the runbook's tests. Where the stage proposes alerts of its own,
+the check warns where its moves show a kind of loss no proposed measure counts. Consider proposing one, or say in the
+basis why not: a warning whose reason the basis gives stands, and does not stop the outputs being written. Only
+errors do.
+
+1. **The expectations** are the stage's rows in `expectations.csv` (the measures skill's step "Propose the measures", the parties and their expectations), each alert naming the one it guards
+   in `alerts.csv` → `guards`, with the stage's time limit in the code where the code sets one (Step 3) and the right outcome of each process step that takes a case out of
+   the stage. **The alerts** fire on the measures `alerts.csv` marks in `alert` (Alerting, above). **The runbook has one short entry per
    alert**, which that alert's runbook link points at, **and one shared section for the stage**: the stage on one
    page, what is at stake, every test written once with the alerts that use it, the causes the alerts share, and
    restore, close and escalate. What the generator puts in each entry, from what you write:
@@ -863,7 +742,11 @@ not decide the alerts.
      main ending with a wrong outcome is held where it is. More cases leaving by an alternative or exception move
      are stopped by everyone who can make that move: each person in its `carried_by`, and whoever can sign in to a
      web front end in its `carried_by` that no main move of the stage uses (a back-office screen with its own login).
-     So put every role that can make the move in `carried_by`, each a person row in `subjects.csv`. A move marked
+     Only mapping changes the map: where a role that can make the move is missing from its `carried_by`, file a row
+     in `corrections.csv` (table `lifecycle`, the move's id, column `carried_by`, the role in words, why, the
+     citation, status `open`) and leave `lifecycle.csv` and `subjects.csv` as they are; the runbook names the role
+     from the open correction until mapping takes it up. The same holds for anything else this step finds missing or
+     wrong in the map's tables. A move marked
      `irreversible` is said to be so. Every `do not` remedy is named here.
    - **Its tests**: the failure modes of the states its cases are in or left from, except one whose `measures` reads
      another proposed alert's count and not this one's: that test lists the other alert's cases, so it is the other
@@ -910,13 +793,18 @@ not decide the alerts.
    can work. **A mode is a live test only where what it
    does to the case is something a measure the stage proposes for alerting counts.** Otherwise its ending is `not possible`,
    its `failure` begins `not possible here: as a cause of` what the stage's alerts count, and names the measure that
-   does count it (a wrong outcome is counted by its process step's measure, Step 9).
+   does count it (a wrong outcome is counted by its process step's measure, which the measures skill proposes).
 3. **Give each mode a test that tells it apart** from the others a responder meets in the same state: the exact
    query (table and columns as the code defines them), the log text as the code writes it, or the command. On a
-   state column, `seen` lists every value the code can leave other than the healthy one. Name the measures it reads,
-   adding them in Step 9 if they are missing; a measure added here is a companion measure, never a new alert, and
-   changing an alert's basis, expectation or counted moves takes the run back to the alerting part and the person's
-   review. **A signal is only evidence where it is written:** a cancellation
+   state column, `seen` lists every value the code can leave other than the healthy one. Name the measures it reads.
+   **This step never writes `measures.csv`.** A measure a test needs that no row holds (a companion measure, never
+   a new alert) is asked for: file a row in `corrections.csv` (`table` `measures`, `row` and `column` blank,
+   `proposed` saying what to measure, at which part, and why, `why` naming the test, `source` the mode's citation,
+   `status` `open`), then take the run back with `python "<skill>/go.py" "<your-folder>" --back-to-measures <id>`.
+   The measures skill takes the request up, the person reviews the measures again, and after their go the run comes back here;
+   the review of the alerts is asked again only if an alert changes. Until then `--runbooks` is refused, as it is
+   after any change to the measures made since their go. Changing an alert's basis, expectation or counted moves
+   takes the run back to the alerting part and the person's review. **A signal is only evidence where it is written:** a cancellation
    or deadline started by a caller shows at the caller, not in the callee's logs; a call made outside the request's
    trace context is not in its trace. Where a harmless cause gives the same signal as a fault (a party giving up
    looks like a slow part), the test says how to tell them apart, or the harmless ending is not used. **A test
@@ -939,11 +827,18 @@ not decide the alerts.
    line as the deployed logging configuration emits it (a traceback's last line, not a window of lines after the
    message), the name the deployment gives a resource. Where a configuration switch changes the value, write the
    value for the configuration `about.csv` names and state the switch beside it.
-   **Before a test goes into a runbook, check it against one known case**: a seeded or demo row, or a reproduced
-   failure, whose answer is known. The query lists that case, the grep prints that line, the command shows that
-   state; and the healthy case gives the expected result. A test that matches every instance of a wider event (every
-   failed turn, every restart) is not its mode's test: make it specific, or say in `seen` what tells it apart.
-   Record each check in `how-made.csv`.
+   **A runbook test is checked against one known case before hand-over, and the run never runs it itself**: the
+   check is the person's, on a seeded or demo row or a reproduced failure whose answer is known, in an environment
+   they choose. The query lists that case, the grep prints that line, the command shows that state; and the healthy
+   case gives the expected result. A test that matches every instance of a wider event (every failed turn, every
+   restart) is not its mode's test: make it specific, or say in `seen` what tells it apart. Write in `how-made.csv`
+   the check of each test (the case to try it on and what it should show), and that the tests were not tried on a
+   case. Only when the person says yes and names a local or demo environment does the run try a test there, and it
+   records each result in `how-made.csv`. Never make a case up. That is the build's to report, never the runbook's: the runbook's
+   reader is the responder, and it says nothing of how it was made or checked. The done check's report counts the
+   tests as a readiness item ("Before hand-over: n runbook tests not yet tried on a known case"), and the review of
+   the alerts says the same is owed. The code's engineers try each test once, on a case whose answer they know,
+   before the runbook is handed over.
 4. **Give each mode its ending**, and each `restore` or `stranded` mode its remedy in `remedies.csv`. **A mode that
    leaves its case stranded ends in `restore` or `cannot restore`**, even when the refusal that stranded it is the
    application working as designed (a balance that may not go below zero): the responder's job is the stranded case,
@@ -965,7 +860,15 @@ not decide the alerts.
    `how-made.csv`. Before `--runbooks`, the rest of this item. Re-open every distinct `file:line` a live
    failure mode cites (its `failure`, `test` and `source`: what a responder acts on), and a random sample of the
    rest of what the register cites for the stage's rows and the frame (flows, stages, steps, participation,
-   lifecycle, remedies, measures, step impact). Rows added or carried forward from an earlier register (the
+   lifecycle, remedies, measures, step impact). On a register mapped in reading units, mapping's rows (flows,
+   lifecycle, stages, steps, participation, step impact) were each judged by the go's count of readers, so draw the
+   sample from this step's own rows (remedies, measures) only. A mapping row this pass still finds wrong is not
+   edited by hand: file it in `corrections.csv` with the line that contradicts it, and apply it with `go.py
+   --apply-correction`, which records it (a row that comes from a reading unit, a part or its work on a step, is
+   never changed by your correction: it goes to that unit's fixer, `readers.py prompt "<your-folder>" <unit> --mode
+   stop --reason "<the row, and the line that contradicts it>"`); the changed row has no current verdict, so it is judged again
+   as in "The order", items 5 to 7 (`judges.py emit` for its unit with `--round` set to the round it is in, then
+   `collect`) before the done check passes. Rows added or carried forward from an earlier register (the
    `how-made.csv` pass `reconcile`) are read first, every one of them. State the sample's size in the `how-made.csv` row before you draw
    it. A failure in the sample re-opens every row of the batch it came from: the rows written the same way, in
    the same pass. Read the line itself, not a listing of several files. For each: does the
@@ -1001,7 +904,7 @@ goes back through `--alerts`, which opens the review again each time it runs; pl
 Together the two check, and write `ALERT.md` and `RUNBOOK.md` only when the checks pass: every hop, need and carrier of
 every move covered; every mode's part in its move's lifecycle row; every test's measures in `measures.csv`; no two
 modes in one state a responder cannot tell apart; a remedy for every restore and every stranded case; exactly the
-measures marked in `alert` proposed for alerting, each naming the expectation it guards, at whatever level it is.
+measures `alerts.csv` marks in `alert` proposed for alerting, each naming the expectation it guards, at whatever level it is.
 A stage no alert reaches is noted by `--check`, not failed: it gets its runbook, which says no alert is proposed for
 it, and no `ALERT.md`. A stage taken to alerting or runbooks still owes its alert at the done check, so `run_status.py` lists
 its `ALERT.md` missing until one is proposed. A failure is fixed in the step that produced it. **Never edit a generated file.**
@@ -1021,14 +924,14 @@ Before drawing, run these against the register. Each one is a rule from above th
 - Every stage's `entry` is the previous stage's `exit` or the starting event (stage 1), its `exit` is the next
   stage's `entry` or an ending, and its `source` cites what each cut rests on or is `proposed:`.
 - Every exit of every stage, main and alternative, has a process step whose lifecycle `to_state` is that exit.
-- Every element of the measure step's receipt (Step 9) is covered by a candidate in `measures.csv` or gapped in
+- Every element of the measure step's receipt (the measures skill's step "Propose the measures") is covered by a candidate in `measures.csv` or gapped in
   `measure-gaps.csv` with its reason and source. `flow_outputs.py --check` prints the receipt's count and an error
   for each element of the run's stage, or of the flow, that is neither. One that belongs only to other stages is a
   warning in this run, and an error in its own stage's run.
 - Every test in an alert's entry explains something that alert counts. The check warns where a test's mode leaves
   the case in a way the moves in the alert's `counted_moves` do not count (it `moves on`, and the alert counts cases
   `stranded`): name the measure that does see it in the mode's `measures`, or say in the basis why it stays.
-- Every measure with `alert` set names in `expectation` the expectation it guards, by an id in `expectations.csv`.
+- Every `alerts.csv` row with `alert` set names in `guards` the expectation it guards, by an id in `expectations.csv`.
   Every `objective` has its `objective_source`, and none starts `proposed:`.
 - Every `subjects.csv` row of `part_kind` database, cache, message broker, search index, file store, host or
   runtime, or platform service has `band` `technology`.
@@ -1075,14 +978,33 @@ with the Read tool: a file shown by a shell command does not count, and a row is
 from a script that searches the code and emits rows. A script may find where to look; you read what it found.
 `run_status.py` names each location cited and not read.
 
-**Then the sampled re-read.** When the register is otherwise complete, draw the sample: `python "<skill>/reread.py"
-"<your-folder>"` writes `re-read.csv`, ten rows that cite code, calls resting only on your reading first. Launch one
-agent that wrote none of the rows, and give it only the workspace and `re-read.csv`: for each row it opens the cited
+**Then the sampled re-read, only for a register mapped before reading units.** A register mapped in reading units
+(it holds `units/units.csv`, as every run from the go on does) has every finding judged ("Reading in units, and every
+finding checked", in "Before you start"), so no sample is drawn: `run_status.py` holds the judging in its place, and
+a flow's report is owed once its outputs are done. Only a register with no units draws one. When the register is
+otherwise complete, draw the sample: `python "<skill>/reread.py"
+"<your-folder>"` writes ten rows of this flow that cite code into the file it names (`re-read.csv`, or
+`re-read-<flow id>.csv` for a further flow), calls resting only on your reading first. Launch one
+agent that wrote none of the rows, and give it only the workspace and that file: for each row it opens the cited
 lines with the Read tool and writes its verdict (`says`, `does not say` or `unclear`) and the reason into
-`re-read.csv` **with the Write or Edit tool**, never by a shell command. It writes nothing else in the register
+that file **with the Write or Edit tool**, never by a shell command. It writes nothing else in the register
 folder and runs no shell command that names it: the check reads who judged from Claude Code's record of the tools
-each session used, and a shell command could have written rows unseen. Tell the agent so in its prompt. A row that
-does not say is fixed where it was written; then draw the sample again and have it re-read. `run_status.py` passes
+each session used, and a shell command could have written rows unseen. Tell the agent so in its prompt. An
+`unclear` verdict counts as not borne out, as `does not say` does: its reason names what is missing (the lines that
+would settle the claim, or the part of it no cited line shows), and the row is fixed so the claim can be judged. A
+row that does not say is fixed where it was written, while its flow is the one worked now. A row of a finished flow
+(the next flow has begun) is never edited by hand: file the fix in `corrections.csv` (`correction_id`, `table`,
+`row` named by its key columns, `column`, `proposed`, `why`, `source` naming the re-read row, `status` `open`), then
+apply it with `python "<skill>/go.py" "<your-folder>" --apply-correction <id> --value "<the cell's new value>"`
+(`--added` only for a row the person states, with `--words "<their words, verbatim>"`, and refused without them. A row of your own tables (the flow-level rows) that the person states you write into its table yourself, as you wrote the rest, and then record with `--added`. A correction to a unit's row, a cell, a removal or an added row, is the person's alone: it takes `--words` too, and go.py refuses words the person did not type into a session after the go, naming the transcripts it searched. For an added unit row go.py writes the row itself from `--value` (the row as one CSV line in the table's columns, under the `row_id` the correction names), refuses a row already in the file, and records the row with their words; it is still judged and read-checked. You never write a unit's row yourself, by shell, Write or Edit, nor change one by a correction of your own: a unit's row you find missing or wrong goes to that unit's fixer, `python "<skill>/readers.py" prompt "<your-folder>" <unit> --mode stop --reason "<what is missing or wrong>"`). go.py changes the cell and records the
+correction (`corrections-applied.csv`: which, the row, what the cell held and holds, why, its source, when), and the
+check that a finished flow's rows are unchanged accepts exactly those changes. A changed row's verdict no longer
+counts: on a register mapped in reading units, the next `python "<skill>/judges.py" emit` for the row's unit prints its
+judges, and it is judged, `collect`ed and, if flagged, fixed as in "The order", items 5 to 7, before the done check
+passes. Only a register mapped before reading units draws its sample again (a redraw replaces the flow's sample, keeping each row not yet borne out, and a changed row with its verdict cleared; an earlier flow's, while a later flow is worked, with `python "<skill>/reread.py" "<your-folder>" --flow <flow id>`) and have
+it re-read. Each flow's report is owed once its own re-read has passed, and is sent then, even while a later flow is
+under way: `run_status.py` says, flow by flow, the outputs, the re-read and the report; record a report sent with
+`go.py --report-sent <flow id>`. `run_status.py` passes
 the re-read only when every verdict says, the verdicts were written with Write or Edit by a session that wrote
 nothing else in the register and ran no shell command naming it, and that session opened every cited line; when it
 refuses, it says which of these failed.
@@ -1107,7 +1029,12 @@ A map is updated, not rebuilt. When a source the register has not read turns up,
 **An existing dashboard or alert export.** When the person points at an existing dashboard or alert export, read it
 like any other source. Add a `sources.csv` row saying where it came from (the file or link) and when it was read.
 For each panel or alert: cite it on the measure it shows, propose it as a candidate if the walk missed it, or set it
-aside with a reason.
+aside with a reason. **While this flow is in proposing the measures (phase 4, before the person's go on its
+measures), it is a source for the measures skill's step "Propose the measures"**: hand it to that step, which writes `measures.csv` from it, as phase 4 hands the step over. **After the go, never write
+`measures.csv` from it**: file each citation or candidate as a row in `corrections.csv` (`table` `measures`, `row`
+the measure's handle, or blank for a candidate to add; `proposed` what to measure, at which part, and why; `source`
+the panel or alert), and take the run back with `go.py --back-to-measures <id>`, as the runbook step does
+(Step 11).
 
 **An earlier register is not a new source.** A register made by an earlier run or an earlier version of this kit is
 a tool's output: it is never read as a source, never written to, and its rows reach a new register only through the

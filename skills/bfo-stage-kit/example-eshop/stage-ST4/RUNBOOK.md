@@ -1,6 +1,6 @@
 # Runbook for "Deliver the order"
 
-One entry per proposed alert, then the stage's shared section. Each alert's runbook link ([ALERT.md](ALERT.md)) points at its own entry. The shared section holds what the alerts have in common and writes every test once; an entry names the tests it runs, bounded to its own cases and window. Generated from the register by `flow_outputs.py`: each test after the opening checks is a row of `failure-modes.csv`. State: draft, never rehearsed. Process steps are numbered within their stage, the same in every stage file.
+One entry per proposed alert, then the stage's shared section. Each alert's runbook link ([ALERT.md](ALERT.md)) points at its own entry. The shared section holds what the alerts have in common and writes every test once; an entry names the tests it runs, bounded to its own cases and window. Process steps are numbered within their stage, the same in every stage file.
 
 - [Alert M301: Shipped orders not confirmed delivered within the expected time](#alert-m301-shipped-orders-not-confirmed-delivered-within-the-expected-time)
 - [Shared section: Deliver the order](#shared-section-deliver-the-order)
@@ -11,7 +11,9 @@ One entry per proposed alert, then the stage's shared section. Each alert's runb
 
 **M301 Shipped orders not confirmed delivered within the expected time** is above the operators' threshold for longer than their window ([ALERT.md](ALERT.md)).
 
-**The expectation it guards:** a shipped order not delivered within the expected time leaves the customer without the goods they expect (the flow's promise to deliver the goods). The record this alert needs does not exist yet: the code records nothing after Shipped, so a per-order delivery confirmation must be added before it can fire. The bound is the customer's expected delivery time, which no source states and the code sets no time limit for (the customer's expectation of delivery, and the stage's own bounds). Its runbook entry has no tests, and that is the finding, not an omission: tests come from the failures of the move a stage's cases wait on, and these wait on delivery, which no part of the application carries out (process step 4.2 has no lifecycle row; the code's last state is Shipped, Ordering.Domain/AggregatesModel/OrderAggregate/OrderStatus.cs:12). The stage's one recorded move, L14, tells webhook subscribers and does not move an order. Its cases go to the carrier, outside this runbook, until a delivery move and its record are added.
+**The expectation it guards:** a shipped order reaches the customer.
+
+**Why it is an alert:** a shipped order not delivered within the expected time leaves the customer without the goods they expect (the flow's promise to deliver the goods). The record this alert needs does not exist yet: the code records nothing after Shipped, so a per-order delivery confirmation must be added before it can fire. The bound is the customer's expected delivery time, which no source states and the code sets no time limit for (the customer's expectation of delivery, and the stage's own bounds). Its runbook entry has no tests, and that is the finding, not an omission: tests come from the failures of the move a stage's cases wait on, and these wait on delivery, which no part of the application carries out (process step 4.2 has no lifecycle row; the code's last state is Shipped, Ordering.Domain/AggregatesModel/OrderAggregate/OrderStatus.cs:12). The stage's one recorded move, L14, tells webhook subscribers and does not move an order. Its cases go to the carrier, outside this runbook, until a delivery move and its record are added.
 
 This measure is not emitted yet; deployed as written, the alert fires on No data until it is.
 
@@ -133,9 +135,9 @@ One alert is proposed for this stage, so no cause is shared between alerts.
 
 **Escalate** (hand over to the owning tier) when you cannot restore with S6; when a test ends in *Broken — cannot restore* (none); or when a remedy needs approval (use the change-approval path).
 
-**Escalate to the owner of the part that failed**: the part the test that matched names. The owners as the register records them, with the date each was recorded; *not in the map yet* means the register names none, a gap to fill and not a reason to stop. Links to the on-call and change records are the operators' to add.
+**Escalate to the owner of the part that failed**: the part the test that matched names. The owners with the date each was named; *none named yet* is a gap to fill and not a reason to stop. Links to the on-call and change records are the operators' to add.
 
-| Part | Owner (register) | As of | Responder (register) | Tests that end in escalation to it |
+| Part | Owner | As of | Responder | Tests that end in escalation to it |
 |---|---|---|---|---|
 | Ordering API | proposed: the team that deploys the eShop AppHost, which ships every service and store together (eShop.AppHost/Program.cs:1-104); no source names a team | 2026-08-28 | proposed: that team's on-call; no source names one | — |
 | Webhooks API | proposed: the team that deploys the eShop AppHost, which ships every service and store together (eShop.AppHost/Program.cs:1-104); no source names a team | 2026-08-28 | proposed: that team's on-call; no source names one | — |
@@ -160,9 +162,10 @@ Operator links to fill in, one per measure the tests read:
 
 - **Owner:** not stated.
 - **Last validated:** never. It has not been rehearsed cold.
+- **Made from:** the register; each test after the opening checks is a row of `failure-modes.csv`, generated by `flow_outputs.py`.
 - **To change it:** change the register (`lifecycle.csv`, `failure-modes.csv`, `remedies.csv`, `measures.csv`) and generate it again. Never edit this file.
 
 | Test | Failure mode | Lifecycle rows | Part | Source |
 |---|---|---|---|---|
 
-<!-- bfo-generated-from {"flow": "F1", "stage": "ST4", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "f3ef7b5dbcfd", "measures": "b0ad6bcbbe1a", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->
+<!-- bfo-generated-from {"flow": "F1", "stage": "ST4", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "alerts": "35bb2336b8dd", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "4cdeb4c58baf", "measures": "7c78f31e5930", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->

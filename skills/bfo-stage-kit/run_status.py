@@ -58,22 +58,104 @@ def judges_note(reg):
             f"wrong rows are built for three judges per row")
 
 
+def reading_units(reg, units):
+    """(owed the whole unit reading check, owed provenance only): each reading unit (never `flow`). One whose
+    deployable the go of the flow worked now took in (`services_in`; every unit when the go names none), or that was
+    surveyed after that go and not left out by it (go.services_read: code got for an external dependency), is owed the
+    whole check whatever its folder and rows: the flow reads it for itself, so a unit an earlier flow read, or one never
+    written, is not let off. Any other unit with a folder and rows of that flow, merged and judged as every unit folder
+    is, is owed the provenance of its cells, since no reader of it was launched."""
+    import provenance
+    took = go_record.services_read(reg)  # a service surveyed after the go is read too
+    deployable = {(r.get("unit") or "").strip(): ((r.get("deployable") or "").strip() or (r.get("unit") or "").strip())
+                  for r in tables.dicts(reg / layout.UNITS_CSV)}
+    readers = [u for u in units if u != "flow"]
+    whole = [u for u in readers if took is None or deployable.get(u, u).lower() in took]
+    return whole, [u for u in readers if u not in whole and layout.unit_dir(reg, u).is_dir()
+                   and provenance.current_rows(reg, u)]
+
+
+UNITS_MISSING = (f"the flow is not read in reading units ({layout.UNITS_CSV} is missing), so none of its findings is "
+                 "judged: run units.py, the readers, the merge and the judges (the steps' order), then this check again")
+
+
 def split_checks(reg):
     """A split run's checks in place of the sample re-read: every unit's rows judged by the number of judges
     run-settings.json sets and flagged rows judged again (judges.py, from the transcripts), and the map what a merge of
-    the unit folders gives (merge.py)."""
-    units = [r["unit"].strip() for r in tables.dicts(reg / layout.UNITS_CSV) if (r.get("unit") or "").strip()]
+    the unit folders gives (merge.py), with every call between units it leaves unmatched re-read and resolved
+    (merge.rereads). Above `merge_rereads` (run-settings.json) calls not resolved, re-reading them one by one is not the
+    remedy: the reason says to read again the units they call. A unit outside every scope so far (merge.py) owes
+    nothing and is not judged. Every reading unit of the go's scope, whatever its rows, is owed the unit
+    reading check (reading_check.py --unit): read in full by its own reader, every cell of its tables accounted for by
+    its typed writers (provenance.py). Any other unit with a folder and rows of that flow is owed the provenance of its
+    cells alone: it is merged and judged as every unit folder is. With no units.csv the flow was never read in units,
+    and nothing of it is judged: that is the reason, and no other check runs."""
+    if not (pathlib.Path(reg) / layout.UNITS_CSV).is_file():
+        return [f"Units: NOT DONE: no {layout.UNITS_CSV}"], [UNITS_MISSING]
+    outside = merge.out_of_scope_units(reg)
+    units = [r["unit"].strip() for r in tables.dicts(reg / layout.UNITS_CSV) if (r.get("unit") or "").strip()
+             and r["unit"].strip() not in outside]
     lines, why = [], []
+    import units as unit_list  # the reader rule keys on units.csv, so units.csv is checked first
+    s = go_record.load(reg) or {}
+    took = go_record.services_read(reg, s) if s else None
+    differ = unit_list.differences(reg, took) if s else []
+    lines.append("Units against units.py: " + ("ok" if not differ else f"NOT DONE: {len(differ)} difference(s)"))
+    lines += [f"  {d}" for d in differ]
+    if differ:
+        why.append(f"{layout.UNITS_CSV} is not what units.py derives for the go's scope, so a service of it would go "
+                   "unread (" + "; ".join(differ) + "): run units.py, then the readers it owes")
     n = judges_per_row(reg)
     for u in units:
         for r in (judges.check(reg, u), judges.fix_check(reg, u)):
             lines += r.lines()
             if not r.passed and not any(w.startswith("rows not judged by ") for w in why):
                 why.append(f"rows not judged by {COUNT_WORDS.get(n, n)} judge{'s' if n != 1 else ''}")
+    import readers  # which units of the go's scope still owe a reader for this flow: printed, never worked out alone
+    owed, read = ([u for u in got if u != "flow"] for got in readers.in_scope(reg))
+    lines.append("Readers owed for this flow: " + (
+        f"{', '.join(owed)} (python readers.py prompt <register> --in-scope)" if owed else
+        "none" + (f" (read for this flow: {', '.join(read)})" if read else "")))
+    unread = []
+    whole, cells_only = reading_units(reg, units)
+    for u in whole:
+        r = reading_check.check_unit(reg, u)
+        lines += r.lines()
+        if not r.passed:
+            unread.append(u)
+    for u in cells_only:
+        import provenance
+        got = provenance.unit(reg, u).problems
+        lines.append(f"Unit {u}. Outside the go's scope, cells: " + ("ok" if not got else
+                                                                     f"NOT ACCOUNTED: {len(got)} problem(s)"))
+        lines += [f"  provenance: {p}" for p in got[:50]]
+        if got:
+            unread.append(u)
+    if unread:
+        why.append("units not read in full by their own reader, or with cells no writer of theirs accounts for: "
+                   + ", ".join(unread))
     _, problems = merge.check(reg)
     lines.append("Merge: ok" if not problems else f"Merge: NOT DONE: {'; '.join(problems)}")
     if problems:
         why.append("the map is not the merge of the units: " + "; ".join(problems))
+    calls = merge.rereads(reg)
+    left = [c for c in calls if not c["resolved"]]
+    if not calls:
+        lines.append("Unmatched calls between units: none")
+    elif not left:  # a call naming no unit could be re-read on its calling side only, and is said apart
+        one_sided = sum(1 for c in calls if c["calling_side_only"])
+        lines.append(f"Unmatched calls between units: ok: {len(calls)} re-read and labelled disputed"
+                     + (f", {one_sided} of them on the calling side only (no unit named)" if one_sided else ""))
+    else:
+        lines.append(f"Unmatched calls between units: NOT DONE: {len(left)} of {len(calls)} not re-read and resolved")
+        lines += [f"  {c['problem']}" for c in left[:40]]
+        lines += [f"  ... and {len(left) - 40} more"] if len(left) > 40 else []
+        why.append(f"calls between units not re-read and resolved: {len(left)}")
+        cap = settings.number(settings.load(reg), "merge_rereads")
+        if len(left) > cap:
+            called = ", ".join(sorted({c["to_unit"] for c in left if c["to_unit"]})) or "none named"
+            why.append(f"{len(left)} calls between units unmatched, more than the {cap} merge_rereads allows to "
+                       f"re-read one by one: read again the units they call ({called})")
     return lines, why
 
 STAGE_FILES = ("STRUCTURE.md", "MEASURES.md", "ALERT.md", "RUNBOOK.md", "ALERT.html", "RUNBOOK.html")
@@ -104,10 +186,34 @@ DEPTH_FILES = {"none": (), "measure": ("STRUCTURE.md", "MEASURES.md"),
                "alerting": ("STRUCTURE.md", "MEASURES.md", "ALERT.md", "ALERT.html"), "runbooks": STAGE_FILES}
 
 
+UNTRIED = ("Before hand-over: {n} runbook tests not yet tried on a known case: try each once, on a case whose answer "
+           "is known (a seeded row or a reproduced failure), and record it in how-made.csv")
+
+
+def untried_tests(reg):
+    """How many tests the runbooks hold, none of which the run has tried on a known case: each failure mode with a
+    test, of every stage taken to runbooks (every stage with a runbook, in a run with no pick of how far each goes).
+    The run reads code and runs nothing, so none is tried; the count is a readiness item owed before hand-over, said
+    in the done check's report and never in the runbook, and never a reason the run is not done."""
+    import flow_outputs as fo
+    reg = pathlib.Path(reg)
+    depth = depth_of(reg)
+    wanted = ({s for s, d in depth.items() if d == "runbooks"} if depth else
+              {p.name[len("stage-"):] for p in reg.glob("stage-*") if (p / "RUNBOOK.md").is_file()})
+    if not wanted:
+        return 0
+    R = fo.load(reg)
+    flow_of = {r["stage"]: r.get("flow") for r in R["stages"]}
+    modes = set()
+    for s in sorted(wanted & set(flow_of)):
+        modes |= {r["mode_id"] for r in fo.live(fo.build(R, flow_of[s], s)) if (r.get("test") or "").strip()}
+    return len(modes)
+
+
 def depth_of(reg):
     """{stage: none | measure | alerting | runbooks}, how far the person chose to take each stage (scope.json `depth`,
     written by go.py --depth), or None for a run whose person made no such choice."""
-    got = (go_record.load(reg) or {}).get("depth")
+    got = go_record.depth_all(reg)  # every flow picked in this register, each stage at its own flow's pick
     return dict(got) if isinstance(got, dict) else None
 
 
@@ -270,6 +376,18 @@ def counted_at_missing(reg):
     return [e for m in table(reg, "measures") for e in fo.counted_at_failures(m, products)]
 
 
+def agent_classing(reg):
+    """The map's classing of each AI agent's tools, replies and chained actions as its decisions or not (FILL-STEPS
+    Step 7): the rules' messages for every flow, so a mapping-only run owes it as much as one taken further."""
+    import map_record as mr
+    try:
+        R = mr.load(reg)
+    except (OSError, KeyError, ValueError):  # a register too incomplete to read is reported by the other checks
+        return []
+    flows = [f["flow_id"] for f in R["flows"] if any(s["flow"] == f["flow_id"] for s in R["stages"])]
+    return list(dict.fromkeys(mr.chain_failures(R) + [e for f in flows for e in mr.class_failures(R, f)]))
+
+
 def blank_drawings(reg):
     """Every drawing page in the register folder that came out with no content: the map, each flow, stage, step and
     part page, and on the map page each figure on its own: the map ("views.html (the map)") and each step, stage, flow
@@ -306,6 +424,51 @@ def blank_drawings(reg):
             blank += [f"{rel} ({words[k[:2]]} {k[2:]})" for k, v in n.items()
                       if k[:2] in on_map and k[2:] in on_map[k[:2]] and not v]
     return sorted(blank)
+
+
+def mapping_owed(reg, flow_id):
+    """[(what, how many, reason)]: the reasons report() gives for NOT DONE that are mapping's to put right, run when
+    mapping ends (check_map.py at the map stop) by the same predicates report() runs, so mapping cannot call its
+    phases done while the done check would still fail on its rows. `what` is "questions", "register", "drawings" or
+    "code". Mapping's: the view questions a flow mapped only is asked (its stages', steps' and flow's, and every
+    part's; none of measuring's, alerting's or runbooks'), the register check the drawing runs (undrawable), the
+    drawings (blank_drawings), and, in a
+    run with a plan that is not split, the code its rows cite (reading_check). Also mapping's, and already rules of
+    check_map.py: agent classing, an id used twice, a finished flow's row changed. Not mapping's: the stage files the
+    depth pick owes, their freshness, counted_at, the measures review, and the re-read, which the kit draws after."""
+    reg = pathlib.Path(reg)
+    out = []
+    own = [s.get("stage", "").strip() for s in table(reg, "stages") if s.get("flow", "").strip() == flow_id]
+    _, why = view_questions(reg, own, set(), set(), set())
+    if why:
+        n = sum(int(m) for w in why for m in re.findall(r" (\d+) (?:empty|gapped not read)", w)) or len(why)
+        out.append(("questions", n, f"view questions not answered: {'; '.join(why)}"))
+    refused = undrawable(reg)
+    if refused:
+        out.append(("register", len(refused), cannot_draw_reason(refused)))
+    blank = blank_drawings(reg)
+    if blank:
+        out.append(("drawings", len(blank), f"drawings with no content ({', '.join(blank)}): find why the drawing "
+                    "came out empty and draw it again"))
+    if plan_and_go(reg)[0] and not (reg / layout.UNITS_CSV).is_file() and not reading_check.check(reg).passed:
+        out.append(("code", 1, "cited code not read by the run (python reading_check.py <register folder> names "
+                    "what to read, cite or set aside)"))
+    return out
+
+
+def undrawable(reg):
+    """The register check's errors, the ones the map's drawing (one_canvas.py, capability_views.py --check) refuses
+    on: [] when the map can be drawn. Run at the map stop, so mapping never reports done on a map that cannot be drawn
+    (the inspection and the register check can pass while the drawing still refuses rows, such as parts with no kind)."""
+    sys.path.insert(0, str(HERE))
+    import capability_views as cv
+    return cv.check(cv.load(reg))[0]
+
+
+def cannot_draw_reason(errors):
+    shown = "; ".join(errors[:5]) + (f"; and {len(errors) - 5} more" if len(errors) > 5 else "")
+    return (f"the map cannot be drawn: its register check refuses {len(errors)} row(s): {shown} (python "
+            "capability_views.py <register folder> --check lists each)")
 
 
 def present(reg, rel):
@@ -359,19 +522,32 @@ def share(n, total):
 
 def receipt_lines(reg):
     """The coverage receipt of each flow, flow-wide, counted as `flow_outputs.py --check` counts it: elements, those
-    a candidate in measures.csv covers, and those not covered that a row of measure-gaps.csv accounts for."""
+    a candidate in measures.csv covers, and those not covered that a row of measure-gaps.csv accounts for. With no
+    stage measured by the person's pick, no receipt is owed (flow_outputs.receipt_failures runs none), and the line
+    says so rather than count one."""
     flows = [f.get("flow_id", "").strip() for f in table(reg, "flows")]
     with_stages = {s.get("flow", "").strip() for s in table(reg, "stages")}
     flows = [f for f in flows if f and f in with_stages]
     if not flows:
         return ["receipt: none (no flow with a stage row)"]
+    depth, none_owed = depth_of(reg), []
+    if depth is not None:  # a flow every stage of which is mapped only owes no measures, so no receipt
+        of_flow = {}
+        for s in table(reg, "stages"):
+            of_flow.setdefault(s.get("flow", "").strip(), []).append(s.get("stage", "").strip())
+        mapped_only = [f for f in flows if all(depth.get(s, "none") == "none" for s in of_flow.get(f, []))]
+        flows = [f for f in flows if f not in mapped_only]
+        none_owed = [f"receipt for {f}: not owed (no stage is measured: each is mapped only)"
+                     for f in mapped_only]
+        if not flows:
+            return none_owed
     try:
         sys.path.insert(0, str(HERE))
         import flow_outputs as fo
         R = fo.load(reg)
     except Exception as e:  # a register the generator cannot read still gets its other counts
         return [f"receipt: not counted ({type(e).__name__}: {e})"]
-    out = []
+    out = list(none_owed)
     for flow in flows:
         try:
             rec = fo.receipt(R, flow)
@@ -438,6 +614,19 @@ def view_questions(reg, owed, measured=None, alerting=None, runbooks=None):
     head = (f"view questions (answered / gapped / empty), first run: {'yes' if first else 'no'} (how-made.csv); "
             "required and answer-or-gap ones decide DONE, count-only ones never do")
     return [head] + vq.lines(C), why
+
+
+def questions_owed_mapped_only(reg):
+    """What the done check will owe of the map for the flow worked now if it is left mapped only, and every earlier
+    flow at its own pick: the view questions' reasons, exactly as the done check states them. Mapping's own end check
+    (run_status.py --mapping, and go.py --mapping-ends), so mapping never hands back a map the done check then refuses."""
+    depth = dict(depth_of(reg) or {})
+    for s in table(reg, "stages"):
+        depth.setdefault(s.get("stage", "").strip(), "none")
+    depth.pop("", None)
+    return view_questions(reg, sorted(depth), {s for s, d in depth.items() if d != "none"},
+                          {s for s, d in depth.items() if d in ("alerting", "runbooks")},
+                          {s for s, d in depth.items() if d == "runbooks"})[1]
 
 
 def fullness(reg, extra=()):
@@ -511,9 +700,13 @@ def scope_of(reg):
     if recorded is not None:
         ids = [str(x).strip() for x in recorded.get("stage_ids") or [] if str(x).strip()]
         if not ids:
-            return None, ("the person has not yet picked how far each stage goes (after mapping: python go.py "
-                          "<register> --depth ...); an earlier run, whose go named stages, records them as scope.json "
-                          "stage_ids (python go.py <register> --stage-ids <id>)")
+            pick = ("the person has not yet picked how far each stage goes (after mapping: python go.py <register> "
+                    "--depth ...)")
+            if not recorded.get("stages"):  # a go by this kit names no stages: --stage-ids does not apply to it
+                return None, pick
+            return None, (pick + "; this run's go is from before that pick and named stages, so it may instead record "
+                          "the ids of exactly those stages as scope.json stage_ids (python go.py <register> "
+                          "--stage-ids <id>)")
         known = {(r.get("stage") or "").strip() for r in table(reg, "stages")} - {""}
         bad = [x for x in ids if known and x not in known]
         if bad:
@@ -622,7 +815,7 @@ def report(reg, named=(), full=True):
     if old:
         said += f"; {old} stale (generated from the register as it was, not as it is now)"
         reasons.append(f"{old} stale, generated from the register as it was ({', '.join(aged)})")
-    unread = False
+    unread = reread_pending = False
     if planned:
         reading = reading_check.check(reg)
         out.append("\n".join(reading.lines()))
@@ -630,7 +823,7 @@ def report(reg, named=(), full=True):
         if unread:
             said += "; cited code not read by the run"
             reasons.append("cited code not read by the run")
-        if (reg / layout.UNITS_CSV).is_file():
+        if in_units(reg):
             lines, why_split = split_checks(reg)
             out.append("\n".join(lines))
             if why_split:
@@ -640,10 +833,10 @@ def report(reg, named=(), full=True):
         else:
             sample = reread.check(reg)
             out.append("\n".join(sample.lines()))
-            if not sample.passed:
-                unread = True
+            if not sample.passed:  # gates the run's DONE and its report, never the next flow
+                reread_pending = True
                 said += "; sampled rows not re-read and borne out"
-                reasons.append("sampled rows not re-read and borne out")
+                reasons.append(REREAD_REASON)
     if no_scope:
         said += f"; {no_scope}"
         reasons.append(no_scope)
@@ -661,10 +854,50 @@ def report(reg, named=(), full=True):
         reasons.append("measures with a citation and no counted_at (" +
                        ", ".join(u.split(":")[0][len("measures.csv "):] for u in unplaced) +
                        "): write where each is counted, from its own citation")
+    changed, twice = go_record.earlier_rows_changed(reg), go_record.reused_ids(reg)
+    out += [f"CHANGED (a finished flow's row): {c}" for c in changed] + [f"ID USED TWICE: {t}" for t in twice]
+    if changed:
+        said += f"; {len(changed)} row{'s' if len(changed) > 1 else ''} of a finished flow changed"
+        reasons.append("rows of a finished flow changed (" + "; ".join(changed) + "): put each back as it was; a "
+                       "correction to a finished flow goes in corrections.csv")
+    if twice:
+        said += f"; {len(twice)} id{'s' if len(twice) > 1 else ''} used twice"
+        reasons.append("ids used twice (" + "; ".join(twice) + "): a further flow's ids continue after the highest "
+                       "the map holds")
+    unclassed = agent_classing(reg)
+    out += [f"AI AGENT NOT CLASSED: {e}" for e in unclassed]
+    if unclassed:
+        said += f"; {len(unclassed)} AI agent row{'s' if len(unclassed) > 1 else ''} not classed"
+        reasons.append("an AI agent's tools, replies or chained actions not classed as its decisions or not (Step 7): "
+                       + "; ".join(unclassed))
+    unreviewed = measures_review_reasons(reg)
+    out += [f"MEASURES REVIEW: {r}" for r in unreviewed]
+    if unreviewed:
+        said += "; the review of the measures " + ("not recorded" if any("not recorded" in r for r in unreviewed)
+                                                   else "outdated by a later change"
+                                                   if any("changed after" in r for r in unreviewed)
+                                                   else "owes a request still open")
+        reasons += unreviewed
     if why:
         reasons.append(f"view questions not answered: {'; '.join(why)}")
-    done = not (missing or why or old or unread or no_scope or blank or unplaced)
-    note = judges_note(reg) if planned and (reg / layout.UNITS_CSV).is_file() else ""
+    outputs_done = not (missing or why or old or unread or no_scope or blank or unplaced or changed or twice
+                        or unclassed or unreviewed)
+    done = outputs_done and not reread_pending
+    if planned:  # a split run's rows are judged by the judges, and it draws no sample to re-read
+        out.append(state_said(outputs_done, None if in_units(reg) else own_reread_passed(reg)))
+        pending = earlier_pending(reg)
+        if pending:  # a later flow's report says, under What remains, which earlier flow's re-read is still owed
+            out.append("What remains, for this flow's report: the re-read of " + ", ".join(pending) + ".")
+        out.append("Close (phase 7): done when every flow's report is sent" + (
+            "." if in_units(reg) else ", each once its own re-read has passed."))
+        out += flow_states(reg, outputs_done)
+    try:
+        untried = untried_tests(reg)
+    except Exception:  # a readiness count, owed before hand-over: it never changes whether the run is done
+        untried = 0
+    if untried:
+        out.append(UNTRIED.format(n=untried))
+    note = judges_note(reg) if planned and in_units(reg) else ""
     if not done:
         out.append(f"NOT DONE: {said}" + (f"; view questions not answered: {'; '.join(why)}" if why else "")
                    + (f"; {note}" if note else ""))
@@ -681,6 +914,224 @@ def report(reg, named=(), full=True):
     return out, done, reasons
 
 
+VERDICT = "done-check.json"  # the done check's last verdict, with the map it was given on
+REREAD_REASON = "sampled rows not re-read and borne out"
+
+
+def state_said(outputs_done, reread_passed):
+    """The two states the done check holds apart: this flow's outputs (they open the next flow), and its re-read
+    (with the rest, it makes the run DONE and lets its report go onward)."""
+    if not outputs_done:
+        return "State: this flow's outputs: not done."
+    if reread_passed is None:
+        return "State: this flow's outputs: done."
+    return f"State: this flow's outputs: done; its re-read: {'passed' if reread_passed else 'pending'}."
+
+
+def measures_review_reasons(reg):
+    """Why the measures review holds the run back: the flow worked now, with a stage its pick measures, has no go on
+    its measures (where RUN.md has the review's row: an earlier register is not held to it); and, for every flow with
+    a go, each of its rows of proposing the measures changed, added or gone since. [] when none."""
+    reg = pathlib.Path(reg)
+    out = []
+    cur = go_record.load(reg)
+    measured = any(d != "none" for d in ((cur or {}).get("depth") or {}).values())
+    if cur is not None and measured and go_record.measures_review_state(reg)[0] and not cur.get("measures_reviewed"):
+        out.append(f"the person's review of the measures is not recorded for the flow {cur.get('flow', '')}: show "
+                   "them the measures (brief.py measures) and record their answer (go.py --measures-reviewed)")
+    for s in go_record.load_all(reg):
+        if not s.get("measures_reviewed"):
+            continue
+        fid = go_record.flow_id_of(reg, s)
+        changed = go_record.measures_changed(reg, fid)
+        if changed:
+            out.append(f"the flow {s.get('flow', fid)}'s measures changed after the review of the measures ("
+                       + "; ".join(changed) + "): show the person the measures again and record their answer")
+    for r in go_record.measures_requests(reg):  # a later step asked proposing the measures, which has not answered
+        cid = (r.get("correction_id") or "").strip()
+        out.append(f"corrections.csv {cid} asks proposing the measures for a change to {r.get('table')}.csv and is "
+                   f"still open: take the run back to it (go.py --back-to-measures {cid}), take the request up or "
+                   "turn it down there, and show the person the measures again")
+    return out
+
+
+def in_units(reg):
+    """The flow worked now is mapped in reading units: every finding that cites code is judged (split_checks), no
+    sample is drawn, and nothing waits on one. So is every flow whose go this kit recorded (go.IN_UNITS), whether or not
+    units.csv is there yet: without it the flow is not done. Only a flow an earlier release took the go of, in a
+    register with no units.csv, keeps its sample."""
+    reg = pathlib.Path(reg)
+    return (reg / layout.UNITS_CSV).is_file() or bool((go_record.load(reg) or {}).get(go_record.IN_UNITS))
+
+
+def owes_sample(reg, s):
+    """The flow `s` records drew a sample of ten to re-read: its go was taken by an earlier release (no go.IN_UNITS),
+    and the register is not mapped in units."""
+    return not (s.get(go_record.IN_UNITS) or (pathlib.Path(reg) / layout.UNITS_CSV).is_file())
+
+
+def own_reread_passed(reg):
+    """The flow worked now's own sample re-read and borne out (another flow's pending re-read is that flow's). A
+    register mapped in units draws none: its findings are judged as part of its outputs."""
+    import reread
+    reg = pathlib.Path(reg)
+    if in_units(reg):
+        return True
+    s = go_record.load(reg)
+    sheet = reread.sheet_for(reg, s)
+    return sheet.is_file() and reread.check_sheet(reg.resolve(), sheet).passed
+
+
+def earlier_pending(reg):
+    """The flows before the one worked now whose own re-read has not passed, by name (none in a register mapped in
+    units, which draws no sample)."""
+    import reread
+    reg = pathlib.Path(reg)
+    cur = go_record.load(reg)
+    out = []
+    for s in go_record.load_all(reg):
+        if (cur is not None and s.get("flow") == cur.get("flow")) or not owes_sample(reg, s):
+            continue
+        sheet = reread.sheet_for(reg, s)
+        if not (sheet.is_file() and reread.check_sheet(reg.resolve(), sheet).passed):
+            out.append(s.get("flow", ""))
+    return out
+
+
+def report_current(reg, s):
+    """The flow `s`'s report is sent, and no correction to its rows was applied since: a later correction owes it
+    again, once its re-read has passed."""
+    return bool(s.get("report_sent")) and not reread.corrected_since_report(reg, s)
+
+
+def flow_states(reg, outputs_now=None):
+    """One line per flow the register has started: its outputs (done for a flow already finished; for the flow
+    worked now, as this check finds them), its re-read (its own sample) and its report (sent once its re-read has
+    passed: an earlier flow's report is owed then, while a later flow is under way)."""
+    import reread
+    reg = pathlib.Path(reg)
+    cur = go_record.load(reg)
+    out = []
+    for s in go_record.load_all(reg):
+        units = not owes_sample(reg, s)  # its findings are judged with its outputs, and no sample is drawn
+        now = cur is not None and s.get("flow") == cur.get("flow")
+        done = (outputs_hold(reg) if outputs_now is None else outputs_now) if now else True
+        sheet = reread.sheet_for(reg, s)
+        passed = units or (sheet.is_file() and reread.check_sheet(reg.resolve(), sheet).passed)
+        again = bool(s.get("report_sent")) and not report_current(reg, s)
+        report = ("sent" if s.get("report_sent") and not again else "owed now" if done and passed
+                  else "waits on its re-read" if done else "waits on its outputs")
+        out.append(f"Flow {s.get('flow', '')}: outputs: {'done' if done else 'not done'}; "
+                   + ("" if units else f"re-read: {'passed' if passed else 'pending'}; ") + f"report: {report}"
+                   + (" again (corrected after it was sent)" if again else "")
+                   + (" (record it with go.py --report-sent once sent)" if report == "owed now" else ""))
+    return out
+
+
+def outputs_done_of(done, reasons):
+    """Everything but the sampled re-read passed: the next flow can open."""
+    return bool(done) or (bool(reasons) and all(r == REREAD_REASON for r in reasons))
+
+
+ROUND_RECORD = re.compile(r"r\d+-rows\.csv")  # judging/<unit>/r<n>-rows.csv: derived, never fingerprinted
+
+
+def _rows_digest(files, root):
+    """One digest of the files' rows, each read as rows (a byte-order mark, line endings or quoting change nothing)
+    and named by its path under root."""
+    import hashlib
+    import json
+    got = []
+    for p in sorted(files, key=lambda q: q.relative_to(root).as_posix()):
+        with p.open(encoding="utf-8-sig", newline="") as f:
+            got.append([p.relative_to(root).as_posix(), [r for r in csv.reader(f) if any(c.strip() for c in r)]])
+    return hashlib.sha256(json.dumps(got, ensure_ascii=False).encode("utf-8")).hexdigest()[:12]
+
+
+def verdict_fingerprint(reg):
+    """The fingerprint a stored verdict is kept with: the map's tables (flow_outputs.fingerprint) and, in a split run,
+    its units (units.csv and each unit's tables, files.csv aside) and its verdict files (judgements.csv and the round
+    records aside, being derived). A register with no units/ or judging/ has the map's tables alone."""
+    import flow_outputs as fo
+    reg = pathlib.Path(reg)
+    out = fo.fingerprint(reg)
+    units = reg / layout.UNITS
+    if units.is_dir():
+        files = [p for p in units.glob("*.csv")] + [p for t in layout.UNIT_TABLES for p in units.glob(f"*/{t}.csv")]
+        out[layout.UNITS] = _rows_digest(files, reg)
+    verdicts = [p for p in layout.judging_dir(reg).glob("*/*.csv") if not ROUND_RECORD.fullmatch(p.name)]
+    if verdicts:
+        out[layout.JUDGING] = _rows_digest(verdicts, reg)
+    return out
+
+
+MAPPING_CHECK = "mapping-check.json"  # the split checks' verdict at the end of mapping alone, with its fingerprint
+
+
+def split_reasons(reg):
+    """split_checks' reasons, the units not judged named: [] when the split checks pass."""
+    lines, why = split_checks(reg)
+    bad = sorted({m.group(1) for ln in lines for m in [re.match(r"(?:Judging|Fixing) of unit (\S+), round \d+: .*NOT "
+                                                                r"DONE", ln)] if m})
+    return [w + (f" (units: {', '.join(bad)})" if w.startswith("rows not judged") and bad else "") for w in why]
+
+
+def store_mapping_check(reg, flow_id):
+    """At the end of mapping alone, the split checks: their reasons when they do not pass, else [] and their verdict
+    stored with the fingerprint, so the flow stays finished after its transcripts are gone, and only while nothing
+    the fingerprint covers changes."""
+    import json
+    reasons = split_reasons(reg)
+    if not reasons:
+        got = {"passed": True, "flow": flow_id, "tables": verdict_fingerprint(reg)}
+        (pathlib.Path(reg) / MAPPING_CHECK).write_text(json.dumps(got) + "\n", encoding="utf-8")
+    return reasons
+
+
+def mapping_check_holds(reg):
+    """A flow not mapped in units (an earlier release's go, no units.csv), or the split checks' stored verdict at the
+    end of mapping alone passed and nothing it covers has changed since."""
+    import json
+    reg = pathlib.Path(reg)
+    if not in_units(reg):
+        return True
+    try:
+        got = json.loads((reg / MAPPING_CHECK).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return bool(got.get("passed")) and got.get("tables") == verdict_fingerprint(reg)
+
+
+def record_verdict(reg, done, outputs_done=None):
+    """The done check's verdict, kept with the fingerprint of the map it judged: phase 7 counts done only while it
+    says DONE on the map as it is now, and the next flow opens while its outputs are done, the re-read apart."""
+    import json
+    got = {"done": bool(done), "outputs_done": bool(done if outputs_done is None else outputs_done),
+           "tables": verdict_fingerprint(reg)}
+    (pathlib.Path(reg) / VERDICT).write_text(json.dumps(got) + "\n", encoding="utf-8")
+
+
+def outputs_hold(reg):
+    """The done check said this flow's outputs are done (the re-read apart), and the map has not changed since."""
+    import json
+    try:
+        got = json.loads((pathlib.Path(reg) / VERDICT).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return bool(got.get("outputs_done", got.get("done"))) and got.get("tables") == verdict_fingerprint(reg)
+
+
+def verdict_holds(reg):
+    """The done check said DONE, and the map has not changed since."""
+    import json
+    p = pathlib.Path(reg) / VERDICT
+    try:
+        got = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return bool(got.get("done")) and got.get("tables") == verdict_fingerprint(reg)
+
+
 def verdict(reg, named=()):
     """(done, the reasons it is not): the DONE or NOT DONE line's decision, without the Fullness counts."""
     _, done, reasons = report(pathlib.Path(reg), named, full=False)
@@ -688,12 +1139,29 @@ def verdict(reg, named=()):
 
 
 def main(argv):
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
+    import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
+    run_lock.refuse_unless_register(argv)
     if not argv:
         sys.exit(__doc__)
     reg = pathlib.Path(argv[0])
     if not reg.is_dir():
         sys.exit(f"not a folder: {reg}")
-    out, done, _ = report(reg, argv[1:])
+    if argv[1:] == ["--mapping"]:  # mapping's end check: what the done check owes of a map left mapped only
+        owed, refused = questions_owed_mapped_only(reg), undrawable(reg)
+        if not owed and not refused:
+            print("MAPPED: the map answers every question the done check asks of a flow left mapped only, and can be "
+                  "drawn")
+            return 0
+        said = (["view questions not answered: " + "; ".join(owed) + ". Answer each in the register, or write its gap "
+                 "with the reason"] if owed else []) + ([cannot_draw_reason(refused)] if refused else [])
+        print("NOT MAPPED: " + ". ".join(said) + ". Put each right and run this again.")
+        return 1
+    out, done, reasons = report(reg, argv[1:])
+    import run_lock
+    d = run_lock.read(reg)  # the verdict is the run's: a check run by another session while it works writes nothing
+    if not (d and d["run"] != run_lock.identity() and not run_lock.stale(d)):
+        record_verdict(reg, done, outputs_done_of(done, reasons))
     for line in out:
         print(line)
     return 0 if done else 1

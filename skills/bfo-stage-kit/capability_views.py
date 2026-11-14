@@ -27,7 +27,22 @@ HERE = pathlib.Path(__file__).resolve().parent
 METHOD = HERE / "method"
 
 TABLES = ["about", "capabilities", "flows", "stages", "steps", "subjects", "participation", "agent-system",
-          "measures", "step-impact", "case-attributes", "how-made", "sources", "expectations"]
+          "measures", "step-impact", "case-attributes", "how-made", "sources", "expectations", "alerts"]
+# the alert columns: chosen by phase 5a in alerts.csv, joined onto each measure when the register is read
+ALERT_COLUMNS = ("alert", "guards", "counted_moves")
+ALERT_MOVED = ("alert", "counted_moves")  # measures.csv columns of an earlier release, now alerts.csv's
+# The one upgrade instruction, in every message that names --migrate: the run upgrades a register an older kit wrote
+# without asking, since the migration changes no content and this kit cannot run the old form.
+REWORK = ("A fill from the register's own citations runs on its own and is announced; a re-walk, which reads the "
+          "code again, is announced before it starts, saying what will be re-read and why, and goes ahead unless they "
+          "object; only a failed check makes it a question")
+MIGRATE = ("upgrade it without asking: back the register folder up to a folder outside the workspace (inside it, the "
+           "start step would take the backup for an earlier register); run reconcile.py --migrate on the register "
+           "itself, which rewrites it in place; run this check again; and restart the page's listener so the page runs "
+           "this kit (listener.py stop, then wait_on_page.py). Tell the person in one line what was done and where the "
+           "backup is. Where the upgrade names AI agent rows not classed, mapping re-reads the code behind each "
+           "and classes it before the run is done, as a correction to mapping (corrections.csv for a finished flow's rows). "
+           + REWORK + ", so if this check still fails, stop and tell them")
 COUNTED_ON = ("cases", "events", "requests", "resources", "runs")
 LEVELS = ("component", "external dependency", "")
 RECOVERY = ("moves on", "stranded", "not created", "")
@@ -63,6 +78,22 @@ def read_csv(path, malformed=None):
     if not whole and malformed is not None:
         malformed.append(f"{path.name}: part of it could not be read; save it as UTF-8 text")
     return rows
+
+
+def join_alerts(measures, alerts):
+    """Each measure row given its alert columns from alerts.csv (blank where none is chosen), so a reader sees one row
+    per measure. A value an earlier release kept in measures.csv is never read: the check names those columns."""
+    by = {(a.get("handle") or "").strip(): a for a in alerts}
+    for m in measures:
+        a = by.get((m.get("handle") or "").strip(), {})
+        m.update({c: a.get(c) or "" for c in ALERT_COLUMNS})
+    return measures
+
+
+def alert_columns_left(reg):
+    """The alert columns an earlier release kept in the register's measures.csv."""
+    have = headers(pathlib.Path(reg), ["measures"]).get("measures", [])
+    return [c for c in ALERT_MOVED if c in have]
 
 
 def ids(v):
@@ -201,8 +232,7 @@ def column_failures(R, said=()):
         old = [(c, RENAMED[c]) for c in have if c in RENAMED and RENAMED[c] in defined and RENAMED[c] not in have]
         if old:
             err.append(f"{t}.csv: " + "; ".join(f"{o} is now called {n}" for o, n in old) + " (a register made with "
-                       "an earlier version of this kit): rename each header, keeping its values, or run "
-                       "reconcile.py --migrate on a copy of the register")
+                       "an earlier version of this kit): " + MIGRATE)
         have = [RENAMED.get(c, c) if (c, RENAMED.get(c)) in old else c for c in have]
         miss = [c for c, optional in defined.items() if not optional and c not in have
                 and not any(s.startswith(f"{t}.csv has no {c} column") for s in said)]
@@ -212,8 +242,13 @@ def column_failures(R, said=()):
                        f"fill it on every row as FILL-STEPS says, with its header from register-template/{t}.csv; "
                        f"never leave a cell of it blank"
                        + "".join(f". {c}: {EFFECT[(t, c)]}" for c in miss if (t, c) in EFFECT))
+        if t == "measures" and set(ALERT_MOVED) & set(have):
+            err.append(f"measures.csv: {', '.join(c for c in ALERT_MOVED if c in have)} now in alerts.csv, which only "
+                       "choosing the alerts writes (a register made with an earlier version of this kit): " + MIGRATE)
         extra = []
         for c in have:
+            if t == "measures" and c in ALERT_MOVED:
+                continue
             if (t, c) in RETIRED:
                 warn.append(RETIRED[(t, c)])
             elif c and c not in defined:
@@ -232,6 +267,8 @@ def load(reg):
     R["_defined"] = register_columns()
     R["_columns"] = headers(reg, R["_defined"])
     R["_malformed"] = malformed
+    R["_alert_columns_left"] = alert_columns_left(reg)
+    join_alerts(R["measures"], R["alerts"])
     R["_name"] = reg.name
     R["_path"] = reg
     R["method"] = {m: read_csv(METHOD / f"{m}.csv") for m in ("layers", "part-kinds", "agent-questions", "involvement",
@@ -280,7 +317,11 @@ def check(R):
     stages = unique("stages", "stage")
     steps = unique("steps", "step")
     subj = unique("subjects", "subject_id")
-    unique("measures", "handle")
+    handles = unique("measures", "handle")
+    for r in R.get("alerts", []):
+        if (r.get("handle") or "") not in handles:
+            err.append(f"alerts.csv {r.get('handle') or '(no handle)'}: names no measure in measures.csv; an alert is "
+                       "chosen from the measures, so name the measure's handle")
     for r in R["capabilities"]:
         if r.get("parent") and r["parent"] not in caps:
             err.append(f"capabilities.csv {r['capability_id']}: parent {r['parent']} is not a capability")
@@ -418,7 +459,7 @@ def check(R):
         if r.get("agent_question") in RENAMED_AGENT_QUESTIONS and r["agent_question"] not in aq:
             err.append(f"measures.csv {h}: agent_question {r['agent_question']} is now called "
                        f"{RENAMED_AGENT_QUESTIONS[r['agent_question']]} (a register made with an earlier version of this "
-                       "kit): rename the value, keeping the row, or run reconcile.py --migrate on a copy of the register")
+                       "kit): " + MIGRATE)
         elif r.get("agent_question") and r["agent_question"] not in aq:
             err.append(f"measures.csv {h}: agent_question {r['agent_question']!r} is not in method/agent-questions.csv")
         if layer_of(R, r.get("layer")) in ("business health", "business impact") and r.get("counted_on") != "cases":
@@ -440,8 +481,12 @@ def check(R):
             case_flows.setdefault(r["business_subject"], set()).add(stage_flow.get(r.get("stage")))
     for r in R["measures"]:
         sid = r.get("subject_id", "")
+        of_stage = stage_flow.get(r.get("stage"))
+        if r.get("flow") and of_stage and r["flow"] != of_stage:
+            warn.append(f"measures.csv {r['handle']}: a stage's measure names flow {r['flow']}, but its stage "
+                        f"{r['stage']} is in {of_stage}; it is counted for {of_stage}, so leave `flow` blank")
         if kinds.get(next((x.get("part_kind") for x in R["subjects"] if x["subject_id"] == sid), "")) == "case" \
-                and not r.get("step") and not r.get("flow") and len(case_flows.get(sid, ())) > 1:
+                and not r.get("step") and not r.get("flow") and not of_stage and len(case_flows.get(sid, ())) > 1:
             warn.append(f"measures.csv {r['handle']}: its case {sid} is shared by several flows; name the flow it "
                         "measures in `flow`, or it is counted for none")
     agents = {r["subject_id"] for r in R["subjects"] if kinds.get(r.get("part_kind")) == "agent"}
@@ -452,8 +497,7 @@ def check(R):
             err.append(f"agent-system.csv {r.get('id')}: agent {a!r} is not a subject whose part_kind is an agent kind")
         if r.get("element") in RENAMED_ELEMENTS:
             err.append(f"agent-system.csv {r.get('id')}: element {r['element']} is now called "
-                       f"{RENAMED_ELEMENTS[r['element']]} (a register made with an earlier version of this kit): rename "
-                       "the value, keeping the row, or run reconcile.py --migrate on a copy of the register")
+                       f"{RENAMED_ELEMENTS[r['element']]} (a register made with an earlier version of this kit): " + MIGRATE)
         elif r.get("element") not in AGENT_ELEMENTS:
             err.append(f"agent-system.csv {r.get('id')}: element must be one of {', '.join(AGENT_ELEMENTS)}")
         by_agent.setdefault(a, []).append(r)
@@ -491,6 +535,9 @@ def check(R):
         if not (r.get("pass") or "").isdigit():
             err.append(f"sources.csv {r.get('source_id')}: pass {r.get('pass')!r} is not a number")
         passes.add(r.get("pass"))
+    if R.get("_path"):  # each flow after the first is a pass: it reads the sources again, with no row of its own
+        import go
+        passes |= {str(n) for n in range(1, len(go.load_all(R["_path"])) + 1)}
     for r in R["how-made"]:
         if R["sources"] and (r.get("pass") or "1") not in passes:
             err.append(f"how-made.csv step {r.get('step')}: pass {r.get('pass')} is not a pass in sources.csv")
@@ -499,7 +546,7 @@ def check(R):
                 err.append(f"how-made.csv step {r.get('step')}: done_by {x!r} is not one of {', '.join(DONE_BY)}")
     for t in TABLES:
         for n, r in enumerate(R[t], 2):
-            if t in ("about", "how-made", "sources"):
+            if t in ("about", "how-made", "sources", "alerts"):  # an alert's citation is its measure's
                 continue
             if not any(r.get(c) for c in SOURCE_COLS) and not any(CITE.search(v) for v in r.values() if v):
                 warn.append(f"{t}.csv line {n}: no citation")
@@ -599,6 +646,8 @@ def model(R):
         if fam(s) == "case":
             if m.get("step"):
                 M["m_step"].setdefault(m["step"], []).append(m)
+            elif M["flow_of_stage"].get(m.get("stage")):  # a stage's measure belongs to its stage's flow
+                M["m_flow"].setdefault(M["flow_of_stage"][m["stage"]], []).append(m)
             elif m.get("flow"):
                 M["m_flow"].setdefault(m["flow"], []).append(m)
             elif len(flows_of_case.get(sid, ())) == 1:  # a case shared by several flows names its flow, or counts for none
@@ -1226,11 +1275,13 @@ def business_map(M, view, mid, opened=None, select_steps=None, draw_parts=True, 
         sub = ""
         if view == "reports":
             sub = f"coverage over {len(mine)} of its flows here" if mine else "none: a gap"
+        elif not mine and view != "join" and not any(m in by_any for m in members(cid)):
+            sub = NO_FLOW_SAID  # what it means, and what the person can do
         elif depth and not mine and view != "join":
             sub = "no flow here delivers it"
         elif depth:
             sub = "inside " + M["cap"].get(c.get("parent"), {}).get("name", "")
-        lines += sub_lines(sub, w - 24, 3) if sub else []
+        lines += sub_lines(sub, w - 24, 4 if sub == NO_FLOW_SAID else 3) if sub else []
         b = Box(x, w, lines, rx=8 if depth == 0 else 4)
         b.y = yy
         if view != "join":
@@ -2386,6 +2437,10 @@ ZOOM = ('<div class="zoom"><button type="button" data-zoom="in" aria-label="Zoom
         '<button type="button" data-zoom="fit">Fit</button>'
         '<button type="button" data-zoom="selection" disabled>Zoom to selection</button></div>')
 
+# A capability the documents name and no flow found in the code delivers (a documents-only pass): what it means and
+# what the person can do, on the map itself.
+NO_FLOW_SAID = ("no flow found in the code delivers it; only the documents name it. If a flow does carry it, name that "
+                "flow; if not, leave it")
 HINT_CLICK = ('Click any box to light the chain through it: the flow and capabilities it belongs to above it, the parts it relies on below it. Capabilities are tied to a whole flow, so every stage and step of a flow lights the same capabilities. '
               'Click it again, click empty space or press Escape to clear.')
 HINT_NUM = ('<p class="hint">The lines from steps to parts are light until you click. '
@@ -2459,6 +2514,9 @@ def section(n, title, ask, fig, cap):
 
 
 def main(argv=None):
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
+    import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
+    run_lock.refuse_unless_register(sys.argv[1:] if argv is None else argv)
     ap = argparse.ArgumentParser(description="Draws the design-for-operations views of one capability from its register.")
     ap.add_argument("register", help="the register folder")
     ap.add_argument("--out", help="the page to write (default: out/<register folder name>.html beside this program)")

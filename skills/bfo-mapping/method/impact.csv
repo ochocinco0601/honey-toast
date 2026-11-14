@@ -1,0 +1,5 @@
+impact_category,what_is_at_stake,typical_unit,notes
+customer,Customer experience and trust,journeys blocked; accounts affected,Often the first noticed and the last measured
+legal-risk-compliance,Regulatory exposure and control failure,reportable events; control exceptions,Consequence may be independent of volume
+operational-efficiency,Manual rework and absorbed cost,manual touches; FTE hours,Frequently invisible because the work still completes
+financial,Money directly at stake,value blocked; value at risk; value lost,"Unit depends on the flow — failed card charges, unsettled trades, undisbursed funds"

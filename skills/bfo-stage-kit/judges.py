@@ -1,25 +1,49 @@
 """Judge every row of a reading unit three times, collect the verdicts, and say whether the judging really happened.
 
 Usage: python judges.py rows <reg> <unit>
-       python judges.py run <reg> <ws> <unit> --round N [--rows all|flagged] [--model ID]
+       python judges.py run <reg> <ws> <unit> --round N [--rows all|flagged] [--model ID] [--again]
+                        [--transcripts DIR]
+       python judges.py emit <reg> <unit> --round N [--rows all|flagged] [--ws DIR] [--again] [--transcripts DIR]
        python judges.py collect <reg> [--transcripts DIR]
        python judges.py --check <reg> <unit> [--round N] [--transcripts DIR]
        python judges.py --fix-check <reg> <unit> [--round N] [--transcripts DIR]
 
-Every row of a unit that cites code gets `judges` judges (run-settings.json, default 3): each a fresh Claude Code
-process (`claude -p`, cwd the workspace <ws>) given the judge's agent definition (agents/bfo-row-judge.md) and one row,
+`emit` (the normal path) writes the prompt of every judge of the round whose verdict file is not yet on
+disk to <reg>/prompts/<unit>/<verdict file stem>.md, gathers their pointer lines ("Read <file> and do exactly what it
+says. Reply with one line.") into launcher files under <reg>/prompts/launch/ (judges-<unit>-r<n>[-<table>]-<i>.md, at
+most LAUNCHER_MAX agents each; the unit `flow` one or more per lead table), and prints a count, then one pointer line
+per launcher. The lead launches each launcher as a `general-purpose` subagent, which launches its judges as
+`general-purpose` subagents, at most `parallel` at once; the lead keeps at most the count line's number of launchers
+running (launcher_cap). Run again at any time, it launches no judge twice (Launches): it prints only judges
+whose verdict is not on disk and that were never launched, or that stopped (still running when their launcher
+replied); a launcher still running is left as it is and its judges held. `--again` is for after a crash or restart:
+the agents still named running died with the session that launched them, and are launched afresh; a finished one
+never is. (`run --again` is the `claude -p` path's: it removes the round's failing verdict files first.)
+
+Every row of a unit that cites code gets `judges` judges (run-settings.json, default 3): each a fresh agent (a
+subagent from `emit`, or under `run` a Claude Code process, `claude -p`, cwd the workspace <ws>) given the judge's agent definition (agents/bfo-row-judge.md) and one row,
 which opens the cited code with Read and writes its verdict, and nothing else, to
-`judging/<unit>/r<round>-j<n>-<table>-<row key>.csv`. A row any judge flags is fixed by its reader and judged again in
-the next round, only the flagged rows; still flagged in round `judge_rounds` (default 2), it is disputed, and
-`collect` puts `disputed: ` at the start of its claim cell. Formats: split-run-formats.md.
+`judging/<unit>/r<round>-j<n>-<table>-<name key>-<row hash>.csv`. A row any judge flags is fixed by its reader and
+judged again in the next round, only the flagged rows; still flagged in round `judge_rounds` (default 2), it is
+disputed, and `collect` puts `disputed: ` at the start of its claim cell. Rounds are counted by the row's identity
+(unit, table, key); the row hash in the name only says whether a verdict is current, so an edited row has no current
+verdict and a fixed row keeps its place in the rounds. `run --again` first removes the round's verdict files that fail
+the check (a judge that ran a shell, say), so their judges are launched afresh onto the same paths: the new judge
+never reads the old verdict, and the Write tool would refuse to overwrite a file it has not read. Formats:
+split-run-formats.md.
 
 `--check` reads the verdict files and Claude Code's own transcripts (found as reading_check.py finds them): for the
-unit's latest round, every row judged in it has `judges` verdict files, each written with Write by a different session
-that wrote nothing else, ran no shell, and opened every cited line with Read. It reports the model(s) the judges ran
-on. `--fix-check`: every row flagged in a round before the last has the next round's verdicts, passing the same check,
+unit's latest round, every row judged in it has `judges` verdict files at its current hash, each with an effective
+writer (the latest session whose successful Write equals the file on disk; other writers are named superseded), a
+different session per verdict, that wrote nothing else, ran no shell, and opened every cited line with Read. Verdicts
+at an older hash are listed as stale, never failed. A superseded writer that was itself a clean judge of a well-formed
+verdict fails the check (a clean verdict was replaced). Every row outside the round's scope is checked at its own
+latest round, at its current content, so an edited, added or re-keyed row is not done until judged. A Write or Edit
+whose tool result is an error is not a write. It reports the model(s) the judges ran on. `--fix-check`: every row flagged in a round before the last has the next round's verdicts, passing the same check,
 and every disputed row carries its label. Exit status 0 only when the check passes. `run` passes `--model` only when
 given one (the model the lead session runs on) or when the agent definition names one other than `inherit`."""
 import csv
+import hashlib
 import io
 import json
 import pathlib
@@ -44,12 +68,19 @@ HEADER = ",".join(VERDICT_FIELDS)
 JUDGEMENT_FIELDS = layout.JUDGEMENT_COLS
 VERDICTS = {"says", "does not say", "unclear"}
 CLAIMS = ("purpose", "activity", "operation", "name", "move", "failure", "measure")
-NOT_ROWS = {"sources", "how-made", "survey", "set-aside", "re-read", "re-read-history", "about"}
+NOT_ROWS = {"sources", "how-made", "survey", "re-read", "re-read-history", "about"}
+# the unit `flow`: mapping's lead tables (bfo-mapping/SKILL.md's outputs), never the measures step's
+FLOW_TABLES = ("flows", "lifecycle", "stages", "steps", "set-aside", "agent-system", "capabilities", "step-impact",
+               "case-attributes")
 MERGED = {"subjects", "participation"}  # rewritten by merge.py from the units, which are judged in their own folders
 ALLOWED = "Read,Grep,Glob,Write"
 DISALLOWED = "Bash,PowerShell,Edit,Agent,WebFetch,WebSearch"
 WRITE_TOOLS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
 DISPUTED = "disputed: "
+NAME_KEY_MAX = 40  # a longer key is named by its own hash, so the verdict path stays under Windows' 260 characters
+LAUNCHER_MAX = 150  # agents one launcher holds: its context grows with each agent it holds
+POINTER = "Read {} and do exactly what it says. Reply with one line."
+NO_SHELL = "Use no shell (no Bash, no PowerShell). Write only with the Write and Edit tools, and only {where}."
 
 
 def settings(reg):
@@ -95,7 +126,17 @@ def make_row(unit, table, key, header, cells, path=None, index=None):
     claim = next((h for h in CLAIMS if h in header), header[1] if len(header) > 1 else header[0])
     return {"unit": unit, "table": table, "key": key, "header": list(header), "cells": list(cells), "cited": cites,
             "citations": "; ".join(_cite(p, a, b) for p, a, b in cites),
-            "claim": claim, "path": path, "index": index}
+            "claim": claim, "path": path, "index": index, "hash": row_hash(cells)}
+
+
+def _hash12(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+
+
+def row_hash(cells):
+    """12 hex characters of the row's cells with `disputed: ` stripped, so the label collect adds never makes a verdict
+    stale."""
+    return _hash12(json.dumps([_strip(c) for c in cells], ensure_ascii=False))
 
 
 def _cite(p, a, b):
@@ -103,15 +144,73 @@ def _cite(p, a, b):
 
 
 def _tables(reg, unit):
+    """The unit's tables to judge. The unit `flow` is the lead's: an allowlist of mapping's lead tables at the root
+    (FLOW_TABLES), and the lead's own subjects and participation rows (merge/lead-rows/), never the measures step's
+    tables nor the merged root subjects and participation."""
     reg = pathlib.Path(reg)
     if unit == "flow":
-        return [p for p in sorted(reg.glob("*.csv")) if p.stem not in NOT_ROWS | MERGED]
+        got = [reg / f"{t}.csv" for t in FLOW_TABLES] + [reg / layout.LEAD_ROWS / f"{t}.csv" for t in sorted(MERGED)]
+        return [p for p in got if p.is_file()]
     return [p for p in sorted(layout.unit_dir(reg, unit).glob("*.csv")) if p.name != layout.FILES_CSV]
 
 
+def _key(unit, table, header, cells, col):
+    if unit == "flow":
+        import go
+        if table in go.ROW_KEYS:
+            return go.row_key(table, {h: _strip(c) for h, c in zip(header, cells)})
+    return _strip(cells[col])
+
+
 def rows(reg, unit):
-    """(judgeable rows of the unit, how many rows cite no code)."""
-    out, uncited = [], 0
+    """(judgeable rows of the unit of the flow worked now, how many of those rows cite no code). A finished flow's row
+    is never judged again (finished)."""
+    reg = pathlib.Path(reg).resolve()
+    done = finished(reg, unit)
+    every = [r for r in all_rows(reg, unit) if r["index"] not in done.get(r["path"], ())]
+    return [r for r in every if r["cited"]], sum(1 for r in every if not r["cited"])
+
+
+def finished(reg, unit):
+    """{table path: {row index}} of the unit's rows that are a finished flow's: rows the latest finished flow's judged
+    snapshot (earlier-flows/<id>/judged/) holds as they are now, `disputed: ` labels set aside. The snapshot holds the
+    rows as that flow finished; a row a correction changed since is judged again. A unit row is matched by row_id (provenance.current_rows); a row of the unit `flow` by its whole
+    content, as many times as the snapshot holds it."""
+    import provenance  # it imports this module
+    reg = pathlib.Path(reg).resolve()
+    snap = provenance.snapshot_dir(reg)
+    if snap is None:
+        return {}
+    out = {}
+    if unit != "flow":
+        current = set(provenance.current_rows(reg, unit))
+        for r in all_rows(reg, unit):
+            ident = (r["table"], _strip(r["cells"][r["header"].index("row_id")]) if "row_id" in r["header"] else "")
+            if ident not in current:
+                out.setdefault(r["path"], set()).add(r["index"])
+        return out
+    import go
+    for p in _tables(reg, "flow"):
+        lead = p.parent.name == pathlib.Path(layout.LEAD_ROWS).name
+        kept = snap / (layout.LEAD_ROWS if lead else "") / p.name
+        if not kept.is_file():
+            continue
+        _, old = go.table_rows(kept.parent, p.stem)  # as the flow finished: a correction since is judged again
+        pool = Counter(tuple(sorted((c, _strip(v or "")) for c, v in r.items() if c is not None))
+                       for r in old)
+        header, body = tables.grid(p)
+        for i, cells in enumerate(body):
+            cells = cells + [""] * (len(header) - len(cells))
+            k = tuple(sorted((c, _strip(v or "")) for c, v in zip(header, cells)))
+            if pool[k] > 0:
+                pool[k] -= 1
+                out.setdefault(p, set()).add(i)
+    return out
+
+
+def all_rows(reg, unit):
+    """Every row of the unit's tables, cited or not, as make_row makes them."""
+    out = []
     for p in _tables(reg, unit):
         header, body = tables.grid(p)
         if not header:
@@ -120,23 +219,134 @@ def rows(reg, unit):
         count = Counter()
         for i, cells in enumerate(body):
             cells = cells + [""] * (len(header) - len(cells))
-            base = _strip(cells[col])
+            base = _key(unit, p.stem, header, cells, col)
             count[base] += 1
             key = base if count[base] == 1 else f"{base}#{count[base]}"
-            r = make_row(unit, p.stem, key, header, cells, p, i)
-            if r["cited"]:
-                out.append(r)
-            else:
-                uncited += 1
-    return out, uncited
+            out.append(make_row(unit, p.stem, key, header, cells, p, i))
+    return out
 
 
-def verdict_name(rnd, j, table, key):
-    return f"r{rnd}-j{j}-{table}-{re.sub(r'[^A-Za-z0-9_-]', '_', key)}.csv"
+# ---- the round record: the rows as each round judged them ----
+
+RECORD_COLS = ["unit", "table", "row", "hash", "header", "cells"]
+FIX_CLASSES = ("claim narrowed", "citation changed", "relabelled proposed", "citation dropped", "withdrawn",
+               "unchanged")
+
+
+def record_path(reg, unit, rnd):
+    return layout.judging_dir(pathlib.Path(reg).resolve(), unit) / f"r{rnd}-rows.csv"
+
+
+def read_record(reg, unit, rnd):
+    """{(table, row): record row} of judging/<unit>/r<rnd>-rows.csv, or None when there is none."""
+    p = record_path(reg, unit, rnd)
+    if not p.is_file():
+        return None
+    return {(r["table"], r["row"]): r for r in tables.dicts(p)}
+
+
+def write_record(reg, unit, rnd, todo):
+    """Record every row in the round's scope, with its cells and hash. A row already recorded keeps its record once any
+    verdict of the round names it (the before-state its fix is classified from); before that, it is recorded as it is
+    now."""
+    old = read_record(reg, unit, rnd) or {}
+    for row in todo:
+        if (row["table"], row["key"]) in old and _any_hash(reg, row, rnd):
+            continue
+        old[(row["table"], row["key"])] = {"unit": unit, "table": row["table"], "row": row["key"],
+                                           "hash": row["hash"], "header": json.dumps(row["header"]),
+                                           "cells": json.dumps(row["cells"], ensure_ascii=False)}
+    p = record_path(reg, unit, rnd)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tables.write(p, RECORD_COLS, list(old.values()), lineterminator="\n")
+
+
+def record_problems(reg, unit, rnd):
+    """The round record checked against the judges' own files: each recorded row's cells hash to its recorded hash,
+    and that hash is one its round's verdict files carry in their `row_hash` column (they are written by the judges,
+    the record and the file names by the lead's script)."""
+    got = read_record(reg, unit, rnd)
+    out = []
+    for (table, key), r in sorted((got or {}).items()):
+        try:
+            cells = json.loads(r.get("cells") or "[]")
+        except ValueError:
+            cells = None
+        tag = f"round record r{rnd}-rows.csv: {table} {key}"
+        if not isinstance(cells, list) or row_hash(cells) != r.get("hash"):
+            out.append(f"{tag}: its cells do not hash to its recorded hash (the record was edited)")
+            continue
+        hashes = {v["row_hash"] if v else p.name[-len("0123456789ab.csv"):-len(".csv")]
+                  for _, p, v in _any_hash(reg, {"unit": unit, "table": table, "key": key}, rnd)}
+        if hashes and r["hash"] not in hashes:
+            out.append(f"{tag}: recorded at a content its round-{rnd} verdicts never judged (the record was edited)")
+    return out
+
+
+def flagged_ids(reg, unit, rnd):
+    """[(table, row)] the round's verdict files flag, read from the files' own columns."""
+    out = []
+    for p in round_files(reg, unit, rnd):
+        v = read_verdict(p)
+        if v is not None and v["round"] == str(rnd) and v["verdict"] != "says" and (v["table"], v["row"]) not in out:
+            out.append((v["table"], v["row"]))
+    return out
+
+
+def classify_fixes(reg, unit, rnd):
+    """{(table, row): class} of every row the round flagged, from its recorded cells and the row as it is now: claim
+    narrowed, citation changed, relabelled proposed, citation dropped, withdrawn (no row of that identity now, a key
+    changed included), unchanged; or "not classified: no round record". Relabels, dropped citations and withdrawals
+    are never counted as fixed."""
+    rec = read_record(reg, unit, rnd)
+    now = {(r["table"], r["key"]): r for r in all_rows(reg, unit)}
+    out = {}
+    for ident in flagged_ids(reg, unit, rnd):
+        if rec is None or ident not in rec:
+            out[ident] = "not classified: no round record"
+            continue
+        before = [_strip(c) for c in json.loads(rec[ident]["cells"])]
+        b = make_row(unit, ident[0], ident[1], json.loads(rec[ident]["header"]), before)
+        a = now.get(ident)
+        if a is None:
+            out[ident] = "withdrawn"
+        elif b["cited"] and not a["cited"]:
+            out[ident] = "citation dropped"
+        elif (_strip(a["cells"][a["header"].index(a["claim"])]).startswith("proposed:")
+              and not before[b["header"].index(b["claim"])].startswith("proposed:")):
+            out[ident] = "relabelled proposed"
+        elif a["cited"] != b["cited"]:
+            out[ident] = "citation changed"
+        elif [_strip(c) for c in a["cells"]] != before:
+            out[ident] = "claim narrowed"
+        else:
+            out[ident] = "unchanged"
+    return out
+
+
+def fix_lines(reg, unit, rnd):
+    got = Counter(classify_fixes(reg, unit, rnd).values())
+    if not got:
+        return []
+    return [f"Fixes of round {rnd}'s flagged rows: " + ", ".join(f"{got[c]} {c}" for c in
+                                                                list(FIX_CLASSES) + sorted(set(got) - set(FIX_CLASSES))
+                                                                if got[c])]
+
+
+def name_key(key):
+    """The key as a verdict file's name carries it: every char outside [A-Za-z0-9_-] replaced by _, or, over
+    NAME_KEY_MAX characters, the key's own hash. Lossy, so a file's own columns say whose verdict it is."""
+    return _hash12(key) if len(key) > NAME_KEY_MAX else re.sub(r"[^A-Za-z0-9_-]", "_", key)
+
+
+def verdict_name(rnd, j, table, key, h):
+    return f"r{rnd}-j{j}-{table}-{name_key(key)}-{h}.csv"
 
 
 def verdict_path(reg, row, rnd, j):
-    return layout.judging_dir(pathlib.Path(reg).resolve(), row["unit"]) / verdict_name(rnd, j, row["table"], row["key"])
+    """This row's verdict file for the round and judge, at the row's current content."""
+    return layout.judging_dir(pathlib.Path(reg).resolve(), row["unit"]) / verdict_name(
+        rnd, j, row["table"], row["key"], row["hash"])
 
 
 def read_verdict(path):
@@ -152,14 +362,54 @@ def read_verdict(path):
     return d if d["verdict"] in VERDICTS else None
 
 
+def flow_now(reg):
+    """The flow worked now, as a verdict file's `flow` names it (go.flow_key, the id earlier-flows/ keeps it under):
+    "" before any go."""
+    import go
+    return go.flow_key(reg, go.load(reg) or {})
+
+
+def go_given(reg):
+    """The go of the flow worked now (scope.json `given`) as an aware datetime, or None when none is recorded."""
+    import datetime
+    import go
+    try:
+        got = datetime.datetime.fromisoformat(str((go.load(reg) or {}).get("given") or "").strip()
+                                              .replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return got if got.tzinfo else got.astimezone()
+
+
+def _of_flow(v, flow, path=None, since=None):
+    """A verdict file is the flow worked now's when its own `flow` says so. One that cannot be read counts (it flags),
+    unless it was last written before this flow's go (`since`): then it is a finished flow's."""
+    if v is not None:
+        return v["flow"] == flow
+    if since is None or path is None:
+        return True
+    import datetime
+    return datetime.datetime.fromtimestamp(pathlib.Path(path).stat().st_mtime, datetime.timezone.utc) >= since
+
+
+def round_files(reg, unit, rnd=None):
+    """The unit's verdict files of the flow worked now (of round `rnd`, when given): a finished flow's verdicts never
+    count toward this flow's rounds."""
+    folder = layout.judging_dir(pathlib.Path(reg).resolve(), unit)
+    if not folder.is_dir():
+        return []
+    flow, since = flow_now(reg), go_given(reg)
+    return [p for p in sorted(folder.glob(f"r{rnd if rnd else '*'}-j*-*.csv"))
+            if _of_flow(read_verdict(p), flow, p, since)]
+
+
 def latest_round(reg, unit):
-    folder = layout.judging_dir(reg, unit)
-    got = [int(m.group(1)) for p in folder.glob("r*-j*-*.csv") if (m := re.match(r"r(\d+)-j\d+-", p.name))]
+    got = [int(m.group(1)) for p in round_files(reg, unit) if (m := re.match(r"r(\d+)-j\d+-", p.name))]
     return max(got, default=0)
 
 
 def _round(reg, row, rnd, n):
-    """[(judge, path, verdict dict or None)] for the verdict files present for this row and round."""
+    """[(judge, path, verdict dict or None)] for this row's verdict files of the round at its current hash."""
     out = []
     for j in range(1, n + 1):
         p = verdict_path(reg, row, rnd, j)
@@ -168,29 +418,366 @@ def _round(reg, row, rnd, n):
     return out
 
 
+def _any_hash(reg, row, rnd):
+    """[(judge, path, verdict dict or None)] for this row's verdict files of the round at any hash. Found by the anchored
+    name (never a prefix glob: keys hold `-`), and kept only when the file's own columns name this row and round, or,
+    when it cannot be read, when its name carries the row's current hash (name keys are lossy: `a/b`, `a_b`). A
+    verdict of another flow (its `flow` column) is never this row's: a finished flow's rounds are not this flow's."""
+    folder = layout.judging_dir(pathlib.Path(reg).resolve(), row["unit"])
+    if not folder.is_dir():
+        return []
+    pat = re.compile(rf"r{rnd}-j(\d+)-{re.escape(row['table'])}-{re.escape(name_key(row['key']))}-([0-9a-f]{{12}})\.csv")
+    flow, since = flow_now(reg), go_given(reg)
+    out = []
+    for p in sorted(folder.iterdir()):
+        m = pat.fullmatch(p.name)
+        if not m:
+            continue
+        v = read_verdict(p)
+        if v is None:
+            # unreadable: its own name (table, name key) is all that says whose it is; it counts as a flag, in the
+            # flow whose go came before it was written
+            mine = _of_flow(None, flow, p, since)
+        else:
+            mine = [v["unit"], v["table"], v["row"], v["round"], v["flow"]] == [row["unit"], row["table"], row["key"],
+                                                                             str(rnd), flow]
+        if mine:
+            out.append((int(m.group(1)), p, v))
+    return out
+
+
+def _stale(reg, row, rnd):
+    """This row's verdict files of the round at an older hash: listed, never failed."""
+    return [p for _, p, _ in _any_hash(reg, row, rnd) if not p.name.endswith(f"-{row['hash']}.csv")]
+
+
 def _flags(got):
     return [(j, v) for j, _, v in got if v is None or v["verdict"] != "says"]
 
 
 def flagged_in(reg, rws, rnd, n):
-    return [r for r in rws if _flags(_round(reg, r, rnd, n))]
+    """The rows any of whose verdicts of this round, at any hash, flagged them: a fix changes the row's hash, never its
+    place in the rounds."""
+    return [r for r in rws if _flags(_any_hash(reg, r, rnd))]
+
+
+def _moved_on(reg, row, rnd, last):
+    """Flagged in this round at an older content and not judged at its current one: fixed, and due in the next round,
+    not this one. Never in the last round (`last`, judge_rounds): with no round left, the row is judged again in it."""
+    if rnd >= last:
+        return False
+    got = _any_hash(reg, row, rnd)
+    return bool(_flags(got)) and not any(p.name.endswith(f"-{row['hash']}.csv") for _, p, _ in got)
 
 
 def scope(reg, unit, rnd, n, mode=None):
-    """The rows judged in this round: all of them in round 1, else those flagged in the round before."""
+    """The rows judged in this round: all of them in round 1, else those flagged in the round before at any hash; less
+    the rows flagged in this round and fixed since, which are due in the next."""
+    last = settings(reg)["judge_rounds"]
     rws = rows(reg, unit)[0]
-    if (mode or ("all" if rnd <= 1 else "flagged")) == "all":
-        return rws
-    return flagged_in(reg, rws, rnd - 1, n)
+    if (mode or ("all" if rnd <= 1 else "flagged")) != "all":
+        rws = flagged_in(reg, rws, rnd - 1, n)
+    return [r for r in rws if not _moved_on(reg, r, rnd, last)]
 
 
 # ---- run ----
 
-def prompt(body, row, rnd, j, path):
+def workspace(reg, ws=None):
+    """The workspace folder citations are relative to: `ws`, else the register's grandparent (<ws>/bfo-work/<reg>,
+    as units.py takes it)."""
+    return pathlib.Path(ws).resolve() if ws else pathlib.Path(reg).resolve().parent.parent
+
+
+def ws_line(ws):
+    w = pathlib.Path(ws).as_posix()
+    return f"Workspace: {w} (the code is there; citations are paths relative to it, opened as {w}/<path>)"
+
+
+EMITTED = "emitted.txt"  # prompts/emitted.txt: '<sha256 of the file as written> <its path under prompts/>', one a line
+
+
+def _prompts_root(path):
+    """The register's prompts/ folder holding `path`, or None."""
+    return next((p for p in pathlib.Path(path).parents if p.name == layout.PROMPTS), None)
+
+
+def _digest(path):
+    return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+
+
+def write_prompt(path, text):
+    """Write one agent's prompt file and return its pointer line. A file under a register's prompts/ is recorded in
+    prompts/emitted.txt by the hash of its bytes as written, every version kept (a prompt is written again in place
+    from round to round): the agent launched on it is told from one launched on a prompt the lead wrote."""
+    path = pathlib.Path(path).resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    root = _prompts_root(path)
+    if root is not None:
+        with (root / EMITTED).open("a", encoding="utf-8") as f:
+            f.write(f"{_digest(path)} {path.relative_to(root).as_posix()}\n")
+    return POINTER.format(path.as_posix())
+
+
+def kit_prompt_problem(sess, reg):
+    """None when session `sess` was launched on a prompt a kit script wrote for register `reg`: its first message is
+    exactly the pointer line of a file under <reg>/prompts/ whose bytes, as they are now, are one version
+    write_prompt recorded for that file. Else why not, naming the session (a reader, fixer or re-read the lead
+    dictated, inline or in a prompt file it wrote by hand)."""
+    name = pathlib.Path(sess.path).stem
+    first = " ".join(str(sess.prompt or "").split())
+    m = re.fullmatch(re.escape(POINTER).replace(re.escape("{}"), "(.+?)"), first)
+    if not m:
+        return (f"{name} was launched on a prompt no kit script wrote (its first message is not the pointer line of "
+                "a prompt readers.py or judges.py wrote under prompts/)")
+    target = pathlib.Path(m.group(1))
+    root = pathlib.Path(reg).resolve() / layout.PROMPTS
+    if not paths.norm(target).startswith(paths.norm(root) + "/"):
+        return f"{name} was launched on a prompt no kit script wrote ({m.group(1)} is not under {root.as_posix()}/)"
+    rel = paths.norm(target)[len(paths.norm(root)) + 1:]
+    got = set()
+    ledger = root / EMITTED
+    if ledger.is_file():
+        for line in ledger.read_text(encoding="utf-8").splitlines():
+            h, _, p = line.partition(" ")
+            if p.strip().lower() == rel:
+                got.add(h)
+    try:
+        now = _digest(target)
+    except OSError:
+        return f"{name} was launched on a prompt no kit script wrote ({m.group(1)} is gone)"
+    if now not in got:
+        return (f"{name} was launched on a prompt no kit script wrote ({rel} "
+                + ("was changed after a kit script wrote it)" if got else
+                   "was never written by readers.py or judges.py)"))
+    return None
+
+
+LAUNCHER = """# Launch {n} helper agent(s) of a business flow observability run
+
+You launch helper agents for the run's lead. Each line under "Agents" is the whole prompt of one agent: launch it with
+the Agent tool, `subagent_type` `general-purpose` (never a fork: a fork has seen the lead's reasoning, and the run's
+check fails it), in the foreground, never in the background. Keep at most {parallel} running at once: launch
+{parallel}, then launch the next each time one finishes. If a launch is refused with "Concurrent subagent limit
+reached", launch nothing more until one finishes. Launch each line once. Do no other work: read no other file, write
+no file, run no shell. When every agent has finished, and only then, reply with one line:
+`launched <n>, finished <n>`.
+
+## Agents
+
+{lines}
+"""
+SESSION_LIMIT = 20  # subagents one Claude Code session runs at once (its documentation); nested ones are counted
+REPLIED = re.compile(r"launched \d+, finished \d+")  # a launcher's reply line: only it says every agent has finished
+# Seconds a launcher's transcript must be quiet, ended on text that is not its reply line, before it counts as stopped:
+# a turn's text and its tool call are written as separate lines, so one read between them looks ended.
+LAUNCHER_QUIET = 120
+
+
+def launcher_cap(reg):
+    """How many launchers the lead keeps running at once: each is a subagent holding up to `parallel` agents, and the
+    session holds at most SESSION_LIMIT (whether nested agents count toward it is not established, so they are
+    counted)."""
+    return max(1, SESSION_LIMIT // (max(1, settings(reg)["parallel"]) + 1))
+
+
+def launchers(reg, name, groups, keep=()):
+    """Write launcher files for `groups` [(label, [pointer line])], each split into files of at most LAUNCHER_MAX
+    agents, under <reg>/prompts/launch/ as <name>[-<label>]-<i>.md; returns one pointer line per launcher file. This
+    name's earlier launcher files are removed first, except those in `keep` (launchers still running, Launches): those
+    are left as they are, byte for byte, and no new file takes their name."""
+    folder = pathlib.Path(reg).resolve() / layout.LAUNCH
+    folder.mkdir(parents=True, exist_ok=True)
+    keep = {pathlib.Path(k).resolve() for k in keep}
+    for old in folder.glob(f"{name}-*.md"):
+        if old.resolve() not in keep:
+            old.unlink()
+    par = max(1, settings(reg)["parallel"])
+    out = []
+    for label, lines in groups:
+        i = 0
+        for start in range(0, len(lines), LAUNCHER_MAX):
+            chunk = lines[start:start + LAUNCHER_MAX]
+            while True:
+                i += 1
+                path = folder / ("-".join(x for x in (name, label, str(i)) if x) + ".md")
+                if path.resolve() not in keep:
+                    break
+            out.append(write_prompt(path, LAUNCHER.format(n=len(chunk), parallel=par, lines="\n".join(chunk))))
+    return out
+
+
+def given_sessions(reg, transcripts=None):
+    """[(the first user message's text, its first timestamp as a UTC datetime or None, finished, shell, the last
+    assistant text, when the transcript was last written as a UTC datetime)] of every transcript here: finished when
+    its last assistant message called no tool (it has replied); shell when it called Bash or PowerShell."""
+    import datetime
+    out = []
+    for folder in _folders(reg, transcripts):
+        for f in sorted(pathlib.Path(folder).rglob("*.jsonl")):
+            first, when, last_tools, shell, last = None, None, None, False, ""
+            with open(f, encoding="utf-8", errors="replace") as fh:
+                for line in fh:
+                    try:
+                        d = json.loads(line)
+                    except ValueError:
+                        continue
+                    m = d.get("message") if isinstance(d, dict) else None
+                    if not isinstance(m, dict):
+                        continue
+                    c = m.get("content")
+                    if first is None and d.get("type") == "user":
+                        first = c if isinstance(c, str) else " ".join(
+                            b.get("text", "") for b in c or [] if isinstance(b, dict) and b.get("type") == "text")
+                        try:
+                            when = datetime.datetime.fromisoformat(str(d.get("timestamp")).replace("Z", "+00:00"))
+                        except ValueError:
+                            when = None
+                    if d.get("type") == "assistant":
+                        blocks = [b for b in (c if isinstance(c, list) else []) if isinstance(b, dict)]
+                        uses = [b for b in blocks if b.get("type") == "tool_use"]
+                        last_tools = bool(uses)
+                        last = " ".join(b.get("text", "") for b in blocks if b.get("type") == "text") or (
+                            c if isinstance(c, str) else "")
+                        shell = shell or any(b.get("name") in ("Bash", "PowerShell") for b in uses)
+            if first:
+                out.append((first, when, last_tools is False, shell, last, datetime.datetime.fromtimestamp(
+                    f.stat().st_mtime, datetime.timezone.utc)))
+    return out
+
+
+class Launches:
+    """Which prompt files a session was given, read from the transcripts and the launcher files, so that `emit` and
+    `readers.py prompt`, run again at any time, launch no agent twice.
+
+    A session counts for a prompt file when its first message is the file's pointer line and it started after the file
+    was last written and after the go of the flow worked now (scope.json `given`): a finished flow's agents never
+    count. A launcher still running (given its pointer, and no reply line `launched <n>, finished <n>` yet) is left as
+    it is, and every agent it lists is held, whether it has started or not. A launcher whose transcript ended on other
+    text (an API error, out of turns) and has been quiet for LAUNCHER_QUIET seconds has stopped: its
+    agents are treated as a replied launcher's, so those never started or still named running (they died with it) are
+    launched afresh, and `ended` names it. `again` says the session that launched them is gone (a crash, a restart):
+    every agent and launcher still named running died with it."""
+
+    def __init__(self, reg, transcripts=None, again=False):
+        self.reg, self.again, self._tx, self._sessions = pathlib.Path(reg).resolve(), again, transcripts, None
+        self.since = go_given(self.reg)
+        self.running, self.held, self.replied, self.ended = set(), set(), set(), []
+        folder = self.reg / layout.LAUNCH
+        for f in sorted(folder.glob("*.md")) if folder.is_dir() else []:
+            agents = {l.strip() for l in f.read_text(encoding="utf-8").splitlines() if l.startswith("Read ")}
+            state = self.state(f, launcher=True)
+            if state == "still running" and not again:
+                self.running.add(f.resolve())
+                self.held |= agents
+            elif state in ("finished", "ended"):
+                self.replied |= agents
+                if state == "ended":
+                    self.ended.append(f.name)
+
+    def ended_lines(self, name):
+        """One line per launcher of this name that stopped without its reply line."""
+        return [f"{f}: launcher stopped without its reply line (an error or out of turns): its agents never started, "
+                f"and those it left running, are launched afresh" for f in self.ended if f.startswith(name + "-")]
+
+    def sessions(self):
+        if self._sessions is None:
+            self._sessions = given_sessions(self.reg, self._tx)
+        return self._sessions
+
+    def state(self, path, launcher=False):
+        """None (no session was given this file as it stands), 'still running', 'finished', 'ran a shell', or for a
+        launcher 'ended' (its transcript ended without its reply line, and has been quiet since: it died)."""
+        import datetime
+        path = pathlib.Path(path).resolve()
+        if not path.is_file():
+            return None
+        written = datetime.datetime.fromtimestamp(path.stat().st_mtime, datetime.timezone.utc) - \
+            datetime.timedelta(seconds=2)
+        if self.since is not None:
+            written = max(written, self.since)
+        pointer = POINTER.format(path.as_posix())
+        got = [(done, shell, last, mtime) for first, when, done, shell, last, mtime in self.sessions()
+               if pointer in first and when is not None and when >= written]
+        if not got:
+            return None
+        if any(shell for _, shell, _, _ in got):
+            return "ran a shell"
+        if all(done and (not launcher or REPLIED.search(last or "")) for done, _, last, _ in got):
+            return "finished"
+        quiet = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=LAUNCHER_QUIET)
+        if launcher and all(done and mtime <= quiet for done, _, _, mtime in got):
+            return "ended"
+        return "still running"
+
+    def decide(self, path, text, same=None):
+        """(launch it now, its state): ('queued', 'still running', 'finished', 'ran a shell', 'stopped' or None). A
+        prompt held is never rewritten. Launched: one never launched; one still named running whose launcher has
+        replied (it stopped without replying); with `again`, one still named running or that ran a shell; and one
+        finished whose prompt changed in substance (`same`, default equal text: a fixer given other rows is another
+        fixer). A finished agent is never launched again for the same prompt, `again` or not."""
+        path = pathlib.Path(path).resolve()
+        pointer = POINTER.format(path.as_posix())
+        if pointer in self.held:
+            return False, "queued"
+        state = self.state(path)
+        if state is None:
+            return True, None
+        if state == "still running":
+            if self.again:
+                return True, state
+            return (True, "stopped") if pointer in self.replied else (False, state)
+        if state == "ran a shell":
+            return self.again, state
+        old = path.read_text(encoding="utf-8")
+        return (not (same or (lambda a, b: a == b))(old, text)), state
+
+
+def emit(reg, unit, rnd, mode=None, ws=None, transcripts=None, again=False):
+    """Write the prompt file of every judge of this round whose verdict file is not on disk and that is not launched
+    already (Launches), under <reg>/prompts/<unit>/<verdict file stem>.md, gather their pointer lines into launcher
+    files (the `flow` unit's by lead table), and return the lines to print: a count, the judges held and why, then one
+    pointer line per launcher. `again`: after a crash or restart, every judge and launcher still named running died."""
+    reg = pathlib.Path(reg).resolve()
+    s = settings(reg)
+    body, ws, flow = agent_body(), workspace(reg, ws), flow_now(reg)
+    groups, held = {}, Counter()
+    seen = Launches(reg, transcripts, again)
+    todo = scope(reg, unit, rnd, s["judges"], mode)
+    write_record(reg, unit, rnd, todo)
+    for row in todo:
+        for j in range(1, s["judges"] + 1):
+            p = verdict_path(reg, row, rnd, j)
+            if p.is_file():
+                continue
+            f, text = layout.prompts_dir(reg, unit) / f"{p.stem}.md", prompt(body, row, rnd, j, p, ws, flow)
+            launch, state = seen.decide(f, text)
+            if not launch:
+                held[state] += 1
+                continue
+            groups.setdefault(row["table"] if unit == "flow" else "", []).append(write_prompt(f, text))
+    pointers = launchers(reg, f"judges-{unit}-r{rnd}", sorted(groups.items()), keep=seen.running)
+    n = sum(len(v) for v in groups.values())
+    why = {"queued": "queued in a launcher still running",
+           "still running": "launched already and still running",
+           "finished": f"finished without their verdict file: delete a judge's prompt file (prompts/{unit}/) to "
+                       "launch it afresh",
+           "ran a shell": "ran a shell and wrote no verdict file: run this again with --again to launch them afresh"}
+    return ([f"Unit {unit}, round {rnd}: {n} judge(s) to launch in {len(pointers)} launcher(s), "
+             f"{len(todo) * s['judges'] - n - sum(held.values())} verdict file(s) already on disk; keep at most "
+             f"{launcher_cap(reg)} launcher(s) running at once"]
+            + [f"  {c} judge(s) {why[k]}" for k, c in held.items()]
+            + seen.ended_lines(f"judges-{unit}-r{rnd}") + pointers)
+
+
+def prompt(body, row, rnd, j, path, ws=None, flow=""):
+    """One judge's prompt. Its data line names the row, round and judge, the flow worked now and the row's hash, which
+    the judge copies into its verdict file: a verdict is current only while both match the row."""
     fields = "\n".join(f"- {h}: {v}" for h, v in zip(row["header"], row["cells"]) if v.strip())
     buf = io.StringIO()
-    csv.writer(buf, lineterminator="").writerow([row["unit"], row["table"], row["key"], rnd, j, ""])
-    return (f"{body}\n\n## The row\n\n"
+    csv.writer(buf, lineterminator="").writerow([row["unit"], row["table"], row["key"], rnd, j, flow, row["hash"], ""])
+    where = f"{ws_line(ws)}\n\n" if ws else ""
+    return (f"{body}\n\n## The row\n\n{where}"
             f"The row is from the map's {row['table']} table (unit {row['unit']}, row {row['key']}; judging round "
             f"{rnd}, you are judge {j}). Its columns and values:\n{fields}\n\n"
             f"Cited locations: {row['citations']}\n\n"
@@ -214,18 +801,49 @@ def _launch(cmd, cwd):
         return -1
 
 
-def run(reg, ws, unit, rnd, mode=None, model=None, launcher=None, agent=None):
-    """Launch a judge for every verdict file of this round not yet written; returns how many were launched."""
+def relaunchable(reg, unit, rnd, mode=None, transcripts=None):
+    """The round's verdict files that fail the check on their own (a judge that ran a shell, wrote another file or
+    skipped a cited line, a malformed file, a file no Write matches): the ones a relaunch removes first. A failing file
+    no transcript here wrote is never removed: its verdict, a flag perhaps, could not be told from nothing. The relaunch
+    is refused, naming those files. Returns (files to remove, [(file, [sessions])] whose clean verdict was replaced):
+    those are kept, since re-rolling them would only replace the clean verdict again; the clean judge's content, in its
+    transcript, is what is restored."""
+    s = settings(reg)
+    todo = scope(reg, unit, rnd, s["judges"], mode)
+    by_path = writers(reg, transcripts)
+    _, _, _, bad, kept = _check_rows(pathlib.Path(reg).resolve(), todo, rnd, s["judges"], by_path)
+    unknown = [p for p in bad if paths.norm(p) not in by_path]
+    if unknown:
+        raise SystemExit(f"judges.py run --again: no transcript wrote {len(unknown)} failing verdict file(s) of unit "
+                         f"{unit}, round {rnd} (transcripts not found here: another PC, another project folder, or "
+                         "cleaned up?); nothing removed: " + ", ".join(p.name for p in unknown[:10]))
+    return bad, kept
+
+
+def run(reg, ws, unit, rnd, mode=None, model=None, launcher=None, agent=None, again=False, transcripts=None,
+        say=print):
+    """Launch a judge for every verdict file of this round not yet written; returns how many were launched. With
+    `again`, the round's verdict files that fail the check are removed first and their judges launched afresh onto the
+    same paths: removed rather than read, so the new judge never sees the old verdict, and the Write tool, which
+    refuses to overwrite a file the session has not read, does not fail. A file whose clean verdict was replaced is
+    kept, and `say` names it and the session whose content restores it."""
     s = settings(reg)
     meta, body = _split_agent(agent)
     if not model and meta.get("model", "inherit") not in ("", "inherit"):
         model = meta["model"]
-    jobs = []
+    if again:
+        bad, kept = relaunchable(reg, unit, rnd, mode, transcripts)
+        for p in bad:
+            p.unlink(missing_ok=True)
+        for p, ss in kept:
+            say(f"kept {p.name}: a clean verdict by {', '.join(pathlib.Path(x.path).stem for x in ss)} was replaced; "
+                "restore that judge's Write content from its transcript, then check again (not relaunched)")
+    jobs, flow = [], flow_now(reg)
     for row in scope(reg, unit, rnd, s["judges"], mode):
         for j in range(1, s["judges"] + 1):
             p = verdict_path(reg, row, rnd, j)
             if not p.is_file():
-                jobs.append(command(prompt(body, row, rnd, j, p), model))
+                jobs.append(command(prompt(body, row, rnd, j, p, workspace(reg, ws), flow), model))
     if jobs:
         layout.judging_dir(reg, unit).mkdir(parents=True, exist_ok=True)
         cwd = str(pathlib.Path(ws).resolve())
@@ -237,39 +855,86 @@ def run(reg, ws, unit, rnd, mode=None, model=None, launcher=None, agent=None):
 # ---- transcripts ----
 
 class Session:
-    """One transcript: what it wrote, whether it ran a shell, which models answered, what it read."""
+    """One transcript, the kit's one reader of them: what it wrote, whether it ran a shell, which models answered, what
+    it read, when it started. A Write or Edit whose tool_result is an error wrote nothing and is not counted. A shell
+    call counts whatever its result: it was tried."""
 
     def __init__(self, path):
         self.path = path
-        self.writes = []  # (tool, normalised path)
+        self.writes = []  # (tool, normalised path), successful calls only
+        self.wrote = []  # (normalised path, content, (timestamp, order)): successful Writes, and its own Edits of them
+        self.ops = []  # (tool, normalised path, input, (timestamp, order)): every successful write tool call, in order
         self.shell = False
         self.models = set()
+        self.first = ""  # the first timestamp the transcript records
+        self.prompt = None  # the text of its first user message: the pointer line it was launched with
+        calls, errors, read_calls = [], set(), []
         with open(path, encoding="utf-8", errors="replace") as f:
             for line in f:
                 try:
                     d = json.loads(line)
                 except ValueError:
                     continue
+                if isinstance(d, dict) and d.get("timestamp") and not self.first:
+                    self.first = str(d["timestamp"])
                 m = d.get("message") if isinstance(d, dict) else None
                 if not isinstance(m, dict):
                     continue
                 if d.get("type") == "assistant" and m.get("model") and m.get("model") != "<synthetic>":
                     self.models.add(m["model"])
                 content = m.get("content")
-                for b in content if isinstance(content, list) else []:
-                    if not (isinstance(b, dict) and b.get("type") == "tool_use"):
+                if self.prompt is None and d.get("type") == "user":
+                    self.prompt = content if isinstance(content, str) else " ".join(
+                        b.get("text", "") for b in content or [] if isinstance(b, dict) and b.get("type") == "text")
+                # A tool_use counts only from an assistant record and a tool_result only from a user record: other
+                # records (an api-request-blob, untimed) replay the request body and would count each call again.
+                kind = d.get("type")
+                for b in content if isinstance(content, list) and kind in ("assistant", "user") else []:
+                    if not isinstance(b, dict):
+                        continue
+                    if kind == "user" and b.get("type") == "tool_result" and b.get("is_error"):
+                        errors.add(b.get("tool_use_id"))
+                    if kind != "assistant" or b.get("type") != "tool_use":
                         continue
                     name, inp = b.get("name"), b.get("input") or {}
                     if name in WRITE_TOOLS:
-                        self.writes.append((name, paths.norm(inp.get("file_path") or inp.get("notebook_path") or "")))
+                        calls.append((b.get("id"), name, inp, (str(d.get("timestamp") or ""), len(calls))))
+                    elif name == "Read":
+                        read_calls.append((b.get("id"), inp))
                     elif name in ("Bash", "PowerShell"):
                         self.shell = True
+        for tid, name, inp, when in calls:
+            if tid is not None and tid in errors:
+                continue
+            p = paths.norm(inp.get("file_path") or inp.get("notebook_path") or "")
+            self.writes.append((name, p))
+            self.ops.append((name, p, inp, when))
+            if name == "Write":
+                self.wrote.append((p, str(inp.get("content") or ""), when))
+            elif name == "Edit":  # an Edit of a file this session itself wrote: the file as the session left it
+                mine = [c for q, c, _ in self.wrote if q == p]
+                old, new = str(inp.get("old_string") or ""), str(inp.get("new_string") or "")
+                if mine and old and old in mine[-1]:
+                    edited = mine[-1].replace(old, new) if inp.get("replace_all") else mine[-1].replace(old, new, 1)
+                    self.wrote.append((p, edited, when))
+        self._ok_reads = [inp for tid, inp in read_calls if tid is None or tid not in errors]
         self._reads = None
 
     def reads(self):
+        """{normalised path: [(first, last)]} of every Read, as reading_check.py counts them."""
         if self._reads is None:
             self._reads = rc.reads([self.path])
         return self._reads
+
+    def ok_reads(self):
+        """As reads(), counting only the Reads whose result is not an error."""
+        got = {}
+        for inp in self._ok_reads:
+            if inp.get("file_path"):
+                first = int(inp.get("offset") or 1)
+                got.setdefault(paths.norm(inp["file_path"]), []).append(
+                    (first, first + int(inp.get("limit") or rc.DEFAULT_LIMIT) - 1))
+        return got
 
 
 def _folders(reg, transcripts):
@@ -279,16 +944,43 @@ def _folders(reg, transcripts):
 
 
 def writers(reg, transcripts=None):
-    """{normalised verdict file path: [sessions that wrote it with Write]}, main sessions and subagents alike."""
+    """{normalised verdict file path: [(session, content, (timestamp, order))] for every successful Write of it}, main
+    sessions and subagents alike."""
     root = paths.norm(layout.judging_dir(pathlib.Path(reg).resolve())) + "/"
     got = {}
     for folder in _folders(reg, transcripts):
         for f in sorted(folder.rglob("*.jsonl")):
             s = Session(f)
-            for tool, p in s.writes:
-                if tool == "Write" and p.startswith(root):
-                    got.setdefault(p, []).append(s)
+            for p, content, when in s.wrote:
+                if p.startswith(root):
+                    got.setdefault(p, []).append((s, content, when))
     return got
+
+
+def _cells(text):
+    """CSV text as parsed rows: BOM stripped, line endings normalized, `disputed: ` stripped, trailing blank lines
+    dropped. (provenance.py normalizes the same way.)"""
+    text = text.lstrip("﻿").replace("\r\n", "\n").replace("\r", "\n")
+    got = [[_strip(c) for c in r] for r in csv.reader(io.StringIO(text))]
+    while got and not any(c.strip() for c in got[-1]):
+        got.pop()
+    return got
+
+
+def effective_writer(path, wrote):
+    """(the session whose successful Write equals the file on disk, the latest of them; [the other sessions that wrote
+    it]). The first is None when no Write matches the file (overwritten by a shell or an Edit)."""
+    try:
+        disk = _cells(pathlib.Path(path).read_text(encoding="utf-8-sig", errors="replace"))
+    except OSError:
+        disk = None
+    match = [w for w in wrote if disk is not None and _cells(w[1]) == disk]
+    eff = max(match, key=lambda w: w[2])[0] if match else None
+    others = []
+    for s, _, _ in wrote:
+        if s is not eff and s not in others:
+            others.append(s)
+    return eff, others
 
 
 def _model_lines(models):
@@ -301,8 +993,9 @@ def _model_lines(models):
 # ---- check ----
 
 class Result:
-    def __init__(self, unit, rnd, n, problems, models, what="Judging"):
+    def __init__(self, unit, rnd, n, problems, models, what="Judging", notes=()):
         self.unit, self.round, self.rows, self.problems = unit, rnd, n, problems
+        self.notes = list(notes)  # stale verdicts and superseded writers: listed, never failed
         self.model_counts = Counter(models)
         self.models = set(self.model_counts)
         self.what = what
@@ -314,13 +1007,68 @@ class Result:
         out += [f"  {p}" for p in self.problems[:40]]
         if len(self.problems) > 40:
             out.append(f"  ... and {len(self.problems) - 40} more")
+        out += [f"  note: {p}" for p in self.notes[:20]]
+        if len(self.notes) > 20:
+            out.append(f"  note: ... and {len(self.notes) - 20} more")
         return out + _model_lines(self.model_counts)
 
 
+def _faults(sess, p, row):
+    """What makes this session not a clean judge of the row's verdict file p: other files written, a shell run, a cited
+    line not opened, a session that is not a `general-purpose` subagent (provenance.agent_type: fails closed)."""
+    import provenance  # it imports this module
+    out = []
+    _, why = provenance.agent_type(sess.path)
+    if why:
+        out.append(f"the judge session is {why}")
+    other = sorted({q for t, q in sess.writes if not (t in ("Write", "Edit") and q == paths.norm(p))})
+    if other:
+        out.append(f"the judge session wrote other files: {', '.join(other[:3])}")
+    if sess.shell:
+        out.append("the judge session ran a shell")
+    opened = sess.reads()
+    for path, a, b in row["cited"]:
+        spans = [x for q, xs in opened.items() if q.endswith("/" + path.lower()) for x in xs]
+        if not paths.covered(a, b, spans):
+            out.append(f"the judge did not open {_cite(path, a, b)}")
+    return out
+
+
+def _currency(v, row, flow):
+    """Why the verdict `v` is not of the row as it is now, in the flow worked now: [] when it is."""
+    out = []
+    if v["row_hash"] != row["hash"]:
+        out.append(f"judged the row at hash {v['row_hash'] or '(none)'}, not as it is now ({row['hash']})")
+    if v["flow"] != flow:
+        out.append(f"judged in flow {v['flow'] or '(none)'}, not in the flow worked now ({flow or 'none recorded'})")
+    return out
+
+
+def _clean_verdict(sess, p, wrote, row, rnd, j, flow):
+    """The session's last Write of p was a well-formed verdict naming this row, round and judge, and the session is a
+    clean judge (only that file, no shell, every cited line opened)."""
+    content = next((c for s, c, _ in reversed(wrote) if s is sess), None)
+    got = _cells(content or "")
+    if len(got) != 2 or got[0] != VERDICT_FIELDS or len(got[1]) != len(VERDICT_FIELDS):
+        return False
+    d = dict(zip(VERDICT_FIELDS, got[1]))
+    if [d["unit"], d["table"], d["row"], d["round"], d["judge"]] != \
+            [row["unit"], row["table"], row["key"], str(rnd), str(j)]:
+        return False
+    return d["verdict"].strip().lower() in VERDICTS and not _currency(d, row, flow) and not _faults(sess, p, row)
+
+
 def _check_rows(reg, todo, rnd, n, by_path):
-    problems, models = [], Counter()
+    """(problems, models, notes, [verdict files that fail on their own and a relaunch may remove],
+    [(verdict file, [sessions]) whose clean verdict was replaced: to restore, never to remove])."""
+    problems, models, notes, bad, kept = [], Counter(), [], [], []
+    flow = flow_now(reg)
     for row in todo:
         name = f"{row['table']} {row['key']}"
+        stale = _stale(reg, row, rnd)
+        if stale:
+            notes.append(f"{name}: round {rnd}: {len(stale)} stale verdict(s) at an older content of the row: "
+                         + ", ".join(p.name for p in stale[:3]))
         used = []
         for j in range(1, n + 1):
             p = verdict_path(reg, row, rnd, j)
@@ -328,34 +1076,57 @@ def _check_rows(reg, todo, rnd, n, by_path):
             if not p.is_file():
                 problems.append(f"{tag}: no verdict file ({p.name})")
                 continue
+            before = len(problems)
             v = read_verdict(p)
             if v is None:
                 problems.append(f"{tag}: {p.name} is not a well-formed verdict file")
             elif [v["unit"], v["table"], v["row"], v["round"], v["judge"]] != \
                     [row["unit"], row["table"], row["key"], str(rnd), str(j)]:
                 problems.append(f"{tag}: {p.name} names another row, round or judge")
-            ws = by_path.get(paths.norm(p), [])
-            if not ws:
+            else:
+                problems += [f"{tag}: {x}" for x in _currency(v, row, flow)]
+            wrote = by_path.get(paths.norm(p), [])
+            if not wrote:
                 problems.append(f"{tag}: no judge session wrote {p.name} with Write")
+                bad.append(p)
                 continue
-            if len(ws) > 1:
-                problems.append(f"{tag}: {p.name} was written by {len(ws)} sessions")
-            sess = ws[0]
+            sess, superseded = effective_writer(p, wrote)
+            # a superseded writer whose own Write was a clean verdict of this row, round and judge: its verdict is
+            # gone from disk, replaced (a lead re-rolling a judge, say). Not counted toward `bad`: removing the
+            # replacement would not bring the clean verdict back.
+            replaced = [s for s in superseded if _clean_verdict(s, p, wrote, row, rnd, j, flow)]
+            if replaced:
+                problems.append(f"{tag}: a clean verdict by {', '.join(pathlib.Path(s.path).stem for s in replaced)} "
+                                f"was replaced ({p.name})")
+                before += 1
+                kept.append((p, replaced))
+            rest = [s for s in superseded if s not in replaced]
+            if rest:
+                notes.append(f"{tag}: superseded writer(s) of {p.name}: "
+                             + ", ".join(pathlib.Path(s.path).stem for s in rest))
+            if sess is None:
+                problems.append(f"{tag}: no judge session's Write matches the file on disk ({p.name})")
+                bad.append(p)
+                continue
             used.append(sess.path)
             models.update(sess.models or {"(none recorded)"})
-            other = sorted({q for t, q in sess.writes if not (t == "Write" and q == paths.norm(p))})
-            if other:
-                problems.append(f"{tag}: the judge session wrote other files: {', '.join(other[:3])}")
-            if sess.shell:
-                problems.append(f"{tag}: the judge session ran a shell")
-            opened = sess.reads()
-            for path, a, b in row["cited"]:
-                spans = [x for q, xs in opened.items() if q.endswith("/" + path.lower()) for x in xs]
-                if not paths.covered(a, b, spans):
-                    problems.append(f"{tag}: the judge did not open {_cite(path, a, b)}")
+            problems += [f"{tag}: {f}" for f in _faults(sess, p, row)]
+            if len(problems) > before:
+                bad.append(p)
         if len(set(used)) < len(used):
             problems.append(f"{name}: round {rnd}: one session wrote more than one of its verdicts")
-    return problems, models
+    gone = {q for q, _ in kept}
+    return problems, models, notes, [q for q in bad if q not in gone], kept
+
+
+def _moved_notes(reg, unit, rnd, n, mode=None):
+    """Notes for the rows this round no longer holds: flagged in it, fixed since, due in the next round."""
+    last = settings(reg)["judge_rounds"]
+    rws = rows(reg, unit)[0]
+    if (mode or ("all" if rnd <= 1 else "flagged")) != "all":
+        rws = flagged_in(reg, rws, rnd - 1, n)
+    return [f"{r['table']} {r['key']}: round {rnd}: flagged, fixed since (its verdicts here are stale); due in round "
+            f"{rnd + 1}" for r in rws if _moved_on(reg, r, rnd, last)]
 
 
 def check(reg, unit, round=None, transcripts=None, _writers=None):
@@ -363,13 +1134,85 @@ def check(reg, unit, round=None, transcripts=None, _writers=None):
     reg = pathlib.Path(reg).resolve()
     n = settings(reg)["judges"]
     rnd = round or latest_round(reg, unit)
+    fixers = flow_fixer_problems(reg, transcripts) if unit == "flow" else []
     if rnd == 0:
         rws = rows(reg, unit)[0]
-        return Result(unit, 0, len(rws), [f"no verdict files in judging/{unit}/"] if rws else [], Counter())
+        return Result(unit, 0, len(rws), ([f"no verdict files in judging/{unit}/"] if rws else []) + fixers,
+                      Counter())
     todo = scope(reg, unit, rnd, n)
     by_path = writers(reg, transcripts) if _writers is None else _writers
-    problems, models = _check_rows(reg, todo, rnd, n, by_path)
-    return Result(unit, rnd, len(todo), problems, models)
+    problems, models, notes, _, _ = _check_rows(reg, todo, rnd, n, by_path)
+    problems += fixers
+    for r in range(1, rnd + 1):
+        problems += record_problems(reg, unit, r)
+    moved = _moved_notes(reg, unit, rnd, n)
+    if not todo and not moved and round_files(reg, unit, rnd):
+        problems.append(f"round {rnd} has verdict files but no row in scope claims them (old names, or rows re-keyed "
+                        "or withdrawn)")
+    problems += _sweep(reg, unit, rnd, n, todo, by_path, notes)
+    return Result(unit, rnd, len(todo), problems, models, notes=moved + notes)
+
+
+def flow_fixer_problems(reg, transcripts=None):
+    """The fixers of the unit `flow`, each a subagent of the flow worked now that wrote one of its tables (the lead
+    tables at the root, the lead's rows in merge/lead-rows/): each must be a `general-purpose` subagent launched on a
+    prompt a kit script wrote (kit_prompt_problem) that wrote that one table and nothing else and ran no shell. A main
+    session's writes are the lead's own (Steps 1-3) and are not checked here."""
+    import provenance  # it imports this module
+    reg = pathlib.Path(reg).resolve()
+    mine = {paths.norm(p) for p in [reg / f"{t}.csv" for t in FLOW_TABLES]
+            + [reg / layout.LEAD_ROWS / f"{t}.csv" for t in MERGED]}
+    out, fixers = [], []
+    for s in provenance.flow_sessions(reg, transcripts)[0]:
+        written = {p for _, p in s.writes}
+        if written & mine and pathlib.Path(s.path).parent.name == "subagents":
+            fixers.append(s)
+    for s in fixers:
+        written = {p for _, p in s.writes}
+        name = pathlib.Path(s.path).stem
+        _, why = provenance.agent_type(s.path)
+        if why:
+            out.append(f"fixer {name} of the flow's tables is {why}")
+        if len(written) > 1:
+            out.append(f"fixer {name} wrote more than its own table: " + ", ".join(sorted(written)[:4]))
+        # a shell run, or a fixer launched on a prompt no kit script wrote, is superseded by a clean fixer of the
+        # same table launched after it on a kit prompt (the relaunch): what it changed is judged again, as any
+        # change to a row is
+        later = [x for x in fixers if x is not s and not x.shell and not kit_prompt_problem(x, reg)
+                 and {p for _, p in x.writes} == written
+                 and provenance.judges_when((x.first, 0)) > provenance.judges_when((s.first, 0))]
+        if later:
+            continue
+        unprompted = kit_prompt_problem(s, reg)
+        if unprompted:
+            out.append(f"fixer of the flow's tables: {unprompted}; relaunch it: readers.py prompt <reg> flow "
+                       "--mode fix")
+        if s.shell:
+            out.append(f"fixer {name} of the flow's tables ran a shell; relaunch it: readers.py prompt <reg> flow "
+                       "--mode fix")
+    return out
+
+
+def _sweep(reg, unit, rnd, n, todo, by_path, notes):
+    """Every row outside this round's scope is checked at its own latest round, at its current content: a row edited,
+    added or re-keyed after a later round began, or a verdict overwritten since, is not done until judged."""
+    last = settings(reg)["judge_rounds"]
+    held = {(r["table"], r["key"]) for r in todo}
+    problems = []
+    for row in rows(reg, unit)[0]:
+        if (row["table"], row["key"]) in held or _moved_on(reg, row, rnd, last):
+            continue
+        name = f"{row['table']} {row['key']}"
+        at = next((r for r in range(rnd, 0, -1) if _any_hash(reg, row, r)), 0)
+        if at == 0:
+            problems.append(f"{name}: not judged in any round")
+        elif _moved_on(reg, row, at, last) or (at < last and _flags(_round(reg, row, at, n))):
+            problems.append(f"{name}: flagged in round {at}, not judged in round {at + 1}")
+        else:
+            p2, _, n2, _, _ = _check_rows(reg, [row], at, n, by_path)
+            problems += p2
+            notes += n2
+    return problems
 
 
 def fix_check(reg, unit, round=None, transcripts=None):
@@ -379,7 +1222,7 @@ def fix_check(reg, unit, round=None, transcripts=None):
     s = settings(reg)
     n = s["judges"]
     by_path = writers(reg, transcripts)
-    problems, models, rnd, count = [], Counter(), 1, 0
+    problems, models, notes, rnd, count = [], Counter(), [], 1, 0
     rws = rows(reg, unit)[0]
     while True:
         flagged = flagged_in(reg, rws, rnd, n)
@@ -389,18 +1232,23 @@ def fix_check(reg, unit, round=None, transcripts=None):
         if rnd >= s["judge_rounds"]:
             for r in flagged:
                 cell = r["cells"][r["header"].index(r["claim"])]
-                if len(_round(reg, r, rnd, n)) >= n and not cell.startswith(DISPUTED.strip()):
+                # disputed on the last round's verdicts at any content: an edit after it does not undo the dispute
+                if len(_any_hash(reg, r, rnd)) >= n and not cell.startswith(DISPUTED.strip()):
                     problems.append(f"{r['table']} {r['key']}: disputed in round {rnd} but not labelled "
                                     "(run judges.py collect)")
             break
-        missing = [r for r in flagged if not _round(reg, r, rnd + 1, n)]
+        missing = [r for r in flagged if not _any_hash(reg, r, rnd + 1)]
         problems += [f"{r['table']} {r['key']}: flagged in round {rnd}, not judged in round {rnd + 1}"
                      for r in missing]
-        p2, m2 = _check_rows(reg, [r for r in flagged if r not in missing], rnd + 1, n, by_path)
+        # a row flagged again in the next round and fixed since is due in the round after; the loop reaches it there
+        due = [r for r in flagged if r not in missing and not _moved_on(reg, r, rnd + 1, s["judge_rounds"])]
+        p2, m2, n2, _, _ = _check_rows(reg, due, rnd + 1, n, by_path)
         problems += p2
         models.update(m2)
+        notes += n2
         rnd += 1
-    return Result(unit, rnd, count, problems, models, what="Fixing")
+    classes = [line for r in range(1, s["judge_rounds"]) for line in fix_lines(reg, unit, r)]
+    return Result(unit, rnd, count, problems, models, what="Fixing", notes=classes + notes)
 
 
 # ---- collect ----
@@ -430,36 +1278,71 @@ def _label(disputed):
         tables.write_grid(path, header, body)
 
 
+def row_state(reg, row, top, s):
+    """(state, round, the verdicts it is read from) of a row whose unit's latest round is `top`, `s` the settings: its
+    round is its latest by identity; its state is read from the verdicts at its current content, and while those are
+    short a flag at an older content keeps it flagged (it is being fixed)."""
+    n = s["judges"]
+    rnd = next((r for r in range(top, 0, -1) if _any_hash(reg, row, r)), 0)
+    got = _round(reg, row, rnd, n) if rnd else []
+    every = _any_hash(reg, row, rnd) if rnd else []
+    if rnd and len(got) < n and _flags(every) and (rnd < s["judge_rounds"] or len(every) >= n):
+        return ("flagged" if rnd < s["judge_rounds"] else "disputed"), rnd, every
+    if rnd == 0 or len(got) < n:
+        return "pending", rnd, got
+    if _flags(got) or (rnd >= s["judge_rounds"] and _flags(every)):
+        return ("disputed" if rnd >= s["judge_rounds"] else "flagged"), rnd, got
+    return "passed", rnd, got
+
+
+def disputed_rows(reg, unit):
+    """{(table, key)} of the unit's rows its verdicts make disputed: the rows `collect` labels."""
+    reg = pathlib.Path(reg).resolve()
+    s, top = settings(reg), latest_round(reg, unit)
+    if not top:
+        return set()
+    return {(r["table"], r["key"]) for r in rows(reg, unit)[0] if row_state(reg, r, top, s)[0] == "disputed"}
+
+
+def _unmatched_calls(reg):
+    """{"<unit>/<row_id>"} of the calls a merge of the unit folders leaves unmatched now, or none outside a split run."""
+    if not (pathlib.Path(reg) / layout.UNITS_CSV).is_file():
+        return set()
+    import merge  # only here: merge reads this module
+    try:
+        files, _, _ = merge.build(reg)
+    except (OSError, ValueError, KeyError):  # no merge to be had: the call is labelled as any disputed row is
+        return set()
+    return {r["call"] for r in csv.DictReader(io.StringIO(files.get(layout.UNMATCHED_CSV) or ""))}
+
+
 def collect(reg, transcripts=None):
-    """Write judging/judgements.csv, label disputed rows, and count the models the judges ran on."""
+    """Write judging/judgements.csv, label disputed rows, and count the models the judges ran on. A disputed call the
+    merge leaves unmatched is left unlabelled: its re-read labels it (merge.py), and a label `collect` put there
+    first would have no session behind it, so no re-read could resolve the call."""
     reg = pathlib.Path(reg).resolve()
     s = settings(reg)
-    n = s["judges"]
     out, disputed = [], []
     for unit in _units(reg):
         top = latest_round(reg, unit)
         for row in rows(reg, unit)[0]:
-            rnd = next((r for r in range(top, 0, -1) if _round(reg, row, r, n)), 0)
-            got = _round(reg, row, rnd, n) if rnd else []
+            state, rnd, got = row_state(reg, row, top, s)
             flags = _flags(got)
-            if rnd == 0 or len(got) < n:
-                state = "pending"
-            elif flags:
-                state = "disputed" if rnd >= s["judge_rounds"] else "flagged"
-            else:
-                state = "passed"
             if state == "disputed":
-                disputed.append(row)
+                disputed.append((unit, row))
             reasons = [v["reason"] if v else "unreadable verdict file" for _, v in flags]
             out.append({"unit": unit, "table": row["table"], "row": row["key"], "round": rnd, "judges": len(got),
                         "says": len(got) - len(flags), "flagged": len(flags), "state": state,
                         "reasons": " | ".join(reasons)})
     layout.judging_dir(reg).mkdir(exist_ok=True)
     tables.write(reg / layout.JUDGEMENTS_CSV, JUDGEMENT_FIELDS, out, lineterminator="\r\n")
-    _label(disputed)
+    calls = [f"{u}/{r['key']}" for u, r in disputed if r["table"] == "calls"]
+    left = _unmatched_calls(reg) if calls else set()
+    _label([r for u, r in disputed if not (r["table"] == "calls" and f"{u}/{r['key']}" in left)])
     models = Counter()
-    for ss in writers(reg, transcripts).values():
-        for m in ss[0].models or {"(none recorded)"}:
+    for p, wrote in writers(reg, transcripts).items():
+        eff = effective_writer(p, wrote)[0] or wrote[-1][0]
+        for m in eff.models or {"(none recorded)"}:
             models[m] += 1
     return {"rows": len(out), "states": Counter(r["state"] for r in out), "models": dict(models)}
 
@@ -480,6 +1363,9 @@ def _opt(argv, name, default=None):
 
 
 def main(argv):
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
+    import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
+    run_lock.refuse_unless_register(argv)
     argv = list(argv)
     if not argv:
         sys.exit(__doc__)
@@ -496,17 +1382,25 @@ def main(argv):
         return 0
     if cmd == "run":
         mode, model = _opt(argv, "--rows"), _opt(argv, "--model")
+        again = "--again" in argv
+        argv = [a for a in argv if a != "--again"]
         reg, ws, unit = argv[:3]
         import run_lock  # the register is written by one run at a time
         run_lock.guard(reg)
         rnd = rnd or 1
-        launched = run(reg, ws, unit, rnd, mode, model)
+        launched = run(reg, ws, unit, rnd, mode, model, again=again, transcripts=transcripts)
         n = settings(reg)["judges"]
         missing = [verdict_path(reg, r, rnd, j).name for r in scope(reg, unit, rnd, n, mode)
                    for j in range(1, n + 1) if not verdict_path(reg, r, rnd, j).is_file()]
         print(f"Judges launched: {launched} for unit {unit}, round {rnd}; verdict files missing: {len(missing)}")
         print("\n".join(f"  missing: {m}" for m in missing[:25]))
         return 0 if not missing else 1
+    if cmd == "emit":
+        mode, ws = _opt(argv, "--rows"), _opt(argv, "--ws")
+        again = "--again" in argv
+        argv = [a for a in argv if a != "--again"]
+        print("\n".join(emit(argv[0], argv[1], rnd or 1, mode, ws, transcripts, again)))
+        return 0
     if cmd == "collect":
         got = collect(argv[0], transcripts)
         print(f"judgements.csv: {got['rows']} row(s): "

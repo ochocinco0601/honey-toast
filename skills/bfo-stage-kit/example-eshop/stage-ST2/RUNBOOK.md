@@ -1,6 +1,6 @@
 # Runbook for "Accept the order"
 
-One entry per proposed alert, then the stage's shared section. Each alert's runbook link ([ALERT.md](ALERT.md)) points at its own entry. The shared section holds what the alerts have in common and writes every test once; an entry names the tests it runs, bounded to its own cases and window. Generated from the register by `flow_outputs.py`: each test after the opening checks is a row of `failure-modes.csv`. State: draft, never rehearsed. Process steps are numbered within their stage, the same in every stage file.
+One entry per proposed alert, then the stage's shared section. Each alert's runbook link ([ALERT.md](ALERT.md)) points at its own entry. The shared section holds what the alerts have in common and writes every test once; an entry names the tests it runs, bounded to its own cases and window. Process steps are numbered within their stage, the same in every stage file.
 
 - [Alert M13: Orders past the acceptance time limit, by state](#alert-m13-orders-past-the-acceptance-time-limit-by-state)
 - [Alert M93: Orders cancelled in acceptance because payment failed](#alert-m93-orders-cancelled-in-acceptance-because-payment-failed)
@@ -12,7 +12,9 @@ One entry per proposed alert, then the stage's shared section. Each alert's runb
 
 **M13 Orders past the acceptance time limit, by state** is above the operators' threshold for longer than their window ([ALERT.md](ALERT.md)).
 
-**The expectation it guards:** an order still in Submitted, AwaitingValidation or StockConfirmed past the time limit has not been accepted when the shopper expects, and the moves out of AwaitingValidation and StockConfirmed strand it with nothing to move it again (lifecycle L04-L07, recovery stranded).
+**The expectation it guards:** the order is accepted when the shopper expects, and not lost to a payment outage.
+
+**Why it is an alert:** an order still in Submitted, AwaitingValidation or StockConfirmed past the time limit has not been accepted when the shopper expects, and the moves out of AwaitingValidation and StockConfirmed strand it with nothing to move it again (lifecycle L04-L07, recovery stranded).
 
 **Its cases:** those held in the stage past the time limit (the time limit in [ALERT.md](ALERT.md)). A case not past the time limit is not one of M13's.
 
@@ -33,7 +35,7 @@ No hold is needed: the cases M13 counts are still in the stage, and nothing more
 Work them over the window, on its cases only, in order; each is written in [S4](#s4-every-test-once). Where a test's command asks for a time span in angle brackets (a `--since` or a time range), give it this entry's window, whatever the placeholder says. Where it asks for case ids in angle brackets (`<case ids>`, `<id>`), give it the ids of the cases you are working: this entry's own, or those the test that sent you to it listed. Every result has a route:
 
 - the expected result: go on to the next test;
-- a match: it explains the cases it lists. Take the line's ending for those cases; if the alert counts cases it did not list, go on to the next test for the rest. Where the line says to run linked tests as well, run them on the same cases: the register ties those causes together ([S5](#s5-causes-the-alerts-share));
+- a match: it explains the cases it lists. Take the line's ending for those cases; if the alert counts cases it did not list, go on to the next test for the rest. Where the line says to run linked tests as well, run them on the same cases: those causes are tied together ([S5](#s5-causes-the-alerts-share));
 - a check whose evidence lists no cases (a match in a log or a metric) explains no case by itself: note it, if the match falls inside the look-back, and go on; a case no later check explains takes the ending of every check noted for it, each named in the hand-over; where those endings differ, escalate rather than restore;
 - anything else (an unclear answer, a step you cannot run): note it for the hand-over and go on.
 
@@ -101,11 +103,13 @@ Group its cases by the state they are in (Submitted, Awaiting validation, Stock 
 
 **M93 Orders cancelled in acceptance because payment failed** is above the operators' threshold for longer than their window ([ALERT.md](ALERT.md)).
 
-**The expectation it guards:** a payment outage cancels every order that reaches StockConfirmed (L07), and none of them waits, so M13 stays flat while the shopper loses the order.
+**The expectation it guards:** the order is accepted when the shopper expects, and not lost to a payment outage.
+
+**Why it is an alert:** a payment outage cancels every order that reaches StockConfirmed (L07), and none of them waits, so M13 stays flat while the shopper loses the order.
 
 - Leaving by L07 (The order is cancelled because payment failed): M93 counts those cases
 
-**Its cases:** those that left by L07 from Stock confirmed in the alert's window. A case still in the stage is not one of M93's.
+**Its cases:** those that left by L07 from Stock confirmed, in the alert's window. A case still in the stage is not one of M93's.
 
 **Window:** from when the earliest of its cases entered the stage, to now: what sent a case out wrongly can come before it left.
 
@@ -124,7 +128,7 @@ Stop more cases leaving by L07: no person makes these moves, so nothing here hol
 Work them over the window, on its cases only, in order; each is written in [S4](#s4-every-test-once). Where a test's command asks for a time span in angle brackets (a `--since` or a time range), give it this entry's window, whatever the placeholder says. Where it asks for case ids in angle brackets (`<case ids>`, `<id>`), give it the ids of the cases you are working: this entry's own, or those the test that sent you to it listed. Every result has a route:
 
 - the expected result: go on to the next test;
-- a match: it explains the cases it lists. Take the line's ending for those cases; if the alert counts cases it did not list, go on to the next test for the rest. Where the line says to run linked tests as well, run them on the same cases: the register ties those causes together ([S5](#s5-causes-the-alerts-share));
+- a match: it explains the cases it lists. Take the line's ending for those cases; if the alert counts cases it did not list, go on to the next test for the rest. Where the line says to run linked tests as well, run them on the same cases: those causes are tied together ([S5](#s5-causes-the-alerts-share));
 - a check whose evidence lists no cases (a match in a log or a metric) explains no case by itself: note it, if the match falls inside the look-back, and go on; a case no later check explains takes the ending of every check noted for it, each named in the hand-over; where those endings differ, escalate rather than restore;
 - anything else (an unclear answer, a step you cannot run): note it for the hand-over and go on.
 
@@ -294,7 +298,7 @@ Each test is written here once. An alert's entry says which it runs, in what ord
 - T28 FM28 Payment Processor, message: publish fails: M13, M93
 - T29 FM37 Payment Processor, message: consumer fails on the message: M13, M93
 
-**Linked in the register.** The register's own text of one cause names another: a mode named is that mode, and a move named stands for the modes that stop it. For each alert's own test, the tests it links that the alert's entry does not already work; its entry says to run them, on the same cases, when it matches.
+**Linked causes.** The text of one cause names another: a mode named is that mode, and a move named stands for the modes that stop it. For each alert's own test, the tests it links that the alert's entry does not already work; its entry says to run them, on the same cases, when it matches.
 
 - M93, T30 FM43 (Payment Processor, in-process: the act completes wrongly): run T7 FM15 (M13); T8 FM16 (M13); T9 FM12 (M13); T11 FM06 (M13); T13 FM08 (M13); T26 FM32 (M13); T27 FM39 (M13) as well: FM43 names L07
 
@@ -335,9 +339,9 @@ Each test is written here once. An alert's entry says which it runs, in what ord
 
 **Escalate** (hand over to the owning tier) when you cannot restore with S6; when a test ends in *Broken — cannot restore* (T9, T7, T8); or when a remedy needs approval (use the change-approval path).
 
-**Escalate to the owner of the part that failed**: the part the test that matched names. The owners as the register records them, with the date each was recorded; *not in the map yet* means the register names none, a gap to fill and not a reason to stop. Links to the on-call and change records are the operators' to add.
+**Escalate to the owner of the part that failed**: the part the test that matched names. The owners with the date each was named; *none named yet* is a gap to fill and not a reason to stop. Links to the on-call and change records are the operators' to add.
 
-| Part | Owner (register) | As of | Responder (register) | Tests that end in escalation to it |
+| Part | Owner | As of | Responder | Tests that end in escalation to it |
 |---|---|---|---|---|
 | Order Processor | proposed: the team that deploys the eShop AppHost, which ships every service and store together (eShop.AppHost/Program.cs:1-104); no source names a team | 2026-08-28 | proposed: that team's on-call; no source names one | — |
 | Ordering API | proposed: the team that deploys the eShop AppHost, which ships every service and store together (eShop.AppHost/Program.cs:1-104); no source names a team | 2026-08-28 | proposed: that team's on-call; no source names one | — |
@@ -396,6 +400,7 @@ Operator links to fill in, one per measure the tests read:
 
 - **Owner:** not stated.
 - **Last validated:** never. It has not been rehearsed cold.
+- **Made from:** the register; each test after the opening checks is a row of `failure-modes.csv`, generated by `flow_outputs.py`.
 - **To change it:** change the register (`lifecycle.csv`, `failure-modes.csv`, `remedies.csv`, `measures.csv`) and generate it again. Never edit this file.
 
 | Test | Failure mode | Lifecycle rows | Part | Source |
@@ -427,4 +432,4 @@ Operator links to fill in, one per measure the tests read:
 | T29 | FM37 message: consumer fails on the message | L06, L07 | Payment Processor | EventBusRabbitMQ/RabbitMQEventBus.cs:132-208 |
 | T30 | FM43 in-process: the act completes wrongly | L06, L07 | Payment Processor | PaymentProcessor/IntegrationEvents/EventHandling/OrderStatusChangedToStockConfirmedIntegrationEventHandler.cs:21-28; PaymentProcessor/appsettings.json:14-16 |
 
-<!-- bfo-generated-from {"flow": "F1", "stage": "ST2", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "f3ef7b5dbcfd", "measures": "b0ad6bcbbe1a", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->
+<!-- bfo-generated-from {"flow": "F1", "stage": "ST2", "tables": {"about": "c9f8351ce577", "agent-system": "80df4fb74aa2", "alerts": "35bb2336b8dd", "capabilities": "f4fc19936bf8", "case-attributes": "3f95e73172bd", "expectations": "cd4f9fe286e7", "failure-modes": "132f9700adac", "flows": "a27265fffff5", "lifecycle": "440f83f4a1fa", "measure-gaps": "4cdeb4c58baf", "measures": "7c78f31e5930", "participation": "f08de4c4ac9a", "remedies": "2e9c1e60a265", "sources": "328a3c147492", "stages": "4595b2c6e50a", "step-impact": "4e066d413fd0", "steps": "e09fc039d65e", "subjects": "644d8b1712b7"}} -->

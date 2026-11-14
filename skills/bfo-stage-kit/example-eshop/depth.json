@@ -3249,11 +3249,6 @@
        "role": "needed by a step"
       },
       {
-       "part": "S17",
-       "name": "Fulfilment staff",
-       "role": "carries a step"
-      },
-      {
        "part": "S10",
        "name": "Identity API",
        "role": "needed by a step"
@@ -3874,6 +3869,16 @@
         "gap_kind": null,
         "measures": [
          "M86"
+        ]
+       },
+       {
+        "element": "S18",
+        "question": "application",
+        "what": "external dependency: Webhook subscriber endpoint, from the calling side",
+        "state": "measured",
+        "gap_kind": null,
+        "measures": [
+         "M79"
         ]
        }
       ]
@@ -4743,6 +4748,16 @@
         "gap_kind": null,
         "measures": [
          "M86"
+        ]
+       },
+       {
+        "element": "S18",
+        "question": "application",
+        "what": "external dependency: Webhook subscriber endpoint, from the calling side",
+        "state": "measured",
+        "gap_kind": null,
+        "measures": [
+         "M79"
         ]
        }
       ]

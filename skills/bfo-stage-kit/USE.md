@@ -20,8 +20,9 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
 - Claude Code (the VS Code extension or the command line), so the model can read files, run terminal commands and
   launch helper agents. The run's done check reads Claude Code's own record of the session, so a run in another
   assistant never reaches DONE. What it reads: the session records Claude Code keeps on this machine (under
-  `~/.claude/projects/`) for the folders from the register up to, not including, your home folder or the drive's root. It keeps only which files were opened and the commands run, writes nothing, and
-  sends nothing anywhere. If you started Claude Code outside the register's folder (in a folder beside it or below
+  `~/.claude/projects/`) for the folders from the register up to, not including, your home folder or the drive's root. It reads which files were opened, the commands run, the
+  content of the files the run and its helpers wrote, each helper's first prompt, and the words you typed, to
+  confirm a correction is yours; it writes nothing there and sends nothing anywhere. If you started Claude Code outside the register's folder (in a folder beside it or below
   it), set `BFO_TRANSCRIPTS` to that session's project folder under `~/.claude/projects/` (named after the folder the
   session was started in, every character other than a letter or digit written as a dash) before the done check.
 - Python 3.9 or later on the path, and Semgrep for the code reader (`pip install semgrep`;
@@ -32,7 +33,21 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
   itself shortly after the run's record shows the run has ended, even with the page still open; it also stops with
   the stop command the run prints, or after eight hours with no request. The run opens your browser on the page in
   one tab, and opens it again at a later stop if you closed that tab; set `BFO_NO_BROWSER=1` to turn that off and
-  open the address the run gives you yourself. Nothing is sent off the machine.
+  open the address the run gives you yourself. Nothing is sent off the machine. To stop the server on Windows, the
+  run asks Windows for the command line of the one process it recorded (a hidden PowerShell call,
+  `Get-CimInstance Win32_Process`) and, once that confirms it is the run's own server, ends it with
+  `taskkill /PID <n> /F`.
+- Helper agents. The run reads each part of the code, and checks each finding, with Claude Code subagents launched
+  from your own session. The kit also has a second way, used only if you or a session run `readers.py run` or
+  `judges.py run` by command, never by the skill's own steps: it starts separate headless Claude Code processes
+  (`claude -p`), several at once (`parallel` in the register's `run-settings.json`), each for up to 90 minutes (a
+  reader or fixer) or 30 minutes (a judge). A reader may read, search, write and edit files, a judge read, search
+  and write; both are refused the shell, other agents and the web. Keeping their writes to their own folders rests
+  on their prompt and on the check of their session records afterwards, and a `claude -p` judge fails that check
+  (`split-run-formats.md`).
+- The register's `run-settings.json` is as trusted as a script: after every command that changes the run's state,
+  the kit runs its `on_change` command through the shell (by default the kit's own `python run_page.py {reg}`).
+  `capability_views.py` run without `--out` writes its page to `out/` inside the kit's own folder.
 - The code, or where it is: name the repositories, pages, diagrams and process descriptions in your request, and
   the run gets them. Code already open in the workspace is read too; where it spans several repositories, add each
   as a folder of one workspace. You can start with as much or as little as you have: a name, some repositories, all of them, documents. For what is not there (the repositories behind references nothing in the workspace answers, those that call this flow's services, a service the code calls whose code is not there), the run says what it cannot find and proposes where to look, and searches only where you agree. It searches and fetches with access you already have and read-only: it never requests access, enters credentials, or changes anything at the source, and `RUN.md` lists every source it fetched with what referenced it and why. What you do not agree to search is listed under *still missing*. To keep it to the sources you name, say *use only the sources I name*: it then neither fetches nor searches, and lists the rest under *still missing*.
@@ -48,6 +63,16 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
     to do, and the register goes to `bfo-work/<application>/` at the workspace root;
   - **or in the workspace**, used with the prompt below. The register then goes to `bfo-stage-kit/work/<application>/`.
 
+  Either way, put the mapping skill (`bfo-mapping/`) and the measures skill (`bfo-measures/`) beside it, in the same
+  folder as `bfo-stage-kit/`: the kit hands the mapping of the flow to the first and the proposing of the measures
+  to the second, and runs neither itself.
+
+  Copy the whole folder, never part of it. Its `KIT-VERSION.txt` names the build it is (the release and date it was
+  built from) and lists every file in it. At every start and resume the run prints which build it is running and,
+  where your copy is missing a file, has one changed, has one from another version, or has no `KIT-VERSION.txt`,
+  says so and stops before it touches your work: copy the whole folder again from its source, then start again.
+  A whole copy of an older build is not caught this way; the build the run prints tells you which one you have.
+
 ## The prompt
 
 Without the skill, copy it as it is into Claude Code:
@@ -60,7 +85,7 @@ RUN.md; follow its phases to the end and finish only when run_status.py says DON
 Never stop to ask me a fact you can infer: infer it and mark it proposed. Bring me what is mine (which flow to
 map, what to leave out, whether the sources are enough) with your proposal when it arises, starting with the plan,
 shown whole in the chat. When you finish, tell me the folder, the flow and how far each stage went, the check results,
-anything you could not do, and paste run_status.py's output.
+anything you could not do, and what the done check found, in plain words.
 ```
 
 To point it at sources, add one line at the end (optional): *These are the sources: …*, naming the repositories,
@@ -109,6 +134,17 @@ how far each stage goes leaves out: the run passes over it and does not wait on 
 `python <kit>/run_status.py <register folder>`, which lists every output the run owes and says DONE or NOT DONE.
 The Fullness block it prints after that line counts how full the register is and judges nothing.
 
+**The next flow joins the same map.** A register is the capability's one map. When a flow is finished and the first
+look found more, the run offers the next flow, with the one it recommends and why, on the page and in the chat; the
+flow you pick is added to the same register, beside the finished ones. A finished flow keeps everything: how far you
+picked to take each stage, your words, your review of its alerts, its rows in the map and its pages. The done check
+says NOT DONE if a row of a finished flow is changed or an id is used twice. A flow the first look missed can be
+added at the offer, in your words, on the page or in the chat, and then picked like the others. To take a stage of a
+finished flow further, say so between flows, at the offer of the next flow: that flow is taken up again, only the
+work its new pick needs is done, its pages are checked and reported again, and then the offer comes back. While a
+flow is under way, the run finishes it first. A finished flow is never mapped again. A register from Release 7
+carries on the same way.
+
 ## If you ran an earlier version of this kit
 
 Keep the register from that run: the folder of CSV files in `bfo-stage-kit/work/`, or in `bfo-work/` if you used the
@@ -126,6 +162,25 @@ assessed and disagreed. Alerts and runbooks from the earlier run are not carried
 new run.
 
 The earlier in-place upgrade prompt is retired (CHANGELOG, Release 2).
+
+## If the kit is updated while a run is under way
+
+A run this kit picks up that an older kit wrote (in a new chat, on a resume, or when you replace the kit mid-run) is
+upgraded without asking you, because the upgrade changes no content and the new kit cannot run the old form. When
+the run picks the work up, its start step does this before it writes its first message to you, and that message
+says so; the backup goes to `bfo-backups` in your computer's temporary folder. Otherwise the
+run backs the register folder up to a folder outside the workspace (a copy inside it would be taken for an earlier
+register), runs `python "<skill>/reconcile.py" --migrate "<register>"` on the register itself, in place, and runs
+the check again. It then restarts the page's listener, which otherwise keeps running the old kit:
+`python "<skill>/listener.py" stop "<work folder>"`, then `python "<skill>/wait_on_page.py" "<register>"`. It tells
+you in one line what it did and where the backup is. Where the upgrade finds AI agent rows not classed (an
+older kit classed which of an agent's actions are its decisions after mapping; mapping does it now), that line says
+how many, and that mapping re-reads the code behind each tool, reply and chained action and classes it before
+the run is done: a re-walk, announced before it starts and going ahead unless you object, as a correction to
+mapping. For what the CHANGELOG's effect lines still name: a fill from
+the register's own citations runs on its own and is announced; a re-walk, which reads the code again, is announced
+before it starts, saying what will be re-read and why, and goes ahead unless you object; only a failed check makes it
+a question, so only if the check still fails does the run stop and ask you. This is the run's own register; the earlier register of the section above is still never written into.
 
 ## What comes out
 

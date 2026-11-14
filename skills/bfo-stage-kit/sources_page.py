@@ -186,6 +186,9 @@ def render(reg, home_href=None):
 
 
 def main(argv):
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
+    import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
+    run_lock.refuse_unless_register(argv)
     if len(argv) != 1 or not pathlib.Path(argv[0]).is_dir():
         print(__doc__.split("\n\n")[1], file=sys.stderr)
         return 2

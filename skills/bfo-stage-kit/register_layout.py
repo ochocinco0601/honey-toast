@@ -30,13 +30,16 @@ JOBS_CSV = f"{JOB}/{JOBS_FILE}"
 LOCK_JSON = f"{JOB}/{LOCK_FILE}"
 
 REPLIES = "replies"  # the unit readers' replies, <unit>-<mode>.json
+PROMPTS = "prompts"  # prompts/<unit>/<name>.md: one agent's prompt (judges.py emit, readers.py prompt); never in units/
+LAUNCH = f"{PROMPTS}/launch"  # launcher files: the pointer lines one launcher subagent launches
 
 UNITS_COLS = ("unit", "deployable", "repository", "paths", "files", "lines", "reader_facts", "calls", "called_by",
               "note")
 # a unit's calls.csv; a file without `within` and `sequence` still merges, with them blank
 CALLS_COLS = ("row_id", "from_part", "protocol", "to_unit", "to_part", "via", "operation", "within", "sequence",
               "step_hint", "carries_case_id", "source")
-VERDICT_COLS =["unit", "table", "row", "round", "judge", "verdict", "reason"]
+# a verdict file names the flow it was judged in and the hash of the row as it judged it
+VERDICT_COLS = ["unit", "table", "row", "round", "judge", "flow", "row_hash", "verdict", "reason"]
 JUDGEMENT_COLS = ["unit", "table", "row", "round", "judges", "says", "flagged", "state", "reasons"]
 UNMATCHED_COLS = ["call", "from_unit", "to_unit", "protocol", "operation", "source", "why"]
 JOBS_COLS = ["item", "step", "state", "tries", "reason", "session", "updated"]
@@ -45,6 +48,11 @@ JOBS_COLS = ["item", "step", "state", "tries", "reason", "session", "updated"]
 def unit_dir(reg, unit):
     """A unit's folder, written only by its reader."""
     return pathlib.Path(reg) / UNITS / unit
+
+
+def prompts_dir(reg, unit):
+    """One unit's prompt files."""
+    return pathlib.Path(reg) / PROMPTS / unit
 
 
 def judging_dir(reg, unit=None):

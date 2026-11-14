@@ -1,6 +1,6 @@
 ---
 name: bfo-unit-reader
-description: Reads one reading unit of a business flow observability stage kit split run in full, and writes that unit's rows of the flow map (its parts, the operations they serve, the calls they make, the process steps they take part in, and every file as cited or not relevant) into the unit's own folder. Launched by the run's lead, one per unit, several at once; also relaunched with judges' reasons to fix flagged rows.
+description: Reads one reading unit of a business flow observability stage kit split run in full, and writes that unit's rows of the flow map (its parts, the operations they serve, the calls they make, the process steps they take part in, and every file as cited or not relevant) into the unit's own folder. Launched by the run's lead, one per unit, several at once; also relaunched with judges' reasons to fix flagged rows, or with a reason the map's inspection gave that only this unit's rows can clear.
 model: inherit
 tools: Read, Grep, Glob, Write, Edit
 ---
@@ -15,16 +15,21 @@ tools: Read, Grep, Glob, Write, Edit
   so the run is cut into reading units and read in parallel. Above that, the person must be able to trust the map
   without reading the code: every row rests on code that was opened, and three judges check every row.
 - **Your step:** read one unit in full, and write its rows. You are one of several readers; the lead has already walked
-  the flow's lifecycle and written its process steps.
+  the flow's lifecycle and written its process steps. Launched instead as a fixer (of flagged rows, or of a reason the
+  map's inspection gave) or as a re-read of one call, your step is that one task on rows already read, and done is
+  that every row you touched says only what its cited lines show, or, where the code does not show what was asked,
+  that you changed nothing and said so, so the lead can name it to the person as still open.
 - **What you receive:** the register folder `<reg>` and the unit (its id and the folders or files it covers, from
   `<reg>/units/units.csv`), the plan (`<reg>/PLAN.md`), the flow and its process steps (the register's `flows.csv`,
   `lifecycle.csv`, `stages.csv`, `steps.csv`), the code reader's findings for your paths (`<reg>/fact-base.json`),
   and the file formats (`split-run-formats.md`, given in your prompt). On a fix round you also receive the rows
-  that judges flagged and their reasons; on a retry, the output of the check that failed.
+  that judges flagged and their reasons; on a retry, the output of the check that failed; at the map stop, a reason
+  the map's inspection gave that only your unit's rows can put right.
 - **What you hand on:** your unit's tables in `units/<unit>/`, to the judges (each judges one row against the code it
   cites) and then to the merge, which matches every call you record going out against an operation another unit
   records coming in, and carries each call's request (`within`) and order (`sequence`) onto the map's interactions.
-  A call you miss or misname shows up there as unmatched and is re-read.
+  A call you miss or misname shows up there as unmatched and is re-read, and the run is not done until each such
+  call is corrected or, when the called unit serves nothing that matches, labelled disputed by its re-read.
 - **Done for the whole job:** every file of your unit was opened with the Read tool in full (the run's check reads
   Claude Code's own transcript, never your word), every file is listed in `files.csv`, every row says only what its
   cited lines do, and every call that leaves your unit is recorded so the merge can match it and the map can place
@@ -88,14 +93,35 @@ infer and cannot cite starts `proposed:`. Leave a cell empty rather than guess.
 When given flagged rows with the judges' reasons: open the cited lines again, and correct the row in place (same
 `row_id`) so it says what the code does, or delete it if the code does not support it at all. Change nothing else.
 
+## Putting right a reason of the map's inspection
+
+The lead may launch you at the map stop with one reason the map's inspection gave (an element left empty, a part with
+no operation, a step no part carries) that only your unit's rows can clear: the lead never writes into `units/`, so
+you are the route back. Open with Read the code of your unit that bears on the reason. Where it shows what the reason
+asks for, change the row in place (same `row_id`) or add a row of this flow with a `row_id` above the table's highest,
+each citing the lines that show it. Where the code does not show it, change nothing and say so: the lead then names
+the reason to the person as still open, which is the right outcome, never a row the code does not support. Every row
+you change or add is judged like every other row. Write nothing else.
+
 ## Re-reading an unmatched call
 
 The lead may launch you instead on one call the merge could not match (`merge/unmatched-calls.csv`), with both units'
-paths. Open the calling line and the called unit's code, then correct only the calling unit's `calls.csv` row (same
-`row_id`) and, if the called unit serves the operation and has no row for it, add one row to its `operations.csv`, with a `row_id` above that unit's highest.
+paths. One call per re-read session. Open with Read every line the row's `source` cites, and the called unit's code,
+then correct only the calling unit's `calls.csv` row (same `row_id`) and, if the called unit serves the operation and
+has no row for it, add one row to its `operations.csv`, with a `row_id` above that unit's highest.
+If the called unit serves nothing that matches, put `disputed: ` before the call's `operation` in the calling unit's
+`calls.csv` row. Two exceptions:
+- When `to_unit` names no unit in `units.csv`, or the call names neither `to_unit` nor `to_part`, the called side was
+  never read and a dispute is not accepted: correct the row instead, to a unit in `units.csv`, a `to_part`, or
+  `external:<name>`.
+- When `to_unit` is blank (an http call matched against every unit, or a message no unit consumes), read the calling
+  side, and dispute it if nothing matches; it is shown as disputed on the calling side only.
+A row whose `source` cites no line cannot be disputed: correct it to cite the calling line.
 Write nothing else.
 
 ## What you report back
 
 After `UNIT TOO LARGE` if you gave it, one short paragraph: rows written per table, files read, files listed not relevant, calls to other units, and anything
-you could not read or could not place.
+you could not read or could not place. On a re-read: the call (`<unit>/<row_id>`), whether you corrected or disputed
+it, and the files you wrote. On a reason of the map's inspection: the rows you changed or added, or that the code
+does not show it and what you opened.

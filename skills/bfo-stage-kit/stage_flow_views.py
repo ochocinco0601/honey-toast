@@ -763,8 +763,9 @@ def mark_pill(ms, sid, wmax=PILL_W, layers=MEASURED):
     return h, w, draw
 
 
-def guards(M, m):
-    """The expectation a measure guards, in the register's words made plain, or ""."""
+def evidence(M, m):
+    """The expectation a measure is evidence of (`measures.csv` → `expectation`, read for coverage; an alert's own
+    guard is `alerts.csv` → `guards`), in the register's words made plain, or ""."""
     r = next((r for r in expectations(M) if m.get("expectation") and r.get("expectation_id") == m.get("expectation")), None)
     return labelled(M, r.get("expectation", "")) if r else ""
 
@@ -774,7 +775,7 @@ def measure_form(M, m):
     column, which would widen it many times over."""
     rows = [("Answers", m.get("question_it_answers", "")), ("Kind", m.get("form", "")), ("Counted on", m.get("counted_on", "")),
             ("On its call", m.get("operation", "")), ("Counted how", m.get("counted_how", "")),
-            ("Exists today", "yes" if m.get("exists") == "yes" else "no"), ("Expectation it guards", guards(M, m)),
+            ("Exists today", "yes" if m.get("exists") == "yes" else "no"), ("Expectation it guards", evidence(M, m)),
             ("Taken from", m.get("taken_from", ""))]
     return "<dl>" + "".join(f"<dt>{a}</dt><dd>{cv.prose(M, states_in_prose(M, no_measure_ids(M, b)))}</dd>"
                             for a, b in rows if b) + "</dl>"

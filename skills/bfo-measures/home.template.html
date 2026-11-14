@@ -1,0 +1,461 @@
+<!--GENERATED-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title><!--TITLE--></title>
+<style>
+body{margin:0;background:#F6F5F1}
+.lvl{font-size:11px;color:#5A5850;letter-spacing:0.06em;text-transform:uppercase}
+.card{background:#FFFFFF;border:1px solid #DAD7CD;border-radius:8px;padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.case{font:inherit;font-size:13px;min-height:32px;padding:4px 12px;border:1px solid #DAD7CD;background:#FFFFFF;border-radius:6px;cursor:pointer;color:#1D1D1B}
+.case.on{border-color:#1F4E8C;color:#1F4E8C;font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.col{background:#F1EFE8;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0;min-height:120px}
+.col .h{font-size:12px;font-weight:600;color:#3D3B35;letter-spacing:0.04em;text-transform:uppercase}
+.col .q{font-size:12px;color:#5A5850}
+.fc{font:inherit;text-align:left;color:#1D1D1B;border:1px solid #DAD7CD;background:#FFFFFF;border-radius:6px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:4px;min-height:44px}
+.fc.on{border:2px solid #1F4E8C;padding:9px 11px}
+.fc .t{font-size:14px;font-weight:600}
+.fc .s{font-size:12px;color:#5A5850}
+.sts{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:12px}
+.yes{color:#2E7D4A;font-weight:600}
+.no{color:#5A5850}
+.empty{font-size:12px;color:#7A776E}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{font:inherit;font-size:13px;min-height:36px;padding:4px 14px;border:1px solid #DAD7CD;background:#FFFFFF;border-radius:6px;cursor:pointer;color:#1D1D1B}
+.tab.on{border-color:#1F4E8C;color:#1F4E8C;font-weight:600}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.box{border:1px solid #EEECE5;border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.box .t{font-size:14px;font-weight:600}
+ul{margin:0;padding-left:16px;font-size:13px}
+li{margin:2px 0}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:12px;border:1px solid #DAD7CD;border-radius:4px;padding:1px 6px;background:#FAF9F5}
+.mute{color:#5A5850;font-size:12px}
+.trk{display:grid;grid-template-columns:minmax(170px,1.3fr) repeat(3,minmax(0,0.55fr)) repeat(5,minmax(0,0.8fr));align-items:start;gap:0;width:100%;box-sizing:border-box}
+.trk.hd small.out{color:#7A4B00;font-style:italic}
+.sp .lb.sm{font-size:11px;line-height:1.3;color:#3D3B35}
+.trk.hd{font-size:13px;color:#3D3B35;padding:0 12px 6px;border-bottom:1px solid #DAD7CD}
+.trk.hd .sh{display:flex;flex-direction:column;padding-right:8px}
+.trk.hd small{font-size:11px;color:#5A5850}
+.trk.rw{color:#1D1D1B;background:#FFFFFF;border:1px solid transparent;border-bottom:1px solid #EEECE5;padding:12px;min-height:56px}
+.trk.rw.on{border:2px solid #1F4E8C;padding:11px;border-radius:6px}
+.nm{display:flex;flex-direction:column;gap:2px;padding-right:10px}
+.nm small{font-size:12px;color:#5A5850}
+.sp{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:36px;justify-content:center}
+.sp .ln{position:absolute;left:0;right:0;top:9px;height:3px;background:#DAD7CD}
+.sp:last-child .ln{right:auto;width:12px}
+.sp .pt{position:relative;width:14px;height:14px;border-radius:50%;background:#FFFFFF;border:2px solid #B9B5A8;box-sizing:border-box;z-index:1;margin-top:2px}
+.sp .lb{font-size:12px;color:#5A5850;padding-right:8px}
+.sp.go .ln{background:#2E7D4A}
+.sp.done .pt{background:#2E7D4A;border-color:#2E7D4A}
+.sp.done .lb{color:#1D1D1B}
+.sp.part .pt{background:linear-gradient(90deg,#2E7D4A 50%,#FFFFFF 50%);border-color:#2E7D4A}
+.sp.part .lb{color:#1D1D1B}
+button.sp{font:inherit;text-align:left;background:none;border:0;padding:0;cursor:pointer;color:inherit;width:100%;min-height:44px}
+button.sp:hover .pt{box-shadow:0 0 0 3px #D6E2F2}
+button.sp.sel .pt{box-shadow:0 0 0 3px #1F4E8C}
+button.sp.sel .lb{color:#1F4E8C;font-weight:600}
+.crumb{font-size:13px;color:#3D3B35}
+.sec{display:flex;flex-direction:column;gap:6px}
+.sec .st{font-size:12px;font-weight:600;color:#3D3B35;letter-spacing:0.04em;text-transform:uppercase;border-bottom:1px solid #EEECE5;padding-bottom:4px}
+.it{font-size:14px;padding:6px 0;border-bottom:1px solid #F4F2EC;display:flex;flex-direction:column;gap:3px}
+.it .sub{font-size:13px;color:#3D3B35}
+.it .sub .k{color:#5A5850;display:inline-block;min-width:110px}
+.tag{font-size:11px;color:#2F4A6B;border:1px solid #B9C6D6;border-radius:3px;padding:0 4px;white-space:nowrap}
+ol.steps{margin:0;padding-left:20px;font-size:13px}
+.inl{border:2px solid #1F4E8C;border-top:0;border-radius:0 0 6px 6px;margin:-2px 0 8px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;background:#FFFFFF}
+.trk.rw.on.op{border-radius:6px 6px 0 0}
+.dh{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;font-size:14px}
+.split{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:14px;align-items:start}
+.tree{display:flex;flex-direction:column;font-size:12px;border-right:1px solid #EEECE5;padding-right:10px}
+.tn.d0{grid-template-columns:minmax(0,1fr) auto}
+.tn.d1{padding-left:4px}
+.tn.d2{padding-left:26px}
+.tn{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:baseline;gap:0;padding:2px 4px;text-align:left;font:inherit;font-size:12px;color:#1D1D1B;background:none;border:0;border-radius:4px;min-height:24px}
+.tn .tg{font-family:Consolas,'Courier New',monospace;color:#9A968B;white-space:pre}
+.tn .tc{grid-column:2;color:#5A5850;font-size:11px;font-weight:400;font-variant-numeric:tabular-nums}
+.tn.tb{cursor:pointer}
+.trow{display:flex;align-items:center;gap:4px}.trow>.tn{flex:1}
+.ru{display:flex;gap:12px;padding:0 0 4px 50px;font-size:12px;color:#3D3B35}.ru label{display:flex;align-items:center;gap:4px;cursor:pointer}
+.tk{width:16px;height:16px;margin:0;accent-color:#1F4E8C;cursor:pointer;flex:none}
+.tdone{display:flex;flex-direction:column;gap:6px;padding-top:10px;margin-top:8px;border-top:1px solid #EEECE5}
+.wi{font:inherit;font-size:12px;min-height:30px;padding:2px 8px;border:1px solid #DAD7CD;border-radius:6px}
+.ab2.dn{background:#1D1D1B;color:#FFFFFF;border-color:#1D1D1B;align-self:flex-start}
+.caps{color:#2F4A6B;margin-top:3px}
+tr.ab td{white-space:pre-line}
+.tn.tb:hover{background:#F1EFE8}
+.tn.tb.on{background:#E4ECF6;color:#123460;font-weight:600}
+.pane{display:flex;flex-direction:column;gap:8px;min-width:0}
+@media (max-width: 760px){.split{grid-template-columns:minmax(0,1fr)}.tree{border-right:0}}
+.tw{overflow-x:auto;max-height:520px;overflow-y:auto;border:1px solid #EEECE5;border-radius:6px}
+table.dt{border-collapse:collapse;width:100%;font-size:12px;line-height:1.35}
+table.dt th{position:sticky;top:0;background:#F1EFE8;text-align:left;font-weight:600;color:#3D3B35;padding:4px 8px;border-bottom:1px solid #DAD7CD}
+table.dt td{padding:3px 8px;border-bottom:1px solid #F4F2EC;vertical-align:top}
+table.dt tr.grp td{background:#FAF9F5;font-weight:600;color:#3D3B35;font-size:11px;letter-spacing:0.04em;text-transform:uppercase;padding-top:6px}
+table.dt tr.no td:last-child{color:#2F4A6B}
+table.dt tr.blk td{border-top:2px solid #DAD7CD}
+table.dt td:first-child{font-weight:600;color:#3D3B35;white-space:nowrap;width:1%}
+table.dt td:nth-child(2),table.dt th:nth-child(2){width:1%;padding-left:2px;padding-right:4px;text-align:right;color:#A8A499;font-size:11px;font-weight:400;font-variant-numeric:tabular-nums}
+table.dt tr.gap td{color:#5A5850}
+.pgs{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin:2px 0 8px;font-size:12px}.pgl{color:#2F4A6B;text-decoration:underline;text-underline-offset:2px}
+.tw:has(tr.ins) table.dt{table-layout:fixed}.tw:has(tr.ins) th:nth-child(1){width:4px}.tw:has(tr.ins) th:nth-child(2){width:22px}.tw:has(tr.ins) th:nth-child(3){width:30%}.tw:has(tr.ins) th:nth-child(4){width:24%}.tw:has(tr.ins) td{overflow-wrap:anywhere}
+table.dt tr.lv td{background:#F7F6F2;color:#5A5850;font-style:italic}
+table.dt tr.lv td:first-child{font-style:normal;color:#1D1D1B}
+@media (max-width: 760px){.trk{grid-template-columns:minmax(0,1fr) repeat(8,minmax(0,0.4fr))}}
+.nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;background:#FFFFFF;border-bottom:1px solid #DAD7CD;padding:10px 24px;font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;color:#1D1D1B}
+.nav .sys{font-weight:600}
+.nav .go{color:#1F4E8C;text-decoration:none;padding:4px 2px;border-bottom:2px solid transparent}
+.nav .go.on{border-bottom-color:#1F4E8C;font-weight:600}
+.nav .off{color:#8A867C}
+.nav .sp2{flex:1}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;align-items:baseline;font-size:15px}
+.pick .it{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;padding:8px 0;border-top:1px solid #ECEAE3}
+.pick .it:first-child{border-top:none}
+.pick .pnm{font-size:14px;font-weight:600}
+.recm.none{display:none}
+.recm{display:inline-block;font-size:11px;font-weight:600;color:#1F4E8C;background:#E4ECF6;border-radius:3px;padding:0 6px;margin-left:6px;vertical-align:1px}
+.why{grid-column:1;font-size:12px;color:#5A5850}
+.acts{display:flex;gap:6px;grid-row:1 / span 2;grid-column:2}
+.ab2{font:inherit;font-size:13px;min-height:32px;padding:2px 12px;border-radius:6px;border:1px solid #DAD7CD;background:#FFFFFF;color:#1D1D1B;cursor:pointer}
+.ab2.y{border-color:#1F4E8C;color:#1F4E8C}
+.add{font:inherit;font-size:13px;color:#1F4E8C;background:none;border:none;padding:8px 0 0;cursor:pointer;text-align:left}
+.top2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:start}
+@media (max-width:900px){.top2{grid-template-columns:1fr}}
+[hidden]{display:none!important}
+a.pgl:hover,.nav a.go:hover{text-decoration:underline}
+.trk.rw.on.op+.inl{margin-top:-2px}
+</style>
+</head>
+<body>
+<!--NAV-->
+<div style="box-sizing: border-box; max-width: 1280px; margin: 0 auto; padding: 18px 24px 48px; display: flex; flex-direction: column; gap: 14px; font-family: 'Segoe UI', system-ui, sans-serif; color: #1D1D1B">
+
+<div class="card" id="moved" role="status" style="border-color: #1F4E8C; color: #1F4E8C; font-weight: 600" hidden><span data-said data-status></span> <button type="button" class="ab2 dn" data-done>Send</button> <!--CLEAR--></div>
+<!--PICK-->
+<div class="card">
+<div class="mute">Each row is one flow identified. Each dot is one of the flow&rsquo;s milestones toward supported in production. Identified, Mapped, Measures defined, Runbooks written: filled once drafted for your review (a runbook is drafted, never rehearsed). Alerts defined: filled once the review of the proposed alerts is recorded. Instrumented, Dashboards built, Team prepared: done by other teams, so these dots never fill here. The count under Instrumented is read from the code at design time, not from the running system. A draft is not complete, correct or accepted. The line between two filled dots is filled. Click any dot to see what is there to review at that milestone.</div>
+<!--HEAD-->
+<!--ROWS-->
+<div class="mute"><!--BLIND--></div>
+</div>
+
+<div style="font-size: 12px; color: #5A5850"><!--SOURCE--></div>
+</div>
+<!--FORM-->
+<script>
+(function () {
+  var open = null;
+  function all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function close() {
+    if (!open) return;
+    open.hidden = true;
+    var key = open.getAttribute('data-dd'), row = document.querySelector('[data-row="' + key.split('-')[0] + '"]');
+    if (row) row.classList.remove('on', 'op');
+    var dot = document.querySelector('[data-dot="' + key + '"]');
+    if (dot) { dot.classList.remove('sel'); dot.setAttribute('aria-pressed', 'false'); }
+    var ask = document.getElementById('ask'), park = document.getElementById('answers');
+    if (ask && park && open.contains(ask)) park.appendChild(ask);
+    open = null;
+  }
+  function show(key) {
+    var was = open && open.getAttribute('data-dd');
+    close();
+    if (was === key) return;
+    var dd = document.querySelector('[data-dd="' + key + '"]');
+    if (!dd) return;
+    dd.hidden = false; open = dd;
+    var row = document.querySelector('[data-row="' + key.split('-')[0] + '"]');
+    if (row) row.classList.add('on', 'op');
+    var dot = document.querySelector('[data-dot="' + key + '"]');
+    dot.classList.add('sel'); dot.setAttribute('aria-pressed', 'true');
+    var slot = dd.querySelector('.tslot[data-ask]'), ask = document.getElementById('ask');
+    if (slot && ask) { slot.appendChild(ask); ask.querySelector('.mute').textContent = slot.getAttribute('data-note'); }
+  }
+  function pick(btn) {
+    var dd = btn.closest('[data-dd]'), at = btn.getAttribute('data-sel');
+    all('[data-sel]', dd).forEach(function (b) {
+      var on = b.getAttribute('data-sel') === at;
+      b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'true' : 'false');
+    });
+    all('[data-pane]', dd).forEach(function (p) { p.hidden = p.getAttribute('data-pane') !== at; });
+  }
+  // The ticks for the open choice are the named checkboxes in the drop-downs, a stage's one per milestone
+  var OPTS = ['Measures defined', 'Alerts defined', 'Runbooks written'];
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.hasAttribute('data-stagetick')) {  // ticking a milestone brings the ones before it; unticking takes the later
+      var at = OPTS.indexOf(t.value);       // ones with it and leaves the earlier ones as they are
+      all('input[data-stagetick]').forEach(function (x) {
+        if (x.name !== t.name) return;
+        var i = OPTS.indexOf(x.value);
+        if (t.checked && i < at) x.checked = true;
+        if (!t.checked && i > at) x.checked = false;
+      });
+    } else if (t.hasAttribute('data-flowtick')) {  // one flow per run
+      all('input[data-flowtick]').forEach(function (x) { if (x !== t) x.checked = false; });
+    }
+  });
+  document.addEventListener('click', function (e) {
+    var dot = e.target.closest && e.target.closest('[data-dot]');
+    if (dot) { show(dot.getAttribute('data-dot')); return; }
+    var sel = e.target.closest && e.target.closest('[data-sel]');
+    if (sel) pick(sel);
+  });
+})();
+</script>
+<script>
+// Claude Code redraws this page whenever the run moves on: after each recorded answer, and when it reaches the next
+// choice. The page watches its own address from the moment it loads and reloads when the served page changes, so one
+// tab follows the whole run and the next Done answers the choice now open.
+(function () {
+  if (!window.fetch || location.protocol === 'file:') return;
+  // no limit on how long it watches: the wait grows from 3 s to at most 15 s, so a change shows within about 15 s;
+  // a Done resets it to 3 s, so the redraw after the answer shows quickly; a tab brought back to the front checks at once
+  var url = location.pathname, base = null, wait = 3000, failed = 0, behind = false, timer = null, sending = [];
+  // what the inputs hold, keyed by name (and value, for a tick), never by their place on the page: the words and Done
+  // move into a drop-down when it opens and back when it closes, and that move is no change
+  function state(els) {
+    var out = [];
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      out.push(el.type === 'checkbox' || el.type === 'radio'
+        ? 'tick ' + el.name + ' ' + el.value + ' ' + (el.checked ? 1 : 0)
+        : 'text ' + el.name + ' ' + el.value);
+    }
+    return out.sort().join('\n');
+  }
+  function fields() { return state(document.querySelectorAll('input[name], select[name], textarea[name]')); }
+  var kept = fields();  // unsaved input is any tick or words changed since the page loaded or since the last Done
+  function unsaved() { return fields() !== kept; }
+  // said in every status line, so in the open drop-down too, and at the top of the page, so it is seen with none open
+  // with `actions`, the line at the top carries Send and Clear
+  function say(text, actions) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) { el.textContent = text; });
+    var top = document.getElementById('moved');
+    if (!top) return;
+    top.querySelector('[data-said]').textContent = text;
+    top.querySelector('[data-clear]').hidden = !actions;
+    top.querySelector('[data-done]').hidden = !actions || actions === 'clear';
+    top.hidden = false;
+  }
+  // what the top line says when no reload is held: input put back ('back'), or a Send from it saved ('saved')
+  var note = '';
+  function unsay() {
+    if (behind || !note) return;
+    note = '';
+    var top = document.getElementById('moved');
+    if (top) top.hidden = true;
+  }
+  // the line about input put back goes once nothing is unsent; a "Saved at" there stays until the next change
+  function settle() { if (note === 'saved' || !unsaved()) unsay(); }
+  var NOT_SENT = 'Ticks or words changed since are not yet sent: send them or clear them.';
+  var PUT_BACK ='Ticks or words you had not sent are back in the drop-downs, still not sent: send them or clear them.';
+  function again() { clearTimeout(timer); timer = setTimeout(poll, wait); wait = Math.min(wait * 2, 15000); }
+  // one listener serves the whole run, so two failed checks in a row mean it has gone (the run ended, or Claude Code
+  // was closed): say so, and stop; if the run starts a new listener at a later stop, the chat says to open that page
+  function stopped() {
+    if (++failed < 2) { again(); return; }
+    say('Claude Code has stopped watching this page, so it no longer updates. Carry on in the chat.');
+  }
+  // never reload over unsaved input: hold the reload until it is saved or cleared
+  function moved() {
+    if (!unsaved()) { location.reload(); return; }
+    behind = true;
+    say('The run has moved on: send or clear your changes, and the page will update.', true);
+  }
+  // the page's stamp says what it shows; the base is the loaded page's own, so a redraw that lands between this tab's
+  // load and its first check is still a change (a page with no stamp falls back to its first fetch)
+  function mark(t) { var m = /<meta name="drawn" content="([0-9a-f]+)">/.exec(t); return m ? m[1] : t; }
+  var own = document.querySelector('meta[name="drawn"]');
+  if (own) base = own.content;
+  function poll() {
+    clearTimeout(timer);
+    fetch(url, { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.text();
+    }).then(function (t) {
+      failed = 0;
+      var k = mark(t);
+      if (base === null) base = k;
+      if (k !== base) moved(); else again();
+    }, stopped);
+  }
+  // a held reload goes ahead as soon as the page is clean: on any edit, and when a drop-down opens or closes
+  function recheck() { if (behind && !unsaved()) location.reload(); }
+  document.addEventListener('change', recheck);
+  document.addEventListener('input', recheck);
+  document.addEventListener('click', recheck);
+  document.addEventListener('visibilitychange', function () {
+    if (!behind && document.visibilityState === 'visible' && failed < 2) { wait = 3000; poll(); }
+  });
+  // a browser can put the last load's ticks and words back after this script has run; what the page holds once it has
+  // loaded is its clean state, unless a reload is already held over the person's own unsent input
+  function clean() { if (!behind) { kept = fields(); keptAt = values(); } }
+  // the browser no longer puts inputs back, so the page keeps the person's own unsent ticks and words for this tab,
+  // tied to the choice they were typed for, and puts them back when the page loads again on that same choice
+  var KEY = 'unsent:' + url, STRAYS = 'strays:' + url;
+  function inputs() { return document.querySelectorAll('input[name], select[name], textarea[name]'); }
+  function choice() {
+    var els = inputs();
+    for (var i = 0; i < els.length; i++) if (els[i].name === 'choice_id') return els[i].value;
+    return '';
+  }
+  // a tick by name and value; a box for a flow's topics by name and flow; any other box by name and its place
+  // among boxes of that name
+  function each(fn) {
+    var seen = {}, els = inputs();
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i], flow = el.getAttribute ? el.getAttribute('data-flow') : null;
+      if (el.type === 'hidden') continue;
+      if (el.type === 'checkbox' || el.type === 'radio') fn(el, 'tick ' + el.name + ' ' + el.value);
+      else if (flow !== null) fn(el, 'text ' + el.name + ' @' + flow);
+      else { seen[el.name] = (seen[el.name] || 0) + 1; fn(el, 'text ' + el.name + ' ' + seen[el.name]); }
+    }
+  }
+  function values() {
+    var out = {};
+    each(function (el, k) { out[k] = el.type === 'checkbox' || el.type === 'radio' ? el.checked : el.value; });
+    return out;
+  }
+  var keptAt = values();  // the clean state by field, beside `kept`: only what differs from it is kept for this tab
+  // topics to talk about (talk: ticks, talk-words: boxes) are sent with any Done and belong to no choice
+  function topic(k) { return /^(tick talk:|text talk-words:)/.test(k); }
+  function keep() {
+    last = values();
+    try {
+      if (!unsaved()) { sessionStorage.removeItem(KEY); return; }
+      var now = values(), held = {};
+      for (var k in now) if (now[k] !== keptAt[k]) held[k] = now[k];
+      var from = {};
+      for (k in held) if (origin[k]) from[k] = origin[k];
+      sessionStorage.setItem(KEY, JSON.stringify({ choice: choice(), held: held, origin: from }));
+    } catch (err) { /* no storage: nothing kept */ }
+  }
+  // on the same choice, everything kept comes back; on another, only the topics do: the old choice's ticks and words
+  // answered a question no longer open
+  function putBack() {
+    try {
+      var got = JSON.parse(sessionStorage.getItem(KEY) || 'null') || { choice: choice(), held: {} };
+      // topics with no box on the page are kept apart until the person dismisses them, so a page that reloads at
+      // once (the run often draws twice in a row) says them again instead of losing them
+      var strays = JSON.parse(sessionStorage.getItem(STRAYS) || '{}');
+      for (var s in got.held) if (topic(s) && got.held[s]) strays[s] = got.held[s];
+      var same = got.choice === choice(), placed = {}, words = [], ticks = 0;
+      each(function (el, k) {
+        placed[k] = true;
+        var v = k in got.held && (same || topic(k)) ? got.held[k] : k in strays ? strays[k] : undefined;
+        if (v === undefined) return;
+        if (el.type === 'checkbox' || el.type === 'radio') el.checked = !!v; else el.value = v;
+        if (got.origin && got.origin[k]) origin[k] = got.origin[k];
+      });
+      // the words are said, and where their drop-down now asks for the choice, so
+      var asking = {}, picked = [];
+      Array.prototype.forEach.call(document.querySelectorAll('[data-ask]'), function (el) {
+        if (el.getAttribute) asking['text talk-words:' + el.getAttribute('data-milestone') + ' @' + el.getAttribute('data-flow')] = true;
+      });
+      for (var k in strays) {
+        if (placed[k]) { delete strays[k]; continue; }
+        if (strays[k] === true) ticks++;
+        else (asking[k] ? picked : words).push('"' + strays[k] + '"');
+      }
+      for (k in strays) { sessionStorage.setItem(STRAYS, JSON.stringify(strays)); break; }
+      if (!picked.length && !words.length && !ticks) sessionStorage.removeItem(STRAYS);
+      keep();
+      var lost = words.concat(ticks ? [ticks + (ticks > 1 ? ' ticks' : ' tick')] : []);
+      var gone = (picked.length ? ' Not put back, because where you typed them now asks for your choice; add them to ' +
+        'your words there if you want them sent: ' + picked.join(', ') + '.' : '') +
+        (lost.length ? ' Not put back, because what they were about is no longer on this page: ' + lost.join(', ') + '.' : '');
+      if (unsaved()) { say(PUT_BACK + gone, true); note = 'back'; }
+      else if (gone) { say('Topics you had not sent could not be put back.' + gone, 'clear'); note = 'back'; }
+    } catch (err) { /* no storage: nothing to put back */ }
+  }
+  // a tick in one drop-down can tick a stage's earlier milestones in others; each field remembers the drop-down whose
+  // change set it, so that drop-down's Clear undoes what it spread as well
+  var origin = {}, last = values();
+  document.addEventListener('change', function (e) {
+    var t = e.target, here = t && t.closest && t.closest('[data-dd]'), id = here && here.getAttribute('data-dd');
+    if (!id) return;
+    var now = values();
+    each(function (el, k) { if (el === t || now[k] !== last[k]) origin[k] = id; });
+  });
+  document.addEventListener('change', keep);
+  document.addEventListener('input', keep);
+  document.addEventListener('change', settle);
+  document.addEventListener('input', settle);
+  window.addEventListener('load', clean);
+  window.addEventListener('pageshow', function (e) {
+    // back from the back-forward cache the script's own record is intact, so it stands; check for a redraw now.
+    // A listener that sends no-store keeps the page out of that cache, so Back is a fresh load; kept for any that do
+    if (!e.persisted) { clean(); putBack(); }
+    else if (!behind && failed < 2) { wait = 3000; poll(); }
+  });
+  // Clear puts ticks and words back as the page loaded (or as the last Done sent them) and sends nothing: a drop-down's
+  // Clear only in its own drop-down, the top line's in the whole page. What stays unsent elsewhere is still kept for
+  // the tab and still holds; once nothing is unsent, a held reload goes ahead
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-clear]');
+    if (!btn) return;
+    var scope = btn.getAttribute('data-clear') === 'page' ? null : btn.closest('[data-dd]');
+    if (!scope) try { sessionStorage.removeItem(STRAYS); } catch (err) { /* no storage */ }  // dismissed
+    var id = scope && scope.getAttribute('data-dd');
+    each(function (el, k) {
+      if (!(k in keptAt) || (scope && !scope.contains(el) && origin[k] !== id)) return;
+      if (el.type === 'checkbox' || el.type === 'radio') el.checked = keptAt[k]; else el.value = keptAt[k];
+      delete origin[k];
+    });
+    keep();
+    if (behind && !unsaved()) { location.reload(); return; }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) {
+      if (!scope || scope.contains(el)) el.textContent = '';
+    });
+    if (note === 'saved' || !unsaved()) unsay();
+  });
+  // a Done sends what the inputs hold at the press, so that is what it saves: ticks or words changed while the answer
+  // is on its way stay unsent. The status lines say "Sending" until page-kit.js writes the outcome, so an earlier
+  // "Saved at" line is never taken for this Done's, and two Dones in the same second are two saves. Each outcome
+  // settles the oldest press still on its way; while another is on its way, the lines say "Sending" again.
+  function busy() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) { el.textContent = 'Sending…'; });
+  }
+  document.addEventListener('click', function (e) {
+    if (!(e.target.closest && e.target.closest('[data-done]'))) return;
+    sending.push({ state: fields(), at: values() });
+    busy();
+  });
+  new MutationObserver(function () {
+    if (!sending.length) return;
+    var saved = false, refused = false;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) {
+      if (/^Saved at /.test(el.textContent)) saved = true;
+      else if (/^(Not accepted|Could not reach)/.test(el.textContent)) refused = true;
+    });
+    if (!saved && !refused) return;
+    var done = sending.shift();
+    if (sending.length) busy();
+    if (refused) return;
+    kept = done.state; keptAt = done.at; keep();
+    try { sessionStorage.removeItem(STRAYS); } catch (err) { /* no storage */ }
+    if (!behind && !sending.length && unsaved()) {  // changed after the press (a second press on the busy button sends
+      var line = '';                               // nothing): say what was saved, and that the rest is not yet sent
+      Array.prototype.forEach.call(document.querySelectorAll('[data-status]'), function (el) {
+        if (/^Saved at /.test(el.textContent)) line = el.textContent.split('. ')[0] + '. ';
+      });
+      say(line + NOT_SENT, true); note = 'back';
+    } else if (note === 'back') {  // sent from the top line: it keeps the "Saved at" until the redraw or the next change
+      note = 'saved';
+      var top = document.getElementById('moved');
+      if (top) top.querySelector('[data-clear]').hidden = top.querySelector('[data-done]').hidden = true;
+    }
+    if (behind) { if (!unsaved()) location.reload(); return; }
+    wait = 3000; again();
+  }).observe(document.body, { subtree: true, characterData: true, childList: true });
+  poll();  // from page load, always
+})();
+</script>
+<script src="/page-kit.js"></script>
+</body>
+</html>
