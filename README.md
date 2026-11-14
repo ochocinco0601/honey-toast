@@ -99,6 +99,8 @@ your-repo/.github/skills/<skill-name>/SKILL.md
 
 Some skills include extra files — a `references/` subfolder, or a companion document. Copy the whole folder.
 
+Some skills rely on skills that others publish; those are listed, with where to get each one, in `PUBLIC-SKILLS.md`.
+
 For Claude Code, copy skill folders to `your-repo/.claude/skills/<skill-name>/` and agents to `your-repo/.claude/agents/<agent-name>.md`. GitHub Copilot in VS Code also reads `.claude/skills/`.
 
 Agents go in the agents directory:
