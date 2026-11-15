@@ -58,14 +58,16 @@ STATE_DIR is <room root>/<capability>/state/. It holds three things.
   against the capability folder, the parent of STATE_DIR.
 
 3. log.jsonl, append-only, one JSON object per line:
-  {date, kind: decision|event|reaction|session|correction|handover|go|delivered|steward, text, by, refs: [engagement or work item ids], closed?: bool}
+  {date, kind: decision|event|reaction|session|correction|handover|go|agreement|delivered|steward, text, by, refs: [engagement or work item ids], closed?: bool}
   go is the person's go on this session's backbrief, verbatim, logged --by person (log refuses any other). Until one is logged after the session's start (the
   last session or handover entry), set and every bd write are refused, except creating an item labelled triage and
   setting a triage item in_progress. agreement is the person's confirmation of this job's five (standards, plan,
   finish level, inspection, coordination), verbatim, checked like a go, and accepted only after a decision whose text
   begins 'five:' records the proposal; it also counts as a go. After a go and until an agreement, bd writes are
   refused except on items labelled discovery or triage. A work item can be closed only when its metadata has a review path that exists.
-  A reaction's text is the person's words verbatim. delivered says how the result's page reached the person, with the
+  A reaction's text is the chief's restatement of the person's reaction (basis, the field's terms, how it was
+  meant, unconfirmed), not their words; when they answer, a new reaction opening 'confirms <date> reaction: <label>'
+  restates it as confirmed or corrected, with no refs. A go and an agreement are authorizations, kept word for word. delivered says how the result's page reached the person, with the
   page in refs (a path under the capability folder, or a published page's where), or begins 'nothing delivered:'; steward is the one decision the steward's review put to them, and their answer, or that it had none. After a
   go, stamp is refused until both are logged this session. stamp writes the session entry, with closed: true.
 """

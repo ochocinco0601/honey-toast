@@ -9,6 +9,16 @@ Before a reader reads a word, they **see** the page — and in a few seconds dec
 
 **Requires the rendered artifact.** You cannot judge visual density, hierarchy, or cognitive load from source text or a text extraction — a tidy outline hides the wall. Review a screenshot or a live render. If you only have source text, say so and decline the visual verdict; do not fake it. A text-based review can declare a page "engages" while the rendered page is a wall a reader bounces off — the source hides the very thing you are judging.
 
+## The job this serves
+
+*Inferred from this skill's own text.*
+
+- **The job, one and two levels up:** a page someone made reaches a time-poor reader who takes it in and acts on it, so the person's work lands with the people it is for instead of being skimmed past.
+- **Its step:** the visual check, while a page is designed and before it is shown, alongside the content, structure and voice checks, which it does not own.
+- **What it receives:** a rendered page, from the session building it or from a reviewer agent given this skill as its lens.
+- **What it hands on:** what the reader's eye experiences, each with a recommendation, to whoever builds the page.
+- **Done for the whole job:** the reader engages with the page in its first seconds and finds what they came for, shown by evidence from the rendered page, not by the builder's account of it.
+
 ## Two modes
 
 1. **During creation:** apply while designing the rendered page.
@@ -51,22 +61,32 @@ Spend emphasis — color, panels, bold — only on what matters. If everything i
 
 ## On review — evaluate it (the lens)
 
-**Rendered artifact required — source alone is not a valid pass.** Evaluation from source (or a text extraction) is *not a valid pass*. Given only text, stop this lens and report that the visual verdict can't be rendered — never guess it.
+**Rendered artifact required — source alone is not a valid pass.** Evaluation from source (or a text extraction) is *not a valid pass*. Given only text, or no browser to open it in, stop this lens and report that the visual verdict can't be rendered — never guess it.
 
 **The stance is ADVERSARIAL. Default is FAIL.** You are biased toward passing what you're looking at — resist it. Assume the stressed reader bounces, and make the page prove otherwise. "They'd probably find their way" means they won't; "it has structure" is not "it invites you in." Name the single worst thing the eye hits first before anything else.
 
-Inspect the rendered first screen (what's visible before scrolling) and record:
+**Review the whole artifact, in a browser you drive yourself, with the questions for its kind.**
+Why: judging only the first screen, from screenshots the builder chose, with pass-or-fail items,
+passes a lesson page whose steps do not group. A reviewer asked to list the groups it sees against
+the groups the author meant fails that page, with measured gaps.
+
+1. **Open it yourself** with the browser tools. Screenshots someone else picked are not a review.
+2. **Walk every state** the request names (steps, tabs, lenses, open folds, a clicked selection), at
+   desktop and phone width, light and dark where the page has both. Say which you walked.
+3. **Run `measure-text.md`** in each state, width and theme.
+4. **Answer `questions.md`** for the artifact's kind: the five every kind gets, then its kind's own.
+   Each answer is a list, a measurement or a quotation, compared with what the artifact is meant
+   to do. `catalog.md` holds the design field's full checks behind them, with sources; use it when a
+   question needs more depth or the artifact is a kind the questions do not list.
+5. **Report** each finding with its evidence, ranked by harm to the reader, then the 5-second
+   verdict below. Name what you could not check and why.
 
 ```
-VISUAL EVALUATION — first screen:
-- Screenshot actually inspected: [yes / no — "no" = automatic FAIL]
-- Worst thing the eye hits first: [name it, or "none found" + why]
-- Focal point: [one dominant entry point / scattered across N equal-weight blocks — scatter = FAIL]
-- Emphasis-treatment count: [colored panels + banners + bold callouts + status colors visible — >3 competing = FAIL ("if everything's emphasized, nothing is")]
-- Density: [share of the screen that is dense text vs. whitespace — mostly wall = FAIL]
-- Scannable vs. buried: [is the reader's fast path in scannable form — headings, short list items — or buried in prose? buried = FAIL]
-- Above-the-fold answer: [is the reader's top task visible here, or only scope/nav/deadline? only-meta = FAIL]
-- Gameability check: [many headers but each section a dense block != scannable; many panels = overload not hierarchy — did any "pass" ride on one of these illusions?]
+VISUAL EVALUATION
+- Opened and walked: [states, widths, themes]
+- Worst thing the eye hits first: [name it]
+- Findings, worst first: [question or catalog id · evidence · harm to the reader]
+- Needs a human eye: [anything measurement and these questions could not settle]
 - 5-second verdict: [ENGAGE / BOUNCE]
 ```
 
