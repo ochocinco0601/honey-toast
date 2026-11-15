@@ -4,6 +4,8 @@ Some skills in this repository rely on skills that others publish and that are n
 
 | Skill | Get it from | Folder in that repository | Needed by |
 |---|---|---|---|
+| `frontend-design` | https://github.com/anthropics/skills | `skills/frontend-design` | `html`, `html-design-contract` |
+| `skill-creator` | https://github.com/anthropics/skills | `skills/skill-creator` | `commanders-intent` |
 | `ux-copy` | https://github.com/anthropics/knowledge-work-plugins | `design/skills/ux-copy` | `outside-in-walkthrough` |
 | `design-critique` | https://github.com/anthropics/knowledge-work-plugins | `design/skills/design-critique` | `outside-in-walkthrough` |
 
