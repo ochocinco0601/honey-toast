@@ -9,6 +9,9 @@
 body{margin:0;background:#F6F5F1}
 .lvl{font-size:11px;color:#5A5850;letter-spacing:0.06em;text-transform:uppercase}
 .card{background:#FFFFFF;border:1px solid #DAD7CD;border-radius:8px;padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.card.ident{padding-top:8px;padding-bottom:8px}
+.idg{display:grid;grid-template-columns:130px 1fr;gap:2px 12px;font-size:12px}
+.idg .il{color:#5A5850}
 .case{font:inherit;font-size:13px;min-height:32px;padding:4px 12px;border:1px solid #DAD7CD;background:#FFFFFF;border-radius:6px;cursor:pointer;color:#1D1D1B}
 .case.on{border-color:#1F4E8C;color:#1F4E8C;font-weight:600}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -83,6 +86,7 @@ ol.steps{margin:0;padding-left:20px;font-size:13px}
 .ru{display:flex;gap:12px;padding:0 0 4px 50px;font-size:12px;color:#3D3B35}.ru label{display:flex;align-items:center;gap:4px;cursor:pointer}
 .tk{width:16px;height:16px;margin:0;accent-color:#1F4E8C;cursor:pointer;flex:none}
 .tdone{display:flex;flex-direction:column;gap:6px;padding-top:10px;margin-top:8px;border-top:1px solid #EEECE5}
+.tdone.todo{border-top:0;margin-top:0;padding-top:0}
 .wi{font:inherit;font-size:12px;min-height:30px;padding:2px 8px;border:1px solid #DAD7CD;border-radius:6px}
 .ab2.dn{background:#1D1D1B;color:#FFFFFF;border-color:#1D1D1B;align-self:flex-start}
 .caps{color:#2F4A6B;margin-top:3px}
@@ -135,9 +139,11 @@ a.pgl:hover,.nav a.go:hover{text-decoration:underline}
 <div style="box-sizing: border-box; max-width: 1280px; margin: 0 auto; padding: 18px 24px 48px; display: flex; flex-direction: column; gap: 14px; font-family: 'Segoe UI', system-ui, sans-serif; color: #1D1D1B">
 
 <div class="card" id="moved" role="status" style="border-color: #1F4E8C; color: #1F4E8C; font-weight: 600" hidden><span data-said data-status></span> <button type="button" class="ab2 dn" data-done>Send</button> <!--CLEAR--></div>
+<!--TODO-->
+<!--IDENTITY-->
 <!--PICK-->
 <div class="card">
-<div class="mute">Each row is one flow identified. Each dot is one of the flow&rsquo;s milestones toward supported in production. Identified, Mapped, Measures defined, Runbooks written: filled once drafted for your review (a runbook is drafted, never rehearsed). Alerts defined: filled once the review of the proposed alerts is recorded. Instrumented, Dashboards built, Team prepared: done by other teams, so these dots never fill here. The count under Instrumented is read from the code at design time, not from the running system. A draft is not complete, correct or accepted. The line between two filled dots is filled. Click any dot to see what is there to review at that milestone.</div>
+<div class="mute">Each row is one flow identified. Each dot is one of the flow&rsquo;s milestones toward supported in production. Identified, Mapped, Measures defined, Runbooks written: filled once drafted for your review (a runbook is drafted, never rehearsed). Alerts defined: filled once the review of the proposed alerts is recorded. Instrumented, Dashboards built, Team prepared: not started. The count under Instrumented is read from the code at design time, not from the running system. A draft is not complete, correct or accepted. The line between two filled dots is filled. Click any dot to see what is there to review at that milestone.</div>
 <!--HEAD-->
 <!--ROWS-->
 <div class="mute"><!--BLIND--></div>

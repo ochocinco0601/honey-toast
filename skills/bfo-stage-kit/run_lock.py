@@ -140,13 +140,17 @@ def record_once(reg, why):
     record(reg, f"{now()}: {why}")
 
 
-def hold(reg, take_missing=None):
+def hold(reg, take_missing=None, touch=True):
     """(refusal, note) for the current run writing `reg`. refusal is None when it may write; note says what was done
     (a take-over), or is empty. A missing lock is taken when this kit made the folder, or when `take_missing` is
-    True (the start step, on a folder it is starting)."""
+    True (the start step, on a folder it is starting). `touch` False: a redraw of a view (home.py), which is no work
+    on the register: it is refused while another run's lock is fresh, and otherwise writes nothing to the lock (no
+    refresh, no missing lock taken, no take-over), so a redraw never reads as a run under way."""
     reg = pathlib.Path(reg)
     d = read(reg)
     run = identity()
+    if not touch:
+        return (held_message(reg, d) if run and d and d["run"] != run and not stale(d) else None), ""
     if run is None:
         # nothing names this run: it goes on, never refused, and the record says the lock did not guard it
         if d is None and not (reg / LOCK).exists():
@@ -255,12 +259,13 @@ def refuse_unless_register(args):
             sys.exit(2)
 
 
-def guard(reg, take_missing=None):
+def guard(reg, take_missing=None, touch=True):
     """For a script about to write `reg`: exit 2 with the refusal when `reg` is not a register (not_a_register; the
-    start step starting a folder is not judged) or another run holds it; say any take-over."""
+    start step starting a folder is not judged) or another run holds it; say any take-over. `touch` False for a
+    redraw of a view, which leaves the lock as it is (hold)."""
     if not take_missing:
         refuse_unless_register([reg])
-    refusal, note = hold(reg, take_missing)
+    refusal, note = hold(reg, take_missing, touch)
     if refusal:
         print(refusal, file=sys.stderr)
         sys.exit(2)

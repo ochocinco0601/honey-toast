@@ -54,11 +54,18 @@ def cont(text):
     return text[:1].lower() + text[1:] if text[1:2].islower() else text
 
 
+def not_a_flow(flow_id, flows):
+    """The refusal check_measures.py gives for the same mistake, word for word."""
+    return f"{flow_id} is not a flow of this register; its flows: {', '.join(f['flow_id'] for f in flows)}"
+
+
 def inspect(reg, flow_id):
     """[{rule, title, passed, items, notes}] in RULES order: items name what fails, notes what is allowed because the
     record says why, both in the map's own words."""
     R = mr.load(reg)
-    flow = next(f for f in R["flows"] if f["flow_id"] == flow_id)
+    flow = next((f for f in R["flows"] if f["flow_id"] == flow_id), None)
+    if flow is None:
+        raise ValueError(not_a_flow(flow_id, R["flows"]))
     stages = sorted((s for s in R["stages"] if s["flow"] == flow_id), key=lambda s: int(s.get("order") or 0))
     sids = {s["stage"] for s in stages}
     steps = [s for s in R["steps"] if s["stage"] in sids]
@@ -232,6 +239,10 @@ def main(argv):
     argv = [a for a in argv if a != "--all"]
     if len(argv) != 2:
         print(__doc__.splitlines()[2].strip())
+        return 2
+    flows = mr.load(argv[0])["flows"]
+    if argv[1] not in {f["flow_id"] for f in flows}:
+        print(not_a_flow(argv[1], flows))
         return 2
     items = open_items(argv[0], argv[1])
     # stdout is what the person reads; stderr, for the session: what the done check would say NOT DONE on, with the

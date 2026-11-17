@@ -228,7 +228,9 @@ dl.card .mw{display:block;color:var(--m-ink2);font-size:14px;margin-top:2px}
 def page(M, flow_id, map_href, gaps=()):
     """A flow's own page: the trail back to the map (opening it with the flow lit), the flow's name, its value stream
     with the measured-here lane, its card, and its measures. `gaps` is the register's measure-gaps rows."""
-    f = next(x for x in M["flows"] if x["flow_id"] == flow_id)
+    f = next((x for x in M["flows"] if x["flow_id"] == flow_id), None)
+    if f is None:
+        raise ValueError(f"{flow_id} is not a flow of this register; its flows: {', '.join(x['flow_id'] for x in M['flows'])}")
     stages = sfv.flow_stages(M, flow_id)
     system = M["system"].split(" (")[0]
     trail = [(ps.MAP, map_href)]

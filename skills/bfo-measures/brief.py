@@ -76,6 +76,9 @@ MADE = {1: "the flows found, and where to start", CASE: "where the flow starts, 
         ALERTS: "the alerts for the stages you picked", RUNBOOKS: "the runbooks for those alerts",
         5: "the map, checked against the code and drawn again", 6: "the report"}
 HOLDS = (0, REVIEW, DEPTH_PICK, MEASURES_REVIEW)  # the person's picks and review: never reported as drafted
+# What each hold waits on, as the status line's "Waiting on you" says it; the run status page says it in these words too.
+WAITS = {0: "your pick of which flow comes first", REVIEW: "your review of the proposed alerts",
+         MEASURES_REVIEW: "your review of the proposed measures", DEPTH_PICK: "your pick of how far each stage goes"}
 ROWS = (("0 ", 1), ("The go", 0), ("1 ", CASE), ("2 ", STRUCTURE), ("3 ", CAPABILITY),
         ("Pick of how far", DEPTH_PICK), ("4 ", MEASURES), ("Review of the measures", MEASURES_REVIEW), ("5 ", 4),
         ("5a ", ALERTS),
@@ -99,7 +102,10 @@ KIT_TERMS = [
     (r"\b(?:The|the|This|this|That|that|[Ee]ach|[Nn]ext|[Ll]ater|[Ee]arlier|[Ww]hich) stop\b"
      r"(?! (?:the|it|them|here|now|working|reading|moving|there)\b| on (?:the|its|a|their|each) (?:\w+ )?(?:route|way|"
      r"line|round|run)\b)", "kit vocabulary"),
-    (r"\breceipts?\b", "kit vocabulary"), (r"\b[Ss]tep \d+\b(?! of\b)", "kit vocabulary"), (r"\bjudges?\b", "kit vocabulary"),
+    (r"\breceipts?\b", "kit vocabulary"), (r"\b[Ss]tep \d+\b(?! of\b)", "kit vocabulary"),
+    # the kit's checkers are "judges"; an AI agent that judges something is ordinary English, as mapping says it
+    (r"(?<!\bmodel )(?<!\bagent )(?<!\bassistant )(?<!\bit )(?<!\bthat )(?<!\bwhich )(?<!\bwho )\bjudges?\b",
+     "kit vocabulary"),
     (r"\bmerge\b", "kit vocabulary"), (r"\bfact base\b|\bfact-base\b", "kit vocabulary"),
     (r"\bstage-\w+", "kit vocabulary"), (r"\bsubjects?\.|\bparticipation\b", "kit vocabulary"),
 ]
@@ -342,7 +348,51 @@ def phases(reg):
                         status = "doing"  # the done check has not said DONE on the map as it is
                     out.append((act, status))
                     break
-    return out
+    return _mapping_from_case(reg, out)
+
+
+import case  # noqa: E402
+
+CASE_ENDED = case.ENDED
+STRUCTURE_SUBS = ("units", "readers", "merge", "re-reads")
+
+
+def case_flow(reg):
+    """The case record's entry for the flow worked now, or None: run control keeps mapping's phases there."""
+    import case
+    flows = case.load(reg)["flows"]
+    if not flows:
+        return None
+    name = ((scope_now(reg) or {}).get("flow") or "").strip().lower()
+    for r in rows(reg / "flows.csv"):
+        fid = (r.get("flow_id") or "").strip()
+        if name and (r.get("name") or "").strip().lower() == name and fid in flows:
+            return flows[fid]
+    mapping = [f for f in flows.values() if f.get("state") == "mapping"]
+    return mapping[0] if len(mapping) == 1 else None
+
+
+def checks_stopped(reg):
+    return (case_flow(reg) or {}).get("state") == CASE_ENDED
+
+
+def _mapping_from_case(reg, ph):
+    """Phases 1 to 3 as the case record says, in place of the run record's rows for them."""
+    f = case_flow(reg)
+    if not f:
+        return ph
+    st, sub = f.get("state"), f.get("sub")
+    if st in ("mapped", CASE_ENDED):
+        now = {CASE: "done", STRUCTURE: "done", CAPABILITY: "done"}
+    elif st == "mapping" and sub in STRUCTURE_SUBS:
+        now = {CASE: "done", STRUCTURE: "doing", CAPABILITY: "to do"}
+    elif st == "mapping" and sub and sub != "lead steps":
+        now = {CASE: "done", STRUCTURE: "done", CAPABILITY: "doing"}
+    elif st == "mapping":
+        now = {CASE: "doing", STRUCTURE: "to do", CAPABILITY: "to do"}
+    else:
+        return ph
+    return [(a, now.get(a, s)) for a, s in ph]
 
 
 def done_check_holds(reg):
@@ -418,22 +468,26 @@ def state(reg):
     return current[0], last, after, current[1] == "blocked"
 
 
+NEXT_STOP = "draft complete; next comes the next flow"  # an open case with its next step, never a wait on the person
+
+
 def at_next_flow(reg, current):
-    """The run waits on the person's pick of the next flow: this flow is done (or finished but for its re-read and
-    report) and the first look found flows still to map."""
+    """The run is at the next flow: this flow is done (or finished but for its re-read and report) and the first look
+    found flows still to map. That is an open case whose next step is the next flow, offered with the recommendation;
+    it never waits on the person: an unfinished case is not activity in motion."""
     import go
     return current is None or bool(flows_left(reg) and go.run_finished(reg))
 
 
 def where_it_stands(reg):
     """(the activity now, or None; where the run stands as the person reads it), from the one decision the status line
-    makes too: the person's pick of the next flow, a draft complete, a phase blocked, or the phase now."""
+    makes too: the next flow as what comes next, a draft complete, a phase blocked, or the phase now."""
     st = state(reg)
     if st is None:
         return None, "not started"
     current, _, _, blocked = st
     if at_next_flow(reg, current):
-        return current, ("your pick of the next flow" if flows_left(reg) else "draft complete")  # never "finished"
+        return current, (NEXT_STOP if flows_left(reg) else "draft complete")  # never "finished"
     return current, short(current) + (": blocked" if blocked else "")
 
 
@@ -534,31 +588,28 @@ def status(reg):
         left = flows_left(reg)  # the flow is done; the first look found more, added to this map one at a time
         import run_status
         pending = "" if current is None or run_status.own_reread_passed(reg) else "; its re-read pending"
-        return (f"{lead} Draft complete{pending}, for your review · Drafted: "
-                f"{made(last) if last is not None else 'nothing yet'} · Next: "
-                + ("the next flow · Waiting on you: your pick of the next flow" if left else
-                   "nothing · Waiting on you: nothing"))
-    waiting = "nothing"
-    if blocked:
-        waiting = "the run is blocked; the message below says why"
-    elif current == 0:
-        waiting = "your pick of which flow comes first"
-    elif current == REVIEW:
-        waiting = "your review of the proposed alerts"
-    elif current == MEASURES_REVIEW:
-        waiting = "your review of the proposed measures"
-    elif current == DEPTH_PICK:
-        waiting = "your pick of how far each stage goes"
+        return (f"{lead} Draft complete{pending}, for your review · Drafted: {drafted_said(reg, last)} · Next: "
+                + ("the next flow · Waiting on you: nothing" if left else "nothing · Waiting on you: nothing"))
+    waiting = "the run is blocked; the message below says why" if blocked else WAITS.get(current, "nothing")
     if after is not None:
         nxt = short(after)
     elif current == len(ACTIVITIES):  # the last activity is the report itself: next is what follows it
-        nxt = "your pick of the next flow" if flows_left(reg) else "nothing more: this is the last step"
+        nxt = "the next flow" if flows_left(reg) else "nothing more: this is the last step"
     else:
         nxt = "the report"
     # while it waits on the person, the activity would only repeat what it waits on
     now = "" if waiting != "nothing" and not blocked and current in HOLDS else f" {name(current, count)} ·"
-    return (f"{lead}{now} Drafted: "
-            f"{made(last) if last is not None else 'nothing yet'} · Next: {nxt} · Waiting on you: {waiting}")
+    return f"{lead}{now} Drafted: {drafted_said(reg, last)} · Next: {nxt} · Waiting on you: {waiting}"
+
+
+def drafted_said(reg, last):
+    """The status line's Drafted field: what the last activity left made, and that the map is not checked when the
+    person stopped its checks, wherever the run then waits."""
+    drafted = made(last) if last is not None else "nothing yet"
+    if checks_stopped(reg):
+        drafted += (", not checked: you stopped the checks" if last == CAPABILITY
+                    else "; the map not checked: you stopped the checks")
+    return drafted
 
 
 REQUIRED = {"activity": ("for", "this_run"), "capability": ("name", "what", "for_whom"),
@@ -660,6 +711,10 @@ def checks_found(reg):
     got = rows(p)
     if not got:
         return ""
+    if checks_stopped(reg):
+        return (f"**How the findings were checked.** You stopped the checks before they finished, so this map is not "
+                f"checked against the code: of the {len(got)} findings that cite code, any not read through every "
+                "round is not checked.")
     n = (load(reg, layout.SETTINGS) or {}).get("judges", 3)
     kinds = fix_kinds(reg)
     doubted = {(r.get("unit"), r.get("table"), r.get("row")) for r in got
@@ -683,7 +738,10 @@ def checked_said(reg):
     import reading_check
     import reread
     out = []
-    if (reg / layout.UNITS_CSV).is_file():
+    if checks_stopped(reg):
+        out.append("You stopped the checks before they finished, so the map is not checked against the code: any "
+                   "finding not read through every round is not checked.")
+    elif (reg / layout.UNITS_CSV).is_file():
         n = (load(reg, layout.SETTINGS) or {}).get("judges", 3)
         out.append(f"Each finding was read against the code by {n} independent checks.")
     else:
@@ -735,7 +793,7 @@ def go_from_request(reg, flow, request):
     import go
     err = io.StringIO()
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
-        rc = go.main([str(reg), "--flow", flow, "--words", request])
+        rc = go.main([str(reg), "--flow", flow, "--words", request, "--source", "request"])
     return "" if rc == 0 else err.getvalue().strip().removeprefix("REFUSED: ").removesuffix(" Nothing written.")
 
 
@@ -873,35 +931,45 @@ def reentry(reg, o):
     current, last, after, _ = st if st else (1, None, None, False)
     where = (f"The run stopped at {name(current, activity_count(reg)).lower() if current else 'the end'}"
              + (f", after {cont(short(last))}." if last is not None else "."))
-    nxt = cont(status(reg).split("Next: ", 1)[1].split(" · ")[0])
-    waits = status(reg).split("Waiting on you: ", 1)[1]
-    if state(reg) and state(reg)[0] == DEPTH_PICK and (reg / PICK_FILE).is_file():
+    line = status(reg)
+    nxt = cont(line.split("Next: ", 1)[1].split(" · ")[0])
+    waits = line.split("Waiting on you: ", 1)[1]
+    open_case = next_ready(reg)  # coming back to a finished flow with flows still to map: an open case, not a wait
+    import go
+    on_page = open_case and ((load(reg, "depth.json") or {}).get("open_choice") or {}).get("task") == go.NEXT_TASK
+    if open_case:
+        # the next flow is what is next, offered with the recommendation the record holds, never a wait on the person; the
+        # page is named as one place to choose it only where Home draws the pick
+        tail = "\n**The flows still to add to this map.** " + "; ".join(f"*{n}*" for n in flows_left(reg)) + ".\n"
+        rec = next_flow_recommended(reg) or (o.get("recommendation") or {})
+        where = "on the page or here in the chat" if on_page else "here in the chat"
+        if rec.get("flow") in flows_left(reg):
+            why = (rec.get("why") or "").strip()
+            tail += f"\n**My recommendation.** Next: *{rec['flow']}*." + (f" {sentence(why)}" if why else "") + "\n"
+            tail += f"\nSay carry on and I will map *{rec['flow']}*, or name another flow {where}."
+        else:
+            tail += f"\nName the flow to map next {where}."
+        tail += " Or say stop, and this map stays as it is, with those flows still to add.\n"
+    elif state(reg) and state(reg)[0] == DEPTH_PICK and (reg / PICK_FILE).is_file():
         # Waiting on the person's pick of how far each stage goes: the stages again, as last put to them
-        tail = "\n**The stages you were asked to pick from, again.**\n\n" + \
-               (reg / PICK_FILE).read_text(encoding="utf-8").split("\n", 2)[2]
+        tail = "\n**The stages you were asked to pick from, again.**\n\n" + shown_again(reg, PICK_FILE)
     elif not scope:
         # Waiting on the person's picks: give them what they pick from again, not a pointer to an old message.
         tail = "\n**What you were asked to pick from, again.**\n\n" + capability(reg, o).split("\n", 2)[2]
     elif state(reg) and state(reg)[0] == MEASURES_REVIEW and (reg / MEASURES_REVIEW_FILE).is_file():
         # Waiting on the person's review of the measures: the measures again, as last put to them
-        tail = "\n**The measures you were asked to review, again.**\n\n" + \
-               (reg / MEASURES_REVIEW_FILE).read_text(encoding="utf-8").split("\n", 2)[2]
+        tail = "\n**The measures you were asked to review, again.**\n\n" + shown_again(reg, MEASURES_REVIEW_FILE)
     elif state(reg) and state(reg)[0] == REVIEW and (reg / REVIEW_FILE).is_file():
         # Waiting on the person's review of the alerts: the alerts again, as last put to them, without their old status line
-        tail = "\n**The alerts you were asked to review, again.**\n\n" + \
-               (reg / REVIEW_FILE).read_text(encoding="utf-8").split("\n", 2)[2]
-    elif next_ready(reg) and next_flow_recommended(reg) and (reg / NEXT_FILE).is_file():
-        # waiting on the next flow: the offer again, as last put to them, without its old status line
-        tail = "\n" + (reg / NEXT_FILE).read_text(encoding="utf-8").split("\n", 2)[2]
-    elif next_ready(reg):
-        # this flow is done and the first look found more: the next is added to this map, the person picks which
-        tail = ("\n**The flows still to add to this map.** " + "; ".join(f"*{n}*" for n in flows_left(reg)) +
-                ". Which one next? Pick it on the page, or tell me here.\n")
+        tail = "\n**The alerts you were asked to review, again.**\n\n" + shown_again(reg, REVIEW_FILE)
     elif waits == "nothing":
         tail = f"\nShall I carry on with {nxt}? I recommend yes.\n"
     else:
         tail = ""
-    return f"""{status(reg)}
+    after_run = (' What remains after this run: ' + remains + '.') if remains else ''
+    upcoming = (f"**What is next.** Next comes {nxt}: one of the flows below.{after_run}" if open_case else
+                f"**What is next, and what waits on you.** Next comes {nxt}. Waiting on you: {waits}.{after_run}")
+    return f"""{line}
 
 **What this work is.** {sentence(a['for'])} The job is the whole capability: every business flow it carries, each with its stages. {sentence(a['this_run'])} One run maps one flow, so each run is one batch of the job.
 
@@ -913,7 +981,7 @@ def reentry(reg, o):
 
 **Where it stands.** {where}
 
-**What is next, and what waits on you.** Next comes {nxt}. Waiting on you: {waits}.{(' What remains after this run: ' + remains + '.') if remains else ''}
+{upcoming}
 {tail}"""
 
 
@@ -996,7 +1064,15 @@ def sources_without_template(text):
 
 REVIEW_FILE = "alert-review.md"  # the last review message rendered, shown again on re-entry at the review
 MEASURES_REVIEW_FILE = "measures-review.md"  # the same, for the review of the measures
+FLOWS_FILE = "flows-brief.md"  # the last capability brief sent to the chat: what the flow pick answers
 PICK_FILE = "depth-pick.md"  # the last pick message rendered, shown again on re-entry at the pick
+
+
+def shown_again(reg, name):
+    """A message the kit wrote at a stop, as the re-entry brief shows it again: without its old status line; "" if
+    there is none."""
+    p = pathlib.Path(reg) / name
+    return p.read_text(encoding="utf-8").split("\n", 2)[2] if p.is_file() else ""
 NEXT_FILE = "next-flow.md"  # the last next-flow message rendered, shown again on re-entry at that stop
 NEXT_JSON = "next-flow.json"  # its recommendation, which the page marks: {"flow": <name>, "why": <reason>}
 
@@ -1009,7 +1085,7 @@ def next_flow_recommended(reg):
 
 def next_flow_message(reg, flow, why, left):
     """The message at the end of a flow, when the first look found more: the flows still to add, the recommendation,
-    and the ask."""
+    and the recommended flow offered as what is next, never as a wait on the person."""
     done = (scope_now(reg) or {}).get("flow", "")
     return f"""{status(reg)}
 
@@ -1019,7 +1095,7 @@ def next_flow_message(reg, flow, why, left):
 
 **My recommendation.** Next: *{flow}*. {sentence(why)}
 
-**What I need from you.** Which flow comes next? Tick it on the page, or tell me here. Or say stop, and this map stays as it is, with those flows still to add.
+**What is next.** *{flow}*, as I recommend. Say carry on and I will map it, or name another flow on the page or here in the chat. Or say stop, and this map stays as it is, with those flows still to add.
 """
 SIGNAL = {"business health": "business", "business impact": "business", "application": "application",
           "system": "technology", "technology": "technology"}
@@ -1529,8 +1605,13 @@ def at_stake_items(R, M):
 
 
 def stake_lines(groups):
-    """The groups as a list: each cost, with what is lost under it."""
-    return "\n".join(f"- {head}:\n" + "\n".join(f"  - {u}" for u in units) for head, units in groups)
+    """The groups as a list: each cost, with what is lost under it, the same loss at several steps said once."""
+    def said(units):
+        n = {}
+        for u in units:
+            n[u] = n.get(u, 0) + 1
+        return "\n".join(f"  - {u}" + (f" (at {c} steps)" if c > 1 else "") for u, c in n.items())
+    return "\n".join(f"- {head}:\n" + said(units) for head, units in groups)
 
 
 def depth_review(reg, flow_id, recommend):
@@ -1586,6 +1667,7 @@ def depth_from_request(reg, flow_id, words, spec, given=None):
     got = go.record_depth(reg, spec or "", a)
     if isinstance(got, str):
         return got
+    go.record_decision(reg, "depth", words, "request", shown=f"(the request, word for word) {words}")
     flow = got.get("flow") or "this flow"
     st = {(r.get("stage") or "").strip(): (r.get("name") or "").strip() for r in rows(pathlib.Path(reg) / "stages.csv")}
     named = and_list([f"*{st.get(s) or s}*" for s in got["depth"]])
@@ -1840,7 +1922,20 @@ def main(argv):
         mark_the_stop(reg)
     text = capability(reg, o) if what == "capability" else reentry(reg, o)
     full = capability_full(reg, o) if what == "capability" else ""
-    faults = prose_faults(text + full)
+    # a message the kit wrote at a stop and the re-entry brief shows again was checked when written, against the
+    # register's names: it is read against the same names here, and a fault in it names that message's file
+    quoted = next(((f, q) for f in (PICK_FILE, MEASURES_REVIEW_FILE, REVIEW_FILE) if what == "reentry"
+                   for q in [shown_again(reg, f)] if q and q in text), None)
+    if quoted:
+        bad = prose_faults(quoted[1], set(register_names(reg)))
+        if bad:
+            print(f"REFUSED: the message shown again from {quoted[0]} does not read as prose: " + "; ".join(bad)
+                  + ". Render that message again with its own command, and run this again.", file=sys.stderr)
+            return 2
+        text_checked = text.replace(quoted[1], "")
+    else:
+        text_checked = text
+    faults = prose_faults(text_checked + full)
     if faults:
         if before is not None:
             run_md.write_bytes(before)
@@ -1862,6 +1957,7 @@ def main(argv):
             return 2
     if what == "capability":
         (reg / "PLAN.md").write_text(full, encoding="utf-8", newline="\n")
+        (reg / FLOWS_FILE).write_text(with_page(text, reg), encoding="utf-8", newline="\n")
         record_first_look(reg)
         import start  # the first look has reached its brief: its mark in the work folder ends here
         if reg.resolve().parent.name == "bfo-work":

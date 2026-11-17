@@ -215,9 +215,13 @@ def relabel_prose(labels, steps, text):
 
 def build(R, flow_id, stage_id):
     subj = {s["subject_id"]: s for s in R["subjects"]}
-    flow = next(f for f in R["flows"] if f["flow_id"] == flow_id)
+    flow = next((f for f in R["flows"] if f["flow_id"] == flow_id), None)
+    if flow is None:
+        raise ValueError(f"{flow_id} is not a flow of this register; its flows: {', '.join(f['flow_id'] for f in R['flows'])}")
     stages = sorted([s for s in R["stages"] if s["flow"] == flow_id], key=lambda s: int(s["order"]))
-    stage = next(s for s in stages if s["stage"] == stage_id)
+    stage = next((s for s in stages if s["stage"] == stage_id), None)
+    if stage is None:
+        raise ValueError(f"{stage_id} is not a stage of flow {flow_id}; its stages: {', '.join(s['stage'] for s in stages) or 'none'}")
     moves = {m["move_id"]: m for m in R["lifecycle"] if m.get("flow", flow_id) in (flow_id, "")}
     order = list(moves)
     steps = sorted([s for s in R["steps"] if s["stage"] == stage_id], key=lambda s: int(s["step"]))
@@ -576,7 +580,9 @@ def receipt(R, flow_id):
     agentic measure of the agent answering a provisional question of grain `run`, marked for it in
     `receipt_question`."""
     subj = {s["subject_id"]: s for s in R["subjects"]}
-    flow = next(f for f in R["flows"] if f["flow_id"] == flow_id)
+    flow = next((f for f in R["flows"] if f["flow_id"] == flow_id), None)
+    if flow is None:
+        raise ValueError(f"{flow_id} is not a flow of this register; its flows: {', '.join(f['flow_id'] for f in R['flows'])}")
     stages = sorted([s for s in R["stages"] if s["flow"] == flow_id], key=lambda s: int(s["order"]))
     ms = R["measures"]
     case = {sid for sid, s in subj.items() if s.get("part_kind") == "case"}
@@ -1355,7 +1361,7 @@ def measures(M):
                       and (level(m) != "part" or any(st == sid for st, _ in reach(R, m)))]))
     agentic = any(m["layer"] == "agentic" for _, ms in rows for m in ms)
     layers = LAYERS + (["agentic"] if agentic else [])
-    head_cells = HEAD + (["Agentic<br>did the agent judge right?"] if agentic else [])
+    head_cells = HEAD + (["Agentic<br>did the agent decide right?"] if agentic else [])
     md = ["| | " + " | ".join(head_cells) + " |", "|---|" + "---|" * len(head_cells)]
     marked = {m["handle"] for m in stage_alerts(M)}
     for label, ms in rows:
@@ -2408,10 +2414,12 @@ def say(M, text):
 
 
 def given_names(M):
-    """The names the register gives (each part, step, stage, flow and the system), which read as names, never code."""
+    """The names the register gives (each part, step, stage, flow, agent action and the system), which read as names,
+    never code."""
     if "_given" not in M:
         R = M["R"]
-        rows = [M["subj"].values(), R.get("steps", []), R.get("stages", []), R.get("flows", []), R.get("about", [])]
+        rows = [M["subj"].values(), R.get("steps", []), R.get("stages", []), R.get("flows", []), R.get("about", []),
+                R.get("agent-system", [])]  # an agent's runs and actions are named by the register too
         M["_given"] = {(r.get(k) or "").strip() for rs in rows for r in rs for k in ("name", "system")} - {""}
     return M["_given"]
 

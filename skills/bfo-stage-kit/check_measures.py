@@ -258,6 +258,7 @@ def cases_items(R, S):
              if (s.get("kind") or "element") == "element" and s.get("part_kind") != "person"
              and fo.norm(s.get("carries_case_id")).lower().startswith("no")}
     fails, notes = [], []
+    unknown_at = {}  # part id: [(measure name, handle)] of cases taken where the case cannot be told apart
     for m in R["measures"]:
         if fo.norm(m.get("counted_on")) != "cases":
             continue
@@ -265,10 +266,7 @@ def cases_items(R, S):
         for sid, s in never.items():
             nm = fo.norm(s.get("name"))
             if m.get("subject_id") == sid or (nm and re.search(rf"(?<!\w){re.escape(nm)}(?!\w)", at, re.I)):
-                fails.append((f"{name} is of cases, and is taken at {S.part(sid)}, which never holds the case's own "
-                              "identifier: take it where the case is known, or say it is of something else",
-                              f"measures.csv {h}: counted_on cases at {sid} ({s.get('name')}), whose carries_case_id "
-                              "is no"))
+                unknown_at.setdefault(sid, []).append((name, h))
         if fo.norm(m.get("taken_from")) != "metric":
             continue
         asks = [q for q in (x.strip() for x in (m.get("receipt_question") or "").split(";")) if q in PER_CASE]
@@ -281,6 +279,14 @@ def cases_items(R, S):
                           "cannot say which cases, so it cannot show the oldest or list them",
                           f"measures.csv {h}: counted_on cases, taken_from metric, and counted_how gives no "
                           "once-per-case basis"))
+    for sid, ms in reversed(list(unknown_at.items())):  # once per part, however many measures
+        one = len(ms) == 1
+        what = ms[0][0] if one else f"{len(ms)} measures of cases ({', '.join(n for n, _ in ms)})"
+        fails.insert(0, (f"{what} {'is of cases, and is' if one else 'are'} taken at {S.part(sid)}, which never "
+                         f"holds the case's own identifier: take {'it' if one else 'them'} where the case is known, "
+                         f"or say {'it is' if one else 'they are'} of something else",
+                         f"measures.csv {', '.join(h for _, h in ms)}: counted_on cases at {sid} "
+                         f"({never[sid].get('name')}), whose carries_case_id is no"))
     return fails, notes
 
 

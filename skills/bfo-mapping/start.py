@@ -17,7 +17,7 @@ Usage: python start.py <workspace root>                    find earlier work and
                                                            later stop it already answers is not asked (on a fresh
                                                            start, or a first look finished; a run picked up keeps
                                                            the request it was started with)
-       python start.py <workspace root> --release <folder> --words "<the person's words>"
+       python start.py <workspace root> --release <folder> --words "<the person's words>" [--test]
                                                            the person says the other chat on that run has stopped:
                                                            its lock passes to this run, and the run is picked up
 
@@ -368,6 +368,12 @@ def held_by_another(reg):
     return d if d and d["run"] != run_lock.identity() and not run_lock.stale(d) else None
 
 
+def record_release(reg, words, test=False):
+    """The person's answer that the other chat has stopped, kept with the question it answered, before the hold moves."""
+    import go
+    go.record_decision(reg, "release", words, "chat", test=test, shown=held_message(reg))
+
+
 def held_message(reg):
     d = run_lock.read(reg) or {}
     ago = run_lock.minutes_since(d) if d else 0
@@ -404,6 +410,37 @@ def started_by(folder=None):
     no FILL-STEPS.md), else "kit"."""
     folder = pathlib.Path(folder or HERE)
     return "mapping" if (folder / "MAPPING-STEPS.md").is_file() and not (folder / "FILL-STEPS.md").is_file() else "kit"
+
+
+def says_back(folder=None):
+    """Whether this start step says back what it understood before anything is read: the mapping skill's and the
+    stage kit's do; the measures skill's (its folder holds MEASURES-STEPS.md and no FILL-STEPS.md) only picks up a
+    finished map and is left as it is."""
+    folder = pathlib.Path(folder or HERE)
+    return not ((folder / "MEASURES-STEPS.md").is_file() and not (folder / "FILL-STEPS.md").is_file())
+
+
+ASK_SYSTEM = "Which system should I look at? Name it, or point me at its code."
+
+
+def say_back_task(folder, kind, register=None):
+    """The SAYBACK line: the session drafts what it understood, and nothing is read before the person's Start."""
+    keys = ("application (the system, as they named it or as the folders show it); code (what code is open here, "
+            "from the folders' names only: read no file; when only a name was given and its code is not here, say so); "
+            "search (only when the code is not here: where you propose to look, taken from the environment, in "
+            "plain words; the page then asks whether to look there, with Yes and No and no Start, and nothing is "
+            "searched before their yes); wants (what they want, from their request); "
+            "answered (a statement, never a question, of what their request already settles: which flow first, or "
+            "map only or further, as in 'map every flow, from your words'; when it settles neither, 'Nothing yet: "
+            "after the first look I ask which flow to start with')") if kind == "fresh" else (
+            "application; proposal (what this session proposes to work on now, from where each flow stands); wants "
+            "only if their words say something new")
+    reg = f' --register "{register}"' if register else ""
+    return (f"SAYBACK: before anything is read, draft what you understood, each line short, in their words: write a "
+            f"JSON file outside the system's code with the keys {keys}; then run python \"{HERE / 'say_back.py'}\" "
+            f"draft \"{folder}\" --lines \"<that file>\"{reg}. What it prints after MESSAGE is your whole reply this "
+            "turn. Start no helper and read no code until the person "
+            + ("says carry on." if kind == "resume" else "presses Start or says start."))
 
 
 REQUEST = "- **Request:**"  # RUN.md's line under Plan and go: the person's request, word for word, as data
@@ -566,6 +603,8 @@ def main(argv):
     ended = "--first-look-ended" in args
     args = [a for a in args if a != "--first-look-ended"]
     args = [a for a in args if a != "--new"]
+    test = "--test" in args  # a test standing in for the person: its answers are kept as a test's
+    args = [a for a in args if a != "--test"]
     picked = release_words = None
     releasing = "--release" in args
     for flag in ("--resume", "--release"):
@@ -613,12 +652,20 @@ def main(argv):
         return 0
     found, earlier = to_pick_up(args[0])
     gave = gave_of(args[0], system, gave)
-    launch_text = launch(gave, system) if picked is None and not new else ""  # the run's first call only
+    saying_back = says_back() and picked is None and not new
+    # coming back to a case is said back however the register was reached: found, picked from a list, or released
+    coming_back = says_back() and not new
+    # the run's first call only; the mapping skill sends no launch: it says back what it understood instead
+    launch_text = launch(gave, system) if picked is None and not new and not saying_back else ""
 
     def said(decision, body="", reg=None):
         """MESSAGE: on the first call the launch leads it; on fresh or finish-first-look the page line follows;
         the one address ends it."""
         if decision in ("fresh", "finish-first-look"):
+            if saying_back:  # the say-back's own message, printed by say_back.py; with nothing given, which system
+                if gave == "nothing" and decision == "fresh":
+                    return first_message("", ASK_SYSTEM, address_line(site, reg))
+                return ""
             if not launch_text:
                 return ""
             import listener
@@ -627,6 +674,15 @@ def main(argv):
             else:
                 body = PAGE_OPEN_LOOK if gave == "code" or decision == "finish-first-look" else PAGE_OPEN
         return first_message(launch_text, body, address_line(site, reg))
+
+    def sayback(decision, reg=None):
+        if decision == "resume" and coming_back:  # the work picked up is what there is to say back
+            return [say_back_task(reg, "resume")]
+        if not saying_back:
+            return []
+        if gave == "nothing" and decision == "fresh":  # nothing to say back yet: which system comes first
+            return []
+        return [say_back_task(site.resolve(), "fresh", reg if decision == "finish-first-look" else None)]
 
     other = []
     if system and system.strip() and picked is None and not new:
@@ -638,7 +694,7 @@ def main(argv):
             return 2
         mark_first_look(site)
         record_start(site, request)
-        emit("fresh", earlier=earlier, message=said("fresh"), extra=[f"OTHER: {f}" for f in other] + [
+        emit("fresh", earlier=earlier, message=said("fresh"), extra=sayback("fresh") + [f"OTHER: {f}" for f in other] + [
             'NEW: the unfinished work here is for another system. Start the register with start_register.py --new '
             '--words "<the person\'s request, word for word>", which records them.'])
         return 0
@@ -669,13 +725,14 @@ def main(argv):
             return 2
         mark_first_look(site)
         record_start(site, request)
-        emit("fresh", earlier=earlier, message=said("fresh"))
+        emit("fresh", earlier=earlier, message=said("fresh"), extra=sayback("fresh"))
         return 0
     if len(found) > 1:
         emit("choose", folders=found, earlier=earlier, message=said("choose", choose_message(found)))
         return 0
     reg = found[0]
     if release_words is not None:
+        record_release(reg, release_words, test=test)
         run_lock.release(reg, release_words)
     refused, note = run_lock.hold(reg, take_missing=True)
     if refused:
@@ -698,6 +755,10 @@ def main(argv):
               "message below tells the person; with no message, tell them in one line through brief.py say: " + told)
         print("\n".join(f"  {x}" for x in notes + owed if x))
     decision, message = resume(reg)
+    if decision == "resume" and coming_back and (reg / "case.json").is_file():
+        # coming back to a case: what exists and what this session proposes, said back on the page, never a brief
+        emit("resume", folders=[reg], earlier=earlier, extra=sayback("resume", reg))
+        return 0
     if upgraded and message:
         lead, _, rest = message.partition("\n\n")
         message = f"{lead}\n\n{upgraded[4]}\n\n{rest}"
@@ -710,7 +771,8 @@ def main(argv):
         record_request(reg, request)  # its first look is this run's own: the request is the one it starts with
     message = said(decision, message, reg) if message or decision == "finish-first-look" else message
     emit(decision, folders=[reg], earlier=earlier, message=message,
-         wait=wait_line(reg) if decision == "resume" else "")
+         wait=wait_line(reg) if decision == "resume" else "",
+         extra=sayback(decision, reg) if decision == "finish-first-look" else ())
     return 0
 
 

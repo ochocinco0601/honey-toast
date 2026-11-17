@@ -195,7 +195,9 @@ page on an error. A script handed a folder that is not a register refuses it and
                     "recommend": "in or out", "why": ""}],
       "flows": [{"name": "", "what": "one sentence",
                  "one_case": "what one case of this flow is, the thing followed start to end", "found_in": "where in the code you saw it (path:line; kept
-                 for checking, never shown)", "stages": [{"name": "", "what": "one sentence"}]}],
+                 for checking, never shown)", "stages": [{"name": "", "what": "one sentence"}],
+                 "services": ["each service this flow touches, exactly as in the survey; the go reads these for
+                 this flow, and without them reads every service for any flow but the one recommended"]}],
       "searched": ["what you looked at"], "unresolved": ["what is still open, and where I propose to look"],
       "earlier": "an earlier map found, and what it changes for this run (leave out when none)",
       "recommendation": {"flow": "a flow named above", "why": "",

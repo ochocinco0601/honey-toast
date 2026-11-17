@@ -210,9 +210,11 @@ def main(argv):
         found = [(d, describe(d, root, set())) for d in services_in(repo)]
         found = [(d, x) for d, x in found if x[1] > 0] or [(repo, describe(repo, root, set()))]
         for d, described in found:
+            # a folder with no build manifest and no entry point (deployment files and a helper script) is not a service
+            runs = has_manifest(d) or bool(described[4])
             units.append({"service": named(d, repo), "repository": repo.name, "dir": d,
                           "path": d.relative_to(root).as_posix(), "_described": described,
-                          "kind": "service" if described[1] > 0 else "deployment or configuration"})
+                          "kind": "service" if described[1] > 0 and runs else "deployment or configuration"})
     unique(units, root)
     names = {u["service"] for u in units if u["kind"] == "service"}
     for u in units:

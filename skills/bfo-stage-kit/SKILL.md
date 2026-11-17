@@ -11,14 +11,24 @@ inside this folder too.
 
 **Start here, before you write anything to the person.** Your first action is a tool call, the start step:
 `python "<skill>/start.py" "<workspace root>" --request "<their request, word for word>" --gave <code, name or
-nothing>` ("The start step", below, says which). It prints the run's whole first message after its `MESSAGE:` line:
-the launch, which introduces the work, then the line that the page for this work is open, with the page's address.
-Never write the launch or that line yourself, and write no text this turn before that reply, not even a line
-that you are starting something. Your reply this turn is the
-text after `MESSAGE:`, exactly as printed, whole, and the last thing you write in the turn: where the decision starts
-the first-look helper, start it first, then send it. The one addition: when only a name was given and its code is not
-here, the proposal of where to look follows it, through `say --after`. A script's output left inside its tool call never reaches the
-person.
+nothing>` ("The start step", below, says which). **Nothing is read before the person's Start.** On a fresh start, or a
+case picked up, it prints a `SAYBACK:` line instead of a message: draft what you understood (the lines it names, each
+short, in their words, from their request and the folders' names alone) and run `say_back.py draft` as it says.
+That script puts the lines on the run page as a review step, with one Start and one box for a correction, and prints the
+chat's one line after `MESSAGE:` and the wait after `WAIT:`. Start that wait, and send the text after `MESSAGE:`,
+exactly as printed, as your whole reply this turn, with no text before it, not even a line that you are starting
+something; then end your turn. Start no helper and open no code until their Start. A script's output left inside its
+tool call never reaches the person. On a case picked up, no page asks it: `MESSAGE:` holds the lines themselves and asks
+them to say carry on or correct a line, in the chat, and no `WAIT:` is printed; send it and end your turn.
+
+**Their answer to the say-back** comes from the page (an `ANSWERS` line whose file holds `say_back`) or typed in the
+chat. Record it with `python "<skill>/say_back.py" answer "<the folder you drafted in>" --answers "<file>"` or
+`--words "<their words, word for word>"`. On `STARTED`, do what it says: on a fresh start, start the first-look
+helper ("The first look runs in one helper", below) with their request and the lines they started, and send one line,
+through `say`, that the first look is under way; on a case picked up, carry on with what the last line proposed.
+On `CORRECTED`, redraft the lines with their correction, run `say_back.py draft` again, send what it prints, and wait
+again. When the code is not open in this window, give the lines a `search` too (where you propose to look, from the environment): the page then asks that one question, with Yes and No and no Start, and their answer is recorded the same way. On `SEARCH AGREED`, search there and draft the lines again with what was found, so Start appears; on `SEARCH DECLINED`, search nothing and ask them to point at the code. Start never stands for a yes to a search. `go.py --answers` refuses a say-back answer and names this command. Everything after Start runs as below: the
+capability brief, the pick of how far each stage goes, and the reviews.
 
 ## The job this serves
 
@@ -51,27 +61,25 @@ trust what comes out, because every service the flow touches was read, or is nam
 every claim can be traced; and the outputs
 are complete enough for the next step (measures built, alerts wired, runbooks used).
 
-## Your first message: the launch
+## Your first message: the say-back
 
-The launch is in `LAUNCH.md` in the skill folder. The start step prints it as the first part of its MESSAGE, with
-its last part ("What I need to begin") filled from `--gave`: `code` when the request pointed at the system's code
+The first message is the say-back's one line, printed by `say_back.py draft` ("Start here", above); the lines
+themselves are on the run page, never in the chat. `--gave` is `code` when the request pointed at the system's code
 (its repositories, a link to its code, or "this application" with its code open here); `name` when it named only
-the system, with `--system "<the system's name, as the person said it>"`; `nothing` otherwise. It is the same
-whatever the workspace holds, and it never repeats a path, a folder name or a file name from their request. Where
-and how to search is taken from the environment the run is in (its own instructions, tools and sources), never from
-a fixed place, and the run searches only where the person agrees.
+the system, with `--system "<the system's name, as the person said it>"`; `nothing` otherwise. With `nothing`, the
+start step's MESSAGE asks which system, in one line: send it as printed, end the turn, and when they answer, draft
+the say-back from their answer (`say_back.py draft` on the work folder) without running the start step again.
+Where and how to search is taken from the environment the run is in (its own instructions, tools and sources),
+never from a fixed place, and the run searches only where the person agrees.
 
-If the request pointed at the system's code, start the helper in the same turn, then send MESSAGE. If it named only
-the system, on finish-first-look or fresh, look, without reading any file in depth, at whether the
-folders open here hold that system's code (their names and top-level files): if they do, go on to the helper as for
-code; if they do not, send MESSAGE exactly as printed, then the proposal "When the system's code is not here" names,
-through `say --after`, and end your turn, so nothing is searched before their yes. Otherwise send MESSAGE exactly as
-printed and end the turn and wait; when they answer, start the helper with their answer as the request, without
-running the start step again. Once a helper is started, write nothing more until its reply, except as below when
-the person writes.
+When only a name was given, look, without reading any file, at whether the folders open here hold that system's
+code (their names alone). If they do not, the code line says so and where you propose to look ("When the system's
+code is not here", below), and give the lines that place as their `search`: the page asks them Yes or No to that
+search before Start appears, and a correction of that line is where they would rather you looked. Once a helper is started, write nothing more until its reply, except as below when the
+person writes.
 
-**When the system's code is not here.** If that look finds no code of the named system, or the helper returns
-blocked for want of code, write to the person, through `say`: that
+**When the system's code is not here.** If the helper returns blocked for want of code, write to the person, through
+`say`: that
 the system's code is not in what is open here, where you propose to look for it, taking where and how from the
 environment, and that they can say yes or point at the code instead; then end your turn. Before their yes, query no
 code host or outside source at all: the proposal comes only from what is open in the workspace and from the
@@ -92,12 +100,13 @@ and end the turn and wait, as above. In this order it brings up the run status p
 earlier work, takes the lock on the register it picks up, decides, and, unless another chat holds the work or the
 person is still to choose, records when the run started ("The run", below).
 If it prints `OPEN FAILED`, open the address in the person's browser yourself, as that line says, before anything
-else. Its MESSAGE ends with the page's one address; never type the address yourself. If it printed `PAGE: not
-brought up`, the MESSAGE says instead that the page could not be opened and the work goes on without it. On
-DECISION resume, choose or held, your message is exactly the text it printed after MESSAGE (the launch, then the
+else. A MESSAGE ends with the page's one address; never type the address yourself. If the page could not be brought
+up, `say_back.py draft` puts the lines in the chat instead. When it prints a `SAYBACK:` line (fresh, finish-first-look,
+and a case picked up on DECISION resume), draft the say-back as "Start here" says. On DECISION choose or held, and on
+resume of a register that keeps no case record, your message is exactly the text it printed after MESSAGE (the
 re-entry brief or the question, and the page's address at its end), and nothing else, and
 you end your turn: no helper starts. When it printed a `WAIT:` line (on resume at a stop where the page takes a
-pick: the go, the pick, the next flow), start that wait before you end your turn, as at every stop. Send it even when the person's request names other work: the message offers to start new work instead, and their answer decides. On finish-first-look or fresh, start the helper below, which writes into the
+pick: the go, the pick, the next flow), start that wait before you end your turn, as at every stop. Send it even when the person's request names other work: the message offers to start new work instead, and their answer decides. On finish-first-look or fresh, the helper below starts on their Start, and writes into the
 folder the page is already serving; `start_register.py` refuses a new register until the start step has run for this
 run.
 From then until the first look's brief, a second start step on
@@ -105,19 +114,20 @@ the workspace is refused with "the first look is already running", so start one 
 returns blocked and the run starts over, end that mark first with `python "<skill>/start.py" "<workspace root>"
 --first-look-ended`.
 
-**The first look runs in one helper, so nothing of the setup reaches the person.** After the start step, in the
-same turn, before any text, start one subagent with the Agent tool (general-purpose). Claude Code
+**The first look runs in one helper, so nothing of the setup reaches the person.** On their Start (`STARTED` from
+`say_back.py answer`), start one subagent with the Agent tool (general-purpose). Claude Code
 runs it in the background: in an interactive session (terminal, VS Code, desktop app) a session cannot wait for a
 subagent while fork mode is on, as it is by default (Claude Code's documentation,
 code.claude.com/docs/en/sub-agents: "Which subagents run in the background", "Let Claude wait for a subagent",
-"Turn fork mode off"); the ways it names to wait are settings, none of them an argument of the call. So the start step's MESSAGE is the
-turn's reply, sent exactly as printed once the helper is started: end your turn on it, with nothing after it. The helper's reply reaches you later as a
+"Turn fork mode off"); the ways it names to wait are settings, none of them an argument of the call. So the turn
+that starts it sends one line that the first look is under way: run `say` on it, start the helper, then send what
+`say` printed, exactly as printed, and the turn ends on it. The helper's reply reaches you later as a
 completion notification, in a turn of its own, and that turn sends the brief. Where Claude Code waits for the helper
-instead, send MESSAGE exactly as printed before its brief, in the same turn. A later turn that starts the helper
-(on their answer, or after a search) does the same with one line that the first look is under way: run `say` on it,
-start the helper, then send what `say` printed, exactly as printed, and the turn ends on it. If the person writes while the first-look helper is still running, answer in one line
+instead, send that line before its brief, in the same turn. A later turn that starts the helper again (after a
+search) does the same. If the person writes while the first-look helper is still running, answer in one line
 through `say` that the first look is still under way and its brief follows when it is done, and start nothing: no
-second helper, no start step. Give the helper: the person's request word for word;
+second helper, no start step. Give the helper: the person's request word for word, and the say-back's lines as they
+started them;
 the skill folder's path and the mapping skill's (`<mapping>`, phases 0 to 3 below); the start step's DECISION, FOLDER
 and EARLIER lines as printed; on fresh, the register folder you name for it, `bfo-work/<the system's name>/` at the
 workspace root, which is `<your-folder>` from then on; and this task: *"Follow
@@ -137,7 +147,7 @@ blocked for want of code, see "When the system's code is not here" above. Otherw
 is already the status line. Then end your turn: the brief ends with what it waits on, the person's picks or one question
 whether to carry on. **When the brief opens by saying their request asked for every flow**, the go is already
 recorded and nothing waits on them: send it as it is, start the wait on the home screen (below) so a stop or a
-change reaches you, and carry on in the same turn with phase 1 (below, "0. to 3."), in this session. Write nothing between the start step's MESSAGE and that message, except the one line that a later helper's first look is
+change reaches you, and carry on in the same turn with phase 1 (below, "0. to 3."), in this session. Write nothing between the say-back and that message, except the one line that the first look is
 under way.
 
 **When the person answers the brief**, record their picks with `go.py` (phase 0, "Their answer is recorded as data"),
@@ -153,14 +163,15 @@ run `start.py` with `--new`, which decides fresh beside the unfinished work, the
 their request and these words, and tell it to start the new register with `start_register.py --new --words "<their
 words, word for word>"`, which records them; without them it refuses a new register while a run is not finished. When they answer DECISION held (another chat is working on that work) by saying that chat has stopped, run
 `python "<skill>/start.py" "<workspace root>" --release "<that folder>" --words "<their words, word for word>"` and
-follow its DECISION the same way; never release it without their say-so.
+follow its DECISION the same way; never release it without their say-so. A test standing in for them adds
+`--test`, so the answer is kept as a test's.
 
 **Talking to the person, for the whole run.**
 - **Every later message opens with the status line**, copied exactly from `python "<skill>/brief.py" status
   "<your-folder>"` run just before you write it, or as `say` or a script prints it. Never type the line yourself,
   and never send two.
-- **Write to the person only at the points this file names:** the start step's MESSAGE (the launch and the line
-  that the page is open), the capability brief or the re-entry brief, each line of mapping's progress (below),
+- **Write to the person only at the points this file names:** the say-back's one line (or the start step's
+  MESSAGE, where it prints one), the line that the first look is under way, the capability brief or the re-entry brief,
   the pick of how far each stage goes (after phase 3), the review of the proposed measures (end of phase 4), the
   review of the proposed alerts (phase 5a), a question that
   needs their judgement, a plain message that the run
@@ -211,8 +222,8 @@ writes them, with `<skill>` replaced by the skill folder's path.
 
 **The run's first work is the start step, by script, before any text:** `python "<skill>/start.py"
 "<workspace root>" --request "<their request, word for word>" --gave <code, name or nothing>` (in a multi-root
-workspace, the first folder), run by the session itself before any helper; its MESSAGE, sent exactly as printed, is
-the run's first message. On a fresh start it keeps the request, and the new register's run record
+workspace, the first folder), run by the session itself before any helper; the say-back it hands to (or its own
+MESSAGE, where it prints one), sent exactly as printed, is the run's first message. On a fresh start it keeps the request, and the new register's run record
 records it, so a later stop the request already answers reads it from there.
 First it brings up the run status page, served from the workspace's `bfo-work/` folder (made if need be), so
 the person has the page while the rest runs: before the register exists it shows step 1, Discovery, under way, then
@@ -326,9 +337,9 @@ later stop it says the listener is already serving, and the open page, which che
 new choice within about 15 seconds (unless ticks or words on it are not yet sent: it then says so at its top and
 waits for them to be sent or cleared); then start the wait only if none is running (a poll has exited once it
 announced the last stop's answers). **On a `PROGRESS` line** (a watch event, or a line in a finished poll's output,
-printed while a flow is mapped, each time a part of the map is written), send that line to the person as it is,
-without the word PROGRESS, with no status line and nothing else, and end your turn: it is how they see the mapping
-move. The work page and the home screen show the same line. **On an `ANSWERS <path>` line** (a watch event, or a line in a finished poll's output), read that file, record it with
+printed while a flow is mapped, each time a part of the map is written), send nothing to the chat and end your
+turn: the run page, the work page and the home screen show the same line, and the chat carries nothing while
+mapping runs unless the person is needed. Between stops write no line of your own about the work's progress either. **On an `ANSWERS <path>` line** (a watch event, or a line in a finished poll's output), read that file, record it with
 `python "<skill>/go.py" "<your-folder>" --answers "<path>"`, and say back in a line or two what was recorded, then
 "you asked to talk about: ..." with the topics `go.py` printed after that phrase, and talk with the person about
 them, through `say`. A tick at any other milestone (talk:) and the words typed in any drop-down are those topics: recorded in
@@ -540,7 +551,7 @@ name as it is (the register folder, each earlier register's folder, the guides i
    **Then the next flow, when the first look found flows not yet mapped.** Once the done check says this flow's
    outputs are done, render the offer, whether or not its re-read has passed (phase 7 stays *doing* until every flow's report is
    sent; this flow's report waits for its own re-read): `python "<skill>/brief.py" next "<your-folder>" --flow "<the flow you recommend next>" --recommend "<why
-   that one>" --after`. It lists the flows still to add, your recommendation and the ask, and marks your
+   that one>" --after`. It lists the flows still to add and offers your recommendation as what is next (their "carry on" picks it), and marks your
    recommendation on the page; `--after` leaves out its status line, for when it follows the report, which opened
    with one, in the same message. On a register mapped in reading units there is no re-read, so the report goes with
    the offer and `--after` is given. Only on a register mapped before them, while its re-read is pending, there is no

@@ -640,10 +640,26 @@ def given_sessions(reg, transcripts=None):
                         last = " ".join(b.get("text", "") for b in blocks if b.get("type") == "text") or (
                             c if isinstance(c, str) else "")
                         shell = shell or any(b.get("name") in ("Bash", "PowerShell") for b in uses)
+            done = last_tools is False
+            if not done and _meta_finished(f):
+                done, last = True, last if REPLIED.search(last or "") else META_FINISHED
             if first:
-                out.append((first, when, last_tools is False, shell, last, datetime.datetime.fromtimestamp(
+                out.append((first, when, done, shell, last, datetime.datetime.fromtimestamp(
                     f.stat().st_mtime, datetime.timezone.utc)))
     return out
+
+
+META_FINISHED = "finished, per Claude Code's metadata; its reply was not recorded"
+
+
+def _meta_finished(transcript):
+    """Claude Code's own record that a subagent finished, in the metadata file beside its transcript. A headless
+    session (claude -p) writes no final reply into the transcript, so the transcript alone cannot say it."""
+    try:
+        meta = json.loads(transcript.with_name(transcript.stem + ".meta.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return meta.get("finished") is True
 
 
 class Launches:
@@ -703,7 +719,8 @@ class Launches:
             return None
         if any(shell for _, shell, _, _ in got):
             return "ran a shell"
-        if all(done and (not launcher or REPLIED.search(last or "")) for done, _, last, _ in got):
+        if all(done and (not launcher or REPLIED.search(last or "") or last == META_FINISHED)
+               for done, _, last, _ in got):
             return "finished"
         quiet = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=LAUNCHER_QUIET)
         if launcher and all(done and mtime <= quiet for done, _, _, mtime in got):

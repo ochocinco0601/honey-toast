@@ -124,6 +124,10 @@ def main(argv):
         start.record_request(reg, d.get("request") or "", (d.get("started") or "")[:16] or None)
     except (OSError, ValueError):
         pass
+    said_back = pathlib.Path(root) / "bfo-work" / "say-back-decisions.jsonl"
+    if said_back.is_file():  # the person's answers to the say-back, given before this register existed
+        import case
+        case.import_decisions(reg, [e for e in case.decisions_in(said_back) if e.get("session") == case.session()])
     run_lock.guard(reg, take_missing=True)  # again, now RUN.md is here to record a lock not taken
     print(f"register started: {reg}")
     print(f"FOLDER: {reg.resolve()}")  # the register folder: the <your-folder> of every later command

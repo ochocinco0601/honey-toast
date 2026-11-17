@@ -5,14 +5,15 @@ reloads itself every 15 seconds while it is shown, follows the run with no step 
 step opens, leads to the newest run's view, and before any run folder exists draws the first look under way.
 Four panels, the same in every state: the title and the run's status; Progress, the run's whole path read from the
 Status table of RUN.md (each row a step, in its order, named as the kit's status line names it to the person with
-the record's own name kept beside it, rows that are not numbered phases tagged as the person's decisions, contiguous
-rows the pick left out folded into one line, finished steps told by what they hold, in flows, stages, steps and
+the record's own name kept beside it, rows that are not numbered phases tagged as the person's decisions, every
+step on its own line, the ones the pick left out too, finished steps told by what they hold, in flows, stages, steps and
 services, and linked to the pages they left; process mapping, while it runs, told by how far the record shows it is:
 services read, calls left unmatched, findings judged in the latest round, flagged ones changed, and nothing where the
 record cannot say; a flow the run chose itself, because the request named none, told as chosen by the run with its
 reason, never as the person's decision); Required action, the choice the record says the run waits on
 (depth.json's open choice, whichever row is current), or how to resume it, or what the run is doing for the person
-and when they are next needed; Issues, one line each with what clears it. Times are the ones the record holds
+and when they are next needed, and no Required action and no badge on a register opened to carry on (its say-back
+of kind resume waiting) while nothing else waits on the person; Issues, one line each with what clears it. Times are the ones the record holds
 (scope.json for the person's decisions and the report sent, RUN.lock for the run's last write, run-started.json for
 the start); a step the record keeps no time for says so and is never given one. It only reads: no lock is taken and no file of the register is written,
 except the page itself when run from the command line. Python standard library only."""
@@ -35,6 +36,7 @@ except ImportError:  # pragma: no cover - the kit always ships it
     STALE_MINUTES = 240
 E = html.escape
 DONE, NOT_PICKED, DOING, BLOCKED = "done", "not picked", "doing", "blocked"
+IDLE = "idle"  # a register opened to carry on, with no run under way and nothing waiting on the person
 FILE_RE = re.compile(r"[\w.\-/]+\.(?:csv|json|md|html)\b")
 # The person's decisions the run records with a time (go.py writes them into scope.json), by the row they close.
 DECISION_TIMES = (("review of the alerts", ("alerts_reviewed", "given")),
@@ -217,6 +219,26 @@ def started_at(reg):
     return None
 
 
+def last_work(reg):
+    """The last real work on the case: the newest entry of the case log, which only the run's own steps write (a page
+    redraw or a touch of the lock never lands there)."""
+    try:
+        import case
+        ats = [_iso(e.get("at")) for e in case.log_entries(reg)]
+    except (ImportError, OSError, ValueError):
+        return None
+    ats = [t for t in ats if t and t.tzinfo]
+    return max(ats, key=lambda t: t.timestamp()) if ats else None
+
+
+def stamp(t, at="weekday"):
+    """A moment as <time>, carried in UTC for the page's script to show in the browser's own zone with the zone
+    named; without script it reads in UTC, "UTC" shown. `at`: "weekday" (Sun 15 Nov, 04:56) or "day" (15 Nov, 04:56)."""
+    u = t.astimezone(dt.timezone.utc)
+    text = (when(u) if at == "weekday" else f"{u.day} {u:%b}, {u:%H:%M}") + " UTC"
+    return f'<time datetime="{u:%Y-%m-%dT%H:%M:%SZ}" data-at="{at}">{E(text)}</time>'
+
+
 def last_write(reg):
     lock = _json(reg / "RUN.lock") or {}
     try:
@@ -253,6 +275,21 @@ STEPS = (("Discovery", False, ("0 ",)), ("Choose the flow", True, ("The go",)),
 ASKS = {2: "choose the flow", 4: "choose the depth", 6: "approve the measures", 8: "approve the alerts",
         12: "choose the next flow"}
 DEPTH_WORDS = {"none": "map only", "measure": "to measures", "alerting": "to alerts", "runbooks": "to runbooks"}
+NEXT_TASK = "Choose the next flow to map"  # depth.py's open choice once a flow is finished (go.NEXT_TASK)
+
+
+def recommended_next(reg, depth, left):
+    """The flow recommended next, while it is still to map: the one Home's next-flow choice marks, else the session's
+    recommendation at that stop (brief.py next), else None."""
+    choice = depth.get("open_choice") or {}
+    got = next((i.get("key") for i in choice.get("items") or [] if i.get("recommended")), None) \
+        if choice.get("task") == NEXT_TASK else None
+    if not got and brief:
+        try:
+            got = (brief.next_flow_recommended(reg) or {}).get("flow")
+        except Exception:  # noqa: BLE001 - a record brief cannot read: no recommendation is shown
+            got = None
+    return got if got in left else None
 
 
 def _merge(states):
@@ -402,14 +439,52 @@ STARTING_ROW = ("0 First look over the system", DOING, "", "")
 STARTING_TITLE = "Business flow observability run"
 
 
+SAY_BACK = "say-back.json"  # say_back.py's: what the run understood, waiting on the person's Start
+SAY_BACK_TITLE = "Check what I understood"
+
+
+# Process mapping's sub-steps as run control keeps them in the case record, said in the person's words.
+SUB_WORDS = {"lead steps": "Following one case from start to end", "units": "Reading the services",
+             "readers": "Reading the services", "merge": "Putting what each service does together",
+             "re-reads": "Re-reading the calls between services", "lead rows": "Naming what is at stake at each step",
+             "judge round 1": "Checking every finding against the code", "fixers": "Correcting the findings flagged",
+             "judge round 2": "Checking the corrected findings against the code",
+             "check": "Checking the map is complete", "mapping ends": "Finishing the map"}
+CASE_ROWS = (("1 ", "CASE"), ("2 ", "STRUCTURE"), ("3 ", "CAPABILITY"))
+
+
+def mapping_from_case(reg, rows):
+    """The run record's rows with mapping's three read from the case record, which run control keeps in their place
+    (brief._mapping_from_case, the status line's reading); unchanged where the case holds no flow worked now."""
+    if not brief:
+        return rows
+    acts = {lead: getattr(brief, name) for lead, name in CASE_ROWS}
+    lead_of = lambda name: next((lead for lead in acts if name.startswith(lead)), None)  # noqa: E731
+    now = dict(brief._mapping_from_case(reg, [(acts[lead_of(r[0])], r[1]) for r in rows if lead_of(r[0])]))
+    return [(r[0], now.get(acts[lead_of(r[0])], r[1]), r[2], r[3]) if lead_of(r[0]) else r for r in rows]
+
+
+def said_back(reg):
+    """The say-back waiting on the person in this folder, or None."""
+    sb = _json(pathlib.Path(reg) / SAY_BACK)
+    return sb if isinstance(sb, dict) and sb.get("state") == "waiting" and sb.get("lines") else None
+
+
 def read(reg, now=None, starting=False):
     """The operator view's content, read from the register folder: no file is written. `starting`: the work folder
-    before any run folder is in it, drawn as a run whose first look is under way."""
+    before any run folder is in it, drawn as a run whose first look is under way, or, while the say-back waits on the
+    person, not yet begun."""
     reg = pathlib.Path(reg)
     now = now or dt.datetime.now(dt.timezone.utc).astimezone()
     scope = _json(reg / "scope.json") or {}
     depth = _json(reg / "depth.json") or {}
-    rows = [STARTING_ROW] if starting else status_rows(_text(reg / "RUN.md"))
+    sb = said_back(reg)
+    # a register opened to carry on: its say-back is not a step of a run, and no run is under way until it is answered
+    carrying_on = bool(sb) and sb.get("kind") == "resume"
+    sb = None if carrying_on else sb
+    rows = ([(STARTING_ROW[0], "to do", "", "")] if sb else [STARTING_ROW]) if starting \
+        else mapping_from_case(reg, status_rows(_text(reg / "RUN.md")))
+    case_now = None if starting or not brief else brief.case_flow(reg)
     counts = tallies(reg, scope)
     reported = _iso(scope.get("report_sent"))
     left = list((scope.get("remains") or {}).get("flows") or [])
@@ -433,10 +508,12 @@ def read(reg, now=None, starting=False):
             if why:  # the run took this decision itself: never shown as the person's
                 s["said"], s["by_run"] = f"{s['said']} · chosen by the run, {why}", True
         elif n == 3 and state == DOING and not starting:
-            s["said"] = mapping_progress(reg, scope)
+            s["said"] = mapping_progress(reg, scope) or SUB_WORDS.get((case_now or {}).get("sub") or "", "")
         elif n == 3 and done:
             bits = [_plural(counts[f], NOUNS[f]) for f in ("stages.csv", "subjects.csv") if counts.get(f)]
             s["said"] = "Map: " + ", ".join(bits) if bits else "Map"
+            if (case_now or {}).get("state") == brief.CASE_ENDED:
+                s["said"] += " · not checked: you stopped the checks"
             s["link"] = "views.html" if (reg / "views.html").is_file() else None
         elif n == 5 and done and counts.get("measures.csv"):
             s["said"] = _plural(counts["measures.csv"], NOUNS["measures.csv"]) + " proposed"
@@ -451,16 +528,14 @@ def read(reg, now=None, starting=False):
             s["state"], s["said"], s["time"] = DONE, "Sent", clock(local(reported))
         elif n == 12 and left:
             s["said"] = f"{len(left)} {'flow' if len(left) == 1 else 'flows'} not mapped"
+            rec = recommended_next(reg, depth, left)
+            s["said"] += f" · recommended next: {rec}" if rec else ""
         steps.append(s)
-    # contiguous steps the pick left out fold into one line, numbered as a range
-    folded = []
-    for s in steps:
-        if s["state"] == NOT_PICKED and folded and folded[-1]["state"] == NOT_PICKED and s["numbers"][0] != 12:
-            folded[-1]["numbers"].append(s["numbers"][0])
-            folded[-1]["title"] += ", " + s["title"]
-        else:
-            folded.append(s)
-    steps = folded
+    if sb:  # nothing is read before the person's Start: the say-back is the step now, before the run's own
+        steps = [s for s in steps if s["numbers"] != [12]]  # no "next flow" before any flow is begun
+        steps.insert(0,{"numbers": [0], "title": SAY_BACK_TITLE, "decision": True, "state": "to do", "time": None,
+                         "said": "", "link": None, "bad": False, "why": "", "rows": [], "by_run": False,
+                         "say_back": True})
     current = next((k for k, s in enumerate(steps) if s["state"] not in (DONE, NOT_PICKED)), None)
     for k, s in enumerate(steps):
         s["current"] = k == current
@@ -469,30 +544,50 @@ def read(reg, now=None, starting=False):
     times = [t for t in [last, reported] + [decision_time(r[0], scope) for r in rows if is_decision(r[0])] if t]
     last_any = max(times, key=lambda t: t.timestamp()) if times else None
     age_min = (now.timestamp() - last.timestamp()) / 60 if last else None
+    try:  # agents launched and not finished are the run at work, though the lead writes nothing meanwhile
+        import case
+        working = case.at_work(reg, now.astimezone(dt.timezone.utc))
+    except (ImportError, OSError, ValueError):
+        working = []
     blocked = [s for s in steps if s["state"] == BLOCKED]
     choice = depth.get("open_choice") or None
+    # the next flow is an open case's next step, offered with the recommendation, never a wait on the person (an
+    # unfinished case is not activity in motion); a review is a real stop on the person's word
+    next_open = (choice or {}).get("task") == NEXT_TASK or bool(cur and cur["numbers"] == [12])
+    choice = None if (choice or {}).get("task") == NEXT_TASK else choice
     if blocked:
         status = "blocked"
     elif choice:  # the record says the run waits on the person's choice, whichever row is current
         status = "waiting"
     elif cur is None:
         status = "finished"
-    elif cur["decision"] and cur["state"] != DOING:
+    elif cur["decision"]:  # a pick or review row is doing from the stop's message on: the run waits on the person
         status = "waiting"
-    elif age_min is not None and age_min <= RUNNING_MINUTES:
+    elif (age_min is not None and age_min <= RUNNING_MINUTES) or working:
         status = "running"
     elif age_min is not None and age_min <= STALE_MINUTES:
         status = "quiet"
     else:
         status = "paused"
-    if starting:
+    if next_open and status == "paused":
+        status = IDLE  # nothing in motion and nothing waits on the person: no Required action, and no badge
+    if sb:
+        status = "waiting"
+    elif starting:
         status = "running"
+    elif carrying_on and status in ("running", "quiet", "paused", "finished"):
+        status = IDLE  # nothing waits on the person: no Required action, and no badge
     nxt = next((s["numbers"][0] for s in steps[(current or 0) + (1 if cur and not cur["decision"] else 0):]
                 if s["numbers"][0] in ASKS and s["state"] == "to do"), None)
     resume = {"folder": workspace(reg), "phrase": f"continue the run on {capability(reg, depth)}"}
-    if status == "waiting":
+    if sb:
+        action = {"kind": "say_back", "lines": sb["lines"], "fingerprint": sb.get("fingerprint") or "",
+                  "search": sb.get("search")}
+    elif status == "waiting":
         at = cur["numbers"][0] if cur else 12
-        what = (choice or {}).get("task") or ASKS.get(at) or cur["title"]
+        # a stop on a pick or review is said in the status line's own words for it, so the two never disagree
+        held = brief.WAITS.get(activity(cur["rows"][0])) if brief and cur and cur["decision"] and cur["rows"] else None
+        what = held or (choice or {}).get("task") or ASKS.get(at) or cur["title"]
         action = {"kind": "decide", "step": at, "what": what[:1].lower() + what[1:],
                   "on_page": (choice or {}).get("milestone") in ON_PAGE if choice else False,
                   "resume": resume if age_min is None or age_min > STALE_MINUTES else None}
@@ -517,12 +612,18 @@ def read(reg, now=None, starting=False):
             (_json(reg / "done-check.json") or {}).get("done") is False:
         issues.append({"what": "The final check says the run is not done yet",
                        "clears": "Step 11, the final check passing on the map as it is", "bad": False})
-    return {"title": STARTING_TITLE if starting else capability(reg, depth), "flow": scope.get("flow"), "started": when(started_at(reg)),
+    t0 = started_at(reg)
+    return {"title": STARTING_TITLE if starting else capability(reg, depth), "flow": scope.get("flow"), "started": when(t0),
+            "started_at": t0 if t0 and t0.tzinfo else None, "last_at": last_any,
+            # in motion: agent work open in the case record, or a run under way; an unfinished case is not
+            "in_motion": bool(starting or working or status in ("running", "quiet")),
+            "last_work": last_work(reg),
             "last": when(local(last_any)) if last_any else None,
             "last_ago": ago(now, last_any) if last_any else None, "recent": bool(last_any) and
             (now.timestamp() - last_any.timestamp()) < 3600,
             "status": status, "steps": steps, "current": current, "action": action, "issues": issues,
-            "left": left, "quiet_min": int(age_min) if status == "quiet" else None}
+            "left": left, "quiet_min": int(age_min) if status == "quiet" else None,
+            "at_work": sorted({case.AT_WORK.get(r["kind"], "agents are at work") for r in working}) if working else []}
 
 
 ICON = {DONE: "i-ok", "decided": "i-youdone", DOING: "i-run", BLOCKED: "i-bad", NOT_PICKED: "i-skip",
@@ -535,6 +636,10 @@ BADGE = {"running": ("b-run", "i-run", "Running"), "quiet": ("b-off", "i-info", 
 def step_html(s, status, waiting):
     ns = s["numbers"]
     num = f"{ns[0]}–{ns[-1]}" if len(ns) > 1 else str(ns[0])
+    if s.get("say_back"):
+        return (f'<li class="step cur"><svg class="ic"><use href="#i-you"/></svg><span class="n">{E(s["title"])}'
+                '<span class="dec">decision</span></span><span class="d">Waiting on you · nothing in the code is '
+                'read before Start</span><span class="t"></span></li>')
     title = f'<span class="n" title="{E("; ".join(s["rows"]))}">' if s["rows"] else '<span class="n">'
     if s["state"] == NOT_PICKED:
         return (f'<li class="step off"><svg class="ic"><use href="#i-skip"/></svg>{title}{num}. {E(s["title"])}'
@@ -579,8 +684,36 @@ def resume_html(r):
             f'<li>In a Claude Code tab there, type {copy_cmd(r["phrase"])}</li></ol>')
 
 
+def say_back_html(a):
+    """The review step: the ask and Start first, then what the run understood, one line each, then one box for a
+    correction with its own Send. Start never sends a correction."""
+    rows = "".join(f'<tr><th scope="row">{E(x["label"])}</th><td><div class="v">{E(x["value"])}</div></td></tr>'
+                   for x in a["lines"])
+    if a.get("search"):  # the code is not open: one question about the search, and no Start until it is answered
+        head = (f'<div class="sbh"><div><b>{E(a["search"]["question"])}</b>'
+                '<span class="note">Nothing is searched or read until you say yes.</span></div>'
+                '<span class="sbq"><button class="start" type="submit" name="act" value="search-yes">Yes</button>'
+                '<button class="sec" type="submit" name="act" value="search-no">No</button></span></div>')
+    else:
+        head = ('<div class="sbh"><div><b>Check what I understood, then press Start.</b>'
+                '<span class="note">Nothing in the code is read until you press Start.</span></div>'
+                '<button class="start" type="submit" name="act" value="start">Start</button></div>')
+    body = (f'<form class="sb" data-fp="{E(a["fingerprint"])}">{head}'
+            f'<table class="sbt"><tbody>{rows}</tbody></table>'
+            '<label class="sbl" for="sbc">Anything wrong? Say which line and what it should be</label>'
+            '<textarea class="sbc" id="sbc" name="correction" rows="2" autocomplete="off"></textarea>'
+            '<div class="sbb"><button class="sec" type="submit" name="act" value="correct">Send</button>'
+            '<span class="note sbw" hidden>Send your correction first, or clear the box.</span></div>'
+            '<p class="note sbs" role="status"></p></form>')
+    return f'<div class="panel act-you"><div class="panel-h"><h3>Required action</h3></div><div class="act">{body}</div></div>'
+
+
 def action_html(m):
     a = m["action"]
+    if m["status"] == IDLE:
+        return ""
+    if a["kind"] == "say_back":
+        return say_back_html(a)
     if a["kind"] == "decide":
         where = ('Give it on the <a href="index.html">home page</a>.' if a["on_page"]
                  else "Give it in the chat of the run's Claude Code tab.")
@@ -597,6 +730,9 @@ def action_html(m):
         lead = "<b>None now.</b> Every step is done."
     else:
         lead = "<b>None now.</b>"
+    if m.get("at_work"):
+        said = "; ".join(m["at_work"])
+        lead += f' <span class="note">Now: {E(said[:1].upper() + said[1:])}.</span>'
     if m["status"] == "quiet":
         lead += (f' <span class="note">No write for {m["quiet_min"]} min: check the run\'s Claude Code tab before '
                  'resuming it.</span>')
@@ -618,15 +754,29 @@ def render(reg, now=None, starting=False):
     """The page. `starting`: the work folder before any run folder is in it (read's `starting`)."""
     reg = pathlib.Path(reg)
     m = read(reg, now, starting)
-    cls, ic, word = BADGE[m["status"]]
     spin = " spin" if m["status"] == "running" else ""
-    sub = ['<span>Mapping run</span>']
-    sub.append(f'<span>Started <b>{E(m["started"])}</b></span>' if m["started"]
-               else '<span>Started <b class="nr">not recorded</b></span>')
-    if m["last"] and m["recent"]:
+    badge = ""
+    if m["status"] in BADGE:
+        cls, ic, word = BADGE[m["status"]]
+        badge = f'<span class="badge {cls}"><svg class="ic{spin}"><use href="#{ic}"/></svg>{E(word)}</span>'
+    asking = m["action"]["kind"] == "say_back"  # before Start nothing has begun: no empty times are shown
+    sub = [] if asking else ['<span>Mapping run</span>']
+    if not asking and not m["in_motion"]:  # an unfinished case is not activity in motion
+        t = m["last_work"]
+        sub = [f'<span>Nothing in motion · last work <b>{stamp(t, "day")}</b></span>' if t
+               else '<span>Nothing in motion · last work <b class="nr">not recorded</b></span>']
+    elif m["started_at"]:
+        sub.append(f'<span>Started <b>{stamp(m["started_at"])}</b></span>')
+    elif m["started"]:
+        sub.append(f'<span>Started <b>{E(m["started"])}</b></span>')
+    elif not asking:
+        sub.append('<span>Started <b class="nr">not recorded</b></span>')
+    if asking or not m["in_motion"]:
+        pass
+    elif m["last"] and m["recent"]:
         sub.append(f'<span>Last activity <b>{E(m["last_ago"])}</b></span>')
     elif m["last"]:
-        sub.append(f'<span>Last activity <b>{E(m["last"])}</b> ({E(m["last_ago"])})</span>')
+        sub.append(f'<span>Last activity <b>{stamp(m["last_at"])}</b> ({E(m["last_ago"])})</span>')
     else:
         sub.append('<span>Last activity <b class="nr">not recorded</b></span>')
     flow = f' <span>· {E(m["flow"])}</span>' if m["flow"] else ""
@@ -636,15 +786,16 @@ def render(reg, now=None, starting=False):
         steps = '<li class="step off"><span class="n">No run record (RUN.md) in this folder yet</span></li>'
     # the run's home once drawn; before it, the work page at the listener's root, which shows the sources and progress
     home_href, home_name = ("index.html", "Home") if (reg / "index.html").is_file() else ("/", "The run at work")
-    drawn = ("No run folder yet: the first look over the system is under way." if starting
-             else f"Drawn from the run's record in {E(reg.name)}.")
+    drawn = ("" if asking
+             else "No run folder yet: the first look over the system is under way. " if starting
+             else f"Drawn from the run's record in {E(reg.name)}. ")
     body = f"""<div class="page"><div class="screen">
 <div class="nav"><span class="sys">{E(m["title"])}</span><a class="go" href="{home_href}">{home_name}</a><a class="go on" href="{FILE}" aria-current="page">Run status</a></div>
-<div class="head"><div class="titlerow"><h1>{E(m["title"])}{flow}</h1><span class="badge {cls}"><svg class="ic{spin}"><use href="#{ic}"/></svg>{E(word)}</span></div>
+<div class="head"><div class="titlerow"><h1>{E(m["title"])}{flow}</h1>{badge}</div>
 <div class="sub">{"".join(sub)}</div></div>
-<div class="body"><nav class="rail" aria-label="Steps"><h2>Progress</h2><ol class="steps">{steps}</ol></nav>
-<div class="main">{action_html(m)}{issues_html(m["issues"])}</div></div></div>
-<p class="foot">{drawn} This page reloads itself every 15 seconds.</p></div>"""
+<div class="body{' ask' if m['action']['kind'] == 'say_back' else ''}"><nav class="rail" aria-label="Steps"><h2>Progress</h2><ol class="steps">{steps}</ol></nav>
+<div class="main">{action_html(m)}{"" if asking else issues_html(m["issues"])}</div></div></div>
+<p class="foot">{drawn}This page reloads itself every 15 seconds.</p></div>"""
     return PAGE.replace("<!--TITLE-->", E("Run status · " + m["title"])).replace("<!--BODY-->", body)
 
 
@@ -705,6 +856,24 @@ a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
 .ann .clr{font-size:12.5px;color:var(--fg2);border-left:1px solid var(--line-soft);padding-left:14px}
 .ann .clr b{display:block;color:var(--fg3);font-weight:500;font-size:12px;margin-bottom:2px}
 .foot{font-size:12px;color:var(--fg3);margin:0}
+.sb{display:grid;gap:12px}
+.sbt{border-collapse:collapse;width:100%}
+.sbt th{text-align:left;vertical-align:top;font-weight:600;font-size:13px;color:var(--fg2);padding:10px 14px 10px 0;width:30%;border-top:1px solid var(--line-soft)}
+.sbt td{padding:8px 0;border-top:1px solid var(--line-soft);display:grid;gap:6px}
+.sbt tr:first-child th,.sbt tr:first-child td{border-top:0}
+.sbt .v{font-size:14px;overflow-wrap:anywhere}
+.sbh{display:flex;gap:12px 18px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.sbh b{display:block}
+.sbq{display:flex;gap:10px}
+.sbl{font-size:13px;color:var(--fg2);font-weight:600}
+.sbc{font:13px var(--sans);padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--fg);width:100%;resize:vertical}
+.sbc:focus{outline:2px solid var(--accent);outline-offset:1px}
+.sbb{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.sb button{font:600 14px var(--sans);border-radius:6px;padding:8px 18px;cursor:pointer}
+.sb .start{background:var(--accent);color:#fff;border:1px solid var(--accent);padding:9px 26px}
+.sb .sec{background:var(--surface);color:var(--accent);border:1px solid var(--line)}
+.sb button:disabled{opacity:.5;cursor:default}
+@media (max-width:820px){.ask .main{order:-1}.sbt th{display:block;width:auto;padding:10px 0 2px}.sbt tr{display:block;border-top:1px solid var(--line-soft)}.sbt td{border-top:0;padding-top:2px}}
 @media (max-width:820px){.body{grid-template-columns:minmax(0,1fr)}.rail{border-right:0;border-bottom:1px solid var(--line-soft)}
 .ann li{grid-template-columns:22px minmax(0,1fr)}.ann .clr{grid-column:2;border-left:0;padding-left:0}}
 @media (prefers-reduced-motion:no-preference){.spin{animation:spin 1.1s linear infinite;transform-origin:50% 50%}}
@@ -724,7 +893,26 @@ a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
 <symbol id="i-pause" viewBox="0 0 18 18"><circle cx="9" cy="9" r="8" fill="var(--you)"/><rect x="6" y="5.4" width="2.1" height="7.2" rx=".6" fill="#fff"/><rect x="9.9" y="5.4" width="2.1" height="7.2" rx=".6" fill="#fff"/></symbol>
 </defs></svg>
 <!--BODY-->
-<script>document.addEventListener("click",function(e){var b=e.target.closest("[data-copy]");if(b&&navigator.clipboard)navigator.clipboard.writeText(b.dataset.copy)});setInterval(function(){if(document.visibilityState==="visible")location.reload()},15000);</script>
+<script>(function(){var W={weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23",timeZoneName:"short"};
+document.querySelectorAll("time[datetime]").forEach(function(el){var d=new Date(el.getAttribute("datetime"));if(isNaN(d))return;
+try{var p={};new Intl.DateTimeFormat("en-US",W).formatToParts(d).forEach(function(x){p[x.type]=x.value});
+el.textContent=(el.dataset.at==="weekday"?p.weekday+" ":"")+p.day+" "+p.month+", "+p.hour+":"+p.minute+" "+p.timeZoneName}catch(e){}})})();
+document.addEventListener("click",function(e){var b=e.target.closest("[data-copy]");if(b&&navigator.clipboard)navigator.clipboard.writeText(b.dataset.copy)});
+(function(){var f=document.querySelector("form.sb");if(!f)return;var fp=f.dataset.fp,k="sb-sent-"+fp,st=f.querySelector(".sbs");
+function lock(t){st.textContent=t;f.querySelectorAll("button,input").forEach(function(x){x.disabled=true})}
+try{if(sessionStorage.getItem(k))lock("Sent. The run carries on in its chat; this page follows it.")}catch(e){}
+var box=f.querySelector(".sbc"),heads=f.querySelectorAll(".sbh button"),warn=f.querySelector(".sbw");
+function typed(){var t=!!box.value.trim();heads.forEach(function(b){b.disabled=t});warn.hidden=!t}
+box.addEventListener("input",typed);
+f.addEventListener("submit",function(e){e.preventDefault();var act=(e.submitter&&e.submitter.value)||"start",c=box.value.trim();
+if(act==="correct"&&!c){st.textContent="Say which line is wrong and what it should be first.";return}
+if(act!=="correct"&&c){typed();return}
+var said={start:"Sent. The run starts now; this page follows it.","search-yes":"Sent. The run looks for the code there, then shows these lines again with what it found.","search-no":"Sent. Nothing is searched; say in the run's chat where the code is.",correct:"Sent. The lines will be redrafted and shown here again."};
+fetch("/answers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({say_back:act==="correct"?{action:"correct",shown:fp,correction:c}:{action:act,shown:fp}})})
+.then(function(r){if(!r.ok)throw r.status;try{sessionStorage.setItem(k,"1")}catch(e){}lock(said[act]||said.correct)})
+.catch(function(){st.textContent="Could not send from this page. Say start, or your correction, in the run's chat instead."})})})();
+function busy(){var f=document.querySelectorAll(".sbc");for(var i=0;i<f.length;i++)if(!f[i].disabled&&(f[i].value||f[i]===document.activeElement))return true;return false}
+setInterval(function(){if(document.visibilityState==="visible"&&!busy())location.reload()},15000);</script>
 </body></html>
 """
 

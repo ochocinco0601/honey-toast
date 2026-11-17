@@ -4,8 +4,8 @@ Usage: python home.py <register folder>
 
 One row per flow, one dot per milestone toward supported in production: Identified, Mapped, Measures defined,
 Instrumented, Dashboards built, Alerts defined, Runbooks written, Team prepared. The five the kit works on show their
-status in depth.json (`not started`, `draft`, `reviewed`); the other three are done by other teams, and their dots
-never fill (Instrumented carries a count read from the code at design time). A dot opens a
+status in depth.json (`not started`, `draft`, `reviewed`); the other three are carried out by other teams, and
+read "not started" (Instrumented carries a count read from the code at design time). A dot opens a
 drop-down under its flow with what is there to review at that milestone and links to the kit's own pages for it,
 each in the same tab. Reasons stay in depth.json and are never drawn; the one recommendation drawn is the
 recommended flow at the go, marked. Nothing is ticked for the person, except a stage's depth already recorded.
@@ -17,7 +17,9 @@ first, those ticks, the words and Done sit at the top of the page, one row per f
 dot; while any choice is open, the line under the flows says the run is waiting on it. The review of the alerts is not
 taken from a page, so it has no form. Every other tick is a topic to talk about with Claude, named
 `talk:<milestone>:<item key>` with its label as the value, and each drop-down's words `talk-words:<milestone>`; any
-Done sends them all, and the page reloads once the run has redrawn it.
+Done sends them all, and the page reloads once the run has redrawn it. The page opens with "What do you want to
+do?", always there whatever is open: the person's words to Claude (`talk-words:Home`), a topic like the others, kept for the tab by
+its empty `data-flow`, as each drop-down's words box is kept by its flow.
 
 Exit 0 written, 2 refused. Python standard library only."""
 import hashlib
@@ -46,18 +48,18 @@ COLS = [
     ("Identified", "We know the flow exists", ""),
     ("Mapped", "Its stages, steps and parts are known", ""),
     ("Measures defined", "What “working” means, and what to count", ""),
-    ("Instrumented", "The application produces them and sends them to monitoring", "Outside the kit: the developers"),
-    ("Dashboards built", "The views exist", "Outside the kit"),
+    ("Instrumented", "The application produces them and sends them to monitoring", ""),
+    ("Dashboards built", "The views exist", ""),
     ("Alerts defined", "What should raise an alert", ""),
     ("Runbooks written", "What to do when each alert fires", ""),
-    ("Team prepared", "The people have practised on it", "Outside the kit"),
+    ("Team prepared", "The people have practised on it", ""),
 ]
 IDENT, MAPPED, MEAS, INSTR, DASH, ALERTS, RUNBOOKS, TEAM = range(8)
 OUTSIDE = (INSTR, DASH, TEAM)
 KEY = {MEAS: "measures", ALERTS: "alerts", RUNBOOKS: "runbooks"}
 # What fills a dot. Runbooks are drafted and never reviewed, so they fill once drafted, like the first three. Alerts
-# fill once the review of the proposed alerts is recorded. The three outside the kit never fill: the kit cannot see
-# another team's work, and its count of measures sent to monitoring is read from the code at design time.
+# fill once the review of the proposed alerts is recorded. The three other teams carry out read "Nothing recorded
+# yet." until a later stage reads their tools; the count of measures sent to monitoring is read from the code.
 FILLED_WHEN = {IDENT: ("draft", "reviewed"), MAPPED: ("draft", "reviewed"), MEAS: ("draft", "reviewed"),
                ALERTS: ("reviewed",), RUNBOOKS: ("draft", "reviewed")}
 
@@ -65,6 +67,7 @@ TALK = "Tick what you want to talk about with Claude · say what in your words"
 WORDS_ONLY = "Your words go to Claude"
 AT_THE_GO = "Tick the flow to map in the next run · one flow per run"
 FIRST_TASK = "Choose the flow to map first"  # depth.py's open choice at the go: picked at the top of the page
+NEXT_TASK = "Choose the next flow to map"  # depth.py's (go.NEXT_TASK) once a flow is finished: offered, never awaited
 AT_THE_FIRST = "Tick the flow to map first · one flow per run · anything else, in your words"
 AT_THE_PICK = ("Tick what gets more work · say what in your words · ticking a milestone brings the ones "
                "before it")
@@ -196,6 +199,8 @@ def counted_at_stand_in(reg):
         else:
             st = "outside"
         one = re.split(r";\s|; read with|; run in", how)[0].strip().rstrip(".")
+        one, drafted = ss.unproposed(one)  # "proposed: a log line ..." reads "a log line ... (proposed)"
+        one = one.strip() + (" (proposed)" if drafted and one.strip() else "")
         one = re.sub(r"^as M\d+ with", "the same count as the measure above, with", one)
         one = one if len(one) <= 110 else one[:107].rsplit(" ", 1)[0] + " …"
         place = {"the case's own record": "the application's database",  # the kind alone: never a code name
@@ -323,7 +328,7 @@ class Flow:
             if p == INSTR and self.mapped and self.ms:  # the count, read from the code; the dot never fills
                 total, on = len(self.ms), self.sent(self.ms.values())
                 return "", f"{on} of {nn(total, 'measure')}", ["sent to monitoring"]
-            return "", "Nothing recorded", []
+            return "", depth.NOT_STARTED, []
         st = self.status(p)
         cls = "done" if st in FILLED_WHEN[p] else ""
         lst = []
@@ -379,7 +384,7 @@ class Flow:
         if not self.mapped:
             return {"-1": note("Nothing here yet: the flow has not been mapped.")}
         if p in (DASH, TEAM):
-            return {"-1": note("Nothing recorded yet. This is done outside the kit.")}
+            return {"-1": note(depth.NOT_STARTED.capitalize() + ".")}
         if p == MAPPED:
             return {k: self.map_pane(s) for k, s in self.choices()}
         if p == MEAS:
@@ -588,7 +593,7 @@ def form_html(d):
     if not form_of(d) or at_the_first(d):
         return ""
     add = ""
-    if c.get("task") == "Choose the next flow to map":  # a flow the first look missed: added, and mapped next
+    if c.get("task") == NEXT_TASK:  # a flow the first look missed: added, and mapped next
         add = (f'<span class="mute">{E(c.get("add") or "")}</span><input type="text" class="wi" name="add" '
                f'aria-label="{E(c.get("add") or "")}" placeholder="Its name" autocomplete="off">')
     return (f'<div id="answers" hidden><input type="hidden" name="choice_id" value="{E(c["choice_id"])}" '
@@ -632,10 +637,26 @@ def pick_html(d):
             + CLEAR + '<span class="mute" data-status></span></div></div></div>')
 
 
+TODO_TITLE = "What do you want to do?"
+TODO_KEY = TALK_WORDS + "Home"  # a topic like any drop-down's words: go.py --answers records it in RUN.md
+
+
+def todo_html():
+    """The page's first section, always there: the person's words to Claude, sent with Done by the page's one route
+    (page-kit.js posts every named input to the listener, which saves it in answers/ for the session waiting on the
+    page; go.py --answers records the words as a topic to talk about). Its own `data-dd` scopes its Clear to it."""
+    return (f'<div class="card" id="todo" data-dd="todo"><div class="dh"><b>{E(TODO_TITLE)}</b></div>'
+            f'<div class="tdone todo"><span class="mute">{E(WORDS_ONLY)}</span><input type="text" class="wi" '
+            f'name="{E(TODO_KEY)}" data-flow="" aria-label="Your words" placeholder="Your words" autocomplete="off">'
+            '<button type="button" class="ab2 dn" data-done>Done</button>' + CLEAR +
+            '<span class="mute" data-status></span></div></div>')
+
+
 def where_it_stands(d):
-    """The line under the flows: what the run waits on while a choice is open, else the run's stop."""
+    """The line under the flows: what the run waits on while a choice is open, else the run's stop. The next flow is
+    an open case's next step, never a wait on the person: its line is the run's stop, which offers it."""
     task = (d.get("open_choice") or {}).get("task")
-    return f"waiting on you to {task[:1].lower() + task[1:]}" if task else d.get("stop")
+    return f"waiting on you to {task[:1].lower() + task[1:]}" if task and task != NEXT_TASK else d.get("stop")
 
 
 def talk_tick(milestone, key, label):
@@ -739,6 +760,32 @@ def row(fl):
     return "".join(out)
 
 
+PROGRESS = [(MAPPED, "Mapped"), (MEAS, "Measures"), (ALERTS, "Alerts"), (RUNBOOKS, "Runbooks")]
+NOT_RECORDED = "not recorded"
+
+
+def identity_html(reg, flows):
+    """The block at the top: which application this is, what it does, and how far its flows have come. Labels by
+    colour only, one font size; a field the register does not hold reads "not recorded"."""
+    about = cv.read_csv(reg / "about.csv") if (reg / "about.csv").is_file() else []
+    system, prop = ss.unproposed((about[0].get("system") if about else "") or "")
+    system = system.strip() + (" (proposed)" if prop and system.strip() else "")
+    try:
+        what = (json.loads((reg / "orientation.json").read_text(encoding="utf-8")).get("capability") or {}).get("what")
+    except (OSError, ValueError, AttributeError):
+        what = ""
+    n = len(flows)
+    progress = " · ".join(f"{label} {sum(1 for fl in flows if fl.status(p) in FILLED_WHEN[p])}/{n}"
+                          for p, label in PROGRESS)
+    rows = [("Application", system, True), ("Application ID", "", False), ("Line of business", "", False),
+            ("What it does", (what or "").strip(), False), ("Flows", str(n), False), ("Progress", progress, False)]
+    cells = "".join(f'<span class="il">{E(k)}</span>'
+                    + (f'<span>{"<b>" + E(v) + "</b>" if bold else E(v)}</span>' if v
+                       else f'<span class="il">{NOT_RECORDED}</span>')
+                    for k, v, bold in rows)
+    return f'<div class="card ident"><div class="idg">{cells}</div></div>'
+
+
 def render(reg, d):
     reg = pathlib.Path(reg)
     name, prop = ss.unproposed(d.get("capability") or "")  # a drafted capability name reads "(proposed)" too
@@ -764,7 +811,7 @@ def render(reg, d):
                  "home.template.html\n     Builder: home.py\n     Build: python home.py <register folder>\n-->")
     page = TEMPLATE.read_text(encoding="utf-8")
     for k, v in (("<!--GENERATED-->", generated), ("<!--TITLE-->", E("Home · " + d["_title"])), ("<!--NAV-->", nav),
-                 ("<!--HEAD-->", head), ("<!--ROWS-->", rows), ("<!--BLIND-->", E(blind)),
+                 ("<!--TODO-->", todo_html()), ("<!--IDENTITY-->", identity_html(reg, flows)), ("<!--HEAD-->", head),("<!--ROWS-->", rows), ("<!--BLIND-->", E(blind)),
                  ("<!--SOURCE-->", E(source)), ("<!--FORM-->", form_html(d)), ("<!--PICK-->", pick_html(d)), ("<!--CLEAR-->", CLEAR_PAGE)):
         page = page.replace(k, v, 1)
     # the watch compares this stamp, not the first page it fetches, so a redraw before its first check is still seen
@@ -803,7 +850,7 @@ def main(argv):
         print(__doc__.split("\n\n")[1], file=sys.stderr)
         return 2
     reg = pathlib.Path(argv[0])
-    run_lock.guard(reg)
+    run_lock.guard(reg, touch=False)  # a redraw of the register's view: never itself work in motion
     if not (reg / depth.FILE).is_file():
         print(f"REFUSED: {reg / depth.FILE} is missing: write it first with depth.py. Nothing written.", file=sys.stderr)
         return 2

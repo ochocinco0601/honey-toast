@@ -8,6 +8,105 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9 — 2026-11-17
+
+This release changes how a run starts, how it is picked up again, and what the home page and the Run status page
+show. The three skills (`bfo-stage-kit`, `bfo-mapping`, `bfo-measures`) are installed side by side as before.
+
+### How far this release is proven
+
+**What is verified.**
+
+- Picking up an unfinished run and carrying it to the review of the proposed measures is verified on Online
+  Boutique, a public sample shop.
+
+**Not yet proven.**
+
+- What the home page and Run status show, on a run.
+- A run from start to finish on any application since the last changes.
+- A run from start to finish without help.
+- A second application, and the larger eShop sample.
+- Alerts and runbooks since the changes to how a run starts.
+
+**Known limits.**
+
+- Picking up a run again stops with an error if one of the run's saved review files has been edited by hand and cut
+  short. The kit always writes these files whole; leave them as the kit wrote them.
+- **The review of the proposed measures arrives as a long message in the chat.** Ask the session to organize it if
+  it is hard to read.
+- **The questions the measures review asks can be hard to follow.** If a question is unclear, ask the session what
+  it needs from you and why.
+- **Nothing tells you what changed since you last looked.** Coming back to a run, the home page and Run status show
+  where things stand, not what is new.
+- **Picking up an existing run does not put its page in front of you.** The session says the run back in the chat;
+  open the page from the address it gives.
+- A run sets no limit on how much of the computer it uses, and checking every finding cannot see a row that no
+  reader wrote (KNOWN-GAPS.md, "At scale").
+
+### What you will notice
+
+- **The run says back what it understood before it reads any code.** Starting a run, the session puts a few short
+  lines on the run page: the application, the code it found, what you asked for, any earlier work, and what your
+  request already settles. You correct any line in one box, or press Start. Nothing is read until you do. If the
+  code is not open, the page asks one question first, whether to look for it where it proposes; only a yes searches.
+  Effect: none.
+- **A run picked up again is said back in the chat.** The lines, ending with what the session proposes to do next,
+  come in the chat; say carry on, or correct a line. Carry on counts as your Start.
+  Effect: none.
+- **Progress stays off the chat.** The chat carries one line with the page's address; the run page, the home page
+  and Run status show progress. Every answer you give, on the page or in the chat, is kept in the run's decisions
+  with your words.
+  Effect: none.
+- **Code decides mapping's next step.** Mapping follows one step at a time from the run's own record and the files
+  on disk, so a step that fails stops the run there instead of carrying on. When you stop a run, half-written work
+  is put back, and the map is shown as not checked at every later stop.
+  Effect: none.
+- **The home page opens with the application.** Its name, its ID, its line of business, what it does, its flows and
+  their progress come first, in the page's own text size. Milestones that belong to other teams (instrumented,
+  dashboards built, team prepared) read "not started" like the rest.
+  Effect: none.
+- **The home page has a box at the top: "What do you want to do?"** Type what you want done next and press Done.
+  If no session is waiting, your words are kept and the next session to wait picks them up.
+  Effect: none.
+- **Run status lists every step on its own line,** shows a Required action only when something waits on you, and
+  says "Nothing in motion · last work" with a time when nothing is running. Times are in your browser's time zone,
+  with the zone named. While checking agents work, it says the checks are running instead of calling the run quiet.
+  At a review it shows the review as what is needed now.
+  Effect: none.
+- **The next flow is offered as what is next, not as a wait on you.** When a flow is finished and more were found,
+  the status line, the home page, Run status and the message on coming back say "Waiting on you: nothing" and
+  recommend the next flow; say carry on, or name another flow. The reviews of measures and alerts still wait on you.
+  Effect: none.
+- **Coming back at the measures review works.** The message on coming back to a run stopped at the measures review
+  shows the review again instead of refusing.
+  Effect: none.
+- **Drawing the home page no longer makes a run look busy.** Redrawing it no longer refreshes the run's lock.
+  Effect: none.
+- **Helpers run without a window are seen to finish.** A run no longer waits forever on checks run in the background
+  without a window.
+  Effect: none.
+- A flow with an AI agent reaches its measures review. Before, the review refused wording the kit writes itself
+  (the agent heading's "judge", and an agent's action names quoted mid-sentence), so the run stopped as blocked.
+  Effect: none.
+- The map's inspection, and the scripts that draw a flow's pages, refuse a flow the map does not hold, naming its
+  flows, instead of stopping with a raw Python error.
+  Effect: none.
+- The home page shows a drafted "Would count" value as "(proposed)", not with its raw mark.
+  Effect: none.
+- A flow picked that is not the one the first look recommended reads its own services: the services a flow found
+  names, or else every service, never the services recommended for another flow.
+  Effect: none.
+- The survey counts a folder of deployment files with a helper script, but no build file and no entry point, as
+  deployment or configuration, not as a service.
+  Effect: none.
+- What is at stake if a stage fails says the same loss once, with how many steps it is at, instead of once per step.
+  Effect: none.
+- The measures inspection says once per part how many measures of cases are taken where the case cannot be told
+  apart, instead of the same sentence for each measure.
+  Effect: none.
+- The measures review asks of an AI agent's measures "did the agent decide right?", as the stage page does.
+  Effect: none.
+
 ## Release 8 — 2026-11-13
 
 This release is three skills that work together: the stage kit (`bfo-stage-kit`), the mapping skill

@@ -75,6 +75,39 @@ CORRECTIONS, APPLIED = "corrections.csv", "corrections-applied.csv"
 APPLIED_COLS = ("correction_id", "table", "row", "column", "before", "after", "why", "source", "applied_at", "unit",
                 "words")  # `words`: the person's own words on a row they add (--added), recorded with it
 REMOVED = "(row removed)"  # `after` of a recorded removal
+# The message each kind of answer answers, as the run keeps it (brief.py writes them when it renders the stop).
+SHOWN_FILES = {"flow": "flows-brief.md", "next flow": "next-flow.md", "depth": "depth-pick.md",
+               "measures review": "measures-review.md", "alerts review": "alert-review.md"}
+
+
+def said_back_since(reg, since):
+    """The lines of the say-back the person last answered, when that is their latest answer and came after `since`
+    (a file's time), else None."""
+    import case
+    from datetime import datetime
+    d = case.decisions(reg)
+    if not d or d[-1].get("stop") != "say-back":
+        return None
+    try:
+        at = datetime.fromisoformat(d[-1]["at"]).timestamp()
+    except (KeyError, ValueError):
+        return None
+    return d[-1].get("shown") if at >= since else None
+
+
+def record_decision(reg, stop, words, source, test=False, shown=None):
+    """One answer of the person's, appended to the case's decisions with the text they were answering: the kept
+    message of that stop, or, where the run keeps none, a line saying so."""
+    import case
+    if shown is None and stop in SHOWN_FILES:
+        p = pathlib.Path(reg) / SHOWN_FILES[stop]
+        shown = p.read_text(encoding="utf-8") if p.is_file() else None
+        if stop == "next flow":  # a session coming back offers the next flow in its say-back, newer than any offer
+            said = said_back_since(reg, p.stat().st_mtime if p.is_file() else 0)
+            shown = said if said is not None else shown
+    if shown is None:
+        shown = f"(not kept: the run keeps no copy of the message answered at the {stop} stop)"
+    case.decide(reg, stop, shown, (words or "").strip(), source, test=test)
 JUDGED = "judged"  # earlier-flows/<flow id>/judged/: a finished flow's judged rows, unit and lead tables
 
 
@@ -709,12 +742,21 @@ def services_read(reg, s=None):
     return took | got_after([s], surveyed_services(reg))
 
 
-def default_services(reg, surveyed):
-    """(in, out): the kit's own choice of which services to read, from the first look's recommendation for each
-    (orientation.json), else every surveyed service. The person is shown it, never asked it."""
+def default_services(reg, surveyed, flow=None):
+    """(in, out): the kit's own choice of which services to read for `flow`. A flow found that names its services
+    (orientation.json `flows[].services`) reads those. Else the first look's recommendation for each service, which
+    is written for the flow it recommends, applies to that flow only: any other flow reads every surveyed service.
+    The person is shown it, never asked it."""
     o = reg / layout.ORIENTATION
-    rec = {s.get("name"): s.get("recommend") for s in
-           (json.loads(o.read_text(encoding="utf-8-sig")).get("services") or [] if o.is_file() else [])}
+    data = json.loads(o.read_text(encoding="utf-8-sig")) if o.is_file() else {}
+    entry = next((f for f in data.get("flows") or [] if f.get("name") == (flow or "").strip()), None)
+    named = [n.strip() for n in (entry or {}).get("services") or [] if n.strip()]
+    if named:
+        return [n for n in surveyed if n in named], [n for n in surveyed if n not in named]
+    recommended = (data.get("recommendation") or {}).get("flow")
+    if flow is not None and recommended and flow.strip() != recommended:
+        return list(surveyed), []
+    rec = {s.get("name"): s.get("recommend") for s in data.get("services") or []}
     return [n for n in surveyed if rec.get(n, "in") != "out"], [n for n in surveyed if rec.get(n) == "out"]
 
 
@@ -732,7 +774,7 @@ def record_go(reg, a):
         return "survey.csv has no service: run survey.py first"
     problems = []
     if a.inn is None and a.out is None:
-        inn, out = default_services(reg, surveyed)
+        inn, out = default_services(reg, surveyed, a.flow)
     else:
         inn, out = names(a.inn), names(a.out)
         unknown = [n for n in inn + out if n not in surveyed]
@@ -1743,6 +1785,14 @@ def main(argv):
             print("REFUSED: these answers were recorded already, so they are not the person's latest. If nothing "
                   "newer has arrived, ask the question in the chat. Nothing written.", file=sys.stderr)
             return 2
+        try:  # the say-back's Start or correction is not a pick: its own script records it
+            said_back = "say_back" in json.loads(pathlib.Path(argv[i + 1]).read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            said_back = False
+        if said_back:
+            print("REFUSED: these are the person's answer to what the run said back, not a pick: record them with "
+                  f'python say_back.py answer "{reg}" --answers "{argv[i + 1]}". Nothing written.', file=sys.stderr)
+            return 2
         got = from_answers(reg, argv[i + 1], test)
         if isinstance(got, str):
             print(f"REFUSED: {got}. Nothing written.", file=sys.stderr)
@@ -1765,6 +1815,7 @@ def main(argv):
             if isinstance(added, str):
                 print(f"REFUSED: {added}. Nothing written.", file=sys.stderr)
                 return 2
+            record_decision(reg, "add flow", a.words or "added on the page", "page", test)
             how = "flow"
         if how == "note":
             mark_taken(reg, key)
@@ -1805,7 +1856,9 @@ def main(argv):
     ap.add_argument("--transcripts", metavar="DIR")  # --apply-correction: where the person's words are looked for
     ap.add_argument("--report-sent", metavar="FLOW_ID")
     ap.add_argument("--page", action="store_true", help=argparse.SUPPRESS)  # from the page: ticks alone answer
+    ap.add_argument("--source", choices=("chat", "page", "request"), help=argparse.SUPPRESS)
     a = ap.parse_args(argv)
+    source = a.source or ("page" if a.page else "chat")
     reg = pathlib.Path(a.reg)
     if not reg.is_dir():
         print(f"not a folder: {reg}", file=sys.stderr)
@@ -1820,6 +1873,9 @@ def main(argv):
         if isinstance(got, str):
             print(f"REFUSED: {got}. Nothing written.", file=sys.stderr)
             return 2
+        if (a.words or "").strip():
+            record_decision(reg, "correction", a.words, source, a.test,
+                            shown="(no message: the person stated this change to the map themselves)")
         where = f"units/{got['unit']}/{got['table']}" if got["unit"] else got["table"]
         print(f"Written: {got['correction_id']} {'removed from' if a.removed else 'applied to'} {where}.csv "
               f"{got['row']}, recorded in {APPLIED}")
@@ -1854,6 +1910,12 @@ def main(argv):
     if isinstance(got, str):
         print(f"REFUSED: {got}. Nothing written.", file=sys.stderr)
         return 2
+    if a.mapping_ends is None and a.stage_ids is None:  # every other path here records an answer of the person's
+        stop = ("add flow" if a.add_flow is not None else "alerts review" if a.alerts_reviewed else
+                "measures review" if a.measures_reviewed else "depth" if a.depth is not None else
+                "next flow" if len(load_all(reg)) > 1 else "flow")
+        record_decision(reg, stop, a.words, source, a.test,
+                        shown=f"(the request, word for word) {a.words}" if source == "request" else None)
     import depth  # the page's next state: depth.json follows every record
     depth.write_quietly(reg)
     if hasattr(sys.stdout, "reconfigure"):
