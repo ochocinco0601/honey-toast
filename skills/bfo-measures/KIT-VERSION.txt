@@ -1,5 +1,5 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9 2026-11-17
+Build: release-9.1 2026-11-18
 2bccdf9e80e7  MEASURES-STEPS.md
 d689dc2d4fad  SKILL.md
 cad46fa40608  agents/bfo-row-judge.md

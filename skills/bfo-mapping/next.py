@@ -215,12 +215,17 @@ def _inspection(reg, flow):
 def _map_stop(reg, flow, ended, by_kit=False):
     """The map stop, rendered through brief.py say, which puts the status line and the page's address around it and
     refuses ids and kit words; a refusal is handed back, never sent."""
-    first = ("The map is drawn as it stands and is not checked against the code: you stopped the checks, so what "
-             "was not yet checked is shown as not checked." if ended else "The map is drawn.")
+    import map_record as mr
+    if flow not in {f["flow_id"] for f in mr.load(reg)["flows"]}:
+        text = "Mapping stopped before the flow's own rows were written, so there is no map yet and nothing to inspect."
+    else:
+        first = ("The map is drawn as it stands and is not checked against the code: you stopped the checks, so what "
+                 "was not yet checked is shown as not checked." if ended else "The map is drawn.")
+        text = first + "\n\n" + _inspection(reg, flow)
     folder = pathlib.Path(reg) / MESSAGES
     folder.mkdir(exist_ok=True)
     f = folder / f"map-stop-{flow}.md"
-    f.write_text(first + "\n\n" + _inspection(reg, flow), encoding="utf-8")
+    f.write_text(text, encoding="utf-8")
     code, out = _run(["brief.py", "say", str(reg), str(f)])
     if code != 0:
         return {"kind": "code", "sub": "map stop", "ok": False,

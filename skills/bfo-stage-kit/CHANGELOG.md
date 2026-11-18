@@ -8,6 +8,17 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.1 — 2026-11-18
+
+A fix to Release 9. Nothing else changes.
+
+### What you will notice
+
+- **Saying "stop" before a flow's first rows are written ends the run cleanly.** In Release 9, a stop during the
+  first part of mapping a new flow, before its own row was written, or on a register nothing had touched yet, ended
+  in an error instead of a stop. The run now stops and says there is no map yet and nothing to inspect.
+  Effect: none.
+
 ## Release 9 — 2026-11-17
 
 This release changes how a run starts, how it is picked up again, and what the home page and the Run status page

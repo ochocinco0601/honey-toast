@@ -1,5 +1,5 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9 2026-11-17
+Build: release-9.1 2026-11-18
 8e263c6e7f38  CHECKS.md
 14d5b1174b1f  LAUNCH.md
 74cc5decf40f  MAPPING-STEPS.md
@@ -59,7 +59,7 @@ e4270c8420b7  method/hop-failures.csv
 26b056624634  method/layers.csv
 8691712fae7c  method/measure-forms.csv
 6eb53baafd1f  method/part-kinds.csv
-e9995fc6c9f1  next.py
+aa42eae186f9  next.py
 c0f82e61832b  one_canvas.py
 8adcfe6129ce  operator_page.py
 62505e86aebd  page/page-kit.js
