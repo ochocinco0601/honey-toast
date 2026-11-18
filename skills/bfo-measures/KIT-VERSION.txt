@@ -1,5 +1,5 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9.1 2026-11-18
+Build: release-9.2 2026-11-18
 2bccdf9e80e7  MEASURES-STEPS.md
 d689dc2d4fad  SKILL.md
 cad46fa40608  agents/bfo-row-judge.md
@@ -29,7 +29,7 @@ e4270c8420b7  method/hop-failures.csv
 c0f82e61832b  one_canvas.py
 8adcfe6129ce  operator_page.py
 62505e86aebd  page/page-kit.js
-48380dafefb9  page/page_ask.py
+6545d8146c54  page/page_ask.py
 582d8cd60c0f  page_style.py
 23af20bcb75a  part_inside.py
 70d09a6bd2b0  part_page.py

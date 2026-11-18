@@ -8,6 +8,19 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.2 — 2026-11-18
+
+A fix to Release 9.1. Nothing else changes.
+
+### What you will notice
+
+- **The Run status page goes to the system waiting on you.** With more than one system in the same work folder,
+  the Run status address went to whichever system's run was written to last. When you named a new system, its
+  "Check what I understood" step could not be reached if another system's run had been touched more recently. The
+  address now goes first to a system whose "Check what I understood" waits on you; with none waiting, to the run
+  written to last, as before.
+  Effect: none.
+
 ## Release 9.1 — 2026-11-18
 
 A fix to Release 9. Nothing else changes.

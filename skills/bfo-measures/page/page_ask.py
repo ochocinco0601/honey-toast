@@ -121,15 +121,27 @@ def _note(seen, path, page=None):
         pass
 
 
+def _waits(folder):
+    """The mtime of the say-back waiting on the person in this folder (operator_page.said_back's test), or None."""
+    p = folder / "say-back.json"
+    try:
+        sb = json.loads(p.read_text(encoding="utf-8"))
+        return p.stat().st_mtime if isinstance(sb, dict) and sb.get("state") == "waiting" and sb.get("lines") else None
+    except (OSError, ValueError):
+        return None
+
+
 def status_of(site):
-    """Where the work folder's run status address (/operator.html) leads: the newest run's own, once a run folder is
-    under the folder; else None, and the address draws the view itself (the folder's own run, or the first look under
-    way before any run folder exists). Read here, not from work_page, which a skill that only picks a run up does
-    not carry."""
+    """Where the work folder's run status address (/operator.html) leads: the folder whose say-back waits on the
+    person, newest first, else the newest run's own; None when that is the folder itself, and the address draws the
+    view there (the folder's own run, a new system's say-back, or the first look under way before any run folder
+    exists). Read here, not from work_page, which a skill that only picks a run up does not carry."""
     site = pathlib.Path(site).resolve()
     try:
-        found = [d for d in [site] + [p for p in site.iterdir() if p.is_dir()] if (d / "RUN.md").is_file()]
-        found.sort(key=lambda d: (d / "RUN.md").stat().st_mtime, reverse=True)
+        found = [d for d in [site] + [p for p in site.iterdir() if p.is_dir()]
+                 if (d / "RUN.md").is_file() or (d == site and _waits(d))]
+        # a say-back waiting on the person is where they are needed, however recently another run was written to
+        found.sort(key=lambda d: (_waits(d) is not None, _waits(d) or (d / "RUN.md").stat().st_mtime), reverse=True)
     except OSError:
         return None
     if not found or found[0] == site:
