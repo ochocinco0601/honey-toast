@@ -60,8 +60,9 @@ alerts, chosen from the health signals, and what each rests on, and waits for th
 deserve an alert is a different question from the ways the work can fail; every message says where things stand, and
 a run picked up again starts by saying, in full, where the work is. Done, for the whole job: the person can judge from
 the first messages that the run understood its job and the system, can see what is covered and what remains, and can
-trust what comes out, because every service the flow touches was read, or is named as still missing with why, and
-every claim can be traced; and the outputs
+trust what comes out, because every service a stage they took further runs through was read in full, or is named as
+still missing with why, what was not read is said so, and every claim can be traced; one flow is mapped to their pick
+in minutes, not hours, because no service is read in depth for a stage they leave mapped only; and the outputs
 are complete enough for the next step (measures built, alerts wired, runbooks used).
 
 ## Your first message: the say-back
@@ -366,11 +367,16 @@ the listener with the stop command it printed.
 0. to 3. **Mapping, by the mapping skill.** `<mapping>` is the mapping skill's folder, `bfo-mapping`, installed beside
    this skill folder. Load `<mapping>/SKILL.md` and follow its section "The run" from phase 0 to the map stop, in
    this run's register folder, with `<mapping>/MAPPING-STEPS.md` as the steps; skip its launch, since this kit's
-   launch has been sent and its start step run. Its phases 0 to 3 are this run's phases 0 to 3. At the map stop,
-   come back here for the pick.
-   **The pick of how far each stage goes.** Mapping (phases 1 to
-   3) is the whole flow, because the stages come out of it; measuring is chosen per stage. Draw the map
-   (`capability_views.py --check`, then `one_canvas.py`, Step 12) so they can see the stages.
+   launch has been sent and its start step run. Its phases 0 to 3 are this run's phases 0 to 3. Run control
+   (`next.py --by-kit`) stops once for the pick, with a `stop` named `pick`: come back here for it, record it, then
+   call run control again and go on with mapping to the map stop, and from there to phase 4.
+   **The pick of how far each stage goes, before any service is read in depth.** The stages, their process steps and
+   what is at stake in each (Business Impact) are written by then, from the lead's own reading; measuring is chosen per
+   stage, and the readers then read in full only the services of the stages taken past mapped only. A stage left
+   mapped only keeps its process steps and which services carry each, and its services' insides are marked not read.
+   No map is drawn at this stop: the page shows the stages and their steps. (A register from before this release,
+   whose run control has no such stop, is picked at the map stop as before: draw the map first, `capability_views.py
+   --check`, then `one_canvas.py`, Step 12.)
    **When the person's request already said how far each stage goes** (for example "take each flow to mapped only",
    or "measure the payment stage"), do not stop to ask it again. Record it from the request:
    `python "<skill>/brief.py" depth "<your-folder>" <flow id> --from-request`, which reads the request the run
@@ -378,8 +384,9 @@ the listener with the stop command it printed.
    (a stage not named stays mapped only). A request that asks only for every flow, or for the map, without saying
    how far stages go, has not said it: stop and ask, as below. It records the pick with the request's words, marks it as taken from the
    request, and prints a status line and one line saying so, which ends by telling them they can take a stage
-   further. Send what it printed, do not wait, and carry on in the same turn with phases 6 and 7 and then the offer of
-   the next flow. If they later say to take a stage further, record it with `go.py --depth` as below. It reads the request the start step kept, word for word, in the run record; when the record keeps none (a register from before this release), it refuses, and you ask instead.
+   further. Send what it printed, do not wait, and carry on in the same turn: at the `pick` stop, with mapping (call
+   run control again); at the map stop of a register from before this release, with phases 6 and 7 and then the
+   offer of the next flow. If they later say to take a stage further, record it with `go.py --depth` as below. It reads the request the start step kept, word for word, in the run record; when the record keeps none (a register from before this release), it refuses, and you ask instead.
    Otherwise the message is
    rendered: `python "<skill>/brief.py" depth "<your-folder>" <flow id> --recommend "<which stages to measure, and
    which of those to take on to alerts and runbooks, and why>"`. It refuses a flow none of whose steps has a Business
@@ -396,9 +403,12 @@ the listener with the stop command it printed.
    draws the home screen, `index.html`, from it. Send what `brief.py` printed, exactly as printed, wait on the
    home screen (below), and end your turn. Record their answer with `python "<skill>/go.py" "<your-folder>" --depth
    "<id>=measure|alerting|runbooks,..." --words "<their answer, word for word>"` (`--test` for a test standing in for
-   them); a stage not named stays mapped only, and an empty answer makes the run a map only. They may later take a
+   them); a stage not named stays mapped only, and an empty answer makes the run a map only. At the `pick` stop, then
+   call run control again (`next.py --by-kit`): it reads, merges and judges the services of the stages taken further,
+   and stops at the map stop; from there go on to phase 4. They may later take a
    stage further with the same command, which reopens the phases the new pick needs and phases 6 and 7, so the
-   pages are drawn, checked and reported again; taking a stage less far than already picked is not supported yet, and
+   pages are drawn, checked and reported again; first call run control, which reads the newly taken stage's services
+   that were not read before, merges and judges them, and stops at the map stop; taking a stage less far than already picked is not supported yet, and
    `go.py` refuses it, so tell them so, through `say`, and keep their earlier pick. It sets the phases their
    pick leaves out to *not picked*, which counts as passed. Nothing is measured before their pick: `flow_outputs.py`
    refuses. A map-only run is done once the map is drawn: the done check owes each stage's page and the map, and no
@@ -583,12 +593,18 @@ name as it is (the register folder, each earlier register's folder, the guides i
   it, and you read the operations this flow calls and what those call (FILL-STEPS Step 5); how far into an outside
   service to go is Step 6's. If you cannot reach it, it stays a part cited by how you identified it, an external
   dependency, and goes under *still missing* in `RUN.md`.
-- **Read in full every service the flow touches.** Steps 1 to 8 and Step 10, the mapping and its Business Impact,
-  cover the whole flow and read every service it runs through, whatever stage it carries: the readers read each
-  unit in full, and the lead reads only what its own rows need. The measures (the measures
+- **Read the path of every service of a stage taken further.** Steps 1 to 4, Business Impact and the capability cover
+  the whole flow, from what the lead reads for its own rows. The services a stage the person takes past mapped only
+  reaches (those that carry or are needed by its moves, every service those call, and so on; every service the go
+  took in when a part of the stage matches no single surveyed service) are read by the readers along the stage's path:
+  from starting points derived by script, every function the case passes through and what those call, the stores and
+  data files they open, and the service's monitoring hooks; every other file of those services is listed `not read`,
+  off this stage's path, never counted as read. Every row that cites code is judged. One setting, run-settings.json
+  `reading` `full`, reads every line of those services instead. A stage left mapped only shows its process steps and which services carry
+  each; what is inside the services no stage taken further reaches is gapped "not read in this run" until a stage of theirs is taken further. The measures (the measures
   skill) cover only the stages
   the person picked to measure, with the flow's own measures and the parts those stages use. Step 11 covers only the
-  stages picked for alerts and runbooks. A run is cut shorter only when the person asks for it (`USE.md`). `KNOWN-GAPS.md` "At scale" says what is
+  stages picked for alerts and runbooks. A run reads less still only when the person asks for it (`USE.md`). `KNOWN-GAPS.md` "At scale" says what is
   still open at size.
 - **Open code with the Read tool, and write each row from what you read.** A row is written from code read, never
   from a script that searches the code and emits rows; a script may find where to look. The done check takes what

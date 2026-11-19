@@ -362,8 +362,8 @@ the listener with the stop command it printed.
    search: list each unresolved reference under *still missing* instead. The same holds when the run cannot search (no
    access to a code host, or the person has said nothing is to be fetched): list each one, with why it was not searched.
    **This phase lists and places; it does not read everything.** Read each source only far enough to say what it
-   is and which step uses it. Code is read in full from Phase 1 on, every service the flow touches, as the rules for
-   the whole run below say.
+   is and which step uses it. From Phase 1 on, the lead reads what its own rows need, and the services of the
+   stages the person takes past mapped only are read in full, as the rules for the whole run below say.
    Keep the documents identifiable as a set: Step 8 hands them, without the walk, to a separate pass.
    **Then survey and plan** (MAPPING-STEPS "Before you start", items 6 and 7): `python "<skill>/survey.py"
    "<your-folder>"` writes `survey.csv`, each service's place, size, entry points and calls, counted by script;
@@ -435,9 +435,10 @@ the listener with the stop command it printed.
    an id used twice or a changed row of a finished flow, and the done check says NOT DONE on either.
 **Phases 1 to 3: run control decides each next step.** Once the go is recorded, call
 `python "<skill>/next.py" "<your-folder>" <flow id>`, with `--by-kit` added on every call when the stage kit runs this
-skill (it then never ends the flow: its map stop says to go back to the kit's `SKILL.md` for the pick, and you do), and
+skill (it then never ends the flow, and its `stop` named `pick`, which comes before any service is read in depth, and
+its map stop each say to go back to the kit's `SKILL.md`, and you do), and
 do what the one action it prints says, then call it again; a `stop` carries its message already rendered, status line
-and all, which you send as it is:
+and all, which you send as it is, except the `pick` stop, whose message the kit renders:
 `judgment` is a task for you, with the tables you may write and the checks it must pass (the findings say what the
 last check found); `fanout` is one `general-purpose` launcher per pointer line, at most `cap` at once, after which you
 end your turn; `wait` means agents are still running and you end your turn; `code` with `ok` false is a step that
@@ -467,22 +468,32 @@ each step is; `next.py` says when.
    a crash or a restart of the lead's own session, and only then, run it with `--again`, which launches afresh the
    agents that died with that session and never one that finished. A new chat picking up a run whose agents the
    files still name running, though no completion notification will ever reach it, is such a restart. If the person writes while agents run, answer in
-   one line, through `say`, that the mapping is under way, and launch nothing. The order: the lead's Steps 1 to 4; the readers; the merge; the lead's rows after the merge (the capability, Business
-   Impact and the rest), which are judged once written, in the same rounds; then round 1, `collect`, fix, round 2,
+   one line, through `say`, that the mapping is under way, and launch nothing. The order: the lead's Steps 1 to 4;
+   Business Impact (Step 10); run by the stage kit, the person's pick of how far each stage goes, before any service
+   is read in depth; the readers, for the closure of the stages taken past mapped only: the services that carry or are
+   needed by their moves, and every service those call, and so on, or every service the go took in when a part of
+   theirs matches no single surveyed service (none, when every stage is left mapped only and when this skill runs
+   alone); the merge, and the sweep, which sends the run back to the readers for any surveyed service a reader's
+   recorded call from a step of a stage taken further reaches, until none is left; the lead's rows after
+   the merge (the parts set aside, the AI agents, the capability, and each part no reader read, at the level of the
+   service), which are judged once written, in the same rounds; then round 1, `collect`, fix, round 2,
    `collect`, with each flagged row fixed by a fixer and never by the lead, and a row still flagged after round 2
    labelled `disputed:`. Only then the done check.
 2. **Stages, process steps, parts and agents** (Steps 3 to 7).
    In: the lifecycle. Out: `stages.csv` and `steps.csv`, by the lead; the parts and who takes part in each process
-   step from the reading units, merged into `subjects.csv` and `participation.csv`; `set-aside.csv` and
-   `agent-system.csv`, by the lead after the merge. Which stages go on to measures, alerts and runbooks is the person's pick once the flow is
-   mapped (phase 3), never decided here. An earlier run whose go named stages records their ids with `go.py
+   step from the reading units, merged into `subjects.csv` and `participation.csv`, and, for the parts no reader
+   read, from the lead at the level of the service; `set-aside.csv` and
+   `agent-system.csv`, by the lead after the merge. Which stages go on to measures, alerts and runbooks is the person's
+   pick, made once the stages, process steps and Business Impact are written and before the readers, never decided
+   here. An earlier run whose go named stages records their ids with `go.py
    --stage-ids`, adding none and dropping none. Only a run whose `RUN.md` has no *Plan and go* section chooses for
    itself: the stage the person named; else, if the register already has
    `stage-<id>` folders, the next stage with none; else the stage where a case most often waits or can be left
    stranded.
 3. **The capability and Business Impact** (Steps 8 and 10).
-   In: the walk so far, and the documents read apart from it. Out: `capabilities.csv`, and for every stage
-   `step-impact.csv` and `case-attributes.csv`. Then the judging rounds and their fixes, as above, over every row of
+   In: the walk so far, and the documents read apart from it. Out: for every stage `step-impact.csv` and
+   `case-attributes.csv`, written right after the lead's Steps 1 to 4 and before the pick; `capabilities.csv`, after
+   the merge. Then the judging rounds and their fixes, as above, over every row of
    this flow that cites code.
    **Mapping ends here, at the map stop.** Draw the map: `python "<skill>/capability_views.py" "<your-folder>"
    --check`, then `python "<skill>/one_canvas.py" "<your-folder>" "<your-folder>/views.html"`, and run the map's
@@ -559,10 +570,16 @@ each step is; `next.py` says when.
   it, and you read the operations this flow calls and what those call (MAPPING-STEPS Step 5); how far into an outside
   service to go is Step 6's. If you cannot reach it, it stays a part cited by how you identified it, an external
   dependency, and goes under *still missing* in `RUN.md`.
-- **Read in full every service the flow touches.** Steps 1 to 8 and Step 10, the mapping and its Business Impact,
-  cover the whole flow and read every service it runs through, whatever stage it carries: the readers read each
-  unit in full, and the lead reads only what its own rows need. A run is cut shorter only
-  when the person asks for it.
+- **Read the path of every service of a stage taken further.** Steps 1 to 4, Business Impact and the capability cover
+  the whole flow, from what the lead reads for its own rows. The services a stage the person takes past mapped only
+  reaches (those that carry or are needed by its moves, every service those call, and so on; every service the go
+  took in when a part of the stage matches no single surveyed service) are read by the readers along the stage's path:
+  from starting points derived by script, every function the case passes through and what those call, the stores and
+  data files they open, and the service's monitoring hooks; every other file of those services is listed `not read`,
+  off this stage's path, never counted as read. Every row that cites code is judged. One setting, run-settings.json
+  `reading` `full`, reads every line of those services instead. A stage left mapped only shows its process steps and which services carry
+  each; what is inside the services no stage taken further reaches (their operations, what they depend on) is gapped "not read in this run" until a stage of theirs is taken
+  further, when they are read before its measures. Run alone, this skill reads no service in depth.
 - **Open code with the Read tool, and write each row from what you read.** A row is written from code read, never
   from a script that searches the code and emits rows; a script may find where to look. The done check takes what
   was read from Claude Code's own record of the session, not from anything the run writes: every location a row

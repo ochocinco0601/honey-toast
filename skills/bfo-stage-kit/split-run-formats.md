@@ -34,8 +34,13 @@ existing checks read; nothing below is written at the root except the merged tab
 
 ```json
 {"judges": 3, "judge_rounds": 2, "unit_lines": 4000, "parallel": 6, "merge_rereads": 50,
- "lock_stale_minutes": 20, "relaunches": 2, "on_change": "python run_page.py {reg}"}
+ "lock_stale_minutes": 20, "relaunches": 2, "on_change": "python run_page.py {reg}", "reading": "path"}
 ```
+
+`reading` is how a flow read by stage reads its units: `path` (the default) reads the path of the stages taken past
+mapped only, from starting points derived by script (`path_reading.py`), and lists every other file `not read` with
+`off this stage's path`; `full` reads every line of every unit, as before. Changing it is the one change that switches
+back.
 
 `relaunches` is how many times an agent an API error stopped (its transcript ends on Claude Code's API error reply,
 or on retries of a failed request with nothing after them) before its owed output was written is launched afresh
@@ -67,7 +72,7 @@ a row in place; a row withdrawn is deleted and its id not reused.
 | `operations.csv` | `part,protocol,operation,source` | an operation this unit's part serves: `protocol` one of `http`, `message`, `rpc`; `operation` as served, for http `METHOD /full/path` with path parameters as `{name}`, for message the queue or topic consumed |
 | `calls.csv` | `from_part,protocol,to_unit,to_part,via,operation,within,sequence,step_hint,carries_case_id,source` | a call going out of this unit's part. `protocol` one of `http`, `message`, `rpc`, `db`, `cache`. For a call to another unit: `to_unit` set, `to_part` blank, `operation` as the caller writes it (`METHOD url-or-path`, or the queue/topic published to). For a call to a store, broker or other part with no unit: `to_part` names that part (a unit-local subject_id of this unit, or `external:<name>`), `to_unit` blank. `via` names the broker of a message call (`external:<name>` or a subject_id), else blank. `within`: the calling part's own operation or operations (`; `-separated) the call is made within, spelled as in this unit's operations.csv and participation.csv, never `proposed:`; blank too, with what was traced named in `source`, when the operation cannot be traced (`operation` is the one called); blank for a call no operation of the part makes (a scheduled or startup trigger), with the trigger named in `source`. `sequence`: the call's order within its process step as `<step>:<n>`, `; `-separated when the call is made in several steps, each step one of `step_hint`; `<step>` a step id from steps.csv; blank when the call repeats per item, runs in parallel or is not waited for, or is made on only one branch; within one step no two of the unit's calls share a number. `step_hint`: the step ids the call is made in, `; `-separated |
 | `participation.csv` | the register's `participation.csv` columns | which part takes part in which process step; `subject_id` unit-local |
-| `files.csv` | `path,status,reason` (no `row_id`) | every file the unit owes (`reading_check.owed_files`, listed in the reader's prompt: the files of the unit's paths but test code, generated and build output, vendored, binary, lock and minified files), and any other file the reader lists: `status` is `cited` or `not relevant`; `reason` required for `not relevant` (`test code` for a test file) |
+| `files.csv` | `path,status,reason` (no `row_id`) | every file the unit owes (`reading_check.owed_files`, listed in the reader's prompt: the files of the unit's paths but test code, generated and build output, vendored, binary, lock and minified files), and any other file the reader lists: `status` is `cited` or `not relevant`, or, when the unit reads a stage's path, `not read` with the reason `off this stage's path` (never counted as read, never cited); `reason` required for `not relevant` (`test code` for a test file) |
 
 `source` cells (and any free text) cite code as `path:line` or `path:first-last`, paths relative to `<ws>`, exactly as
 the kit's reading check parses them. A row whose claim is an inference starts its claim cell with `proposed:`.

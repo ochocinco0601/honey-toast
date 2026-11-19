@@ -588,6 +588,42 @@ def first_run(reg):
     return all((r.get("pass") or "1").strip() in ("", "1") for r in table(reg, "how-made"))
 
 
+NOT_READ_BY_STAGE = ("part: operations", "part: depends on")  # what only a part's reading answers
+
+
+def parts_of_unpicked_stages(reg, measured):
+    """{subject id}: in a flow read by stage (go.BY_STAGE), each part that takes part in a process step of this flow
+    and in none of a stage taken past mapped only (`measured`), and whose service no such stage reaches by the closure
+    of its calls (go.stage_reading): it is not read, so its operations and what it depends on may be gapped `not read`
+    on a first run. Empty for a flow an earlier release took the go of, and when every service is read."""
+    stage_of = {(r.get("step") or "").strip(): (r.get("stage") or "").strip() for r in table(reg, "steps")}
+    part_stages = {}
+    for p in table(reg, "participation"):
+        sid = (p.get("subject_id") or "").strip()
+        if sid:
+            part_stages.setdefault(sid, set()).add(stage_of.get((p.get("step") or "").strip(), ""))
+    subj = {(r.get("subject_id") or "").strip(): r for r in table(reg, "subjects")}
+    current = go_record.load(reg) or {}
+    excused, read_somewhere = set(), set()
+    for s in go_record.load_all(reg):  # each flow by its own pick and reading: a finished flow keeps its excuse
+        if not s.get(go_record.BY_STAGE):
+            continue
+        picked = set(go_record.picked_stages(s))
+        if s.get("flow") == current.get("flow"):
+            picked |= set(measured or ())  # the pick on record holds whoever asks
+        mine = set(go_record.stages_of(reg, s))
+        read_somewhere |= {sid for sid, sts in part_stages.items() if sts & picked}
+        read = go_record.staged_services(reg, s)
+        if read is None:  # every service its go took in is read: none of its parts is let off
+            continue
+        for sid, sts in part_stages.items():
+            mine_sts = sts & mine
+            if mine_sts and not mine_sts & picked and go_record.service_of(reg, subj.get(sid)) not in read:
+                excused.add(sid)
+    # map only in some flow, and read in none: a part a stage taken further runs through is never let off
+    return excused - read_somewhere
+
+
 def view_questions(reg, owed, measured=None, alerting=None, runbooks=None):
     """(Fullness lines, the reasons DONE fails) for the view questions. A register with no steps or subjects has
     none to ask. `measured` and `alerting` (view_questions.count) limit the questions only measuring or alerting
@@ -602,6 +638,7 @@ def view_questions(reg, owed, measured=None, alerting=None, runbooks=None):
         return ([f"view questions: not counted ({type(e).__name__}: {e})"],
                 [f"view questions not counted ({type(e).__name__})"])
     first = first_run(reg)
+    unpicked = parts_of_unpicked_stages(reg, measured)
     why = []
     for q in vq.QUESTIONS:
         if vq.CONTRACT[q] == vq.COUNT:
@@ -609,6 +646,8 @@ def view_questions(reg, owed, measured=None, alerting=None, runbooks=None):
         if C[q]["empty"]:
             why.append(f"{q} {len(C[q]['empty'])} empty")
         unread = C[q]["gapped"].get("not read", [])
+        if q in NOT_READ_BY_STAGE:  # a part whose stages were all left mapped only is not read, by the person's pick
+            unread = [e for e in unread if str(e).strip() not in unpicked]
         if first and unread:
             why.append(f"{q} {len(unread)} gapped not read on a first run")
     head = (f"view questions (answered / gapped / empty), first run: {'yes' if first else 'no'} (how-made.csv); "

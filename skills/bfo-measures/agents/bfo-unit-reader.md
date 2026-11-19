@@ -1,6 +1,6 @@
 ---
 name: bfo-unit-reader
-description: Reads one reading unit of a business flow observability stage kit split run in full, and writes that unit's rows of the flow map (its parts, the operations they serve, the calls they make, the process steps they take part in, and every file as cited or not relevant) into the unit's own folder. Launched by the run's lead, one per unit, several at once; also relaunched with judges' reasons to fix flagged rows, or with a reason the map's inspection gave that only this unit's rows can clear.
+description: Reads one reading unit of a business flow observability stage kit split run, in full or along the path of the stages taken further as its prompt says, and writes that unit's rows of the flow map (its parts, the operations they serve, the calls they make, the process steps they take part in, and every file as cited or not relevant) into the unit's own folder. Launched by the run's lead, one per unit, several at once; also relaunched with judges' reasons to fix flagged rows, or with a reason the map's inspection gave that only this unit's rows can clear.
 model: inherit
 tools: Read, Grep, Glob, Write, Edit
 ---
@@ -48,6 +48,29 @@ tools: Read, Grep, Glob, Write, Edit
 3. Write only into `<reg>/units/<unit>/`, in the formats given, never anywhere else (the one exception is re-reading
    an unmatched call, below).
 
+## When your prompt reads a stage's path
+
+When your prompt carries "Read the path of the stages taken further", it replaces step 1 above: you read the path,
+not every file.
+1. Open each starting point it lists with the Read tool: the lines the stage's moves cite, the operations they name,
+   the routes and pages a case comes through, the stores the path opens.
+2. Read in full every function the case passes through from there, and every function those call that lives in your
+   unit: follow each call to where it is defined and read that function whole.
+3. Read in full each store or data file the path's operations open (a JSON or CSV file loaded, a schema or migration
+   its queries use), and record the store as a part.
+4. Read in full each file of your unit that holds a monitoring hook of your service: health checks, metrics, request
+   interceptors or middleware, logging setup, tracing setup.
+5. Write rows only for the process steps the prompt names. You need not cite which service a call's address or client
+   points to: fill `to_unit` and the operation as the caller names them, and cite the line that makes the call; the
+   merge resolves each call's target, and an unmatched one is re-read.
+6. In `files.csv`, list every other file your prompt owes as `not read` with the reason `off this stage's path`. Never
+   cite a file you list so: a row may cite only lines you opened.
+
+## Parts and in-process code
+
+A part is a deployable, its store or its queue. Code that runs inside the deployable (a template, a package, a helper,
+a validator, a library) is not a part: name it in the row's source, never as a `subjects.csv` row.
+
 ## If your unit's folder already has tables
 
 You may be a reader started again after a session ended, or after the unit's check failed. Read the tables first. Keep
@@ -82,7 +105,8 @@ read and those you did not, so the lead can cut the unit in two. Write rows only
   the line that makes the call.
 - `participation.csv`: which of the lead's process steps each part takes part in, and how, citing the code, with
   `operation` the route or handler that does the step, spelled as in operations.csv.
-- `files.csv`: every file your prompt lists as owed, `cited` or `not relevant` with the reason; a file not owed may
+- `files.csv`: every file your prompt lists as owed, `cited` or `not relevant` with the reason (or, when the prompt
+  reads a stage's path, `not read` with `off this stage's path` for a file off it); a file not owed may
   be listed too, as `not relevant` (a test file with the reason `test code`) (for example a third-party
   library copied into the repository, a build file that names nothing the flow uses).
 

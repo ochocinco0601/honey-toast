@@ -57,6 +57,9 @@ import run_lock  # noqa: E402
 OTHER_FLOWS = "other_flows"  # every flow started in this register but the one worked now, by its name at the go
 IN_UNITS = "mapped_in_units"  # in a flow's record, set by its go: it is read in units and every finding judged; a
 # flow an earlier release took the go of has none, and keeps the sample of ten it drew
+BY_STAGE = "read_by_stage"  # in a flow's record, set by its go: its services are read only for the stages the person
+# takes past mapped only, picked before any reader starts; a flow an earlier release took the go of has none and reads
+# every service it took in, before the pick
 EARLIER = "earlier-flows"  # earlier-flows/<flow id>/<table>.csv: a finished flow's rows as they were when the next began
 KEPT_TABLES = ("flows", "stages", "steps", "subjects", "participation", "lifecycle", "measures", "expectations",
                "failure-modes", "remedies", "step-impact", "case-attributes", "agent-system", "measure-gaps", "alerts")
@@ -734,12 +737,346 @@ def got_after(gos, surveyed):
 
 def services_read(reg, s=None):
     """{service lower case} the flow worked now reads (scope.json `services_in`, and every service surveyed after its
-    go that it did not leave out), or None when the go names none (every unit is then read)."""
+    go that it did not leave out), or None when the go names none (every unit is then read). A flow read by stage
+    (BY_STAGE) reads, of the services its go took in, only those that carry or are needed by a move of a stage the
+    person took past mapped only (staged_services): none before that pick."""
     s = load(reg) if s is None else s
     if not s or "services_in" not in s:
         return None
     took = {n.strip().lower() for n in s.get("services_in") or [] if n.strip()}
+    staged = staged_services(reg, s)
+    if staged is not None:
+        outs = {n.strip().lower() for n in s.get("services_out") or [] if n.strip()}
+        took = (took & staged) | (reached(s) - outs)
     return took | got_after([s], surveyed_services(reg))
+
+
+REACHED = "reached"  # in a flow's record: services a reader recorded a call to from a picked stage, read after the merge
+
+
+def reached(s):
+    """The services (lower case) the flow `s`'s readers recorded a call to from a step of a stage taken further,
+    after the first look's closure missed them (next.py, the sweep after each merge): read like the closure's."""
+    return {n.strip().lower() for n in (s or {}).get(REACHED) or [] if n.strip()}
+
+
+def recorded_reach(reg, s):
+    """{service lower case}: the surveyed services a reading unit's calls.csv reaches from a step of a stage the flow
+    `s` took further (its step_hint), by the unit the call names (`to_unit`, its deployable) or an outside part named
+    as a surveyed service (`external:<name>`). The loop the kit already runs for outside code, closed over what the
+    readers found: a call wired by an environment variable is found here."""
+    reg = pathlib.Path(reg)
+    picked = set(picked_stages(s))
+    if not picked:
+        return set()
+    steps = {(r.get("step") or "").strip() for r in rows(reg / "steps.csv") if (r.get("stage") or "").strip() in picked}
+    units = rows(reg / layout.UNITS_CSV)
+    dep = {(u.get("unit") or "").strip(): ((u.get("deployable") or "").strip() or (u.get("unit") or "").strip()).lower()
+           for u in units}
+    by_key = {}
+    for n in surveyed_services(reg):
+        by_key.setdefault(_name_key(n), set()).add(n.lower())
+    out = set()
+    for u in dep:
+        for c in rows(layout.unit_dir(reg, u) / "calls.csv") if u and u != "flow" else []:
+            hint = {x.strip() for x in re.split(r"[;,]", c.get("step_hint") or "") if x.strip()}
+            if not hint & steps:
+                continue
+            to_unit = (c.get("to_unit") or "").strip()
+            if to_unit in dep:
+                out.add(dep[to_unit])
+            for col in ("to_part", "via", "to_unit"):
+                ref = (c.get(col) or "").strip()
+                name = ref[len("external:"):] if ref.startswith("external:") else (ref if col == "to_unit" else "")
+                hit = by_key.get(_name_key(name), set())
+                if len(hit) == 1:
+                    out |= hit
+    return out
+
+
+STORE_PROTOCOLS = ("db", "cache")  # a call to a store: its target is a store, never a service
+KNOWN_PROTOCOLS = ("http", "rpc", "message", "db", "cache")  # split-run-formats.md, calls.csv `protocol`
+
+
+def unresolved_reach(reg, s):
+    """[each call from a step of a stage the flow `s` took further whose target does not resolve to exactly one
+    surveyed service], said for the run record: a blank `to_unit` with no `to_part`, a `to_unit` that is no listed
+    unit, an `external:<name>` that matches no single surveyed service. A call to the unit's own part or to a store
+    (protocol db or cache) is not a reach; a message is published_reach's. Any one makes the run read every service of
+    the go's scope (the rule that closes the class of reaches the kit cannot resolve)."""
+    reg = pathlib.Path(reg)
+    picked = set(picked_stages(s))
+    if not picked:
+        return []
+    steps = {(r.get("step") or "").strip() for r in rows(reg / "steps.csv") if (r.get("stage") or "").strip() in picked}
+    units = {(u.get("unit") or "").strip() for u in rows(reg / layout.UNITS_CSV)} - {"", "flow"}
+    by_key = {}
+    for n in surveyed_services(reg):
+        by_key.setdefault(_name_key(n), set()).add(n.lower())
+    out = []
+    for u in sorted(units):
+        for c in rows(layout.unit_dir(reg, u) / "calls.csv"):
+            hint = {x.strip() for x in re.split(r"[;,]", c.get("step_hint") or "") if x.strip()}
+            protocol = (c.get("protocol") or "").strip().lower()
+            if not hint & steps or protocol == "message" or protocol in STORE_PROTOCOLS:
+                continue
+            if protocol not in KNOWN_PROTOCOLS:  # a protocol the sweep cannot follow (kafka, amqp, ...): unresolved
+                out.append(f"{u} {(c.get('operation') or '').strip() or (c.get('row_id') or '').strip()} "
+                           f"(protocol {protocol or 'not recorded'}, which the sweep cannot follow)")
+                continue
+            to_unit, to_part = (c.get("to_unit") or "").strip(), (c.get("to_part") or "").strip()
+            said = f"{u} {(c.get('operation') or '').strip() or (c.get('row_id') or '').strip()}"
+            if to_unit:
+                if to_unit not in units and len(by_key.get(_name_key(to_unit), set())) != 1:
+                    out.append(f"{said} (to {to_unit}, no single surveyed service)")
+            elif to_part.startswith("external:"):
+                if len(by_key.get(_name_key(to_part[len("external:"):]), set())) != 1:
+                    out.append(f"{said} (to {to_part}, no single surveyed service)")
+            elif not to_part:
+                out.append(f"{said} (its target is not recorded)")
+    return out
+
+
+QUOTED = re.compile(r"[\"'`][^\"'`]+[\"'`]")  # a topic written out in the consumer's line; else it is a constant
+CONFIG_TOPIC = re.compile(r"\$\{|%\(|@value|getenv|environ|config\[|configuration\[|settings\.", re.I)
+
+
+def published_reach(reg, s):
+    """({service lower case}, [topics with no consumer found]): for each message a reading unit records as published
+    from a step of a stage the flow `s` took further (calls.csv, protocol `message`: its operation, the queue or topic,
+    and its broker in `via`), the surveyed services the code reader records consuming that topic or queue (fact-base
+    consumer facts whose line names it). A topic no consumer fact names is returned apart: the run then reads every
+    service the go took in (it fails closed)."""
+    reg = pathlib.Path(reg)
+    picked = set(picked_stages(s))
+    if not picked:
+        return set(), []
+    steps = {(r.get("step") or "").strip() for r in rows(reg / "steps.csv") if (r.get("stage") or "").strip() in picked}
+    names = {n.lower() for n in surveyed_services(reg)}
+    facts = []
+    p = reg / "fact-base.json"
+    if p.is_file():
+        try:
+            facts = json.loads(p.read_text(encoding="utf-8")).get("facts") or []
+        except ValueError:
+            facts = []
+    consumer_facts = [f for f in facts if f.get("kind") in CONSUMER_KINDS and not f.get("in_test")]
+    consumers = [((f.get("service") or "").lower(), re.sub(r"[^a-z0-9]", "", (f.get("evidence") or "").lower()))
+                 for f in consumer_facts]
+    # a consumer whose topic comes from configuration (`${ledger.topic}`) may consume any topic: it is read for every
+    # message published from a picked step
+    any_topic = {(f.get("service") or "").lower() for f in consumer_facts
+                 if CONFIG_TOPIC.search(f.get("evidence") or "") or not QUOTED.search(f.get("evidence") or "")} & names
+    found, lost = set(), []
+    for u in rows(reg / layout.UNITS_CSV):
+        unit = (u.get("unit") or "").strip()
+        if not unit or unit == "flow":
+            continue
+        for c in rows(layout.unit_dir(reg, unit) / "calls.csv"):
+            if (c.get("protocol") or "").strip().lower() != "message":
+                continue
+            hint = {x.strip() for x in re.split(r"[;,]", c.get("step_hint") or "") if x.strip()}
+            if not hint & steps:
+                continue
+            topic = (c.get("operation") or "").strip()
+            key = re.sub(r"[^a-z0-9]", "", re.sub(r"^(publish|send|emit|produce)\s+", "", topic.lower()))
+            hit = {svc for svc, ev in consumers if len(key) >= 3 and key in ev and svc in names} | any_topic
+            if hit:
+                found |= hit
+            else:
+                lost.append(topic or (c.get("row_id") or "").strip())
+    return found, lost
+
+
+def picked_stages(s):
+    """The stage ids the flow `s` records as taken past mapped only (its pick, `depth`): [] before the pick."""
+    return sorted(sid for sid, d in ((s or {}).get("depth") or {}).items() if d and d != "none")
+
+
+def _name_key(text):
+    """A part's name as lifecycle.csv writes it (`S04 Ordering API`) or a service's as the survey does, reduced to
+    its letters and digits, lower case, without the part's id."""
+    return re.sub(r"[^a-z0-9]", "", re.sub(r"^\s*S\d+\b", "", text or "").lower())
+
+
+def stage_parts(reg, stages):
+    """{stage id: [each part a move of the stage names, as lifecycle.csv writes it in carried_by and needs]}: a stage's
+    moves are those its process steps cite (steps.csv `source`, their L.. ids)."""
+    reg = pathlib.Path(reg)
+    moves = {}
+    for r in rows(reg / "lifecycle.csv"):
+        mid = (r.get("move_id") or r.get("move") or "").strip()
+        first = next(iter(r.values()), "") or ""
+        moves[mid if re.fullmatch(r"L\d+", mid) else first.strip()] = r
+    out = {sid: [] for sid in stages}
+    for st in rows(reg / "steps.csv"):
+        sid = (st.get("stage") or "").strip()
+        if sid not in out:
+            continue
+        for mid in re.findall(r"\bL\d+\b", st.get("source") or ""):
+            m = moves.get(mid)
+            if m is not None:
+                for col in ("carried_by", "needs"):
+                    out[sid] += [t.strip() for t in (m.get(col) or "").split(";") if t.strip()]
+    return out
+
+
+CALL_KINDS = ("outbound_http", "grpc_call", "client_binding", "message_producer", "message_publisher", "event_binding")
+PRODUCER_KINDS = ("message_producer", "message_publisher", "event_binding")
+CONSUMER_KINDS = ("message_consumer", "message_subscription", "event_binding")
+NOT_READ_FAMILIES = ("store", "platform", "person", "case")  # method/part-kinds.csv families no reader reads as a service
+
+
+def part_families(reg=None):
+    """{part_kind lower case: family} from the method's list of part kinds (method/part-kinds.csv beside this file)."""
+    p = pathlib.Path(__file__).resolve().parent / "method" / "part-kinds.csv"
+    return {(r.get("part_kind") or "").strip().lower(): (r.get("family") or "").strip() for r in rows(p)}
+
+
+def recorded_not_a_service(row, families):
+    """Whether the parts list records this part as one no reader reads as a service: by its kind (part_kind, whose
+    family in method/part-kinds.csv is a store, a platform, a person or the case) or by its level (an external
+    dependency). Never from words in its name."""
+    if row is None:
+        return False
+    if (row.get("level") or "").strip() == "external dependency":
+        return True
+    return families.get((row.get("part_kind") or "").strip().lower(), "") in NOT_READ_FAMILIES
+
+
+def service_of(reg, row):
+    """The surveyed service (lower case) a part of the parts list is: its name matching exactly one surveyed service
+    (letters and digits only), else the surveyed service whose path its `repository` names (the longest such path);
+    None when neither tells."""
+    reg = pathlib.Path(reg)
+    survey = [r for r in rows(reg / "survey.csv") if (r.get("kind") or "").strip() == "service"]
+    by_key = {}
+    for r in survey:
+        by_key.setdefault(_name_key(r.get("service") or ""), set()).add((r.get("service") or "").strip().lower())
+    hit = by_key.get(_name_key((row or {}).get("name") or ""), set())
+    if len(hit) == 1:
+        return next(iter(hit))
+    repo = ((row or {}).get("repository") or "").replace("\\", "/")
+    paths = re.findall(r"[\w.\-/]+", repo)
+    best = None
+    for r in survey:
+        path = (r.get("path") or "").replace("\\", "/").strip("/")
+        if path and any(p.strip("/") == path or p.strip("/").startswith(path + "/") for p in paths):
+            if best is None or len(path) > len(best[0]):
+                best = (path, (r.get("service") or "").strip().lower())
+    return best[1] if best else None
+
+
+def calls_between(reg, extra_text=()):
+    """{service lower case: {services lower case it calls}}, from what the first look recorded before any reader: the
+    survey's calls (survey.csv `calls`), the code reader's outbound calls and messages (fact-base.json; a callee is
+    a surveyed service whose name, letters and digits only, appears in the call's line), a message published reaching
+    every service that consumes messages (the topic is not matched, so never less), and, for `extra_text` (each
+    service paired with text such as a move's travels_by), the services that text names."""
+    reg = pathlib.Path(reg)
+    names = {n.lower() for n in surveyed_services(reg)}
+    keys = {n: _name_key(n) for n in names}
+    out = {n: set() for n in names}
+    for r in rows(reg / "survey.csv"):
+        me = (r.get("service") or "").strip().lower()
+        if me in out:
+            out[me] |= {c.strip().lower() for c in (r.get("calls") or "").split(";") if c.strip().lower() in names}
+
+    def named_in(text):
+        t = re.sub(r"[^a-z0-9]", "", (text or "").lower())
+        return {n for n, k in keys.items() if len(k) >= 3 and k in t}
+    facts = []
+    p = reg / "fact-base.json"
+    if p.is_file():
+        try:
+            facts = json.loads(p.read_text(encoding="utf-8")).get("facts") or []
+        except ValueError:
+            facts = []
+    consumers = {(f.get("service") or "").lower() for f in facts if f.get("kind") in CONSUMER_KINDS}
+    for f in facts:
+        me = (f.get("service") or "").lower()
+        if me not in out or f.get("in_test"):
+            continue
+        if f.get("kind") in CALL_KINDS:
+            out[me] |= named_in(f.get("evidence")) - {me}
+        if f.get("kind") in PRODUCER_KINDS:
+            out[me] |= (consumers & names) - {me}
+    for me, text in extra_text:
+        if me in out:
+            out[me] |= named_in(text) - {me}
+    return out
+
+
+def stage_reading(reg, s):
+    """(services lower case read for the flow `s`, or None for every service its go took in; why, in a line for the
+    run record). Only a flow read by stage (BY_STAGE) narrows its reading; before the pick, and for a pick of mapped
+    only for every stage, nothing is read. A picked stage reads the closure of its moves: every service that carries
+    or is needed by one of them, then every service any of those calls (calls_between, its moves' travels_by
+    included), and so on. It fails closed: when a part a picked stage's moves name does not resolve to exactly one
+    surveyed service, and the parts list does not record it as a store, a platform, a person, the case or an external
+    dependency (recorded_not_a_service: its part_kind or level, never its name), every service the go took in is
+    read."""
+    if not s or not s.get(BY_STAGE):
+        return None, ""
+    picked = picked_stages(s)
+    if not picked:
+        return set(), "no stage is taken past mapped only, so no service is read in depth"
+    reg = pathlib.Path(reg)
+    services = [n.lower() for n in surveyed_services(reg)]
+    by_key = {}
+    for n in services:
+        by_key.setdefault(_name_key(n), set()).add(n)
+    subj = {(r.get("subject_id") or "").strip(): r for r in rows(reg / "subjects.csv")}
+    by_name = {_name_key(r.get("name") or ""): r for r in subj.values() if (r.get("name") or "").strip()}
+
+    families = part_families()
+    seeds, unresolved, travels = set(), [], []
+    moves = {(r.get("move_id") or "").strip(): r for r in rows(reg / "lifecycle.csv")}
+    for sid, parts in stage_parts(reg, picked).items():
+        for part in dict.fromkeys(parts):
+            pid = re.match(r"\s*(S\d+)\b", part)
+            row = subj.get(pid.group(1)) if pid else None
+            text = re.sub(r"^\s*S\d+\b", "", part).strip() or ((row or {}).get("name") or "")
+            row = row or by_name.get(_name_key(text))
+            hit = by_key.get(_name_key(text), set())
+            own = service_of(reg, row) if row is not None else None  # its repository or path names a surveyed service
+            if len(hit) == 1:
+                seeds |= hit
+            elif recorded_not_a_service(row, families):
+                if own is not None:  # a store or outside part whose code sits in a service's folder: read it too
+                    seeds.add(own)
+            else:  # a component its name does not tell: its path alone never decides which service it is
+                unresolved.append(f"{text or part} ({sid})")
+    for st in rows(reg / "steps.csv"):
+        if (st.get("stage") or "").strip() in picked:
+            for mid in re.findall(r"\bL\d+\b", st.get("source") or ""):
+                m = moves.get(mid) or {}
+                for col in ("carried_by",):
+                    for part in (m.get(col) or "").split(";"):
+                        hit = by_key.get(_name_key(re.sub(r"^\s*S\d+\b", "", part)), set())
+                        travels += [(h, m.get("travels_by") or "") for h in hit]
+    if unresolved:
+        return None, ("every service the go took in is read: on a stage taken further, these parts match no single "
+                      "surveyed service by name: " + "; ".join(unresolved))
+    calls = calls_between(reg, travels)
+    got, todo = set(), list(seeds)
+    while todo:
+        n = todo.pop()
+        if n in got:
+            continue
+        got.add(n)
+        todo += sorted(calls.get(n, set()) - got)
+    return got, (f"read for the stages taken further ({', '.join(picked)}): the services their moves name, and every "
+                 f"service those call: {', '.join(sorted(got)) or 'none'}")
+
+
+def staged_services(reg, s):
+    """None when the flow `s` is not read by stage (an earlier release's go), or when it reads every service its go
+    took in because a part of a picked stage could not be told apart (stage_reading). Else {service lower case} its
+    readers read: the closure of the stages taken past mapped only, and every service the readers' recorded calls from
+    those stages reach (reached); empty before the pick, and for a pick of mapped only for every stage."""
+    got = stage_reading(reg, s)[0]
+    return None if got is None else got | reached(s)
 
 
 def default_services(reg, surveyed, flow=None):
@@ -821,7 +1158,7 @@ def record_go(reg, a):
     s = {"flow": a.flow.strip(), "services_in": inn, "services_out": out,
          "stage_ids": [], "words": a.words.strip(),
          "given": a.given or datetime.datetime.now().astimezone().isoformat(timespec="seconds"), "test": a.test,
-         "remains": remains or {"services_left_out": out}, IN_UNITS: True}
+         "remains": remains or {"services_left_out": out}, IN_UNITS: True, BY_STAGE: True}
     if finished:  # the flow worked until now is done: it is kept whole, and this go starts the next flow
         others[cur.get("flow", "")] = cur
         s["started_from"] = record_key(reg, cur)

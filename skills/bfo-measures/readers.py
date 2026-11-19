@@ -175,6 +175,9 @@ def prompt(reg, unit, mode="read", ws=None):
            f"The flow and its steps: {reg / 'flows.csv'}, {reg / 'lifecycle.csv'}, {reg / 'stages.csv'}, "
            f"{reg / 'steps.csv'}; the plan: {reg / 'PLAN.md'}; the code reader's findings: {reg / 'fact-base.json'}",
            ""] + owed_section(owed)
+    if mode in ("read", "retry", "fix"):
+        import path_reading  # a flow read by stage reads the path of its stages taken further (run-settings `reading`)
+        out += path_reading.path_block(reg, unit, judges.workspace(reg, ws))
     if mode == "retry":
         why = [r.get("reason", "") for r in tables.dicts(reg / layout.JOBS_CSV)
                if r.get("item") == unit and r.get("step") == "read"]

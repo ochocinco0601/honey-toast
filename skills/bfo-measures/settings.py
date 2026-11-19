@@ -12,7 +12,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import register_layout as layout  # noqa: E402
 
 DEFAULTS = {"judges": 3, "judge_rounds": 2, "unit_lines": 4000, "parallel": 6, "merge_rereads": 50,
-            "lock_stale_minutes": 20, "relaunches": 2, "on_change": "python run_page.py {reg}"}
+            "lock_stale_minutes": 20, "relaunches": 2, "on_change": "python run_page.py {reg}",
+            "reading": "path"}  # `path`: a flow read by stage reads its picked stages' path; `full`: every line
 
 
 def load(reg):

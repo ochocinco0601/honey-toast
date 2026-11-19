@@ -39,6 +39,41 @@
   whose run is done back to the pick of how far each stage goes: it maps again into a new folder, and a second go
   would record its scope without the earlier pick. Until it is, pick every stage's depth in the one run, at the pick.
 - **Taking a stage less far than already picked is refused,** because the pages already written for it would stay.
+- **Which services a stage needs is read off the lifecycle and the first look's calls.** A stage taken further reads
+  the services its moves name in `carried_by` and `needs`, then every service those call, and so on, from the
+  survey's calls, the code reader's outbound calls and messages and the moves' `travels_by`. A call none of those
+  record (wired in configuration or environment variables, made by name at run time) does not bring its service in,
+  before the readers; once a reader records such a call from a step of a stage taken further, the sweep after the
+  merge reads that service too. A call no reader records either leaves the service excused as "not read in this
+  run": for such calls the excuse can be wrong. A message a reader records as published from a step of a stage taken
+  further reaches the services the code reader records consuming that topic or queue, and every consumer whose topic
+  comes from configuration; when it records none, or a call's target matches no single surveyed service, the run
+  reads every service the go took in. A consumer whose code the code reader cannot parse, while another consumer of
+  the topic is found, is still missed. A part of a picked stage that matches no
+  single surveyed service by name makes the run read every service the go took in.
+- **A service a picked stage reaches can still go unread one way.** A call a reader records as going to a part of
+  its own unit (`to_part`), when it really goes to another service, is not caught: the sweep follows only calls
+  recorded to another unit or an outside name, so that service stays marked "not read in this run". (A call or publish
+  recorded with a protocol the kit does not recognise is no longer dropped: the run reads every service you took in.)
+- **Path reading starts only where the stage's moves point.** A service file nothing on the path reaches, and that the
+  lead's moves never cite or name (a page served with no route string, a store another configuration uses), is
+  listed not read and missed; an operation of another service the path calls but the reader did not list is added by
+  the re-read of the unmatched call. Set `reading` to `full` in `run-settings.json` to read every line.
+- **Nothing checks that the path's stores and monitoring hooks were opened.** The reader is told to read the stores
+  and data files the path opens and the service's health, metrics, logging and tracing setup; the reading check
+  confirms only that every cited line was read and names each file's lines not read, not that those files were among
+  the ones opened.
+- **A stage left mapped only has no service read in depth** unless a stage taken further reaches it. Its map shows the
+  process steps and which services carry each; nothing is said about those services' operations or what they depend
+  on until a stage reaching them is taken further.
+- **Taking a stage further after the map stop is checked at run control only.** It reads the newly reached services,
+  then merges and judges, but no test runs that merge and judging end to end, and across flows a unit read for
+  another flow after this flow's go counts as read for this one.
+- **A service surveyed after the go is read whatever the pick.** Code got for an outside dependency after the go
+  is read even when every stage is left mapped only.
+- **A register started on an earlier release is not wholly in its old order.** It keeps reading every service before
+  the pick, but Business Impact now comes before its units, and the lead's rows after the merge are also held to
+  every part on a step being in the parts list.
 
 ## The reviews
 

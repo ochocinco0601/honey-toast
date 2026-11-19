@@ -245,7 +245,8 @@ page on an error. A script handed a folder that is not a register refuses it and
 ### Reading in units, and every finding checked
 
 From the go on, every flow is read in **reading units**, one per service (a large service cut by folder), each read
-by its own reader, and every row that cites code is **checked by `judges` independent checks** (`run-settings.json`;
+by its own reader, for the services of the stages the person takes past mapped only ("The order", item 1), and every
+row that cites code is **checked by `judges` independent checks** (`run-settings.json`;
 three unless the person gave another number at the go), each a fresh agent that wrote none of the map. There is no
 other path and no sample. Steps 1 to 4 and 7, 8 and 10 below are the lead's; Steps 5 and 6 are what each reader does
 for its own service, in the unit formats (`split-run-formats.md`), and the lead does them only for its own parts (the
@@ -294,14 +295,38 @@ the mapping is under way and what is being done (reading, checking or fixing), a
 **The order.**
 1. Steps 1 to 4, by the lead: the case, its lifecycle, the stages and the process steps (`flows.csv`,
    `lifecycle.csv`, `stages.csv`, `steps.csv`), and its own parts in `subjects.csv` and `participation.csv`. The
-   readers place their parts in these process steps, so these come first.
+   readers place their parts in these process steps, so these come first. Then Business Impact (Step 10), which reads
+   the lifecycle alone, so the person sees what is at stake in each stage before choosing. **Then the pick of how far
+   each stage goes, before any service is read in depth.** Run by the stage kit, run control stops here for it: the
+   person takes stages past mapped only (measured, alerts, runbooks) or leaves them mapped only, and the pick is
+   recorded (`go.py --depth`). The services read in depth are then the closure of the stages taken further: every
+   service that carries or is needed by a move of one (`lifecycle.csv` `carried_by` and `needs` of the moves its
+   process steps cite), then every service any of those calls or sends a message to (the survey's calls, the code
+   reader's outbound calls, client and event bindings and messages, the moves' `travels_by`), and so on. It fails
+   closed: when a part a picked stage's moves name does not match exactly one surveyed service by name, and the parts
+   list does not record it, by its `part_kind` (`method/part-kinds.csv`: a store, a platform, a person) or its level
+   (an external dependency), as a part no reader reads, every service the go took in is read, and `RUN.md` says so
+   (*Read in depth*). So the lead writes, with its Steps 1 to 4, a `subjects.csv` row with its kind and level for each
+   such part a move names. The
+   mapping skill run alone has no pick and reads none in depth. A stage taken further later has its services read
+   then, before its measures.
 2. `python "<skill>/units.py" "<your-folder>"` lists the reading units (`units/units.csv`). Then
    `python "<skill>/readers.py" prompt "<your-folder>" --in-scope`, which writes a reader for every unit of a service
-   in the go's scope (`scope.json` `services_in`) not yet read for this flow, and launch as above. Each reader reads
-   its unit in full and writes only `units/<unit>/`; a unit it finds nothing of this flow in is recorded as read, with
-   no rows.
+   the flow reads (of the go's scope, `scope.json` `services_in`, those of the stages taken further) not yet read for
+   this flow, and launch as above. Each reader reads its unit along the stages' path (or in full, with `reading` `full`) and writes only `units/<unit>/`; a unit it finds
+   nothing of this flow in is recorded as read, with no rows.
 3. When every reader is back (`readers.py prompt "<your-folder>" --in-scope` writes no reader and names none still
-   running): `python "<skill>/merge.py" "<your-folder>"` writes the map's parts and the calls between them. Each call
+   running): `python "<skill>/merge.py" "<your-folder>"` writes the map's parts and the calls between them. **Then
+   the sweep:** every call a reader recorded from a step of a stage taken further (`units/<unit>/calls.csv`, its
+   `step_hint`) that reaches a surveyed service not yet read for this flow (its `to_unit`, or an `external:<name>`
+   that is a surveyed service) makes that service owed a reader too, and so does each consumer the code reader records
+   for a message or topic published from such a step, and each consumer whose topic comes from configuration (it may
+   consume any topic). **Any call or message from such a step whose target does not resolve to exactly one surveyed
+   service** (a blank target, a name no unit or service has, a topic no consumer names) makes every service of the
+   go's scope not yet read owed a reader, said in `RUN.md`; run control goes back to the readers, then the
+   merge and the sweep again, until no recorded call reaches a service not read. The first look's closure is the first
+   pass; this loop decides. A finished flow's placeholder for a service this flow reads gives its id to the reader's
+   row, a change the merge records. Each call
    it leaves unmatched (`merge/unmatched-calls.csv`) is re-read by its own agent: `python "<skill>/readers.py" prompt
    "<your-folder>" --mode reread` writes one re-read per call, and you launch as above; then merge again. A reader
    cannot ask the person anything, so a call to a deployable whose code is not in the workspace reaches the lead
@@ -312,9 +337,18 @@ the mapping is under way and what is being done (reading, checking or fixing), a
    rest was (the survey again, then `units.py`, which keeps the units already listed), and is read by its own reader
    before judging starts: a service the survey lists that the go neither took in nor left out came after the go, and
    `readers.py prompt "<your-folder>" --in-scope` writes its reader as for any service of the go's scope; code that cannot be had stays an external dependency, listed under *still missing*.
-4. The lead's rows after the merge: the parts set aside, the AI agents (Step 7), the capability (Step 8) and Business
-   Impact (Step 10). A row the lead adds to `subjects.csv` or `participation.csv` after the first merge goes in
-   `merge/lead-rows/`, then merge again. Judging starts only once these are written, so the flow-level rows written
+4. The lead's rows after the merge: the parts set aside, the AI agents (Step 7) and the capability (Step 8), with
+   Business Impact (Step 10) already written. **Each part a move names whose service no reader read** (no stage taken
+   further reaches it; a part of a stage taken further is always read) gets its row from the lead at the level of the
+   service: its `subjects.csv` row (level, band,
+   part kind, repository and purpose, cited to what the first look read) and its `performs` or `supports` rows in
+   `participation.csv` from the lifecycle's `carried_by` and `needs`, with no operation, and its `subject_id` listed in
+   `merge/lead-rows/placeholders.csv` with this flow's id (`flow`), the record that it is a placeholder a reader's rows
+   replace if a stage of this flow reaching that service is taken further later; a finished flow's placeholders are
+   never removed, as a later flow adds rows and changes none; its *Inside this part*
+   questions `part: operations` and `part: depends on` are gapped in `measure-gaps.csv`, kind `not read`, why "not read
+   in this run: no call the code reader found reaches it from a stage taken further". A row the lead adds to `subjects.csv` or `participation.csv` after
+   the first merge goes in `merge/lead-rows/`, then merge again. Judging starts only once these are written, so the flow-level rows written
    after the merge are judged once written, in the same rounds as every other row. A row written or changed later has
    no current verdict, and the next `emit` prints its judges.
 5. Round 1: `python "<skill>/judges.py" emit "<your-folder>" <unit> --round 1` for `flow` and for every unit with rows
@@ -514,9 +548,14 @@ Every part named in `carried_by` or `needs` gets one `element` row in `subjects.
   flow's process steps run through whose code the run can get, whatever its application id, repository or owning team;
   `external dependency` for one whose code it cannot get (a vendor, a third-party or software-as-a-service
   provider, a repository the run has no access to), drawn and measured from the calling side, and it can still
-  perform a process step. Not the company boundary, not who owns it, and not whether it is open source. **Depth is bounded
-  by the flow:** inside a component, read the operations this flow calls and what those operations call, not the
-  whole service. A shared service many flows use adds only the operations this flow uses.
+  perform a process step. Not the company boundary, not who owns it, and not whether it is open source. **Which components are
+  read is bounded by the stages taken further** ("Reading in units", "The order", item 1), **and inside a component,
+  depth is bounded by their path:** its reader reads, from starting points derived by script (`path_reading.py`: the
+  lines the stages' moves cite, the operations and routes they name, the pages they come through, the stores the code
+  opens), every function the case passes through and what those call, the stores and data files those operations
+  open, and the service's monitoring hooks, and lists every other file `not read` with `off this stage's path`; its
+  rows record the operations this flow calls and what those operations call. With run-settings.json `reading`
+  `full`, every line of the component is read instead. A shared service many flows use adds only the operations this flow uses.
 - **Application component or system component** is its layer, in `band`. Services, workers, front ends and AI
   agents are application components: `band` `application`. **Databases, caches, message brokers, search
   indexes, file stores, hosts and runtimes, and platform services are system components: `band` `technology`**, even when the application owns
@@ -664,8 +703,8 @@ The step that comes between Step 8 and Step 10, "Propose the measures", is the m
 
 ## Step 10. Record Business Impact (*Rules*, Rule 3)
 
-Part of mapping: done right after Step 8, for every stage of the flow, before the person picks how far each stage
-goes, so the pick shows what each stage's failure costs, and before the measures skill's step "Propose the measures", which measures every process step with a
+Part of mapping: done right after Step 4, for every stage of the flow, before the person picks how far each stage
+goes and before any service is read in depth, so the pick shows what each stage's failure costs, and before the measures skill's step "Propose the measures", which measures every process step with a
 Business Impact row. For each lifecycle move whose `if_not`
 hurts the case, a `step-impact.csv` row on the process step it belongs to: the
 category from `method/impact.csv`, the unit counted in cases, and `recovery` copied from the lifecycle. A case

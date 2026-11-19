@@ -1621,6 +1621,16 @@ def stake_lines(groups):
     return "\n".join(f"- {head}:\n" + said(units) for head, units in groups)
 
 
+def before_reading(reg, flow_id):
+    """Whether the pick of how far each stage goes is asked before any service is read in depth: run control stands
+    at its stop for the pick (case.json, sub `pick`) for this flow."""
+    try:
+        import case
+        return case.flow(pathlib.Path(reg), flow_id).get("sub") == "pick"
+    except Exception:  # noqa: BLE001  (a register with no case record: the pick comes after mapping, as before)
+        return False
+
+
 def depth_review(reg, flow_id, recommend):
     """The message for the person's pick of how far each stage goes, after mapping: the ask with the session's
     recommendation first, what a yes does and the choices; then the mapping inspection as a count; then each stage
@@ -1633,16 +1643,27 @@ def depth_review(reg, flow_id, recommend):
     walked = sorted((x for x in R["stages"] if x.get("flow") == flow_id), key=lambda x: int(x.get("order") or 0))
     flow = next((f.get("name") for f in R["flows"] if f.get("flow_id") == flow_id), "") or "The flow"
     n_st = len(walked)
-    out = [status(reg), "", f"**{flow} is mapped. How far should each of its {count_word(n_st)} stage"
-           f"{'' if n_st == 1 else 's'} go? I recommend: {cont(recommend)}.**", "",
-           "If you say yes, I record it and go on to the stages you take further, then the map's check and report. "
-           "A stage left mapped only can go further later. Each stage's steps are on the page.", "",
+    early = before_reading(reg, flow_id)
+    if early:
+        head = (f"**{flow}: its stages and steps are mapped. How far should each of its {count_word(n_st)} stage"
+                f"{'' if n_st == 1 else 's'} go? I recommend: {cont(recommend)}.**")
+        yes = ("If you say yes, I record it and read in full the code of the services that carry the stages you take "
+               "further, then go on to them, then the map's check and report. A stage left mapped only can go further "
+               "later; its services are read then. Each stage's steps are on the page.")
+        only = "mapped only: its steps and which services carry each, nothing more"
+    else:
+        head = (f"**{flow} is mapped. How far should each of its {count_word(n_st)} stage"
+                f"{'' if n_st == 1 else 's'} go? I recommend: {cont(recommend)}.**")
+        yes = ("If you say yes, I record it and go on to the stages you take further, then the map's check and report. "
+               "A stage left mapped only can go further later. Each stage's steps are on the page.")
+        only = "mapped only: the map below, nothing more"
+    out = [status(reg), "", head, "", yes, "",
            "For each stage you can choose:",
-           bullets(["mapped only: the map below, nothing more",
+           bullets([only,
                     "measured: I propose what to measure to tell whether it is working",
                     "measured, with alerts: I propose which of those measures should wake someone, for you to review",
                     "measured, with alerts and then runbooks: and, for each alert, what to do when it fires"]),
-           "", check_map.counted(reg, flow_id)]
+           "", check_map.counted(reg, flow_id, before_reading=early)]
     checked = checks_found(reg)
     out += ["", checked] if checked else []
     out += ["", f"**The stages.** {GROUNDING}"]

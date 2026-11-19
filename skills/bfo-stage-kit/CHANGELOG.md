@@ -8,6 +8,42 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.5 — 2026-11-19
+
+You pick how far each stage goes before any service is read in depth, and only the services of the stages you take
+further are read. A flow reaches your pick in minutes: the hours a run spent reading every service of the flow, for
+stages you then left mapped only, are gone.
+
+### What you will notice
+
+- **The pick comes first.** After you choose the flow, the run writes its stages, the process steps in each, which
+  services carry each step and what is at stake if each step fails, then asks how far each stage goes. Before, it
+  read every service the flow touches, line by line, before asking.
+  Effect: none.
+- **Only the stages you take further are read in full.** The services a stage you take to measures, alerts or
+  runbooks reaches (those that carry its steps, and every service they call, and so on) are read every line and every
+  finding is checked, as before. If the run cannot tell which service a part of that stage is, it reads every service
+  you took in and says so in the run record. A stage left mapped only keeps its
+  steps and which services carry each; what is inside those services (their operations, what they depend on) is
+  marked "not read in this run". Taking a stage further later reads its services then, before its measures.
+  Effect: none. A register started on an earlier release keeps that release's order: every service its go took in
+  is read before the pick.
+- **The mapping skill run alone** maps the stages, steps and which services carry each, and reads no service in
+  depth.
+  Effect: none.
+- **A stage you take further is read along its path, not every line** (a trial: you can switch back). Each service
+  it reaches is read from where the stage's steps start: every function a case passes through and what those call,
+  the stores and data files those open, the pages it comes through, and the service's health, metrics, logging and
+  tracing setup. Every other file is listed as not read, off the stage's path. Code that runs inside a service (a template, a
+  helper) is no longer drawn as a part. To read every line again, set `"reading": "full"` in `run-settings.json`.
+  Effect: none.
+- **What a stage reaches is followed past the first look.** A call or message a reader records from a stage you take
+  further brings in the service it reaches. A service that consumes a topic held in configuration or in a code
+  constant is read for any message the stage publishes. Where the run cannot tell what a call or message reaches (no
+  target recorded, a name no service has, a protocol it cannot follow), it reads every service you took in and says so
+  in the run record.
+  Effect: none.
+
 ## Release 9.4 — 2026-11-19
 
 The Sources page, redrawn; one page listing every system you have run the kit on; a place for the application's ID;

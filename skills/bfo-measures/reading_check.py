@@ -30,7 +30,10 @@ there must be cited by one of the unit's rows, or its file listed `not relevant`
 unit owes (owed_files) must be read in full: every line inside the unit's Read calls (offset/limit; no limit
 reads 2000 lines; parts that together cover the file count), and listed in `files.csv` as `cited` (a row cites it) or
 `not relevant` with a reason. Each file falling short is named: not opened, partly read (with the lines not read), not
-listed, listed cited but no row cites it, not relevant with no reason.
+listed, listed cited but no row cites it, not relevant with no reason. In a flow read by stage with path reading
+(path_reading.reading), a file on the path is owed an opening, not every line, and every line a row cites must still
+have been read; a file off the path is listed `not read` with the reason `off this stage's path`, is never counted as
+read, and no row may cite it.
 
 The files a unit owes (owed_files, the one definition that units.py sizes by and readers.py lists in the reader's
 prompt) are those with an extension of EXT below. Not owed: test files while OWE_TESTS is False (it is), and, because
@@ -419,11 +422,12 @@ def _same_file(rel, c):
 
 
 class UnitResult(Result):
-    def __init__(self, unit, base, files_total=0, files_full=0, problems=(), error=None):
+    def __init__(self, unit, base, files_total=0, files_full=0, problems=(), error=None, files_path=0, unread=()):
         super().__init__(base.cited, base.covered, base.by_reader, base.missing, base.sessions, base.folders,
                          base.leads)
         self.unit, self.error = unit, error
         self.files_total, self.files_full, self.problems = files_total, files_full, list(problems)
+        self.files_path, self.unread = files_path, list(unread)  # path reading: never counted as read in full
         self.passed = self.passed and not self.problems and not error
 
     def lines(self):
@@ -433,11 +437,16 @@ class UnitResult(Result):
         if not self.sessions:
             return out + [f"  {p}" for p in self.problems if p.startswith("provenance: ")][:50]
         head = f"Whole files: {self.files_full} of {self.files_total} files read in full"
+        if self.files_path:
+            head += f", {self.files_path} read along the stage's path (the rest of each named below, not read)"
         out.append(head + (", every file cited or set aside: ok" if not self.problems else
                            f": NOT READ: {len(self.problems)} file problem(s)"))
         out += [f"  {p}" for p in self.problems[:50]]
         if len(self.problems) > 50:
             out.append(f"  ... and {len(self.problems) - 50} more")
+        out += [f"  {u}" for u in self.unread[:50]]
+        if len(self.unread) > 50:
+            out.append(f"  ... and {len(self.unread) - 50} more not read, off this stage's path")
         return out
 
 
@@ -477,7 +486,10 @@ def check_unit(reg, unit, transcripts=None, ws=None):
     for row in tables.dicts(udir / layout.FILES_CSV, encoding="utf-8"):
         listed[_rel(row.get("path") or "").lower()] = ((row.get("status") or "").strip().lower(),
                                                        (row.get("reason") or "").strip())
-    aside = {p for p, (s, _) in listed.items() if s == "not relevant"}
+    import path_reading  # path reading: a file off the stage's path is listed `not read`, never counted as read
+    on_path = path_reading.reading(reg) == "path"
+    off_path = {p for p, (s, r) in listed.items() if on_path and s == "not read" and path_reading.OFF_PATH in r}
+    aside = {p for p, (s, _) in listed.items() if s == "not relevant"} | off_path
     leads = None
     if mine is not None:
         leads = sorted({f"{f['kind']} {f['shown']}:{int(f.get('line') or 0)}" for f in mine
@@ -490,17 +502,24 @@ def check_unit(reg, unit, transcripts=None, ws=None):
     problems += [f"unit path not found in the workspace {ws}: {p}" for p in absent]
     if not files and not absent:
         problems.append(f"no source files under the unit's paths in the workspace {ws}: {'; '.join(paths)}")
-    full = 0
+    full, path_read, unread = 0, 0, []
     for rel, absolute in sorted(files.items()):
         key = rel.lower()
+        if key in off_path:  # listed off the stage's path: owes no reading, and no row may cite it
+            if any(_same_file(key, c) for c, _, _ in cited):
+                problems.append(f"listed not read (off this stage's path), yet a row cites it: {rel}")
+            continue
         spans = [s for p, ss in opened.items() if p == path_rule.norm(absolute) or p.endswith("/" + key) for s in ss]
         n = _line_count(absolute)
         gaps = _gaps(1, n, spans) if n else []
+        ranges = ", ".join(f"{a}-{b}" if a != b else str(a) for a, b in gaps)
         if not spans:
             problems.append(f"not opened: {rel}")
-        elif gaps:
-            problems.append(f"partly read: {rel}: lines "
-                            + ", ".join(f"{a}-{b}" if a != b else str(a) for a, b in gaps) + " not read")
+        elif gaps and not on_path:
+            problems.append(f"partly read: {rel}: lines {ranges} not read")
+        elif gaps:  # path reading: read along the path, never counted as read in full; its other lines are named
+            path_read += 1
+            unread.append(f"not read: off this stage's path: {rel}: lines {ranges}")
         else:
             full += 1
         status, reason = listed.get(key, ("", ""))
@@ -511,8 +530,11 @@ def check_unit(reg, unit, transcripts=None, ws=None):
             problems.append(f"listed cited, no row cites it: {rel}")
         elif status == "not relevant" and not reason:
             problems.append(f"not relevant with no reason: {rel}")
+        elif status == "not relevant" and spans and gaps:  # set aside only on a reading of the whole file
+            problems.append(f"not relevant, but lines {ranges} were never read: read it whole, or list it not read, "
+                            f"off this stage's path: {rel}")
     base = Result(len(cited), covered, by_reader, missing, len(sessions), folders, leads)
-    return UnitResult(unit, base, len(files), full, problems)
+    return UnitResult(unit, base, len(files), full, problems, files_path=path_read, unread=unread)
 
 
 def main(argv):

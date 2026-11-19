@@ -209,24 +209,47 @@ def said(results, items=()):
     return "\n".join(lines)
 
 
-def counted(reg, flow_id, items=()):
+BEFORE_READING = ("parts", "agent-decisions")  # rules the readers and the lead's rows after them answer
+
+
+def counted(reg, flow_id, items=(), before_reading=False):
     """The inspection as the stop says it: the count of rules that pass, each failing rule with what fails, and the
-    line on files that could not be read. The rules that pass are only counted; `report` lists them all."""
-    results = inspect(reg, flow_id)
+    line on files that could not be read. The rules that pass are only counted; `report` lists them all. At the pick
+    made before any service is read in depth (`before_reading`), the rules the reading answers are left out."""
+    results = [r for r in inspect(reg, flow_id) if not (before_reading and r["rule"] in BEFORE_READING)]
     bad = [r for r in results if not r["passed"]]
     lines = [f"**Mapping inspection.** {len(results) - len(bad)} of {len(results)} rules pass. It checks that what "
              "mapping recorded is complete and hangs together, not whether it is right about the system."
              + not_finished(items)]
     for r in bad:
         lines += [f"- {r['title']}: fails on these:"] + [f"  - {x}" for x in r["items"]]
-    return "\n".join(x for x in lines + [mr.unread_line(reg)] if x)
+    return "\n".join(x for x in lines + [not_read_line(reg), mr.unread_line(reg)] if x)
+
+
+def not_read_line(reg):
+    """One line counting the parts whose inside the run did not read (measure-gaps.csv, kind `not read`): no stage
+    taken past mapped only reaches them. "" when there are none."""
+    import csv
+    p = pathlib.Path(reg) / "measure-gaps.csv"
+    if not p.is_file():
+        return ""
+    with p.open(encoding="utf-8-sig", newline="") as f:
+        parts = {(r.get("element") or "").strip() for r in csv.DictReader(f)
+                 if (r.get("kind") or "").strip() == "not read" and (r.get("question") or "").startswith("part:")}
+    parts.discard("")
+    if not parts:
+        return ""
+    n = len(parts)
+    return (f"{n} part{'' if n == 1 else 's'} not read in depth in this run: no call the code reader found reaches "
+            f"{'it' if n == 1 else 'them'} from a stage taken further, so what "
+            f"{'it does inside' if n == 1 else 'they do inside'} is not on the map.")
 
 
 def report(reg, flow_id, items=None):
     """The inspection as the person reads it at the map stop, with mapping's part of the done check still open in its
     first line, and, when any file of the code could not be read, the line that says so."""
     items = open_items(reg, flow_id) if items is None else items
-    return "\n".join(x for x in (said(inspect(reg, flow_id), items), mr.unread_line(reg)) if x)
+    return "\n".join(x for x in (said(inspect(reg, flow_id), items), not_read_line(reg), mr.unread_line(reg)) if x)
 
 
 def main(argv):

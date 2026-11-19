@@ -97,9 +97,14 @@ anything you could not do, and what the done check found, in plain words.
 To point it at sources, add one line at the end (optional): *These are the sources: …*, naming the repositories,
 pages, diagrams and process descriptions.
 
-**How far each stage goes is your pick, after the map.** The map covers the whole flow in the first run. Once it
-is drawn, the run shows you its stages and asks how far each one goes: mapped only, measured, measured with alerts,
-or on to runbooks. You can take any number of stages to any depth, with the run's recommendation in front of you; a
+**How far each stage goes is your pick, before any service is read in depth.** The run first writes the flow's
+stages, the process steps in each, which services carry each step, and what is at stake if each step fails, in
+minutes. Then it shows you the stages and asks how far each one goes: mapped only, measured, measured with alerts,
+or on to runbooks. Only then does it read the code of the services the stages you take further reach, along their
+path: from where the stage's steps start, every function a case passes through and what those call, the stores they
+open, and each service's monitoring hooks; every other file is listed as not read. To read every line instead, set
+`"reading": "full"` in the run's `run-settings.json`; a stage you leave mapped only keeps its steps and which services carry each, and what is inside those
+services is marked not read. Taking a stage further later reads its services then, before its measures. You can take any number of stages to any depth, with the run's recommendation in front of you; a
 flow can be mapped and left there. The checks follow each stage's depth: a stage you left mapped only is held to its
 map and nothing more, and the run is done when every stage you took further passes at the depth you picked. Decide
 how far each stage goes before the run moves on: you can take a stage further while the run is still under way, but
@@ -110,12 +115,10 @@ covers what changes with the number of services. Tests of many parts of one kind
 shared dependencies are tested first, and a called service's own databases are reached through its tests. Citations
 are checked by sample, and every citation starts at the workspace root. The check holds each stage to the depth you
 picked for it, and the flow to its own measures. A capability spread over several repositories is not
-yet proven at that size. By default a run reads every service the flow touches. Two more things
-help:
-- only for a run that has to be cut, add: *For the stages I take past mapping, read the code of the services that
-  carry them in full. For the flow's other services, read only what you need to place them, and gap their measures
-  with the reason "not read in this run".* Those gaps stay until those services are read; taking more stages further
-  on a finished register is not supported yet (KNOWN-GAPS.md).
+yet proven at that size. A run reads in full only the services of the stages you take past mapped only, so the
+time to your pick does not grow with the size of the code. Two more things help:
+- at the first brief, leave out any service the flow does not need: the go takes your word for it, and its parts are
+  then gapped "not read in this run";
 - open each repository as a folder of one workspace, and list each in `sources.csv` with its commit.
 
 Read `KNOWN-GAPS.md` for what is still open at that size.

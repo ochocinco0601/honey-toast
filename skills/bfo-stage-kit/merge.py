@@ -280,10 +280,40 @@ def scopes(reg):
     got = go.load_all(reg)
     ins = None
     if any("services_in" in s for s in got):
-        ins = {n.strip().lower() for s in got for n in s.get("services_in") or [] if n.strip()}
+        ins = set()
+        for s in got:  # a flow read by stage reads, of what its go took in, the services of the stages it took further
+            took = {n.strip().lower() for n in s.get("services_in") or [] if n.strip()}
+            staged = go.staged_services(reg, s)
+            ins |= took if staged is None else (took & staged) | go.reached(s)
         ins |= go.got_after(got, go.surveyed_services(reg))
     outs = {n.strip().lower(): n.strip() for s in got for n in s.get("services_out") or [] if n.strip()}
     return ins, outs
+
+
+PLACEHOLDERS = "merge/lead-rows/placeholders.csv"
+
+
+def finished_placeholders(reg, lead_s, flow_now):
+    """{service lower case: the lead's row, with its `flow`}: each placeholder a finished flow's lead wrote at the level
+    of the service (merge/lead-rows/placeholders.csv, its flow not the one worked now), by the surveyed service its row
+    is (go.service_of)."""
+    reg = pathlib.Path(reg)
+    by_id = {(r.get("subject_id") or "").strip(): r for r in lead_s}
+    out = {}
+    for p in tables.dicts(reg / PLACEHOLDERS):
+        sid, fl = (p.get("subject_id") or "").strip(), (p.get("flow") or "").strip()
+        row = by_id.get(sid)
+        if row is None or not fl or fl == flow_now:
+            continue
+        svc = go.service_of(reg, row)
+        if svc:
+            out.setdefault(svc, dict(row, flow=fl))
+    return out
+
+
+def is_service_row(r):
+    """A unit's element that is the service itself: application band, and not recorded as a store or a platform."""
+    return (r.get("band") or "").strip() == "application" and not go.recorded_not_a_service(r, go.part_families())
 
 
 def out_of_scope_units(reg):
@@ -389,6 +419,10 @@ def build(reg, write=False, out=None):
         band[r.get("subject_id", "")] = r.get("band", "")
     n = max(max_id(lead_s, "S"), record_max(record, "S"))
     unit_elements = []
+    # a finished flow's placeholder for a service this merge reads: the reader's row for that service takes its id,
+    # so the service is one part, and the placeholder's row is replaced by a correction the merge records
+    finished_ph = finished_placeholders(reg, lead_s, flow_now)
+    taken_over = {}
     for u in units:
         for r in data[u]["subjects"]:
             if r.get("kind", "").strip() == "relationship":
@@ -399,8 +433,14 @@ def build(reg, write=False, out=None):
                 problems.append(f"units/{u}/subjects.csv {r.get('row_id')}: subject_id {local} used twice")
                 continue
             rec = element_record(u, r)
+            ph = finished_ph.get(dep_of.get(u, u).lower())
             if rec:
                 sid = rec["subject_id"]
+                if ph and sid == ph["subject_id"]:
+                    taken_over[sid] = ph
+            elif ph and ph["subject_id"] not in taken_over and is_service_row(r):
+                sid = ph["subject_id"]
+                taken_over[sid] = ph
             else:
                 n += 1
                 sid = f"S{n:02d}"
@@ -499,6 +539,8 @@ def build(reg, write=False, out=None):
 
     out_s = []
     for r in lead_s:
+        if (r.get("subject_id") or "").strip() in taken_over:  # the reader's row stands in its place
+            continue
         row = dict(r)
         for c in ID_CELLS:
             row[c] = lead_id(row.get(c)) or row.get(c, "")
@@ -525,6 +567,10 @@ def build(reg, write=False, out=None):
                 continue
             row = (settle(rec, row, f"merge: units/{u}/subjects {rid} corrected")
                    if unit_fixed(u, "subjects", rid, rec) else now_of(rec))
+        elif sid in taken_over:
+            ph = taken_over[sid]
+            row = settle(ph, row, f"merge: {dep_of.get(u, u)} read in flow {flow_now}, in place of flow "
+                                  f"{ph.get('flow', '')}'s placeholder")
         els.append(keep("element", row, u, local, rid))
 
     # relationships
@@ -775,9 +821,40 @@ def build(reg, write=False, out=None):
              layout.UNMATCHED_CSV: tables.text(UNMATCHED_COLS, unmatched),
              layout.OUT_OF_SCOPE_CSV: tables.text(UNMATCHED_COLS, out_of_scope),
              layout.SUMMARY_JSON: json.dumps(summary, indent=1) + "\n"}
+    gaps_now = read_gaps(reg, taken_over, kit)
+    if gaps_now is not None:
+        files["measure-gaps.csv"] = gaps_now
     if out is not None:
         out.update(kit=kit, resolution=resolution, header=header)
     return files, summary, problems
+
+
+def read_gaps(reg, taken_over, kit):
+    """measure-gaps.csv without the `not read` gaps of the parts a later flow now reads (a finished flow's placeholder
+    whose id the reader's row took), each removal appended to `kit` as a correction the merge records, so the freeze
+    accepts it; None when there is nothing to remove."""
+    if not taken_over:
+        return None
+    reg = pathlib.Path(reg)
+    cols, gaps = tables.table(reg / "measure-gaps.csv")
+    if not cols:
+        return None
+    fixes = go.applied_corrections(reg, "measure-gaps")
+    keep_rows, gone = [], []
+    for g in gaps:
+        if (g.get("element") or "").strip() in taken_over and (g.get("kind") or "").strip() == "not read":
+            gone.append(g)
+        else:
+            keep_rows.append(g)
+    if not gone:
+        return None
+    for g in gone:
+        key = go.row_key("measure-gaps", g)
+        if not go.removed(fixes, key):
+            kit.append({"table": "measure-gaps", "row": key, "column": "", "before": json.dumps(g, ensure_ascii=False),
+                        "after": go.REMOVED, "source": f"merge: {(g.get('element') or '').strip()} read by a later flow",
+                        "why": "a finished flow's gap the merge no longer gives: the part is read now"})
+    return tables.text(cols, keep_rows)
 
 
 IDS_CSV = f"{layout.MERGE}/ids.csv"  # the resolution record: every finished flow's merge output, whole rows
