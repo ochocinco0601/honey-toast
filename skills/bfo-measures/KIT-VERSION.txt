@@ -1,9 +1,10 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9.3 2026-11-18
+Build: release-9.4 2026-11-19
 2bccdf9e80e7  MEASURES-STEPS.md
 d689dc2d4fad  SKILL.md
 cad46fa40608  agents/bfo-row-judge.md
 bd12e7694752  agents/bfo-unit-reader.md
+d4de8a382c95  all_systems.py
 c30a60799d22  brief.py
 14e1e7b16451  capability_views.py
 7fd0f62b0c36  case.py
@@ -13,7 +14,7 @@ e44c48e74fa7  check_map.py
 d17abfb87fea  flow_outputs.py
 9726ce65121a  flow_page.py
 a79f7c23256b  go.py
-ba566fb2fb05  home.py
+e89b751b9dda  home.py
 db0a5083ced3  home.template.html
 7484d97f3789  judges.py
 c1f12b4f6f27  listener.py
@@ -26,11 +27,11 @@ e4270c8420b7  method/hop-failures.csv
 26b056624634  method/layers.csv
 8691712fae7c  method/measure-forms.csv
 6eb53baafd1f  method/part-kinds.csv
-c0f82e61832b  one_canvas.py
-4ef50cdcda25  operator_page.py
+895c93bf24d0  one_canvas.py
+47c3bcf4ce39  operator_page.py
 62505e86aebd  page/page-kit.js
 a70780da699b  page/page_ask.py
-582d8cd60c0f  page_style.py
+1e15b3afa36f  page_style.py
 23af20bcb75a  part_inside.py
 70d09a6bd2b0  part_page.py
 b3da928d90e1  paths.py
@@ -44,9 +45,9 @@ b0f183b881b2  reconcile.py
 55491c31e702  reference/runbook-model.md
 44305e83ebd5  reference/vocabulary.md
 decb8b3b30d9  reference/what-each-level-can-report.md
-9e437b3db399  register-template/REGISTER.md
+741c2a4814ab  register-template/REGISTER.md
 78295c695576  register-template/RUN.md
-083910e9e61e  register-template/about.csv
+9daa048e353f  register-template/about.csv
 fd9fdcf6ca52  register-template/agent-system.csv
 01b09d04b649  register-template/alerts.csv
 761ef299c677  register-template/capabilities.csv

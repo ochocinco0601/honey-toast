@@ -1,14 +1,20 @@
 """The say-back: before anything is read in depth, the run says back what it understood, as a review step on the run
 page (each line correctable, one Start), and waits for the person. On a case picked up (a register), Run status shows
-nothing waiting on the person, so the lines and the ask (carry on, or correct a line) go in the chat instead.
+nothing waiting on the person, so the lines and the ask (numbered: carry on, or change a line) go in the chat instead.
+What the person meant is the session's reading, never a match against a list of words: a typed answer is recorded
+with that reading (--as) beside their words, word for word.
 
 Usage: python say_back.py draft <folder> --lines <json file> [--register <register>]
            write the lines and print the chat's one line (MESSAGE) and the wait (WAIT). <folder> is the work folder
            (bfo-work) on a fresh start, or the register picked up on a resume. The json holds the session's lines:
            application, code, wants, answered (fresh); application, proposal, and wants if their words say it
            (resume). The earlier work is drawn here, from what the workspace and the case record hold.
-       python say_back.py answer <folder> (--answers <answers file> | --words "<their words, word for word>") [--test]
-           record the person's Start or correction, with the lines they were shown
+       python say_back.py answer <folder> (--answers <answers file> |
+                                           --words "<their words, word for word>" --as start|correct|search-yes|search-no)
+                                          [--test]
+           record the person's Start or correction, with the lines they were shown. --as is the session's reading of
+           what they meant: a go in any wording, or the number of the go, is start; a line to change is correct; to
+           the search, yes or no. When the session cannot tell, it asks them and records nothing.
        python say_back.py earlier <workspace root> [--folder <register>]
            print the earlier-work line
 
@@ -19,7 +25,6 @@ decisions.jsonl on a resume), through case.py; start_register.py copies them int
 """
 import json
 import pathlib
-import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -35,11 +40,15 @@ LABELS = (("application", "Application"), ("code", "Code found in this window"),
 NEEDS = {"fresh": ("application", "code", "wants", "answered"), "resume": ("application", "proposal")}
 MAX_WORDS = 30
 MESSAGE = "What I understood is on the page, {url}: correct any line there, or press Start."  # one line: the address cannot be dropped
-NO_PAGE = "The page could not be opened. Here is what I understood: correct any line, or say start."
+NO_PAGE = "The page could not be opened. Here is what I understood:"
 # A case picked up: Run status shows nothing waiting on the person, so the lines and the ask are in the chat.
-RESUME = "Here is what I understood. Say carry on, or tell me which line is wrong and what it should be."
-START_WORDS = {"start", "yes", "y", "go", "ok", "okay", "go ahead", "yes start", "start it", "yes go ahead", "sure",
-               "carry on", "yes carry on", "carry on please", "please carry on"}
+RESUME = "Here is what I understood:"
+# The ask under the lines in the chat: the choices numbered, and any wording taken for what it means.
+ASK = ("**Waiting on you: is this right?**\n"
+       "1. That's right: {go}\n"
+       "2. Change a line: tell me which, and what it should be\n\n"
+       "Reply with a number, or in your own words.")
+READINGS = ("start", "correct", "search-yes", "search-no")
 # Each flow's case state as the earlier-work line counts it, in this order; a flow with no state is not started.
 STATE_WORDS = (("mapped", "mapped and checked"), (case.ENDED, "not checked: you stopped the checks"),
                ("mapping", "under way"), (None, "not started"))
@@ -172,9 +181,6 @@ def load(folder):
         return None
 
 
-NO_WORDS = {"no", "n", "nope", "no thanks", "dont", "do not", "not there"}
-
-
 def search_question(application, place):
     """The one question asked in place of Start when the code is not open: the application by its name alone."""
     name = application.split(",", 1)[0].strip() or "the system"
@@ -212,7 +218,7 @@ def draft(folder, given, register=None):
     return sb, ""
 
 
-def answer(folder, answers=None, words=None, test=False):
+def answer(folder, answers=None, words=None, test=False, reading=None):
     """(what to print, exit code)."""
     folder = pathlib.Path(folder).resolve()
     sb = load(folder)
@@ -248,14 +254,22 @@ def answer(folder, answers=None, words=None, test=False):
                 "search-no": "pressed No on the page"}.get(action, text)
         source = "page"
     else:
-        said = words or ""
-        norm = re.sub(r"[^\w ]", "", said.lower()).strip()
-        if not norm:
+        said = (words or "").strip()
+        if not said:
             return "REFUSED: no words given. Nothing written.", 2
-        if sb.get("search"):  # the question on the page is the search: a yes or no answers it, never Start
-            action = "search-yes" if norm in START_WORDS else "search-no" if norm in NO_WORDS else "correct"
-        else:
-            action = "start" if norm in START_WORDS else "correct"
+        if reading not in READINGS:
+            return ("REFUSED: say how you read their words, with --as: start (a go, in any wording, or the number of "
+                    "the go), correct (a line to change)"
+                    + (", or search-yes / search-no (their answer to the search)" if sb.get("search") else "")
+                    + ". If you cannot tell what they meant, ask them in one line, through say, and record nothing. "
+                      "Nothing written."), 2
+        searching = bool(sb.get("search"))
+        if searching and reading == "start":
+            return ("REFUSED: the search is still asked, so a go answers it: record it as search-yes, or as "
+                    "search-no if they declined. Nothing written."), 2
+        if not searching and reading in ("search-yes", "search-no"):
+            return "REFUSED: an answer to a search that was not asked. Nothing written.", 2
+        action = reading
         source = "chat"
     if action in ("search-yes", "search-no"):
         entry = case.decide(folder, STOP, sb["shown"], said, source, test, into=DECISIONS if sb["kind"] == "fresh"
@@ -287,7 +301,7 @@ def answer(folder, answers=None, words=None, test=False):
         return f"STARTED: recorded, with the lines shown. Now {then}.", 0
     if sb["kind"] == "resume":
         return ("CORRECTED: recorded. Redraft the lines with this and run say_back.py draft again, and send what it "
-                f"prints; read nothing before they say carry on. Their correction: {said}"), 0
+                f"prints; read nothing before they answer. Their correction: {said}"), 0
     return ("CORRECTED: recorded. Redraft the lines with this and run say_back.py draft again (the page shows them "
             f"and the run waits again); read nothing before Start. Their correction: {said}"), 0
 
@@ -337,23 +351,25 @@ def main(argv):
         print(f"DRAFTED: {folder / FILE}")
         if sb["kind"] == "resume":  # no page asks it: the answer comes in the chat
             print("SEND: the text after MESSAGE is your whole reply this turn, copied exactly; then end your turn. "
-                  "Their answer comes in the chat. Start no helper and read no code until they say carry on.")
-            print("MESSAGE:\n" + RESUME + "\n\n" + listed)
+                  "Their answer comes in the chat. Start no helper and read no code until they answer.")
+            print("MESSAGE:\n" + RESUME + "\n\n" + listed + "\n\n" + ASK.format(go="carry on"))
             return 0
         url = address(folder)
         print(f"WAIT: Start the wait on the page before you end your turn. {wait(folder)}")
         print("SEND: the text after MESSAGE is your whole reply this turn, copied exactly. Start no helper and read "
               "no code until the person presses Start or says start.")
-        body = MESSAGE.format(url=url) if url else NO_PAGE + "\n\n" + listed
+        body = MESSAGE.format(url=url) if url else NO_PAGE + "\n\n" + listed + "\n\n" + ASK.format(go="start")
         print("MESSAGE:\n" + body)
         return 0
     answers, args = option(args, "--answers")
     words, args = option(args, "--words")
+    reading, args = option(args, "--as")
     test = "--test" in args
     if (answers is None) == (words is None):
-        print("REFUSED: give --answers <file> or --words \"<their words>\". Nothing written.", file=sys.stderr)
+        print("REFUSED: give --answers <file> or --words \"<their words>\" --as <your reading>. Nothing written.",
+              file=sys.stderr)
         return 2
-    said, code = answer(folder, answers, words, test)
+    said, code = answer(folder, answers, words, test, reading)
     print(said, file=sys.stderr if code else sys.stdout)
     return code
 

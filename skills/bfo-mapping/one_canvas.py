@@ -1196,7 +1196,11 @@ MADE_FILE = "how-this-map-was-made.html"
 
 def home_link():
     """The way back to the home screen, at the top of a page beside the map, while ps.home_beside says it is there."""
-    return f'<p class="homelink"><a href="{ps.HOME_FILE}">{ps.HOME}</a></p>' if ps.home_on() else ""
+    if not ps.home_on():
+        return ""
+    up = (f'<a href="{ps.all_systems_href(ps.HOME_FILE)}">{ps.ALL_SYSTEMS}</a>{ps.TRAIL_SEP}'
+          if ps.all_systems_on() else "")
+    return f'<p class="homelink">{up}<a href="{ps.HOME_FILE}">{ps.HOME}</a></p>'
 
 
 def made_page(M, reg_label, checked):

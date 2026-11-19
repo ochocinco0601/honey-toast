@@ -81,22 +81,40 @@ SECTIONS = {
 MAP = "Map"  # the trail's first crumb, which opens the map
 HOME = "Home"  # the crumb before it, while the pages are drawn beside the home screen (home_beside)
 HOME_FILE = "index.html"  # the home screen, the register folder's own page
-_home = []  # one entry per home_beside block: whether the home screen sits in that folder
+WORK = "bfo-work"  # the workspace's work folder, one register folder per system in it
+ALL_SYSTEMS = "All systems"  # the work folder's own page (HOME_FILE there), listing every register in it
+_home = []  # one entry per home_beside block: (whether the home screen sits in that folder, whether All systems is above it)
+
+
+def all_systems_above(folder):
+    """Whether the register `folder` sits in the work folder and the All systems page is drawn there."""
+    up = _pathlib.Path(folder).resolve().parent
+    return up.name == WORK and (up / HOME_FILE).is_file()
 
 
 @_contextlib.contextmanager
 def home_beside(folder):
     """While drawing pages for `folder`, the folder holding the map: a trail that starts at the map starts at Home
     first when the home screen (HOME_FILE) sits in that folder."""
-    _home.append((_pathlib.Path(folder) / HOME_FILE).is_file())
+    here = (_pathlib.Path(folder) / HOME_FILE).is_file()
+    _home.append((here, here and all_systems_above(folder)))
     try:
-        yield _home[-1]
+        yield here
     finally:
         _home.pop()
 
 
 def home_on():
-    return bool(_home and _home[-1])
+    return bool(_home and _home[-1][0])
+
+
+def all_systems_on():
+    return bool(_home and _home[-1][1])
+
+
+def all_systems_href(home):
+    """The All systems page, from wherever `home` reaches the home screen."""
+    return _posixpath.join(_posixpath.dirname(home), "..", HOME_FILE)
 
 
 def home_href(map_href):
@@ -112,6 +130,8 @@ def frame_head(trail, title, here=None):
     E = _html.escape
     if home_on() and trail and trail[0][0] == MAP and trail[0][1]:
         trail = [(HOME, home_href(trail[0][1]))] + list(trail)
+        if all_systems_on():
+            trail = [(ALL_SYSTEMS, all_systems_href(trail[0][1]))] + trail
     links = [f'<a href="{E(h)}">{E(w)}</a>' if h else f"<span>{E(w)}</span>" for w, h in trail]
     links.append(f'<span aria-current="page">{E(title if here is None else here)}</span>')
     return f'<p class="trail">{TRAIL_SEP.join(links)}</p><h1>{E(title)}</h1>'

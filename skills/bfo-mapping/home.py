@@ -35,6 +35,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import capability_views as cv  # noqa: E402
 import depth  # noqa: E402
+import page_style as ps  # noqa: E402
 import run_lock  # noqa: E402
 import step_sequence as ss  # noqa: E402
 
@@ -770,6 +771,7 @@ def identity_html(reg, flows):
     about = cv.read_csv(reg / "about.csv") if (reg / "about.csv").is_file() else []
     system, prop = ss.unproposed((about[0].get("system") if about else "") or "")
     system = system.strip() + (" (proposed)" if prop and system.strip() else "")
+    app_id = ((about[0].get("application_id") if about else "") or "").strip()
     try:
         what = (json.loads((reg / "orientation.json").read_text(encoding="utf-8")).get("capability") or {}).get("what")
     except (OSError, ValueError, AttributeError):
@@ -777,7 +779,7 @@ def identity_html(reg, flows):
     n = len(flows)
     progress = " · ".join(f"{label} {sum(1 for fl in flows if fl.status(p) in FILLED_WHEN[p])}/{n}"
                           for p, label in PROGRESS)
-    rows = [("Application", system, True), ("Application ID", "", False), ("Line of business", "", False),
+    rows = [("Application", system, True), ("Application ID", app_id, False), ("Line of business", "", False),
             ("What it does", (what or "").strip(), False), ("Flows", str(n), False), ("Progress", progress, False)]
     cells = "".join(f'<span class="il">{E(k)}</span>'
                     + (f'<span>{"<b>" + E(v) + "</b>" if bold else E(v)}</span>' if v
@@ -788,8 +790,7 @@ def identity_html(reg, flows):
 
 def render(reg, d):
     reg = pathlib.Path(reg)
-    name, prop = ss.unproposed(d.get("capability") or "")  # a drafted capability name reads "(proposed)" too
-    d = dict(d, _title=(name.strip() + (" (proposed)" if prop else "")) if name.strip() else d.get("register") or reg.name)
+    d = dict(d, _title=title(reg, d))
     counted = counted_at_stand_in(reg)
     flows = [Flow(reg, d, i, f, counted) for i, f in enumerate(d.get("flows") or [])]
     head = ('<div class="trk hd"><span>Flow</span>' + "".join(
@@ -800,7 +801,9 @@ def render(reg, d):
                else '<span class="off">The map</span>')
     sources = '<a class="go" href="sources.html">Sources</a>' if (reg / "sources.csv").is_file() else ""
     status = '<a class="go" href="operator.html">Run status</a>' if (reg / "RUN.md").is_file() else ""
-    nav = (f'<div class="nav"><span class="sys">{E(d["_title"])}</span><a class="go on" href="{FILE}" '
+    up = (f'<a class="go" href="{ps.all_systems_href(FILE)}">{ps.ALL_SYSTEMS}</a>'
+          if ps.all_systems_above(reg) else "")
+    nav = (f'<div class="nav">{up}<span class="sys">{E(d["_title"])}</span><a class="go on" href="{FILE}" '
            f'aria-current="page">Home</a>{the_map}{sources}{status}<span class="sp2"></span></div>')
     blind = ("Found is only what has been found so far; a traced flow shows only what its trace found."
              if any(fl.mapped for fl in flows) else "Found is only what has been found so far.")
@@ -819,9 +822,17 @@ def render(reg, d):
     return page.replace('<meta charset="utf-8">', f'<meta charset="utf-8">\n<meta name="drawn" content="{stamp}">', 1)
 
 
+def title(reg, d):
+    """The system's name as the run's pages show it: the capability's, "(proposed)" while drafted, else the register's."""
+    name, prop = ss.unproposed(d.get("capability") or "")  # a drafted capability name reads "(proposed)" too
+    return (name.strip() + (" (proposed)" if prop else "")) if name.strip() else d.get("register") or pathlib.Path(reg).name
+
+
 def write(reg):
     reg = pathlib.Path(reg)
     d = json.loads((reg / depth.FILE).read_text(encoding="utf-8"))
+    import all_systems  # the work folder's list of every system: there before the link to it, listing this one after
+    all_systems.update(reg)
     # written beside it and moved into place in one step, so the open page never fetches half of it
     part = reg / (FILE + ".part")
     part.write_text(render(reg, d), encoding="utf-8", newline="\n")
@@ -837,6 +848,7 @@ def write(reg):
     except OSError:
         part.unlink(missing_ok=True)
         raise
+    all_systems.update(reg)
     return reg / FILE
 
 

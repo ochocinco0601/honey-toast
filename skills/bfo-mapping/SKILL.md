@@ -18,12 +18,15 @@ That script puts the lines on the run page as a review step, with one Start and 
 chat's one line after `MESSAGE:` and the wait after `WAIT:`. Start that wait, and send the text after `MESSAGE:`,
 exactly as printed, as your whole reply this turn, with no text before it, not even a line that you are starting
 something; then end your turn. Start no helper and open no code until their Start. A script's output left inside its
-tool call never reaches the person. On a case picked up, no page asks it: `MESSAGE:` holds the lines themselves and asks
-them to say carry on or correct a line, in the chat, and no `WAIT:` is printed; send it and end your turn.
+tool call never reaches the person. On a case picked up, no page asks it: `MESSAGE:` holds the lines themselves and asks,
+with numbered choices, whether to carry on or change a line, in the chat, and no `WAIT:` is printed; send it and end your turn.
 
 **Their answer to the say-back** comes from the page (an `ANSWERS` line whose file holds `say_back`) or typed in the
 chat. Record it with `python "<skill>/say_back.py" answer "<the folder you drafted in>" --answers "<file>"` or
-`--words "<their words, word for word>"`. On `STARTED`, do what it says: on a fresh start, start the first-look
+`--words "<their words, word for word>" --as <your reading>`. The reading is yours, from what they meant, never
+from a list of words: `start` for a go in any wording ("continue", "looks good", "1"), `correct` for a line to
+change, and while the search is asked `search-yes` or `search-no`. If you cannot tell what they meant, ask them in
+one line, through `say`, and record nothing. On `STARTED`, do what it says: on a fresh start, start the first-look
 helper ("The first look runs in one helper", below) with their request and the lines they started, and send one line,
 through `say`, that the first look is under way; on a case picked up, carry on with what the last line proposed.
 On `CORRECTED`, redraft the lines with their correction, run `say_back.py draft` again, send what it prints, and wait

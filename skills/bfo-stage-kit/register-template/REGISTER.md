@@ -51,6 +51,7 @@ and every check in the code has a row there.
 | Column | What goes in it |
 |---|---|
 | system | The name the business uses for the system or estate that carries the capability |
+| application_id | Optional. The ID this application is registered under in the organisation's configuration database (an application id or configuration item), as the person gave it or a source states it. Blank where neither does. A component's own ID is `subjects.csv` → `application_id` |
 | what_it_is | Two or three sentences: what the system does, for whom |
 | modelled_from | How this register was made: from what, by what method, and what is proposed |
 | sources_examined | Everything you read or asked, so a reader knows what "not assessed" covers |

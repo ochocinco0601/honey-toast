@@ -8,7 +8,56 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
-## Release 9.3
+## Release 9.4 — 2026-11-19
+
+The Sources page, redrawn; one page listing every system you have run the kit on; a place for the application's ID;
+and the check of what the run understood answered in your own words. Nothing else changes: a run behaves as in
+Release 9.3, and the Before you start steps of Release 9.3 still apply if you have not taken them.
+
+### What you will notice
+
+- **"Is this right?" takes your own words.** When the run checks what it understood (on a run picked up again,
+  in the chat), it now lists your choices, numbered: *1. That's right: carry on* and *2. Change a line*. Reply with
+  a number or in your own words: "continue", "looks good" or "yes please" now start the run. Before, only a few
+  exact phrases such as "carry on" did; anything else was taken as a correction and you were asked again. If the
+  run cannot tell what you meant, it asks you instead of guessing. The same holds for the question whether it may
+  search for the code.
+  Effect: none.
+- **The Sources page lists one row per source.** A source is the place material came from: a repository, a
+  document, a person, or the run's own analysis. Each row gives its number, its name with a one-line description,
+  its type, the version read, and who found it (you or the run). Separate repositories are never merged into one
+  row. Folders of one repository share its row when the repository's history (its `.git` folder) is in the
+  workspace; copied in without it, each folder named in the sources list is a row of its own.
+  Effect: none.
+- **What was taken from a source is one click away.** The arrow at the left of a row opens the folders and files
+  read from that source, each with what it was used for. Click it again to close it.
+  Effect: none.
+- **Links.** A repository with a web address in its history links to that address at the commit read. A file or
+  folder in the run's workspace opens in VS Code.
+  Effect: none.
+- **Could not be reached** is a table of its own, numbered on from the sources, with each reason in its own column.
+  Effect: none.
+- **Every column is always shown.** Where the run did not record a value (a version, or who found a source, in a
+  register made before those were recorded), the cell says "not recorded".
+  Effect: none.
+- **One page lists every system you have run the kit on, at an address that never changes.** `index.html` in the
+  `bfo-work` folder at the root of your workspace, titled All systems: one row per system, newest first, with its
+  folder, its flows, where it stands and when it last changed, and its name opening its Home. It is a file, so it
+  opens with no run going: bookmark it once. Every page of a run in that folder now starts its top bar or trail with
+  an All systems link back to it. Before, the only list was the run's page, whose address changed with every run.
+  The page is written the next time a Home in the folder is drawn; to have it now, with no run, run
+  `python <kit folder>/all_systems.py bfo-work` from your workspace root. A Home drawn before this release gains its
+  link back when it is next drawn (`python <kit folder>/home.py bfo-work/<system>`).
+  Effect: none.
+- **`about.csv` has a new optional column, `application_id`**: the ID the application is registered under in the
+  organisation's configuration database. It is filled only from the person's request or a source read, never
+  derived from a name (FILL-STEPS, Before you start 4). The home page's "Application ID" line shows it, or "not
+  recorded" where it is blank.
+  Effect: none. The column is optional; a register without it is still accepted.
+
+The pages are drawn from the register as it is; nothing in a register changes.
+
+## Release 9.3 — 2026-11-18
 
 A fix to Release 9.2.
 

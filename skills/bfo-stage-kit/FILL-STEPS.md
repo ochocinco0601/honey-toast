@@ -108,6 +108,7 @@ page on an error. A script handed a folder that is not a register refuses it and
    | `subjects.csv` → `owner`, `responder`, `application_id` | A catalogue or configuration database entry; a runbook; a person | Step 5 |
    | `stages.csv` → `arrivals_per_period` and other volumes | The operators (never derived) | Step 3 |
    | `about.csv` → `what_it_is` (configuration) | Deployment definitions | Before you start 4 |
+   | `about.csv` → `application_id` | A configuration database entry; a person | Before you start 4 |
    | `capabilities.csv` route 2 missing | A document saying what the organisation does | Step 8 |
    | A part with `repository` blank, an external dependency with no source | Its repository or its owner's documents | Step 6; item 5 |
 
@@ -124,7 +125,9 @@ page on an error. A script handed a folder that is not a register refuses it and
 4. Name the configuration you describe: which optional components are switched on. Describe the one that runs
    in production, or, where several do, the one that carries the capability's AI agent. Write it in
    `about.csv` → `what_it_is`. If no source says which runs in production, describe the fullest one the
-   repository defines, and write `proposed:` and why.
+   repository defines, and write `proposed:` and why. Write the application's own ID in the organisation's
+   configuration database in `about.csv` → `application_id` where the person gave it or a source you read states
+   it, and leave it blank otherwise; never derive it from a name.
 5. **A call that leaves the workspace.** When the walk (Step 2) meets a call to a deployable whose code is not in
    the workspace, name it from what the call shows: an address, a client package, a queue or topic name, an image.
    If the person has already agreed to a search that covers it, the place and the kind of code they agreed to

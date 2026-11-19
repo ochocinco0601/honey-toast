@@ -786,11 +786,14 @@ def render(reg, now=None, starting=False):
         steps = '<li class="step off"><span class="n">No run record (RUN.md) in this folder yet</span></li>'
     # the run's home once drawn; before it, the work page at the listener's root, which shows the sources and progress
     home_href, home_name = ("index.html", "Home") if (reg / "index.html").is_file() else ("/", "The run at work")
+    import page_style as ps
+    up = (f'<a class="go" href="{ps.all_systems_href(home_href)}">{ps.ALL_SYSTEMS}</a>'
+          if home_name == "Home" and ps.all_systems_above(reg) else "")
     drawn = ("" if asking
              else "No run folder yet: the first look over the system is under way. " if starting
              else f"Drawn from the run's record in {E(reg.name)}. ")
     body = f"""<div class="page"><div class="screen">
-<div class="nav"><span class="sys">{E(m["title"])}</span><a class="go" href="{home_href}">{home_name}</a><a class="go on" href="{FILE}" aria-current="page">Run status</a></div>
+<div class="nav">{up}<span class="sys">{E(m["title"])}</span><a class="go" href="{home_href}">{home_name}</a><a class="go on" href="{FILE}" aria-current="page">Run status</a></div>
 <div class="head"><div class="titlerow"><h1>{E(m["title"])}{flow}</h1>{badge}</div>
 <div class="sub">{"".join(sub)}</div></div>
 <div class="body{' ask' if m['action']['kind'] == 'say_back' else ''}"><nav class="rail" aria-label="Steps"><h2>Progress</h2><ol class="steps">{steps}</ol></nav>

@@ -1,14 +1,15 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9.3 2026-11-18
-13b3977e94aa  CHANGELOG.md
+Build: release-9.4 2026-11-19
+4b2593db4c2a  CHANGELOG.md
 9dd8efc61a15  CHECKS.md
-8fa862e0745f  FILL-STEPS.md
+c42798929407  FILL-STEPS.md
 eb23465bf62d  KNOWN-GAPS.md
 255978c2faa1  LAUNCH.md
-43e685b0080a  SKILL.md
+2aaf2a00e6f2  SKILL.md
 92399014edd0  USE.md
 cad46fa40608  agents/bfo-row-judge.md
 bd12e7694752  agents/bfo-unit-reader.md
+d4de8a382c95  all_systems.py
 c30a60799d22  brief.py
 14e1e7b16451  capability_views.py
 7fd0f62b0c36  case.py
@@ -54,7 +55,7 @@ fb02b53513d8  example-eshop/participation.csv
 e49f72f7974f  example-eshop/remedies.csv
 3af9a5a92d00  example-eshop/set-aside.csv
 47ca92db8973  example-eshop/sources.csv
-964de6f1793a  example-eshop/sources.html
+fefa50f8e0c0  example-eshop/sources.html
 d9c56828f2e1  example-eshop/stage-ST1/ALERT.html
 c96f69dba5cf  example-eshop/stage-ST1/ALERT.md
 84d71e29d62b  example-eshop/stage-ST1/MEASURES.md
@@ -128,7 +129,7 @@ af655dd697d2  fact-extractor/semgrep_bin.py
 d17abfb87fea  flow_outputs.py
 9726ce65121a  flow_page.py
 a79f7c23256b  go.py
-ba566fb2fb05  home.py
+e89b751b9dda  home.py
 db0a5083ced3  home.template.html
 f33c507d0d0e  jobs.py
 7484d97f3789  judges.py
@@ -143,11 +144,11 @@ e4270c8420b7  method/hop-failures.csv
 8691712fae7c  method/measure-forms.csv
 6eb53baafd1f  method/part-kinds.csv
 fbe61398b215  next.py
-c0f82e61832b  one_canvas.py
-4ef50cdcda25  operator_page.py
+895c93bf24d0  one_canvas.py
+47c3bcf4ce39  operator_page.py
 62505e86aebd  page/page-kit.js
 a70780da699b  page/page_ask.py
-582d8cd60c0f  page_style.py
+1e15b3afa36f  page_style.py
 23af20bcb75a  part_inside.py
 70d09a6bd2b0  part_page.py
 b3da928d90e1  paths.py
@@ -161,9 +162,9 @@ b0f183b881b2  reconcile.py
 55491c31e702  reference/runbook-model.md
 7c038d2ffead  reference/vocabulary.md
 decb8b3b30d9  reference/what-each-level-can-report.md
-cf5c130d1085  register-template/REGISTER.md
+3a2166170980  register-template/REGISTER.md
 1add18ed80f9  register-template/RUN.md
-083910e9e61e  register-template/about.csv
+9daa048e353f  register-template/about.csv
 fd9fdcf6ca52  register-template/agent-system.csv
 01b09d04b649  register-template/alerts.csv
 761ef299c677  register-template/capabilities.csv
@@ -190,9 +191,9 @@ cac01f263e60  register_layout.py
 0e819788a02b  run_lock.py
 f40f4911f1de  run_page.py
 f8b4c7875bb5  run_status.py
-5ce0dd55ca38  say_back.py
+30a482c506ed  say_back.py
 31a8aa30149f  settings.py
-60d5c9bb9e4c  sources_page.py
+d93ca7887881  sources_page.py
 36af5ca6487a  split-run-formats.md
 1ae24ff2b922  stage_flow_views.py
 52d50ab98292  start.py
