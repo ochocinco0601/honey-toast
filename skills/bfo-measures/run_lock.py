@@ -104,7 +104,9 @@ def held_message(reg, d):
     release_cmd = (f'python start.py "{root or "<workspace root>"}" --release "{reg}" --words '
                    '"<the person\'s words, word for word>"')
     try:  # the run whose start step began the work in this workspace, as the start step recorded it
-        began = json.loads((reg.parent / "run-started.json").read_text(encoding="utf-8")) if root else {}
+        state = reg / "_run-state" / "run-started.json"
+        began = json.loads((state if state.is_file() else reg.parent / "run-started.json").read_text(
+            encoding="utf-8")) if root else {}
     except (OSError, ValueError):
         began = {}
     if began.get("run") and began.get("run") == d.get("run"):

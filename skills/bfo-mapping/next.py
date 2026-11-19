@@ -1,7 +1,8 @@
 """Run control for mapping one flow: decide the next action from the case record and the files on disk.
 
 Usage: python next.py <register folder> <flow id> [--by-kit] [--test] [--event stop "<the person's words>" | --event launcher-done <file>
-                                                     | --event chat "<the person's words>"]
+                                                     | --event chat "<the person's words>"
+                                                     | --event retry "<the person's words>"]
 
 Prints one action as JSON. The session does what it says and calls this again; it never decides the next step itself.
   judgment  a bounded task for the model: `task`, `write` (the tables it may write), `contract` (the checks it must
@@ -10,13 +11,19 @@ Prints one action as JSON. The session does what it says and calls this again; i
             the turn; call this again on each launcher's reply (--event launcher-done)
   wait      agents are still running; nothing to launch: end the turn and call this again on the next reply
   code      a step this script ran itself (`ran`), or one too long to run here (`command`, `wait`)
-  stop      a point where the run waits on the person: `stop`, `message` (written for them), `records_with`
+  stop      a point where the run waits on the person: `stop`, `message` (written for them), `records_with`;
+            `stop` "agents lost" is a step whose agents stopped without their work (an API error each time they were
+            launched, past run-settings.json `relaunches`, or a finish without it): the run never moves past it; on
+            the person's word to try again, call this with --event retry, which launches them afresh
   notify    a line the session sends as it is
 
 The order is mapping's, one flow at a time: lead steps, units listed, readers, merge, re-reads of calls between units,
 lead rows, judge round 1, fixers, judge round 2, the map drawn, the check, mapping ends; run by the stage kit
 (--by-kit), mapping is never ended here and the map stop hands the flow back to the kit for its pick. The case keeps where the flow is (case.py);
 every agent the run launches is a record there, opened before launch and closed when its unit's work is on disk.
+On every call, whatever it decides (a launch, a launcher's reply, a wait, a stop), it rewrites job/timings.csv, one
+row per agent attempt, timed from the agents' own transcripts (timings.py); a failure there is logged and never
+changes the action.
 """
 import json
 import pathlib
@@ -114,7 +121,7 @@ def _owed(reg, flow):
     return out
 
 
-def _fanout(reg, flow, sub, kind, rnd, units, lines):
+def _fanout(reg, flow, sub, kind, rnd, units, lines, lost=None):
     ptr = _pointers(lines)
     if ptr:
         for u in units:
@@ -123,10 +130,94 @@ def _fanout(reg, flow, sub, kind, rnd, units, lines):
                 "said": [x for x in lines if x not in ptr]}
     if _running(lines):
         return {"kind": "wait", "sub": sub, "said": lines}
+    gone = lost() if lost else []
+    if gone:  # nothing left to launch or running, and work still owed: the run stops here, its records kept open
+        return _lost_stop(reg, sub, gone, lines)
     for r in case.records(reg):
         if r["status"] == "open" and r["flow"] == flow and r["kind"] == kind and r["round"] == rnd:
             case.close_record(reg, r["id"])
     return None
+
+
+def _lost(reg, sub):
+    """The agents of this step whose owed output is not on disk: [(their unit, their prompt file, their state)]. A
+    reader owes its unit's files.csv for the flow worked now (readers.in_scope); a judge, its verdict file."""
+    reg = pathlib.Path(reg)
+    out = []
+    if sub == "readers":
+        out = [(u, layout.prompts_dir(reg, u) / "read.md") for u in readers.in_scope(reg)[0]]
+    elif sub in ("judge round 1", "judge round 2"):
+        rnd = int(sub[-1])
+        n = judges.settings(reg)["judges"]
+        for u in (judges._units(reg) if rnd == 1 else _flagged_units(reg)):
+            for row in judges.scope(reg, u, rnd, n, "flagged" if rnd == 2 else None):
+                for j in range(1, n + 1):
+                    v = judges.verdict_path(reg, row, rnd, j)
+                    if not v.is_file():
+                        out.append((u, layout.prompts_dir(reg, u) / f"{v.stem}.md"))
+    if not out:
+        return []
+    seen = judges.Launches(reg)
+    return [(u, f, seen.state(f)) for u, f in out]
+
+
+def _names(reg, units):
+    """The services the units are code of (units.csv `deployable`), as the person knows them."""
+    by = {(r.get("unit") or "").strip(): (r.get("deployable") or "").strip() or (r.get("unit") or "").strip()
+          for r in tables.dicts(pathlib.Path(reg) / layout.UNITS_CSV)}
+    got = list(dict.fromkeys(by.get(u, u) for u in units))
+    return got[0] if len(got) == 1 else ", ".join(got[:-1]) + " and " + got[-1]
+
+
+def _lost_stop(reg, sub, gone, lines):
+    """The stop on a step whose agents stopped without their work, rendered through brief.py say like the map stop."""
+    states = {st for _, _, st in gone}
+    if sub == "readers":
+        what = (f"Mapping has stopped before the map is put together: the code of {_names(reg, [u for u, _, _ in gone])} "
+                "was not read to the end, so the map would be missing what that code does.")
+    else:
+        n = len(gone)
+        what = (f"Mapping has stopped before the map is finished: {n} {'check' if n == 1 else 'checks'} of its "
+                "findings against the code did not finish, so the map would show those findings as if checked.")
+    why = []
+    if states & {"errored", "gave up"}:
+        why.append(f"Each try broke off on an error from the service that runs the model, and it was tried "
+                   f"{judges.relaunch_cap(reg) + 1} times.")
+    if "finished" in states or None in states:
+        why.append("A try finished without writing down what it found.")
+    if "ran a shell" in states:
+        why.append("A try used a tool it is not allowed, so its work cannot be counted.")
+    text = " ".join([what] + why + ["Nothing already done is lost. Say \"try again\" and it is done again."])
+    folder = pathlib.Path(reg) / MESSAGES
+    folder.mkdir(exist_ok=True)
+    f = folder / f"agents-lost-{sub.replace(' ', '-')}.md"
+    f.write_text(text, encoding="utf-8")
+    code, out = _run(["brief.py", "say", str(reg), str(f)])
+    case.log(reg, "agents lost", sub=sub, prompts=[pathlib.Path(p).as_posix() for _, p, _ in gone], states=sorted(
+        str(x) for x in states))
+    if code != 0:
+        return {"kind": "code", "sub": sub, "ok": False, "command": ["python", "brief.py", "say", str(reg), str(f)],
+                "said": out}
+    return {"kind": "stop", "stop": "agents lost", "sub": sub, "message": out, "said": lines,
+            "records_with": "next.py --event retry \"<their words>\" on their word to try again; else "
+                            "next.py --event chat"}
+
+
+def _retry(reg, sub):
+    """The person said to try again: tries of agents an API error stopped count from now, and the prompt file of each
+    agent of this step that stopped, finished or ran a shell without its work is removed, so it is launched afresh; a
+    reader that ran a shell first has what it wrote put back (provenance.undo_breaches, as readers.py --again does)."""
+    import datetime
+    reg = pathlib.Path(reg)
+    (reg / layout.PROMPTS).mkdir(parents=True, exist_ok=True)
+    (reg / layout.PROMPTS / judges.RETRY_FROM).write_text(
+        datetime.datetime.now(datetime.timezone.utc).isoformat(), encoding="utf-8")
+    for u, f, state in _lost(reg, sub):
+        if state == "ran a shell" and sub == "readers":
+            import provenance
+            provenance.undo_breaches(reg, u)
+        if state in ("finished", "errored", "gave up", "ran a shell"):
+            pathlib.Path(f).unlink(missing_ok=True)
 
 
 def _judgment(sub, task, write, contract, findings):
@@ -148,7 +239,8 @@ def _step(reg, flow, sub):
         owed, _ = readers.in_scope(reg)
         if not owed:
             return _fanout(reg, flow, sub, "reader", 1, [], [])
-        return _fanout(reg, flow, sub, "reader", 1, owed, readers.emit(reg, owed, "read"))
+        return _fanout(reg, flow, sub, "reader", 1, owed, readers.emit(reg, owed, "read"),
+                       lambda: _lost(reg, sub))
     if sub == "merge":
         return _code(reg, sub, ["merge.py", str(reg)])
     if sub == "re-reads":
@@ -168,7 +260,7 @@ def _step(reg, flow, sub):
         lines = []
         for u in units:
             lines += judges.emit(reg, u, rnd, "flagged" if rnd == 2 else None)
-        a = _fanout(reg, flow, sub, "judge", rnd, units, lines)
+        a = _fanout(reg, flow, sub, "judge", rnd, units, lines, lambda: _lost(reg, sub))
         if a is None:
             judges.collect(reg)
             case.log(reg, f"collected round {rnd}")
@@ -238,9 +330,31 @@ def _map_stop(reg, flow, ended, by_kit=False):
 
 def decide(reg, flow, event=None, by_kit=False, test=False):
     reg = pathlib.Path(reg)
-    refusal = _lock_refusal(reg)
-    if refusal:
-        return {"kind": "stop", "stop": "held", "message": refusal, "records_with": "start.py --release"}
+    try:
+        refusal = _lock_refusal(reg)
+        if refusal:
+            return {"kind": "stop", "stop": "held", "message": refusal, "records_with": "start.py --release"}
+        return _decide(reg, flow, event, by_kit, test)
+    finally:
+        _timings(reg, event[0] if event else "")
+
+
+def _timings(reg, why=""):
+    """Rewrite job/timings.csv (timings.refresh) on every call, whatever it decides: a launch, a launcher's reply, a
+    wait, and every stop (mapping ends, the person's stop, agents lost), so the run's timing record is current while a
+    step runs and holds when the run stops or crashes. It never changes the action: a failure to write it is logged to
+    events.log, never raised, and nothing is printed (this script's output is the action)."""
+    try:
+        import timings
+        timings.refresh(reg, why=f"next.py {why}".strip())
+    except Exception:  # noqa: BLE001  (an import failure: the record is for evaluation; run control goes on)
+        try:
+            case.log(reg, "timings.csv not written", said="timings.py could not be loaded")
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def _decide(reg, flow, event, by_kit, test):
     f = case.flow(reg, flow)
     if event:
         kind, payload = event
@@ -253,6 +367,8 @@ def decide(reg, flow, event=None, by_kit=False, test=False):
             a = _map_stop(reg, flow, True, by_kit)
             a["put_back"] = put_back
             return a
+        if kind == "retry":
+            _retry(reg, f.get("sub") or "")
         if kind == "chat":
             return _judgment(f.get("sub"), "Read the person's words: a topic to talk about, a redirect, a stop, or an answer "
                              "to the open question. Say back your reading in one line before anything that discards "

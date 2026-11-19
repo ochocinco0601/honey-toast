@@ -26,6 +26,7 @@ existing checks read; nothing below is written at the root except the merged tab
   job/jobs.csv               written only by jobs.py
   job/lock.json              written only by jobs.py
   job/events.log             written only by jobs.py, one line per change, appended
+  job/timings.csv            written only by timings.py, rewritten whole throughout the run (below)
   run.html                   the sponsor's page, written only by run_page.py
 ```
 
@@ -33,8 +34,12 @@ existing checks read; nothing below is written at the root except the merged tab
 
 ```json
 {"judges": 3, "judge_rounds": 2, "unit_lines": 4000, "parallel": 6, "merge_rereads": 50,
- "lock_stale_minutes": 20, "on_change": "python run_page.py {reg}"}
+ "lock_stale_minutes": 20, "relaunches": 2, "on_change": "python run_page.py {reg}"}
 ```
+
+`relaunches` is how many times an agent an API error stopped (its transcript ends on Claude Code's API error reply,
+or on retries of a failed request with nothing after them) before its owed output was written is launched afresh
+for the same prompt; 0 is none. Past it, run control stops on a problem it names to the person.
 
 `on_change` is run by `jobs.py` (cwd = the folder holding `jobs.py`'s caller's kit, placeholders `{reg}` and `{job}`)
 after every state change; empty means none. Any key may be missing; the defaults above are held once, in
@@ -62,7 +67,7 @@ a row in place; a row withdrawn is deleted and its id not reused.
 | `operations.csv` | `part,protocol,operation,source` | an operation this unit's part serves: `protocol` one of `http`, `message`, `rpc`; `operation` as served, for http `METHOD /full/path` with path parameters as `{name}`, for message the queue or topic consumed |
 | `calls.csv` | `from_part,protocol,to_unit,to_part,via,operation,within,sequence,step_hint,carries_case_id,source` | a call going out of this unit's part. `protocol` one of `http`, `message`, `rpc`, `db`, `cache`. For a call to another unit: `to_unit` set, `to_part` blank, `operation` as the caller writes it (`METHOD url-or-path`, or the queue/topic published to). For a call to a store, broker or other part with no unit: `to_part` names that part (a unit-local subject_id of this unit, or `external:<name>`), `to_unit` blank. `via` names the broker of a message call (`external:<name>` or a subject_id), else blank. `within`: the calling part's own operation or operations (`; `-separated) the call is made within, spelled as in this unit's operations.csv and participation.csv, never `proposed:`; blank too, with what was traced named in `source`, when the operation cannot be traced (`operation` is the one called); blank for a call no operation of the part makes (a scheduled or startup trigger), with the trigger named in `source`. `sequence`: the call's order within its process step as `<step>:<n>`, `; `-separated when the call is made in several steps, each step one of `step_hint`; `<step>` a step id from steps.csv; blank when the call repeats per item, runs in parallel or is not waited for, or is made on only one branch; within one step no two of the unit's calls share a number. `step_hint`: the step ids the call is made in, `; `-separated |
 | `participation.csv` | the register's `participation.csv` columns | which part takes part in which process step; `subject_id` unit-local |
-| `files.csv` | `path,status,reason` (no `row_id`) | every file of the unit's paths: `status` is `cited` or `not relevant`; `reason` required for `not relevant` |
+| `files.csv` | `path,status,reason` (no `row_id`) | every file the unit owes (`reading_check.owed_files`, listed in the reader's prompt: the files of the unit's paths but test code, generated and build output, vendored, binary, lock and minified files), and any other file the reader lists: `status` is `cited` or `not relevant`; `reason` required for `not relevant` (`test code` for a test file) |
 
 `source` cells (and any free text) cite code as `path:line` or `path:first-last`, paths relative to `<ws>`, exactly as
 the kit's reading check parses them. A row whose claim is an inference starts its claim cell with `proposed:`.
@@ -115,9 +120,10 @@ Every cell of `units/<unit>/*.csv` (never `files.csv`) is accounted for by a wri
 fails, whatever wrote it: a shell by absolute path or by `cd` and a relative one, a script, another tool.
 
 - **Writers.** Every session that wrote into `units/<unit>/` with Write, Edit or MultiEdit, judged by the tool's
-  resolved `file_path` and never by a shell command's text, is a `general-purpose` subagent: its transcript
-  `<main>/subagents/agent-<id>.jsonl` has `agent-<id>.meta.json` beside it reading `"agentType":"general-purpose"`.
-  A main session (the lead's own Write) or a fork fails the unit. No meta file, or no `agentType`, fails it with "no
+  resolved `file_path` and never by a shell command's text, is a `bfo-unit-reader` subagent (the kit's
+  `agents/bfo-unit-reader.md`, whose tools hold no shell, so it cannot run one): its transcript
+  `<main>/subagents/agent-<id>.jsonl` has `agent-<id>.meta.json` beside it reading `"agentType":"bfo-unit-reader"`.
+  A main session (the lead's own Write), a `general-purpose` subagent or a fork fails the unit. No meta file, or no `agentType`, fails it with "no
   agent type recorded (Claude Code older than the meta files?)".
 - **Two kinds of writer.** The unit's reader or a fixer of it writes under `units/<unit>/` only, and its Reads are
   the unit's reading (`reading_check.py --unit`). The re-read of an unmatched call writes `units/<a>/calls.csv` and
@@ -161,7 +167,10 @@ fails, whatever wrote it: a shell by absolute path or by `cd` and a relative one
 
 ## prompts/ (the agents' prompts, written by judges.py emit and readers.py prompt)
 
-The run's agents are `general-purpose` subagents, launched through launchers:
+The run's agents are subagents launched through launchers (themselves `general-purpose` subagents): readers,
+fixers and re-reads as `bfo-unit-reader`, the kit's reader agent with no shell among its tools, which must be
+installed where Claude Code finds agents (`.claude/agents/` of the folder it starts in, or `~/.claude/agents/`;
+`readers.py prompt` refuses until the copy it would use is the kit's); judges as `general-purpose`:
 
 ```
 <reg>/prompts/<unit>/<verdict file stem>.md   one judge's prompt (judges.py emit)
@@ -176,8 +185,8 @@ The run's agents are `general-purpose` subagents, launched through launchers:
 - A **pointer line** is `Read <prompt file> and do exactly what it says. Reply with one line.`, the prompt file's path
   absolute with `/`. It is the whole prompt of one agent.
 - A **launcher file** holds at most 150 pointer lines (`judges.LAUNCHER_MAX`: a launcher's own context grows about
-  1,200 tokens per agent it launches). It tells the launcher to launch each line once as a `general-purpose` subagent,
-  never a fork, in the foreground, at most `parallel` at once, and to reply, once every agent has finished, with one
+  1,200 tokens per agent it launches). It tells the launcher to launch each line once as a `bfo-unit-reader` subagent (a
+  readers' launcher) or a `general-purpose` one (a judges' launcher), never a fork nor any other type, in the foreground, at most `parallel` at once, and to reply, once every agent has finished, with one
   line `launched <n>, finished <n>`. Names: `judges-<unit>-r<n>-<i>`, `judges-flow-r<n>-<table>-<i>` (the unit `flow`
   is always split by lead table), `readers-<mode>-<i>`. Readers, fixers and re-reads share launchers. Writing a name
   removes that name's earlier launcher files except a launcher still running, which is left as it is, byte for byte,
@@ -224,7 +233,7 @@ snapshot is `earlier-flows/<id>/judged/`, written when a flow is kept (`go.keep_
 `merge/lead-rows/`.
 
 A fixer of the unit `flow` (`readers.py prompt <reg> flow --mode fix`, one per lead table with flagged rows) is a
-`general-purpose` subagent that writes that one table and nothing else, and runs no shell; `judges.py --check <reg>
+`bfo-unit-reader` subagent that writes that one table and nothing else, and runs no shell; `judges.py --check <reg>
 flow` fails one that does not, naming it, until a clean fixer of the same table is launched after it. The lead's own
 writes to the root tables (a main session) are not a fixer's and are not checked so.
 
@@ -378,6 +387,17 @@ alone through `mapping-check.json`, which keeps the flow finished after its tran
 the reason given to `block`. `updated`: ISO time. The kit's steps per unit are `read`, `judge`, `fix`; the run has one
 item `run` with step `merge`; an unmatched call adds item `call:<unit>/<row_id>` with step `reread`, whose check is
 `python merge.py --reread-check {item} {reg}` (it takes the item as it is, `call:` and all).
+
+## job/timings.csv (timings.py writes; rewritten whole)
+
+`unit,step,attempt,agent,model,start,end,seconds,turns,input_tokens,output_tokens,cache_read_tokens,cache_creation_tokens,api_errors,longest_gap_seconds,gap_ends_on_error,outcome,prompt`
+
+One row per agent attempt the run launched (readers, fixers, re-reads, judges, launchers, and the lead's own
+helpers), read from the agent's own transcript. How each column is computed is in timings.py's docstring. It is kept
+current with no one asking: next.py rewrites it each time run control is called (each launch, launcher reply, wait
+and stop), and start.py, `readers.py --again` and `judges.py emit --again` rewrite it first when a run is picked up
+after a crash or a restart. Launchers run no shell, so nothing writes it between run-control calls. A failure to write it is logged to events.log and
+never stops the run. The command can still be run on its own at any time.
 
 ## job/lock.json
 

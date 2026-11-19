@@ -212,7 +212,7 @@ def workspace(reg):
 
 
 def started_at(reg):
-    for p in (reg.parent / "run-started.json", reg / "_run-state" / "run-started.json", reg / "run-started.json"):
+    for p in (reg / "_run-state" / "run-started.json", reg / "run-started.json", reg.parent / "run-started.json"):
         t = _iso((_json(p) or {}).get("started"))
         if t:
             return t

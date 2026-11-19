@@ -23,15 +23,18 @@ sessions of the flow worked now that themselves wrote into `units/<unit>/` with 
 path, as the unit's reader or a fixer of it (provenance.py): never a re-read of an unmatched call, never a session
 that only launched them, never by a shell command's text, so one unit's reader is never credited with another's
 reading, nor with the judges'. Every cell of the unit's tables must be accounted for by those writes, and every writer
-must be a `general-purpose` subagent (provenance.py); each problem is named and fails the unit. Code-reader facts count only in files under the unit's `paths`, so two units
+must be a `bfo-unit-reader` subagent, the kit's reader agent, which has no shell (provenance.py); each problem is
+named and fails the unit. Code-reader facts count only in files the unit owes, so two units
 cut from one deployable are not charged with each other's findings; a call, route, message or write the reader found
-there must be cited by one of the unit's rows, or its file listed `not relevant` in `files.csv`. And every source file
-under the unit's `paths` must be read in full: every line inside the unit's Read calls (offset/limit; no limit
+there must be cited by one of the unit's rows, or its file listed `not relevant` in `files.csv`. And every file the
+unit owes (owed_files) must be read in full: every line inside the unit's Read calls (offset/limit; no limit
 reads 2000 lines; parts that together cover the file count), and listed in `files.csv` as `cited` (a row cites it) or
 `not relevant` with a reason. Each file falling short is named: not opened, partly read (with the lines not read), not
 listed, listed cited but no row cites it, not relevant with no reason.
 
-Source files are those with an extension of EXT below. Not owed, because they are not the service's own code: files
+The files a unit owes (owed_files, the one definition that units.py sizes by and readers.py lists in the reader's
+prompt) are those with an extension of EXT below. Not owed: test files while OWE_TESTS is False (it is), and, because
+they are not the service's own code, files
 under a folder named in SKIP_DIRS (vendored packages, build output, generated code, version-control and tool folders),
 minified files and lock files (SKIP_FILES), and binary files (a NUL byte in the first 8 KB). The workspace is --ws when
 given; otherwise the nearest folder above the register in which a unit path exists, else the folder above `bfo-work`."""
@@ -339,8 +342,33 @@ def _binary(path):
         return True
 
 
+# Whether a unit owes its test code (survey.TEST: a tests folder, src/test, *Test.java, test_*.py, ...) like any other
+# file. False: a reader reads the unit's production code in full, every line, and consults a test
+# only where a behaviour in the code is unclear; a test file may be listed in files.csv as `not relevant`, reason
+# `test code`. One switch: it sets what is sized (units.py), listed in the reader's prompt and checked, all at once.
+OWE_TESTS = False
+
+
+def is_test(rel):
+    """A test file by survey.TEST, the survey's own rule, on its path from the workspace and on its name."""
+    import survey
+    return bool(survey.TEST.search(rel) or survey.TEST.search(rel.rsplit("/", 1)[-1]))
+
+
+def owed_files(ws, paths, tests=None):
+    """({relative path: absolute path}, [paths not found]): the files a reading unit owes, the one definition its
+    sizing (units.py), its reader's prompt (readers.py) and this check all use. Every file under the unit's paths
+    with an extension of EXT, but those under a folder in SKIP_DIRS, minified and lock files (SKIP_FILES), binary
+    files, and, unless `tests` (default OWE_TESTS), test files (is_test)."""
+    ws = pathlib.Path(ws)
+    tests = OWE_TESTS if tests is None else tests
+    got, absent = source_files(ws, paths)
+    return ({r: a for r, a in got.items() if tests or not is_test(r)}, absent)
+
+
 def source_files(ws, paths):
-    """{relative path: absolute path} of the source files under the unit's paths, and the paths not found."""
+    """{relative path: absolute path} of the source files under the unit's paths, and the paths not found. Use
+    owed_files, which applies the decision on test code."""
     got, absent = {}, []
     for p in paths:
         top = ws / p
@@ -453,10 +481,11 @@ def check_unit(reg, unit, transcripts=None, ws=None):
     leads = None
     if mine is not None:
         leads = sorted({f"{f['kind']} {f['shown']}:{int(f.get('line') or 0)}" for f in mine
-                        if f.get("kind") in LEAD_KINDS and not _cites(cited, f["file"], int(f.get("line") or 0))
+                        if f.get("kind") in LEAD_KINDS and (OWE_TESTS or not is_test(f["shown"]))
+                        and not _cites(cited, f["file"], int(f.get("line") or 0))
                         and f["file"] not in aside})
 
-    files, absent = source_files(ws, paths)
+    files, absent = owed_files(ws, paths)
     problems = [f"provenance: {p}" for p in who.problems]
     problems += [f"unit path not found in the workspace {ws}: {p}" for p in absent]
     if not files and not absent:

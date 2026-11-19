@@ -67,6 +67,12 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
   folder as `bfo-stage-kit/`: the kit hands the mapping of the flow to the first and the proposing of the measures
   to the second, and runs neither itself.
 
+  Then copy the reader agent, `bfo-stage-kit/agents/bfo-unit-reader.md`, to `~/.claude/agents/` (or to
+  `.claude/agents/` in the folder Claude Code starts in), and start Claude Code again: it loads agents only when a
+  session starts, and never from inside a skill's folder. The run reads each part of the code with that agent, whose
+  tools hold no shell, and refuses to launch a reader until the copy Claude Code would use is the kit's own. Copy it
+  again with every new build.
+
   Copy the whole folder, never part of it. Its `KIT-VERSION.txt` names the build it is (the release and date it was
   built from) and lists every file in it. At every start and resume the run prints which build it is running and,
   where your copy is missing a file, has one changed, has one from another version, or has no `KIT-VERSION.txt`,

@@ -18,8 +18,11 @@ gathers
 their pointer lines ("Read <file> and do exactly what it says. Reply with one line.") into launcher files under
 <reg>/prompts/launch/ (readers-<mode>-<i>.md, at most judges.LAUNCHER_MAX agents each) and prints a count, then one
 pointer line per launcher. The lead launches each launcher as a `general-purpose` subagent, which launches its agents
-as `general-purpose` subagents, at most `parallel` at once; the lead keeps at most judges.launcher_cap launchers
-running. Readers and fixers share launchers rather than one per unit as judges have: a
+as `bfo-unit-reader` subagents (provenance.READER_TYPE: the kit's agents/bfo-unit-reader.md, whose tools hold no
+shell, so a reader, fixer or re-read cannot run one), at most `parallel` at once; the lead keeps at most
+judges.launcher_cap launchers running. Claude Code finds that agent only where agents are installed (the project's
+`.claude/agents/` or the user's `~/.claude/agents/`), loaded when the session starts: `prompt` refuses, launching
+nothing, until the copy Claude Code would use matches the kit's (reader_agent_problem). Readers and fixers share launchers rather than one per unit as judges have: a
 launcher per reader would double the subagents running for no gain in context, and the session's limit holds them
 all. Every prompt names the workspace (`--ws`, else the register's grandparent) and ends with the tool rule: no shell;
 write only with Write and Edit, only under the unit's own folder (a `flow` fixer: only its own table; a re-read: only
@@ -56,6 +59,8 @@ import judges  # noqa: E402  (the agent definition's frontmatter and body)
 import settings  # noqa: E402
 import tables  # noqa: E402
 import register_layout as layout  # noqa: E402
+import reading_check  # noqa: E402  (owed_files: the files a unit owes, listed in its reader's prompt)
+import provenance  # noqa: E402  (READER_TYPE)
 
 
 def unit_row(reg, unit):
@@ -117,23 +122,59 @@ def flow_fix_prompt(reg, table, rows, ws=None):
     return "\n".join(out + _tail(f"to your own table {path}"))
 
 
+def owed_section(owed):
+    """The prompt's list of the files the unit owes (reading_check.owed_files), the list the reading check holds the
+    reader to."""
+    return ["## The files you owe", "",
+            f"Open each of these with Read in full and list each in {layout.FILES_CSV}; it is what the reading check "
+            "holds you to. Other files under your paths (generated or build output, vendored code, binary, lock and "
+            "minified files" + ("" if reading_check.OWE_TESTS else ", test code") + ") are not owed: open one only "
+            f"where it settles what the code does, and you may list it in {layout.FILES_CSV} as `not relevant` with "
+            "the reason"
+            + ("" if reading_check.OWE_TESTS else " (for a test file: `test code`). Do not read test code in full: "
+               "consult a test only where a behaviour in the code above is unclear") + ".", ""] \
+        + [f"- {r}" for r in sorted(owed)] + [""]
+
+
+def reader_agent_problem(reg, ws=None):
+    """None when the reader agent Claude Code would launch by the name READER_TYPE is the kit's own definition; else
+    what to do. Claude Code takes a project's `.claude/agents/` (the folder the session started in: the register's
+    grandparent by the kit's layout, or a folder above it) before the user's (CLAUDE_CONFIG_DIR, else `~/.claude`)."""
+    import os
+    name = f"{provenance.READER_TYPE}.md"
+    want = AGENT.read_bytes().replace(b"\r\n", b"\n")
+    start = judges.workspace(reg, ws)
+    home = pathlib.Path.home().resolve()
+    project = [d / ".claude" / "agents" / name for d in (start, *start.parents) if d != home and d != d.parent]
+    config = pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or home / ".claude")
+    found = next((p for p in project + [config / "agents" / name] if p.is_file()), None)
+    fix = (f"copy the kit's agents/{name} to {(config / 'agents').as_posix()}/ (or to .claude/agents/ in the folder "
+           "Claude Code starts in), then start Claude Code again: it loads agents when a session starts")
+    if found is None:
+        return f"the reader agent {provenance.READER_TYPE} is not installed: {fix}"
+    if found.read_bytes().replace(b"\r\n", b"\n") != want:
+        return f"the reader agent at {found.as_posix()} is not this kit's copy: {fix}"
+    return None
+
+
 def prompt(reg, unit, mode="read", ws=None):
     reg = pathlib.Path(reg).resolve()
     u = unit_row(reg, unit)
     body = judges.agent_body(AGENT)
-    paths = "; ".join(p for p in u.get("paths", "").split(";") if p)
+    plist = [p.strip() for p in u.get("paths", "").split(";") if p.strip()]
+    paths = "; ".join(plist)
+    owed, _ = reading_check.owed_files(judges.workspace(reg, ws), plist)
     out = [body, "", "## Your unit", "",
            judges.ws_line(judges.workspace(reg, ws)),
            f"Unit: {unit}",
            f"Deployable: {u.get('deployable', '')}",
            f"Paths it covers, from the workspace root: {paths}",
-           f"Size: {u.get('lines', '')} lines of source in {u.get('files', '')} files; "
-           f"{u.get('reader_facts', '')} code-reader findings",
+           f"Size: {len(owed)} files you owe; {u.get('reader_facts', '')} code-reader findings",
            f"Register folder: {reg}",
            f"Your folder (write only here): {layout.unit_dir(reg, unit)}",
            f"The flow and its steps: {reg / 'flows.csv'}, {reg / 'lifecycle.csv'}, {reg / 'stages.csv'}, "
            f"{reg / 'steps.csv'}; the plan: {reg / 'PLAN.md'}; the code reader's findings: {reg / 'fact-base.json'}",
-           ""]
+           ""] + owed_section(owed)
     if mode == "retry":
         why = [r.get("reason", "") for r in tables.dicts(reg / layout.JOBS_CSV)
                if r.get("item") == unit and r.get("step") == "read"]
@@ -226,7 +267,9 @@ def in_scope(reg):
 
 KINDS = {"read": "reader", "retry": "reader", "fix": "fixer", "reread": "re-read", "stop": "fixer"}
 HELD = {"queued": "queued in a launcher still running", "still running": "launched already, still running",
-        "finished": "launched already, finished", "ran a shell": "launched already, ran a shell (relaunch with --again)"}
+        "finished": "launched already, finished", "ran a shell": "launched already, ran a shell (relaunch with --again)",
+        "gave up": "stopped on an API error each time it was launched, and launched afresh as many times as "
+                   f"{layout.SETTINGS} `relaunches` allows: not launched again"}
 
 
 def emit(reg, units, mode="read", ws=None, again=False, transcripts=None, reason=None):
@@ -239,12 +282,17 @@ def emit(reg, units, mode="read", ws=None, again=False, transcripts=None, reason
 
     Run again at any time, it launches no agent twice (judges.Launches): an agent queued in a launcher still
     running, or launched and still running, or finished, is named and not launched; one still running whose launcher
-    has replied stopped without replying, and is launched afresh. A fixer given other rows is another fixer; one given
+    has replied stopped without replying, and is launched afresh; so is one an API error ended, at most `relaunches`
+    times (run-settings.json), after which it is named as given up. A fixer given other rows is another fixer; one given
     the same rows with other reasons is the same. `again` says the session that launched them is gone (a
     crash, a restart): every agent still named running, or that ran a shell, is launched afresh, never one that
     finished. With `again`, a reading unit whose reader or fixer ran a shell first has its tables put back as its clean
-    writers left them (provenance.undo_breaches), so the relaunched agent can pass."""
+    writers left them (provenance.undo_breaches), so the relaunched agent can pass. With `again`, the run's timing
+    record is rewritten first, before anything is undone or relaunched (timings.refresh)."""
     reg = pathlib.Path(reg).resolve()
+    if again:
+        import timings
+        timings.refresh(reg, transcripts, "readers.py prompt --again")
     lines, said = [], []
     seen = judges.Launches(reg, transcripts, again)
     kind = KINDS[mode]
@@ -261,11 +309,12 @@ def emit(reg, units, mode="read", ws=None, again=False, transcripts=None, reason
             return
         if state == "stopped":
             said.append(f"{name}: {kind} stopped without replying (its launcher has replied or stopped): launched afresh")
+        if state == "errored":
+            said.append(f"{name}: {kind} stopped on an API error before it finished: launched afresh")
         lines.append(judges.write_prompt(path, text))
 
     for u in units:
         if again and u != "flow":
-            import provenance
             undone = provenance.undo_breaches(reg, u, transcripts)
             if undone:
                 said.append(f"{u}: relaunched over {', '.join(undone)} (ran a shell; what it wrote is undone)")
@@ -293,7 +342,8 @@ def emit(reg, units, mode="read", ws=None, again=False, transcripts=None, reason
         if mode == "fix" and not _flagged(reg, u):
             continue
         agent(layout.prompts_dir(reg, u) / f"{mode}.md", prompt(reg, u, mode, ws), u)
-    pointers = judges.launchers(reg, f"readers-{mode}", [("", lines)] if lines else [], keep=seen.running)
+    pointers = judges.launchers(reg, f"readers-{mode}", [("", lines)] if lines else [], keep=seen.running,
+                                agent_type=provenance.READER_TYPE)
     return said + seen.ended_lines(f"readers-{mode}") + [f"{len(lines)} {kind}(s) to launch in {len(pointers)} launcher(s); keep at most "
                    f"{judges.launcher_cap(reg)} launcher(s) running at once"] + pointers
 
@@ -359,6 +409,10 @@ def main(argv):
     again, scoped = "--again" in argv, "--in-scope" in argv
     argv = [a for a in argv if a not in ("--again", "--in-scope")]
     if len(argv) >= 2 and argv[0] == "prompt" and (len(argv) >= 3 or scoped or mode == "reread"):
+        problem = reader_agent_problem(argv[1], ws)
+        if problem:
+            print(f"REFUSED: {problem}. Nothing was launched.", file=sys.stderr)
+            return 2
         units, said = argv[2:], []
         if scoped:
             owed, done = in_scope(argv[1])

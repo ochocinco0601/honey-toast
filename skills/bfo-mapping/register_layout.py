@@ -28,6 +28,7 @@ JOB = "job"
 JOBS_FILE, LOCK_FILE, EVENTS_FILE, STEPS_FILE = "jobs.csv", "lock.json", "events.log", "steps.json"
 JOBS_CSV = f"{JOB}/{JOBS_FILE}"
 LOCK_JSON = f"{JOB}/{LOCK_FILE}"
+TIMINGS_CSV = f"{JOB}/timings.csv"  # one row per agent attempt, from its transcript; written whole by timings.py
 
 REPLIES = "replies"  # the unit readers' replies, <unit>-<mode>.json
 PROMPTS = "prompts"  # prompts/<unit>/<name>.md: one agent's prompt (judges.py emit, readers.py prompt); never in units/
@@ -43,6 +44,9 @@ VERDICT_COLS = ["unit", "table", "row", "round", "judge", "flow", "row_hash", "v
 JUDGEMENT_COLS = ["unit", "table", "row", "round", "judges", "says", "flagged", "state", "reasons"]
 UNMATCHED_COLS = ["call", "from_unit", "to_unit", "protocol", "operation", "source", "why"]
 JOBS_COLS = ["item", "step", "state", "tries", "reason", "session", "updated"]
+TIMINGS_COLS = ["unit", "step", "attempt", "agent", "model", "start", "end", "seconds", "turns", "input_tokens",
+                "output_tokens", "cache_read_tokens", "cache_creation_tokens", "api_errors", "longest_gap_seconds",
+                "gap_ends_on_error", "outcome", "prompt"]
 
 
 def unit_dir(reg, unit):

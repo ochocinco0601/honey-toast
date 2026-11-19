@@ -12,7 +12,9 @@ Usage: python say_back.py draft <folder> --lines <json file> [--register <regist
        python say_back.py earlier <workspace root> [--folder <register>]
            print the earlier-work line
 
-One writer of say-back.json: this script. Answers go to say-back-decisions.jsonl in the work folder (the register's
+One writer of say-back.json: this script. Before a register exists, the work folder named stands for this run's own
+folder in it (start.run_dir), so runs on other systems in the same window keep their own say-back and answers.
+Answers go to say-back-decisions.jsonl in that folder (the register's
 decisions.jsonl on a resume), through case.py; start_register.py copies them into the register it starts.
 """
 import json
@@ -48,10 +50,29 @@ def is_register(folder):
     return (pathlib.Path(folder) / "RUN.md").is_file()
 
 
-def root_of(folder):
-    """The workspace root: the work folder's parent, or the register's work folder's parent."""
+def is_run_dir(folder):
+    import start
+    return start.is_run_dir(folder)
+
+
+def own_folder(folder, writing=False):
+    """The folder this run's say-back lives in: a register as given; for the work folder, this run's own folder in
+    it; a work folder an earlier release wrote, whose window-wide say-back still waits, while this run has none."""
+    import start
     folder = pathlib.Path(folder).resolve()
-    return folder.parent.parent if is_register(folder) else folder.parent
+    if is_register(folder) or is_run_dir(folder) or folder.name != start.run_lock.WORK:
+        return folder
+    own = start.run_dir(folder)
+    if not writing and not (own / FILE).is_file() and (folder / FILE).is_file():
+        return folder
+    return own
+
+
+def root_of(folder):
+    """The workspace root: the work folder's parent, or the register's (or this run's folder's) work folder's
+    parent."""
+    folder = pathlib.Path(folder).resolve()
+    return folder.parent.parent if is_register(folder) or is_run_dir(folder) else folder.parent
 
 
 def _flow_names(reg):
@@ -129,8 +150,8 @@ def address(folder):
     """The run page's address: the work folder's status page, or the register's own."""
     import listener
     folder = pathlib.Path(folder).resolve()
-    if is_register(folder):
-        url = listener.serving(listener.site_of(folder))
+    if is_register(folder) or is_run_dir(folder):
+        url = listener.serving(listener.site_of(folder) if is_register(folder) else folder.parent)
         return url + folder.name + "/operator.html" if url else ""
     url = listener.serving(folder)
     return url + "operator.html" if url else ""
@@ -146,7 +167,7 @@ def wait(folder):
 
 def load(folder):
     try:
-        return json.loads((pathlib.Path(folder) / FILE).read_text(encoding="utf-8"))
+        return json.loads((own_folder(folder) / FILE).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
 
@@ -183,6 +204,7 @@ def draft(folder, given, register=None):
         shown += f"\nAsked: {search['question']}"
     sb = {"kind": kind, "lines": lines, "shown": shown, "fingerprint": case.fingerprint(shown), "state": "waiting",
           "drafted": case.now(), "register": str(register) if register else None, "search": search}
+    folder.mkdir(parents=True, exist_ok=True)
     p = folder / FILE
     tmp = p.with_suffix(".tmp")
     tmp.write_text(json.dumps(sb, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -285,6 +307,8 @@ def main(argv):
         print(__doc__, file=sys.stderr)
         return 2
     cmd, folder, args = args[0], pathlib.Path(args[1]), args[2:]
+    if cmd != "earlier":
+        folder = own_folder(folder, writing=cmd == "draft")
     if cmd != "earlier" and is_register(folder):  # a case picked up: only the run holding it writes its register
         import run_lock
         run_lock.guard(folder)

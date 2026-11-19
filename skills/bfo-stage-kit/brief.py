@@ -126,7 +126,10 @@ def page_line(folder):
         return ""
     if (folder / "index.html").is_file():  # the run's home, where its picks wait
         return PAGE_LEAD + url + ("" if site == folder else folder.name + "/") + "index.html"
-    return PAGE_LEAD + url + "operator.html"  # else the run status page, the address the start step opened
+    if (folder / "RUN.md").is_file():  # else this register's own run status page
+        return PAGE_LEAD + url + ("" if site == folder else folder.name + "/") + "operator.html"
+    import start  # before a register: this run's own run status page, the address the start step opened
+    return PAGE_LEAD + url + start.run_page(site)
 
 
 def with_page(text, folder):
@@ -414,9 +417,13 @@ def activity_count(reg):
     six when the stage kit did (start.py records which, in the work folder). `reg` is a register folder, or the
     workspace root before a register exists, whose work folder holds the record."""
     reg = pathlib.Path(reg)
-    record = reg / "bfo-work" / "run-started.json"
+    import start
+    work = reg / "bfo-work"
+    tries = ([start.start_file(work, start.STARTED)] if work.is_dir() else []) + [
+        reg / "_run-state" / start.STARTED, reg.parent / start.STARTED]
+    record = next((p for p in tries if p.is_file()), tries[-1])
     try:
-        d = json.loads((record if record.is_file() else reg.parent / "run-started.json").read_text(encoding="utf-8"))
+        d = json.loads(record.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return len(ACTIVITIES)
     return MAPPING_ACTIVITIES if d.get("skill") == "mapping" else len(ACTIVITIES)

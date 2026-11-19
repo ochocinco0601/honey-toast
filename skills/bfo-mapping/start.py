@@ -218,18 +218,48 @@ def upgrade_if_old(reg):
     return backup, changed, notes, reconcile.still_owed(reg), said
 
 
+RUN_DIR = "_start-"  # in the work folder, one per run (chat): its start record, say-back and answers before a register
+
+
+def run_dir(site, run=None):
+    """The folder in the work folder that holds this run's start-time state, so runs started in one window on
+    different systems never share it. Keyed by the run's name; a run nothing names shares one folder."""
+    run = run_lock.identity() if run is None else run
+    key = hashlib.sha256(run.encode("utf-8")).hexdigest()[:10] if run else "unnamed"
+    return pathlib.Path(site) / (RUN_DIR + key)
+
+
+def is_run_dir(folder):
+    folder = pathlib.Path(folder)
+    return folder.name.startswith(RUN_DIR) and folder.parent.name == run_lock.WORK
+
+
+def start_file(site, name):
+    """This run's copy of a start-time file; a work folder written by an earlier release, where one copy served the
+    whole window, is read while this run has none of its own."""
+    own = run_dir(site) / name
+    old = pathlib.Path(site) / name
+    return own if own.exists() or not old.exists() else old
+
+
 def first_look_open(site):
-    """The mark of a first look begun and not yet at its brief, if it is younger than FIRST_LOOK_MINUTES."""
-    try:
-        m = json.loads((pathlib.Path(site) / FIRST_LOOK).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    age = (time.time() - float(m.get("since_epoch", 0))) / 60
-    return m if 0 <= age < FIRST_LOOK_MINUTES else None
+    """This run's mark of a first look begun and not yet at its brief, if younger than FIRST_LOOK_MINUTES. Two first
+    looks inside one run (one chat) are refused by it; another run's first look on another system is not."""
+    for p in (run_dir(site) / FIRST_LOOK, pathlib.Path(site) / FIRST_LOOK):
+        try:
+            m = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if p.parent != run_dir(site) and m.get("run") != run_lock.identity():
+            continue  # an earlier release's window-wide mark, made by another run
+        age = (time.time() - float(m.get("since_epoch", 0))) / 60
+        if 0 <= age < FIRST_LOOK_MINUTES:
+            return m
+    return None
 
 
 def mark_first_look(site, folder=None):
-    p = pathlib.Path(site) / FIRST_LOOK
+    p = run_dir(site) / FIRST_LOOK
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps({"run": run_lock.identity(), "since": datetime.datetime.now().isoformat(timespec="seconds"),
                              "since_epoch": time.time(), "folder": str(folder) if folder else None}), encoding="utf-8")
@@ -237,13 +267,19 @@ def mark_first_look(site, folder=None):
 
 def end_first_look(site):
     """The first look reached its brief (brief.py capability), or the session says it stopped short."""
-    (pathlib.Path(site) / FIRST_LOOK).unlink(missing_ok=True)
+    (run_dir(site) / FIRST_LOOK).unlink(missing_ok=True)
+    old = pathlib.Path(site) / FIRST_LOOK
+    try:
+        if json.loads(old.read_text(encoding="utf-8")).get("run") == run_lock.identity():
+            old.unlink(missing_ok=True)
+    except (OSError, ValueError):
+        pass
 
 
 def first_look_refusal(m, root="<workspace root>"):
     ago = max(0, int((time.time() - float(m.get("since_epoch", 0))) // 60))
     return (f"REFUSED: the first look is already running: it began {ago} minute(s) ago and has not reached its brief. "
-            "Two first looks on one workspace overwrite each other's work, so nothing was started. Wait for the "
+            "Two first looks in one chat overwrite each other's work, so nothing was started. Wait for the "
             "helper doing it to return. If no first look is running any more (its helper returned blocked, or "
             f'stopped), end the mark with: python start.py "{pathlib.Path(root).resolve()}" --first-look-ended, and run the start '
             f"step again. The mark lapses by itself {FIRST_LOOK_MINUTES} minutes after it was made.")
@@ -338,6 +374,17 @@ def first_look_done(reg):
     return bool(ph) and ph[0][1] == "done"
 
 
+def refresh_timings(reg):
+    """Rewrite the run's timing record (job/timings.csv) before anything else when a run is picked up, so the times of
+    agents a crash or a restart cut off are on record. Never raises, prints nothing (timings.refresh logs a failure to
+    the register's events.log)."""
+    try:
+        import timings
+        timings.refresh(reg, why="start.py: run picked up")
+    except Exception:  # noqa: BLE001  (timings.py could not be loaded: the pickup goes on)
+        pass
+
+
 def resume(reg):
     """The decision and the message for picking up the run in `reg`."""
     if not first_look_done(reg):
@@ -395,8 +442,9 @@ def open_the_page(root):
     import listener
     import operator_page
     site = pathlib.Path(root).resolve() / listener.WORK
+    run_dir(site).mkdir(parents=True, exist_ok=True)
     try:
-        line = listener.say(*listener.up(site, operator_page.FILE))
+        line = listener.say(*listener.up(site, run_page(site)))
         # the address reaches the person once, at the end of MESSAGE, never also typed from this line
         print(line.split(" Give the person the address", 1)[0] + " Its address goes to the person in MESSAGE below.")
     except OSError as e:
@@ -475,17 +523,25 @@ def request_of(reg):
     return m.group(1) if m else ""
 
 
-def record_start(site, request=None):
-    """When this run started, and which skill started it, in the work folder: for the page's "running N minutes" and
-    the status line's count of activities. Kept while the same run calls the start step again, written new for
-    another run. The person's request, given, is kept with it, for the register started next (start_register.py)."""
+def record_start(site, request=None, reg=None):
+    """When this run started, and which skill started it, in this run's own folder in the work folder: for the page's
+    "running N minutes" and the status line's count of activities. Kept while the same run calls the start step
+    again, written new for another run. The person's request, given, is kept with it, for the register started next
+    (start_register.py); `reg`, the register this run carries on, is where its page leads."""
     run = run_lock.identity()
-    p = pathlib.Path(site) / STARTED
+    p = run_dir(site) / STARTED
+    at = str(pathlib.Path(reg).resolve()) if reg is not None else None
     try:
         d = json.loads(p.read_text(encoding="utf-8"))
         if d.get("run") == run and d.get("started"):
+            changed = False
             if (request or "").strip() and not d.get("request"):
                 d["request"] = request.strip()
+                changed = True
+            if at and d.get("register") != at:
+                d["register"] = at
+                changed = True
+            if changed:
                 p.write_text(json.dumps(d), encoding="utf-8")
             return d
     except (OSError, ValueError):
@@ -494,9 +550,16 @@ def record_start(site, request=None):
          "skill": started_by()}
     if (request or "").strip():
         d["request"] = request.strip()
+    if at:
+        d["register"] = at
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(d), encoding="utf-8")
     return d
+
+
+def run_page(site):
+    """This run's own run status address under the work folder's listener, never the window-wide one."""
+    return run_dir(site).name + "/operator.html"
 
 
 def wait_line(reg):
@@ -582,7 +645,11 @@ def address_line(site, reg=None):
     if reg is not None and (pathlib.Path(reg) / "index.html").is_file():
         return brief.page_line(reg)
     url = listener.serving(site)
-    return brief.PAGE_LEAD + url + operator_page.FILE if url else ""
+    if not url:
+        return ""
+    if reg is not None and (pathlib.Path(reg) / "RUN.md").is_file():
+        return brief.PAGE_LEAD + url + pathlib.Path(reg).name + "/" + operator_page.FILE
+    return brief.PAGE_LEAD + url + run_page(site)
 
 
 def emit(decision, folders=(), earlier=(), message="", wait="", extra=()):
@@ -731,6 +798,7 @@ def main(argv):
         emit("choose", folders=found, earlier=earlier, message=said("choose", choose_message(found)))
         return 0
     reg = found[0]
+    refresh_timings(reg)  # first on any pickup: a crash or a stop mid-step leaves its agents' times on record
     if release_words is not None:
         record_release(reg, release_words, test=test)
         run_lock.release(reg, release_words)
@@ -740,7 +808,7 @@ def main(argv):
         return 0
     if note:
         print(note, file=sys.stderr)
-    record_start(site)  # the decision has cleared: this run is the one under way
+    record_start(site, reg=reg)  # the decision has cleared: this run is the one under way
     try:
         upgraded = upgrade_if_old(reg)
     except Exception as e:  # noqa: BLE001 - the run goes on; the upgrade rule is followed by hand
@@ -768,6 +836,7 @@ def main(argv):
             print(first_look_refusal(first_look_open(site), args[0]), file=sys.stderr)
             return 2
         mark_first_look(site, reg)
+        record_start(site, reg=reg)
         record_request(reg, request)  # its first look is this run's own: the request is the one it starts with
     message = said(decision, message, reg) if message or decision == "finish-first-look" else message
     emit(decision, folders=[reg], earlier=earlier, message=message,

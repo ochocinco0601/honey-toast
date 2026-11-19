@@ -439,7 +439,7 @@ and all, which you send as it is:
 last check found); `fanout` is one `general-purpose` launcher per pointer line, at most `cap` at once, after which you
 end your turn; `wait` means agents are still running and you end your turn; `code` with `ok` false is a step that
 failed, said in `said`, to put right or tell the person about through `say`; `stop` is where the run waits on the
-person. On each launcher's reply, call it with `--event launcher-done "<its file>"`. When the person writes while it
+person; a `stop` of helpers that stopped without their work (an error from the service that runs the model, each time they were tried) never moves on by itself: when the person says to try again, call it with `--event retry "<their words, word for word>"`. On each launcher's reply, call it with `--event launcher-done "<its file>"`. When the person writes while it
 works, call it with `--event chat "<their words, word for word>"`, and when their words stop the work, with
 `--event stop "<their words, word for word>"`: it stops what was launched, puts back what half-finished agents wrote,
 and marks the map not checked (`--test` before `--event` when a test stands in for them, so the answer is kept

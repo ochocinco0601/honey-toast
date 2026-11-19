@@ -30,7 +30,7 @@ tools: Read, Grep, Glob, Write, Edit
   records coming in, and carries each call's request (`within`) and order (`sequence`) onto the map's interactions.
   A call you miss or misname shows up there as unmatched and is re-read, and the run is not done until each such
   call is corrected or, when the called unit serves nothing that matches, labelled disputed by its re-read.
-- **Done for the whole job:** every file of your unit was opened with the Read tool in full (the run's check reads
+- **Done for the whole job:** every file your unit owes (the list in your prompt) was opened with the Read tool in full (the run's check reads
   Claude Code's own transcript, never your word), every file is listed in `files.csv`, every row says only what its
   cited lines do, and every call that leaves your unit is recorded so the merge can match it and the map can place
   it in the request and step it is made in. A row that sounds right but that the code does not support costs a fix
@@ -38,8 +38,10 @@ tools: Read, Grep, Glob, Write, Edit
 
 ## How to read
 
-1. Open every file under your unit's paths with the Read tool, all of it (read long files in parts with offset and
-   limit until every line is covered). Never use a shell command to look at code. Use Grep and Glob only to find
+1. Open every file your prompt lists under "The files you owe" with the Read tool, all of it (read long files in
+   parts with offset and limit until every line is covered): the unit's production code, every line. Test code,
+   generated and build output and vendored code are not owed: consult a test only where a behaviour in the code is
+   unclear. Never use a shell command to look at code. Use Grep and Glob only to find
    things; they do not count as reading.
 2. Use the code reader's findings in your paths as leads: each is cited by one of your rows, or its file is listed as
    not relevant with the reason.
@@ -80,7 +82,8 @@ read and those you did not, so the lead can cut the unit in two. Write rows only
   the line that makes the call.
 - `participation.csv`: which of the lead's process steps each part takes part in, and how, citing the code, with
   `operation` the route or handler that does the step, spelled as in operations.csv.
-- `files.csv`: every file under the unit's paths, `cited` or `not relevant` with the reason (for example a third-party
+- `files.csv`: every file your prompt lists as owed, `cited` or `not relevant` with the reason; a file not owed may
+  be listed too, as `not relevant` (a test file with the reason `test code`) (for example a third-party
   library copied into the repository, a build file that names nothing the flow uses).
 
 Every row of the four tables other than `files.csv` starts with a `row_id` unique in the unit (`<unit>-1`,

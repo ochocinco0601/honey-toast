@@ -556,8 +556,9 @@ def kit_prompt_problem(sess, reg):
 LAUNCHER = """# Launch {n} helper agent(s) of a business flow observability run
 
 You launch helper agents for the run's lead. Each line under "Agents" is the whole prompt of one agent: launch it with
-the Agent tool, `subagent_type` `general-purpose` (never a fork: a fork has seen the lead's reasoning, and the run's
-check fails it), in the foreground, never in the background. Keep at most {parallel} running at once: launch
+the Agent tool, `subagent_type` `{agent_type}` (never a fork: a fork has seen the lead's reasoning, and the run's
+check fails it; never any other type, which the check fails too), in the foreground, never in the background. If
+Claude Code refuses that type (no such agent), launch nothing and reply with its error, word for word. Keep at most {parallel} running at once: launch
 {parallel}, then launch the next each time one finishes. If a launch is refused with "Concurrent subagent limit
 reached", launch nothing more until one finishes. Launch each line once. Do no other work: read no other file, write
 no file, run no shell. When every agent has finished, and only then, reply with one line:
@@ -581,11 +582,12 @@ def launcher_cap(reg):
     return max(1, SESSION_LIMIT // (max(1, settings(reg)["parallel"]) + 1))
 
 
-def launchers(reg, name, groups, keep=()):
+def launchers(reg, name, groups, keep=(), agent_type="general-purpose"):
     """Write launcher files for `groups` [(label, [pointer line])], each split into files of at most LAUNCHER_MAX
     agents, under <reg>/prompts/launch/ as <name>[-<label>]-<i>.md; returns one pointer line per launcher file. This
     name's earlier launcher files are removed first, except those in `keep` (launchers still running, Launches): those
-    are left as they are, byte for byte, and no new file takes their name."""
+    are left as they are, byte for byte, and no new file takes their name. Each launcher launches its agents as
+    `agent_type` subagents: `general-purpose` for judges; provenance.READER_TYPE for readers, fixers and re-reads."""
     folder = pathlib.Path(reg).resolve() / layout.LAUNCH
     folder.mkdir(parents=True, exist_ok=True)
     keep = {pathlib.Path(k).resolve() for k in keep}
@@ -603,7 +605,8 @@ def launchers(reg, name, groups, keep=()):
                 path = folder / ("-".join(x for x in (name, label, str(i)) if x) + ".md")
                 if path.resolve() not in keep:
                     break
-            out.append(write_prompt(path, LAUNCHER.format(n=len(chunk), parallel=par, lines="\n".join(chunk))))
+            out.append(write_prompt(path, LAUNCHER.format(n=len(chunk), parallel=par, agent_type=agent_type,
+                                                             lines="\n".join(chunk))))
     return out
 
 
@@ -611,45 +614,89 @@ def given_sessions(reg, transcripts=None):
     """[(the first user message's text, its first timestamp as a UTC datetime or None, finished, shell, the last
     assistant text, when the transcript was last written as a UTC datetime)] of every transcript here: finished when
     its last assistant message called no tool (it has replied); shell when it called Bash or PowerShell."""
-    import datetime
     out = []
     for folder in _folders(reg, transcripts):
         for f in sorted(pathlib.Path(folder).rglob("*.jsonl")):
-            first, when, last_tools, shell, last = None, None, None, False, ""
-            with open(f, encoding="utf-8", errors="replace") as fh:
-                for line in fh:
-                    try:
-                        d = json.loads(line)
-                    except ValueError:
-                        continue
-                    m = d.get("message") if isinstance(d, dict) else None
-                    if not isinstance(m, dict):
-                        continue
-                    c = m.get("content")
-                    if first is None and d.get("type") == "user":
-                        first = c if isinstance(c, str) else " ".join(
-                            b.get("text", "") for b in c or [] if isinstance(b, dict) and b.get("type") == "text")
-                        try:
-                            when = datetime.datetime.fromisoformat(str(d.get("timestamp")).replace("Z", "+00:00"))
-                        except ValueError:
-                            when = None
-                    if d.get("type") == "assistant":
-                        blocks = [b for b in (c if isinstance(c, list) else []) if isinstance(b, dict)]
-                        uses = [b for b in blocks if b.get("type") == "tool_use"]
-                        last_tools = bool(uses)
-                        last = " ".join(b.get("text", "") for b in blocks if b.get("type") == "text") or (
-                            c if isinstance(c, str) else "")
-                        shell = shell or any(b.get("name") in ("Bash", "PowerShell") for b in uses)
-            done = last_tools is False
-            if not done and _meta_finished(f):
-                done, last = True, last if REPLIED.search(last or "") else META_FINISHED
-            if first:
-                out.append((first, when, done, shell, last, datetime.datetime.fromtimestamp(
-                    f.stat().st_mtime, datetime.timezone.utc)))
+            s = session_of(f)
+            if s[0]:
+                out.append(s)
     return out
 
 
+def first_message(line):
+    """The text of a transcript line when it is a user message, else None."""
+    try:
+        d = json.loads(line)
+    except ValueError:
+        return None
+    if not isinstance(d, dict) or d.get("type") != "user" or not isinstance(d.get("message"), dict):
+        return None
+    m = d["message"]
+    c = m.get("content")
+    return c if isinstance(c, str) else " ".join(
+        b.get("text", "") for b in c or [] if isinstance(b, dict) and b.get("type") == "text")
+
+
+def session_of(f):
+    """One transcript as given_sessions reads it: (first user message's text or None, its first timestamp, finished,
+    shell, the last assistant text, when the transcript was last written)."""
+    import datetime
+    f = pathlib.Path(f)
+    first, when, last_tools, shell, last, error = None, None, None, False, "", None
+    with open(f, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            try:
+                d = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(d, dict) and d.get("type") == "system" and d.get("subtype") == "api_error":
+                e = d.get("error") if isinstance(d.get("error"), dict) else {}
+                error = ("retry", str(e.get("formatted") or e.get("message") or e.get("status") or "")[:200])
+                continue
+            m = d.get("message") if isinstance(d, dict) else None
+            if not isinstance(m, dict):
+                continue
+            c = m.get("content")
+            if first is None and d.get("type") == "user":
+                first = first_message(line)
+                try:
+                    when = datetime.datetime.fromisoformat(str(d.get("timestamp")).replace("Z", "+00:00"))
+                except ValueError:
+                    when = None
+            if d.get("type") == "assistant":
+                blocks = [b for b in (c if isinstance(c, list) else []) if isinstance(b, dict)]
+                uses = [b for b in blocks if b.get("type") == "tool_use"]
+                last_tools = bool(uses)
+                last = " ".join(b.get("text", "") for b in blocks if b.get("type") == "text") or (
+                    c if isinstance(c, str) else "")
+                shell = shell or any(b.get("name") in ("Bash", "PowerShell") for b in uses)
+                error = ("ended", last[:200]) if d.get("isApiErrorMessage") else None
+    done = last_tools is False
+    meta = _meta_finished(f)
+    if not done and meta:
+        done, last = True, last if REPLIED.search(last or "") else META_FINISHED
+    # An API error ends it: Claude Code's own error reply (isApiErrorMessage), or retries of a failed request
+    # (system api_error lines) with nothing after them, once Claude Code says it finished or it has been quiet.
+    # A retry still going on is neither: the agent may yet answer.
+    quiet = f.stat().st_mtime <= datetime.datetime.now().timestamp() - LAUNCHER_QUIET
+    if error and (error[0] == "ended" or meta or quiet):
+        done, last = True, API_STOPPED + error[1]
+    return (first, when, done, shell, last, datetime.datetime.fromtimestamp(f.stat().st_mtime,
+                                                                             datetime.timezone.utc))
+
+
 META_FINISHED = "finished, per Claude Code's metadata; its reply was not recorded"
+API_STOPPED = "stopped on an API error: "  # the last text of a session an API error ended, before the error's own text
+
+
+def relaunch_cap(reg):
+    """How many times an agent an API error stopped, before its owed output was written, is launched afresh for the
+    same prompt (run-settings.json `relaunches`; 0 is none)."""
+    v = run_settings.load(reg).get("relaunches")
+    return run_settings.DEFAULTS["relaunches"] if v in (None, "") else max(0, int(v))
+
+
+RETRY_FROM = "relaunch-from.txt"  # prompts/relaunch-from.txt: the time the person said to try again; tries count after it
 
 
 def _meta_finished(transcript):
@@ -673,11 +720,26 @@ class Launches:
     text (an API error, out of turns) and has been quiet for LAUNCHER_QUIET seconds has stopped: its
     agents are treated as a replied launcher's, so those never started or still named running (they died with it) are
     launched afresh, and `ended` names it. `again` says the session that launched them is gone (a crash, a restart):
-    every agent and launcher still named running died with it."""
+    every agent and launcher still named running died with it.
+
+    An agent whose transcript ended on an API error (a 503, an overloaded model) stopped without its work, though Claude
+    Code's metadata says it finished: its state is 'errored', and it is launched afresh for the same prompt, at most
+    `relaunches` times (run-settings.json, default 2) counted since the go, or since the person last said to try again
+    (prompts/relaunch-from.txt); then its state is 'gave up', and run control stops on it."""
 
     def __init__(self, reg, transcripts=None, again=False):
         self.reg, self.again, self._tx, self._sessions = pathlib.Path(reg).resolve(), again, transcripts, None
         self.since = go_given(self.reg)
+        self.cap = relaunch_cap(self.reg)
+        self.tries_from = self.since
+        try:
+            import datetime
+            t = datetime.datetime.fromisoformat((self.reg / layout.PROMPTS / RETRY_FROM).read_text(
+                encoding="utf-8").strip().replace("Z", "+00:00"))
+            t = t if t.tzinfo else t.astimezone()
+            self.tries_from = t if self.tries_from is None else max(self.tries_from, t)
+        except (OSError, ValueError):
+            pass
         self.running, self.held, self.replied, self.ended = set(), set(), set(), []
         folder = self.reg / layout.LAUNCH
         for f in sorted(folder.glob("*.md")) if folder.is_dir() else []:
@@ -702,8 +764,10 @@ class Launches:
         return self._sessions
 
     def state(self, path, launcher=False):
-        """None (no session was given this file as it stands), 'still running', 'finished', 'ran a shell', or for a
-        launcher 'ended' (its transcript ended without its reply line, and has been quiet since: it died)."""
+        """None (no session was given this file as it stands), 'still running', 'finished', 'ran a shell', for an
+        agent 'errored' (an API error ended it) or 'gave up' (and it has been launched afresh `relaunches` times
+        already), or for a launcher 'ended' (its transcript ended without its reply line, and has been quiet since: it
+        died)."""
         import datetime
         path = pathlib.Path(path).resolve()
         if not path.is_file():
@@ -719,6 +783,9 @@ class Launches:
             return None
         if any(shell for _, shell, _, _ in got):
             return "ran a shell"
+        if not launcher and all(done for done, _, _, _ in got) and any(
+                (last or "").startswith(API_STOPPED) for _, _, last, _ in got):
+            return "gave up" if self.errored(path) > self.cap else "errored"
         if all(done and (not launcher or REPLIED.search(last or "") or last == META_FINISHED)
                for done, _, last, _ in got):
             return "finished"
@@ -727,10 +794,19 @@ class Launches:
             return "ended"
         return "still running"
 
+    def errored(self, path):
+        """How many sessions given this file's pointer, since the go or the person's last word to try again, an API
+        error ended: whatever the file's version, since a relaunch rewrites it."""
+        pointer = POINTER.format(pathlib.Path(path).resolve().as_posix())
+        return sum(1 for first, when, done, _, last, _ in self.sessions()
+                   if pointer in first and done and (last or "").startswith(API_STOPPED)
+                   and (self.tries_from is None or (when is not None and when >= self.tries_from)))
+
     def decide(self, path, text, same=None):
-        """(launch it now, its state): ('queued', 'still running', 'finished', 'ran a shell', 'stopped' or None). A
-        prompt held is never rewritten. Launched: one never launched; one still named running whose launcher has
-        replied (it stopped without replying); with `again`, one still named running or that ran a shell; and one
+        """(launch it now, its state): ('queued', 'still running', 'finished', 'ran a shell', 'stopped', 'errored',
+        'gave up' or None). A prompt held is never rewritten. Launched: one never launched; one still named running
+        whose launcher has replied (it stopped without replying); one an API error ended, until it has been launched
+        afresh `relaunches` times ('gave up' after); with `again`, one still named running or that ran a shell; and one
         finished whose prompt changed in substance (`same`, default equal text: a fixer given other rows is another
         fixer). A finished agent is never launched again for the same prompt, `again` or not."""
         path = pathlib.Path(path).resolve()
@@ -746,6 +822,8 @@ class Launches:
             return (True, "stopped") if pointer in self.replied else (False, state)
         if state == "ran a shell":
             return self.again, state
+        if state in ("errored", "gave up"):
+            return state == "errored", state
         old = path.read_text(encoding="utf-8")
         return (not (same or (lambda a, b: a == b))(old, text)), state
 
@@ -754,11 +832,15 @@ def emit(reg, unit, rnd, mode=None, ws=None, transcripts=None, again=False):
     """Write the prompt file of every judge of this round whose verdict file is not on disk and that is not launched
     already (Launches), under <reg>/prompts/<unit>/<verdict file stem>.md, gather their pointer lines into launcher
     files (the `flow` unit's by lead table), and return the lines to print: a count, the judges held and why, then one
-    pointer line per launcher. `again`: after a crash or restart, every judge and launcher still named running died."""
+    pointer line per launcher. `again`: after a crash or restart, every judge and launcher still named running died;
+    the run's timing record is rewritten first, before anything is relaunched (timings.refresh)."""
     reg = pathlib.Path(reg).resolve()
+    if again:
+        import timings
+        timings.refresh(reg, transcripts, "judges.py emit --again")
     s = settings(reg)
     body, ws, flow = agent_body(), workspace(reg, ws), flow_now(reg)
-    groups, held = {}, Counter()
+    groups, held, relaunched = {}, Counter(), 0
     seen = Launches(reg, transcripts, again)
     todo = scope(reg, unit, rnd, s["judges"], mode)
     write_record(reg, unit, rnd, todo)
@@ -772,6 +854,8 @@ def emit(reg, unit, rnd, mode=None, ws=None, transcripts=None, again=False):
             if not launch:
                 held[state] += 1
                 continue
+            if state == "errored":
+                relaunched += 1
             groups.setdefault(row["table"] if unit == "flow" else "", []).append(write_prompt(f, text))
     pointers = launchers(reg, f"judges-{unit}-r{rnd}", sorted(groups.items()), keep=seen.running)
     n = sum(len(v) for v in groups.values())
@@ -779,11 +863,15 @@ def emit(reg, unit, rnd, mode=None, ws=None, transcripts=None, again=False):
            "still running": "launched already and still running",
            "finished": f"finished without their verdict file: delete a judge's prompt file (prompts/{unit}/) to "
                        "launch it afresh",
-           "ran a shell": "ran a shell and wrote no verdict file: run this again with --again to launch them afresh"}
+           "ran a shell": "ran a shell and wrote no verdict file: run this again with --again to launch them afresh",
+           "gave up": f"stopped on an API error without their verdict file, launched afresh {seen.cap} time(s) "
+                      f"already ({layout.SETTINGS} `relaunches`): not launched again"}
     return ([f"Unit {unit}, round {rnd}: {n} judge(s) to launch in {len(pointers)} launcher(s), "
              f"{len(todo) * s['judges'] - n - sum(held.values())} verdict file(s) already on disk; keep at most "
              f"{launcher_cap(reg)} launcher(s) running at once"]
             + [f"  {c} judge(s) {why[k]}" for k, c in held.items()]
+            + ([f"  {relaunched} judge(s) stopped on an API error without their verdict file: launched afresh"]
+               if relaunched else [])
             + seen.ended_lines(f"judges-{unit}-r{rnd}") + pointers)
 
 
@@ -1172,7 +1260,7 @@ def check(reg, unit, round=None, transcripts=None, _writers=None):
 
 def flow_fixer_problems(reg, transcripts=None):
     """The fixers of the unit `flow`, each a subagent of the flow worked now that wrote one of its tables (the lead
-    tables at the root, the lead's rows in merge/lead-rows/): each must be a `general-purpose` subagent launched on a
+    tables at the root, the lead's rows in merge/lead-rows/): each must be a `bfo-unit-reader` subagent launched on a
     prompt a kit script wrote (kit_prompt_problem) that wrote that one table and nothing else and ran no shell. A main
     session's writes are the lead's own (Steps 1-3) and are not checked here."""
     import provenance  # it imports this module
@@ -1187,7 +1275,7 @@ def flow_fixer_problems(reg, transcripts=None):
     for s in fixers:
         written = {p for _, p in s.writes}
         name = pathlib.Path(s.path).stem
-        _, why = provenance.agent_type(s.path)
+        _, why = provenance.agent_type(s.path, provenance.READER_TYPE)
         if why:
             out.append(f"fixer {name} of the flow's tables is {why}")
         if len(written) > 1:

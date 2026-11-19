@@ -153,16 +153,35 @@ def asked_since(site, page, since, wait=0.0):
         time.sleep(0.2)
 
 
+def follows(site, page):
+    """True when an open tab can reach `page` by itself: it has been on the page (a page reloads itself), or on the
+    work page's address, which leads to the newest run's home."""
+    if seen_at(site, page) is not None:
+        return True
+    site = pathlib.Path(site)
+    try:  # the newest run folder, as the work page's address picks it (work_page.runs)
+        newest = sorted((d for d in [site] + [p for p in site.iterdir() if p.is_dir()] if (d / "RUN.md").is_file()),
+                        key=lambda d: (d / "RUN.md").stat().st_mtime, reverse=True)[:1]
+    except OSError:
+        return False
+    lead = "/" + ("" if not newest or newest[0].resolve() == pathlib.Path(site).resolve() else newest[0].name + "/")
+    return seen_at(site, "/") is not None and bool(newest) and "/" + page == lead + "index.html"
+
+
 def up(site, page="", opener=None, wait=10.0):
-    """(address, started, opened): the browser opened on the page, judged by its own request. While a tab is open on
-    this listener nothing is opened, as that tab follows to the page by itself; a tab closed since is opened again.
-    The run status page is opened likewise while a run status tab is open, which never stops another page opening.
+    """(address, started, opened): the browser opened on the page, judged by its own request. While a tab open on
+    this listener follows to the page by itself (follows), nothing is opened; a tab closed since is opened again.
+    A run status page is not opened again while a run status tab is open and has been on it, which never stops
+    another run's page opening.
     Otherwise the browser is opened, and `opened` is True only when it asks for the page within `wait` seconds."""
     site = pathlib.Path(site).resolve()
     url, started = start(site)
     page = page.lstrip("/")
     address = url + page
-    if not started and (tab_open(site) or (page.rsplit("/", 1)[-1] in UNLED and status_open(site))):
+    # another run's tab in the same window never follows to this run's page: only a tab that has been on this page,
+    # or on the work page's address while it leads here, does
+    if not started and (page.rsplit("/", 1)[-1] in UNLED and status_open(site) and seen_at(site, page) is not None
+                        or page.rsplit("/", 1)[-1] not in UNLED and tab_open(site) and follows(site, page)):
         return address, started, True
     t0 = time.time()
     launched = (opener or open_in_browser)(address)

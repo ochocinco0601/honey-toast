@@ -139,7 +139,7 @@ def status_of(site):
     site = pathlib.Path(site).resolve()
     try:
         found = [d for d in [site] + [p for p in site.iterdir() if p.is_dir()]
-                 if (d / "RUN.md").is_file() or (d == site and _waits(d))]
+                 if (d / "RUN.md").is_file() or _waits(d)]
         # a say-back waiting on the person is where they are needed, however recently another run was written to
         found.sort(key=lambda d: (_waits(d) is not None, _waits(d) or (d / "RUN.md").stat().st_mtime), reverse=True)
     except OSError:
@@ -147,6 +147,26 @@ def status_of(site):
     if not found or found[0] == site:
         return None
     return "/" + found[0].name + "/operator.html"
+
+
+RUN_DIR = "_start-"  # start.RUN_DIR: one run's own folder before its register exists
+
+
+def run_leads(site, bare):
+    """Where one run's own status address leads once that run has a register: the register's own status page."""
+    segs = bare[1:].split("/")
+    if len(segs) != 2 or segs[1] != "operator.html" or not segs[0].startswith(RUN_DIR):
+        return None
+    root = pathlib.Path(site).resolve()
+    try:
+        reg = pathlib.Path(json.loads((root / segs[0] / "run-started.json").read_text(encoding="utf-8"))["register"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    if reg.parent.resolve() != root or not (reg / "RUN.md").is_file():
+        return None
+    if (root / segs[0] / "say-back.json").is_file() and _waits(root / segs[0]):
+        return None  # its say-back still waits on the person: that is where they are needed
+    return "/" + reg.name + "/operator.html"
 
 
 def home_of(site):
@@ -169,7 +189,8 @@ def live(site, path):
         name = segs[0] if len(segs) == 2 else ""
         if name not in (".", "..", "answers"):
             run = root / name if name else root
-            if segs[-1] == "operator.html" and run.is_dir() and ((run / "RUN.md").is_file() or not name):
+            if segs[-1] == "operator.html" and run.is_dir() and ((run / "RUN.md").is_file() or not name
+                                                                  or name.startswith(RUN_DIR)):
                 try:
                     import operator_page
                 except ImportError:
@@ -243,7 +264,8 @@ def serve(site):
             body, bare = None, self.path.split("?")[0].split("#")[0]
             if bare == "/" or bare.endswith(".html"):
                 note_seen(site, bare)
-            to = home_of(site) if bare == "/" else status_of(site) if bare == "/operator.html" else None
+            to = home_of(site) if bare == "/" else status_of(site) if bare == "/operator.html" else run_leads(
+                site, unquote(bare))
             if to:  # the work page's address leads to the run's home once drawn, and its open tab follows; the run
                 # status address to the newest run's own status view
                 self.send_response(302)

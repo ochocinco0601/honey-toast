@@ -5,7 +5,7 @@ Usage: python units.py <register folder> [--unit-lines N]
 Reads survey.csv (survey.py) and fact-base.json (the code reader) in the register folder and writes units/units.csv,
 in the form split-run-formats.md sets. The first unit is `flow`, the lead's own flow-level tables at the register's
 root. Then one unit per surveyed service (survey `kind` `service`: configuration folders are not units), in survey
-order. A deployable whose source lines (as the survey counts them: non-blank, outside tests) exceed the unit size is
+order. A deployable whose size (the non-blank lines of the files its reader owes, reading_check.owed_files) exceeds the unit size is
 cut into units `<deployable>-1`, `-2`, ... by folder: whole folders are packed in order, a folder larger than the size
 is cut by its own folders, and files directly in a cut folder are a part of their own. The parts together cover every
 file of the deployable, so nothing in it goes unread. The unit size is --unit-lines, else `unit_lines` in
@@ -21,6 +21,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import survey  # noqa: E402
+import reading_check  # noqa: E402  (owed_files: what a unit owes, sized here)
 import settings  # noqa: E402
 import tables  # noqa: E402
 import register_layout as layout  # noqa: E402
@@ -35,13 +36,16 @@ def files_under(p):
     return list(survey.walk(p)) if p.is_dir() else []
 
 
+def owed(p, ws):
+    """The files a reader of `p` (a folder or file under the workspace `ws`) owes: reading_check.owed_files, the one
+    definition the reader's prompt and the reading check use too."""
+    p, ws = pathlib.Path(p), pathlib.Path(ws)
+    return reading_check.owed_files(ws, [p.relative_to(ws).as_posix()])[0]
+
+
 def source_lines(p, ws):
-    n = 0
-    for f in files_under(p):
-        rel = f.relative_to(ws).as_posix()
-        if survey.SOURCE.get(f.suffix.lower()) and not (survey.TEST.search(rel) or survey.TEST.search(f.name)):
-            n += survey.nonblank(f)
-    return n
+    """The size of `p`: the non-blank lines of the files a reader of it owes (owed)."""
+    return sum(survey.nonblank(f) for f in owed(p, ws).values())
 
 
 def cut(folder, ws, size):
@@ -126,11 +130,12 @@ def derive(reg, size=None, kept=None):
         if (s.get("kind") or "").strip() != "service" or name in listed:
             continue  # a configuration folder is not a unit; a deployable listed already is never cut again
         folder = ws / path
-        lines = int(s.get("lines") or 0)
+        # sized by what its reader owes (owed), never by the survey's count, which leaves test lines out
+        lines = source_lines(folder, ws) if folder.exists() else int(s.get("lines") or 0)
         parts = [[path]] if lines <= size or not folder.is_dir() else joined(cut(folder, ws, size), ws, size)
         for i, paths in enumerate(parts, 1):
             unit = name if len(parts) == 1 else f"{name}-{i}"
-            fl = [f for p in paths for f in files_under(ws / p)]
+            fl = [f for p in paths for f in owed(ws / p, ws)]
             rows.append(dict(unit=unit, deployable=name, repository=s.get("repository", "").strip(),
                              paths=";".join(paths), files=str(len(fl)),
                              lines=str(lines if len(parts) == 1 else sum(source_lines(ws / p, ws) for p in paths)),

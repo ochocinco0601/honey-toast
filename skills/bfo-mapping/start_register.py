@@ -58,7 +58,7 @@ def record_new(run_md, words, beside):
 def start_step_ran(root):
     """True when start.py recorded this run's start in the workspace's work folder: the page first, then the search."""
     try:
-        d = json.loads((pathlib.Path(root) / "bfo-work" / start.STARTED).read_text(encoding="utf-8"))
+        d = json.loads(start.start_file(pathlib.Path(root) / "bfo-work", start.STARTED).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return False
     if run_lock.identity() is None:  # nothing names the run: the start step's record is enough
@@ -93,7 +93,8 @@ def main(argv):
     if not pathlib.Path(root).is_dir():
         print(f"refused: the workspace {root} is not a folder. Nothing was copied.", file=sys.stderr)
         return 2
-    beside = [r for r in start.to_pick_up(root)[0] if r != reg.resolve()]
+    # another chat's work under way (its lock fresh) is not unfinished work to decide about: it is being worked on
+    beside = [r for r in start.to_pick_up(root)[0] if r != reg.resolve() and not start.held_by_another(r)]
     if beside and not new:
         print("refused: the workspace holds work this kit started that is not finished: "
               + "; ".join(str(b) for b in beside) + ". Pick it up with start.py, which gives the person the re-entry "
@@ -120,11 +121,15 @@ def main(argv):
     if new and beside:
         record_new(reg / "RUN.md", words, beside)
     try:  # the person's request, as the start step kept it, recorded as data in the new run record
-        d = json.loads((pathlib.Path(root) / "bfo-work" / start.STARTED).read_text(encoding="utf-8"))
+        d = json.loads(start.start_file(pathlib.Path(root) / "bfo-work", start.STARTED).read_text(encoding="utf-8"))
         start.record_request(reg, d.get("request") or "", (d.get("started") or "")[:16] or None)
+        state = reg / "_run-state"
+        state.mkdir(exist_ok=True)
+        (state / start.STARTED).write_text(json.dumps(d), encoding="utf-8")
+        start.record_start(pathlib.Path(root) / "bfo-work", reg=reg)  # this run's page now leads to its register
     except (OSError, ValueError):
         pass
-    said_back = pathlib.Path(root) / "bfo-work" / "say-back-decisions.jsonl"
+    said_back = start.start_file(pathlib.Path(root) / "bfo-work", "say-back-decisions.jsonl")
     if said_back.is_file():  # the person's answers to the say-back, given before this register existed
         import case
         case.import_decisions(reg, [e for e in case.decisions_in(said_back) if e.get("session") == case.session()])

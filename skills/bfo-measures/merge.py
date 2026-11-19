@@ -109,7 +109,7 @@ sides by an agent (the unit reader's definition, "Re-reading an unmatched call")
   call's `operation`. That label counts only when the replay of the calling unit's calls.csv from Claude Code's
   transcripts (provenance.py; found as reading_check.py finds them, or --transcripts) shows it put in place, the
   cell on disk exactly, by a session that:
-  - is a `general-purpose` subagent (its meta file says so) and ran no shell;
+  - is a `bfo-unit-reader` subagent (its meta file says so) and ran no shell;
   - opened with Read every line the call's `source` cites, at that path in the workspace (found as reading_check.py
     --unit finds it), and, when `to_unit` is a unit, code under that unit's paths in the workspace;
   - changed this one call row of calls.csv and no other;
@@ -905,7 +905,7 @@ def _is_re_read(s, prov, reg, ws, unit, row, to_unit, units):
     cited = rc.cited_in(row.get("source", ""))
     touched = prov.tables["calls"].changed.get(s, {}) if "calls" in prov.tables else {}
     rows = set().union(*touched.values()) if touched else set()
-    if provenance.agent_type(s.path)[1] or s.shell or not written <= allowed or not cited \
+    if provenance.agent_type(s.path, provenance.READER_TYPE)[1] or s.shell or not written <= allowed or not cited \
             or rows != {row.get("row_id", "").strip()}:
         return False
     reads = s.ok_reads()

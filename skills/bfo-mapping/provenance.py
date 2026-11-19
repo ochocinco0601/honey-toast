@@ -4,9 +4,10 @@ wrote a unit's tables").
 Usage: python provenance.py <register folder> <unit> [--transcripts DIR]     exit 0 only when every cell is accounted
 
 Writers. Every session that wrote into `units/<unit>/` with Write, Edit or MultiEdit, judged by the tool's resolved
-`file_path` (a shell command's text is never read), must be a `general-purpose` subagent: its transcript
-`<main>/subagents/agent-<id>.jsonl` has beside it `agent-<id>.meta.json` reading `"agentType":"general-purpose"`. A main
-session (the lead's own Write, say) or a fork fails the unit; no meta file, or one with no `agentType`, fails it with
+`file_path` (a shell command's text is never read), must be a `bfo-unit-reader` subagent (READER_TYPE: the kit's
+agent definition with no shell among its tools): its transcript `<main>/subagents/agent-<id>.jsonl` has beside it
+`agent-<id>.meta.json` reading `"agentType":"bfo-unit-reader"`. A main session (the lead's own Write, say), a
+`general-purpose` subagent (it carries the shell) or a fork fails the unit; no meta file, or one with no `agentType`, fails it with
 "no agent type recorded (Claude Code older than the meta files?)". A writer is one of two kinds:
 - the unit's reader or a fixer of it: it wrote under `units/<unit>/` and nowhere else. Its Reads are the unit's reading
   (reading_check.py --unit);
@@ -72,7 +73,11 @@ import judges  # noqa: E402
 import paths  # noqa: E402
 import register_layout as layout  # noqa: E402
 
-AGENT_TYPE = "general-purpose"
+AGENT_TYPE = "general-purpose"  # the judges' agent type (judges.py)
+# The type of every agent that writes a unit's tables (a reader, a fixer, a re-read; the unit `flow`'s fixers too):
+# the kit's agents/bfo-unit-reader.md, whose `tools` list holds no shell, so such an agent cannot run one at all
+# rather than being found to have run one after it finished. Launched by that name (readers.py's launchers).
+READER_TYPE = "bfo-unit-reader"
 NO_TYPE = "no agent type recorded (Claude Code older than the meta files?)"
 SNAPSHOT = "the finished flow's judged snapshot"  # the setter of a cell the replay starts with
 CORRECTION = "a recorded correction"  # the setter of a cell a recorded correction set
@@ -95,9 +100,10 @@ def _session(f):
     return _cache[key]
 
 
-def agent_type(path):
-    """(the agent type of the session whose transcript is `path`, None) or (None, why it is not one): read from the
-    meta file Claude Code writes beside a subagent's transcript. Fails closed."""
+def agent_type(path, want=AGENT_TYPE):
+    """(the agent type of the session whose transcript is `path`, None) or (None, why it is not `want`, a type or a
+    tuple of types): read from the meta file Claude Code writes beside a subagent's transcript. Fails closed: any other
+    type fails."""
     p = pathlib.Path(path)
     if p.parent.name != "subagents":
         return None, "a main session, not a subagent (the lead's own session, say)"
@@ -109,8 +115,9 @@ def agent_type(path):
     t = got.get("agentType") if isinstance(got, dict) else None
     if not t:
         return None, NO_TYPE
-    if t != AGENT_TYPE:
-        why = f"an agent of type {t!r}, not {AGENT_TYPE!r}"
+    wanted = (want,) if isinstance(want, str) else tuple(want)
+    if t not in wanted:
+        why = f"an agent of type {t!r}, not " + " or ".join(repr(w) for w in wanted)
         return t, why + (": a fork has seen the lead's reasoning" if t == "fork" else "")
     return t, None
 
@@ -368,7 +375,7 @@ def unit(reg, unit_id, transcripts=None):
     mine = paths.norm(udir) + "/"
     writers = [s for s in sessions if any(p.startswith(mine) for _, p in s.writes)]
     for s in writers:
-        _, why = agent_type(s.path)
+        _, why = agent_type(s.path, READER_TYPE)
         if why:
             out.problems.append(f"{_name(s)} wrote into units/{unit_id}/ and is {why}")
         kind, why = _kind(s, reg, unit_id)

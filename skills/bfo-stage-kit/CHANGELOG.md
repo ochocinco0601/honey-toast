@@ -8,6 +8,67 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.3
+
+A fix to Release 9.2.
+
+### Before you start
+
+Copy the reader agent, `bfo-stage-kit/agents/bfo-unit-reader.md`, to `~/.claude/agents/`, then start Claude Code
+again (it loads agents only when a session starts). Without it the run refuses to read any code and says so.
+
+Start a fresh register for the application rather than carrying on an earlier one: a register keeps the reading
+units it already cut, so only a fresh one is cut by this release's sizing, and units an earlier release read are not
+accepted by this one.
+
+Start the run with Claude Code's debug log on, so any stall or error from the model's service is recorded: launch
+Claude Code with `claude --debug-file <path>`, or type `/debug` at the start of the session. This is an option for that
+one launch, not a change to any settings.
+
+The run needs the same permissions as Release 9.2, and no more: the session runs the kit's Python scripts, and the
+readers it launches write files (Write and Edit) in the register folder. A reader cannot ask you for a permission
+while it works, so if your session's permission mode or rules would make it ask before writing, its writes are
+refused and the run stops before the merge. Run in a mode or with rules that let file writes in the register folder
+through without asking.
+
+### What you will notice
+
+- **Several chats in one window, each on its own system.** You can start the kit in one chat on one system, open a
+  second chat in the same window and start it on another, and a third on a third. Each starts at once, without
+  waiting for another's first look; each gives you its own page, which shows only its own system and follows it from
+  "Check what I understood" to its own run; and what you answer on one page reaches only that chat. Before, the
+  second and third chats were refused until the first one's first look ended, and the page address each chat gave
+  showed whichever system was most recently waiting on you.
+  Effect: none.
+- **Readers cannot run a shell, so their reading is never thrown away for it.** Each part of the code is now read by
+  the kit's own reader agent, `agents/bfo-unit-reader.md`, whose tools hold no shell; before, a reader could run one
+  and was discarded only after it finished, hours of reading lost. Install it once per build: copy it to
+  `~/.claude/agents/` and start Claude Code again (USE.md). Until it is installed, the run refuses to launch a reader
+  and says how.
+  Effect: re-walk the reading of a flow not yet finished: units an earlier release read fail the reading check (their
+  readers were not this agent) until read again. A finished flow is unaffected.
+- **A reader owes the unit's production code, never its tests.** A unit's files are now defined once: the unit is
+  sized by them, its reader is given them as a list, and its reading is checked against them. Test code is left out
+  of all three (a reader consults a test only where the code is unclear, and may list it as `not relevant`,
+  `test code`); before, tests were read in full but never counted, so a unit could be many times the size it was cut
+  to. Generated and build output stays out, as before.
+  Effect: none; a register keeps the units it already cut. To have a deployable cut again by the new size, remove
+  its rows from `units/units.csv` before its next flow (its units are renamed and read afresh).
+- **A reader or a check that dies on an error from the model's service is tried again, and the run never goes on
+  without it.** When the service that runs the model fails (a 503, an overload) and a reader or a check of the
+  findings breaks off, the run now launches it again by itself, up to twice (`relaunches` in the register's
+  `run-settings.json`, default 2; 0 turns it off). If it still breaks off, the run stops and tells you which code was
+  not read to the end, or how many checks did not finish, and that nothing already done is lost. Say "try again" and
+  it launches them afresh. Before, such a reader was counted as finished, and the run went on to put the map together
+  without that part of the code.
+  Effect: none.
+- **The run keeps its own timings.** The register's `job/timings.csv` lists every agent the run launched: the
+  readers, checks and fixers, the helpers that launch them, and the lead session's own helpers (such as its first
+  look over the code), with when each started and ended, its tokens and any errors from the model's service. It is
+  written again automatically each time the run's control step is called, when the run stops, and first thing when a
+  run is picked up after a crash or a restart; no one needs to ask for it. Ask the Claude session to read it to you.
+  Effect: none.
+
 ## Release 9.2 — 2026-11-18
 
 A fix to Release 9.1. Nothing else changes.

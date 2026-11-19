@@ -251,7 +251,8 @@ case, the people who act).
 **Who does what.** The lead is the run's own session, the one that talks to the person: it writes the flow-level
 rows, launches every other agent and decides each next step. The first-look helper launches none, and nothing but
 the first-look helper is launched before the go. The lead never writes into `units/`, a verdict file or a unit's row itself: a unit holding the
-lead's writing fails its check. Every agent is launched with the Agent tool as `general-purpose`, never a fork, and
+lead's writing fails its check. Every agent is launched with the Agent tool, never a fork: a launcher or a judge as
+`general-purpose`, a reader, fixer or re-read as `bfo-unit-reader` (its launcher says which), and
 every prompt is a file a script wrote: each Agent call carries only its pointer line. The check reads this from the
 transcripts: a reader, fixer or re-read whose first message is not the pointer line of a prompt `readers.py` or
 `judges.py` wrote, unchanged since, has its writes left out and fails its unit, named, until relaunched.
