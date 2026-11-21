@@ -267,12 +267,12 @@ def job_counts(reg):
 # decisions among them, each fed by the RUN.md rows (by their opening words) that carry it out.
 STEPS = (("Discovery", False, ("0 ",)), ("Choose the flow", True, ("The go",)),
          ("Process mapping", False, ("1 ", "2 ", "3 ")), ("Choose the depth", True, ("Pick of how far",)),
-         ("Define measures", False, ("4 ",)), ("Approve measures", True, ("Review of the measures",)),
-         ("Design alerts", False, ("5 ", "5a ")), ("Approve alerts", True, ("Review of the alerts",)),
+         ("Define measures", False, ("4 ",)), ("Review the measures", True, ("Review of the measures",)),
+         ("Design alerts", False, ("5 ", "5a ")), ("Review the alerts", True, ("Review of the alerts",)),
          ("Write runbooks", False, ("5b ",)), ("Verify against the code", False, ("6 ",)),
          ("Report", False, ("7 ",)), ("Next flow", False, ()))
 # The decision each step asks for, as "Next needed at step N, ..." says it.
-ASKS = {2: "choose the flow", 4: "choose the depth", 6: "approve the measures", 8: "approve the alerts",
+ASKS = {2: "choose the flow", 4: "choose the depth", 6: "review the draft measures", 8: "review the draft alerts",
         12: "choose the next flow"}
 DEPTH_WORDS = {"none": "map only", "measure": "to measures", "alerting": "to alerts", "runbooks": "to runbooks"}
 NEXT_TASK = "Choose the next flow to map"  # depth.py's open choice once a flow is finished (go.NEXT_TASK)
@@ -477,6 +477,7 @@ def read(reg, now=None, starting=False):
     reg = pathlib.Path(reg)
     now = now or dt.datetime.now(dt.timezone.utc).astimezone()
     scope = _json(reg / "scope.json") or {}
+    opened = open_record(reg)
     depth = _json(reg / "depth.json") or {}
     sb = said_back(reg)
     # a register opened to carry on: its say-back is not a step of a run, and no run is under way until it is answered
@@ -503,7 +504,10 @@ def read(reg, now=None, starting=False):
             s["said"], s["link"] = first_look(reg) or "", "index.html" if (reg / "index.html").is_file() else None
         elif decision and done:
             s["time"] = clock(local(decision_time(mine[0][0], scope))) if mine else None
-            s["said"] = {2: scope.get("flow") or "", 4: depth_said(scope, reg) or ""}.get(n, "Approved")
+            s["said"] = {2: scope.get("flow") or "", 4: depth_said(scope, reg) or ""}.get(n, "Reviewed")
+            still = open_at_review(opened, n)
+            if still:  # a go on a draft its own check fails: reviewed, never as if it passed
+                s["said"] = f"Reviewed, with {_plural(len(still), ('open item', 'open items'))}"
             why = chosen_by_run(reg, scope) if n == 2 and not starting else None
             if why:  # the run took this decision itself: never shown as the person's
                 s["said"], s["by_run"] = f"{s['said']} · chosen by the run, {why}", True
@@ -608,6 +612,16 @@ def read(reg, now=None, starting=False):
     if off:
         issues.append({"what": f"Map not verified: {len(off)} of {len(rr)} statements failed the code check",
                        "clears": "Step 10, when the run resumes", "bad": True})
+    if opened.get("unreadable"):
+        issues.append({"what": "The draft's open items could not be checked: the stage checks cannot read the register",
+                       "clears": "Running the stage checks again once the register reads", "bad": True})
+    for n, what in ((6, "measures"), (8, "alerts")):
+        still = open_at_review(opened, n)
+        if still:
+            how = "left open at your word" if opened["left_open"] else "recorded with your go"
+            issues.append({"what": f"The draft {what} have {_plural(len(still), ('open item', 'open items'))}, {how}: "
+                                   + "; ".join(still[:5]) + (f"; and {len(still) - 5} more" if len(still) > 5 else ""),
+                           "clears": "The run puts each right, then the stage is checked again", "bad": False})
     if any(r[0].startswith("7 ") and r[1] == DOING for r in rows) and not reported and \
             (_json(reg / "done-check.json") or {}).get("done") is False:
         issues.append({"what": "The final check says the run is not done yet",
@@ -737,6 +751,22 @@ def action_html(m):
         lead += (f' <span class="note">No write for {m["quiet_min"]} min: check the run\'s Claude Code tab before '
                  'resuming it.</span>')
     return f'<div class="panel"><div class="panel-h"><h3>Required action</h3></div><div class="act">{lead}</div></div>'
+
+
+def open_record(reg):
+    """The flow worked now's record of open items and the person's decisions on them (open_items.of_flow)."""
+    import open_items
+    try:
+        return open_items.of_flow(reg)
+    except Exception:  # noqa: BLE001 - the page is drawn whatever the checks can read, and says what they could not
+        return open_items.empty(unreadable=True)
+
+
+def open_at_review(rec, n):
+    """The open items now of the concern the person's go on the measures (step 6) or the alerts (step 8) covers,
+    from the flow's record: a fix after the go clears them here as everywhere."""
+    part = {6: "measures", 8: "alerts"}.get(n)
+    return list(rec["concerns"][part]["items"]) if part and rec["concerns"][part]["go"] else []
 
 
 def issues_html(issues):

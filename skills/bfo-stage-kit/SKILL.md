@@ -63,7 +63,7 @@ the first messages that the run understood its job and the system, can see what 
 trust what comes out, because every service a stage they took further runs through was read in full, or is named as
 still missing with why, what was not read is said so, and every claim can be traced; one flow is mapped to their pick
 in minutes, not hours, because no service is read in depth for a stage they leave mapped only; and the outputs
-are complete enough for the next step (measures built, alerts wired, runbooks used).
+are complete enough for the next step (measures built, alerts wired, runbooks used). They are a draft that the team carries forward through its own delivery lifecycle, never a sign-off: the person's go at a review is input that shapes the draft, not an approval, and a go on a draft with open items is recorded with them, which the run puts right and tells the person, never hides. The person is never held by open items: they can go on to the next flow with them still open, and the items stay listed for that flow until put right.
 
 ## Your first message: the say-back
 
@@ -450,9 +450,12 @@ the listener with the stop command it printed.
    exactly as printed, and end your turn. Record their answer, typed in the chat, with `python "<skill>/go.py"
    "<your-folder>" --measures-reviewed --decision go|changes --words "<their answer, word for word>"` (`--test` for a
    test standing in for them). `go` keeps a snapshot of this flow's own measures, expectations and coverage reasons;
-   it is refused when they changed after the message was rendered, so render it again. `changes` sends the run back
+   it is refused when they changed after the message was rendered, so render it again. The measures pages are written
+   whether or not a stage's own check passes: when it fails, each page opens with its open items in plain words, the
+   message names them, and a go is never refused for them; it is recorded with exactly the items the message showed.
+   After the go, putting them right is your work, told, not reviewed again: fix each (a measure, its reason, or the row the check names), record the fix with `python "<skill>/go.py" "<your-folder>" --open-fixed --words "<each item, and how>"` (one plain line per item; it is recorded with every go of this flow, so an item the measures check and the alerts check both find is fixed once, for both; each go then covers the rows as they are, and the next message opens with that line), then run the stage again: the go carries over. Any other change after the go reopens the review, as before. The person is never held by open items: if they say to go on with them still open ("next flow"), record their word with `python "<skill>/go.py" "<your-folder>" --open-left --words "<their answer, word for word>"`; carry on with the work the items do not hold back (at this review, the alerts and their review for the stages taken further; the runbooks of every stage whose alerts check passes), then finish the flow with phases 6 and 7 (the done check names the items as left open at their word and does not hold the flow for them), then offer the next flow. The items stay this flow's, listed on the status line, the page, the resume and the report until put right. `changes` sends the run back
    to the measures skill's step 3, as above, then to this review. Running `flow_outputs.py --measures` again, or a new pick of how far a stage goes, opens the review
-   again. Until their go, `flow_outputs.py --alerts` refuses, and so does any write of an alert page for this flow;
+   again, except after a fix of open items recorded with `--open-fixed`, which keeps the go. Until their go, `flow_outputs.py --alerts` refuses, and so does any write of an alert page for this flow;
    the done check owes the go for every measured stage and names any of this flow's measures, expectations or
    coverage reasons changed after it.
 5. **Alerts for the stages taken to alerting, then runbooks for those taken to runbooks** (Step 11), in two parts
@@ -464,7 +467,8 @@ the listener with the stop command it printed.
    **5a. Alerting** (Step 11, "Alerting"), only after their go on the measures. Out: the alert choices in `alerts.csv`, the only table of the register it
    writes (each alert's basis, the expectation it guards and, for a count of cases, the moves it counts), and `stage-<id>/` holding `STRUCTURE.md`,
    `MEASURES.md`, `ALERT.md` and `ALERT.html`, written by `flow_outputs.py --out <dir> --alerts`. It writes the alert
-   pages only when the alerting check passes; they show the runbook as still to come. Then **stop for the person's
+   pages whether or not the alerting check passes: when it fails, each page opens with the check's open items in
+   plain words, because a draft with open items is still a draft; they show the runbook as still to come. Then **stop for the person's
    review of the alerts**. The message is rendered from the register: `python "<skill>/brief.py" alerts
    "<your-folder>" <flow id> <stage id>... --recommend "<your recommendation and its reason>"`, every stage taken to alerting or runbooks
    named. It gives the status line, then per stage each proposed alert (what it watches, the expectation it guards,
@@ -474,7 +478,9 @@ the listener with the stop command it printed.
    or a kit term. A warning that stands goes into the recommendation, with its reason, so it is checked too. Send
    what it prints, exactly as printed, and nothing else, and end your turn. Record their answer with `python "<skill>/go.py" "<your-folder>" --alerts-reviewed --decision
    go|changes --words "<their answer, word for word>"` (`--test` for a test standing in for them): `go` when they
-   accept the alerts and say go on, `changes` when they ask for any change. Only `go` closes the review and keeps the
+   say go on with the draft, `changes` when they ask for any change. A go is never refused for open items: the
+   message names them, and the go is recorded with exactly the items it showed. The runbooks are written only from
+   alerts whose own check passes: where it fails, 5b refuses and names the open items, and you tell the person, through `say`, with both ways on. Putting them right is your work, told, not reviewed again: an alert's open item is a part, step or stage its basis rests on that has neither a measure nor a reason for having none, or a row the check names in the expectation the alert guards or the moves it counts; fix each, record the fix with `python "<skill>/go.py" "<your-folder>" --open-fixed --words "<each item, and how>"` as in phase 4 (recorded with both gos of this flow), then run 5a again with `--alerts`: the go carries over. A fix that changes which alerts are proposed, or what one guards or counts, is not a fix of open items but a change, and comes back to this review. If the person says to go on with the items still open ("next flow"), record their word with `--open-left`, as in phase 4: the runbooks that wait on them are passed over; write the runbooks of every stage whose alerts check passes (5b is done once each runbook still owed is written or waits on the items), then finish the flow with phases 6 and 7. Only `go` closes the review and keeps the
    alert set they reviewed, which is the set the message showed them: a `go` is refused when the alerts changed after
    the message was rendered, so render it again and show them what changed. A change they ask for goes back into `alerts.csv`; 5a runs again, which opens the
    review again, and they review again. An alert they ask for on something no proposed measure shows rests
@@ -487,15 +493,18 @@ the listener with the stop command it printed.
    tables: only mapping does), and `RUNBOOK.md` and `RUNBOOK.html` in `stage-<id>/`, written by `flow_outputs.py --out <dir>
    --runbooks`, which also writes the alert pages again with their runbook links. It refuses while a stage that has
    alerts has no `ALERT.md`, while their review is not recorded, and when the alerts have changed since they reviewed
-   them; and it writes the runbook only when the check passes, so a missing runbook means the check failed: fix the
-   register. 5b never writes `measures.csv`: a measure a test needs that no row holds (a companion measure, never a
+   them; and it writes no runbook from alerts whose own check fails: it refuses and names their open items, which
+   are the draft's open items, told to the person at once with both ways on (put right and told, or left open at
+   their word), as in 5a. A stage whose runbooks wait on open items left open at their word owes no runbook at the
+   done check, which names the items instead. 5b never writes `measures.csv`: a measure a test needs that no row holds (a companion measure, never a
    new alert) is a row in `corrections.csv` (table `measures`, row and column blank, proposed: what to measure, at
    which part, and why; status `open`),
    and `python "<skill>/go.py" "<your-folder>" --back-to-measures <id>` takes the run back to phase 4: the measures skill takes
    it up, the person reviews the measures again, and after their go the run comes back to 5b, with a second review
    of the alerts only if an alert changed. `--runbooks` is refused meanwhile, and after any change to the measures
    since their go. Changing an alert's basis, the expectation it guards or its counted moves, all in `alerts.csv`,
-   takes the run back to 5a and their review.
+   takes the run back to 5a and their review, except a fix of open items recorded with `--open-fixed`, which is told
+   and keeps the go.
    A stage no proposed alert reaches (on the stage, its process steps, the parts they use or the flow) gets no
    `ALERT.md` or `ALERT.html`, and its runbook says so; `flow_outputs.py --check` notes it, and does not fail, but a
    stage taken to alerting or runbooks still owes its alert at the done check. Regenerate every other stage their pick takes
@@ -503,7 +512,9 @@ the listener with the stop command it printed.
    `--out` writes what each stage's depth in their pick owes and no more, asks for the alerts' review only on a stage
    taken to runbooks, and refuses an alert changed since their review, which goes back through `--alerts`.
 6. **Check and draw** (Step 12).
-   In: the register. Out: the three checks of Step 12 run, every failure fixed in the step that produced it (a
+   In: the register. Out: the three checks of Step 12 run, every failure fixed in the step that produced it, except
+   a stage's own check failing on the draft's open items, which are told as open items and either put right by the
+   run (`--open-fixed`) or left open at the person's word (`--open-left`), never a reason to hold the person (a
    stage's own check, `flow_outputs.py <register> <flow> <stage> --check`, judges only the work the run has reached:
    the measures before the alerts are done, the alerts before the runbooks; run it bare in phase 6, and with
    `--measures` or `--alerts` to judge one step's work alone);
@@ -533,6 +544,10 @@ the listener with the stop command it printed.
    only checks that a citation resolves; whether the line says what the row claims is this step's.
    Then the done check. In: the register folder. Run `python "<skill>/run_status.py" "<your-folder>"`. It lists every output the run
    owes and ends DONE or NOT DONE. **The run is done only when it says DONE**; never say so on your own reading.
+   Open items keep it NOT DONE, always named, by flow: a draft with open items is never called done. When every one
+   is left open at the person's word, it says so, and the flow's outputs count as done apart from them: the report
+   names them under what remains, and the next flow is offered. Open items not yet left open are put right by you
+   (told) or brought to the person with both ways on; never hold them at NOT DONE for open items alone.
    On a register mapped in reading units, as every run from the go on is, every finding that cites code was judged
    in mapping (the mapping skill's phases 1 to 3), and the done check holds that judging, the merge and every call
    between units re-read: no sample is drawn, there is no re-read to wait on, and a flow's report is owed once its
@@ -542,8 +557,9 @@ the listener with the stop command it printed.
    kit's scripts count phase 7 done only then: a phase 7 set done by hand before still counts as under way. The next
    flow opens once this flow's outputs are done, its re-read apart. After a further flow's rows land, it names each earlier flow's page they made out of date (STALE, with
    the command that draws it again): draw each again, so no page on disk says what the map no longer does.
-   DONE also needs every field a view requires answered or gapped (FILL-STEPS Step 12). If it says NOT DONE, go
-   back to the phase that owes the missing file or writes the empty field, or mark that phase blocked with the reason.
+   DONE also needs every field a view requires answered or gapped (FILL-STEPS Step 12). If it says NOT DONE for
+   anything but open items, go back to the phase that owes the missing file or writes the empty field, or mark that
+   phase blocked with the reason.
    Then write how far each flow has gone: `python "<skill>/depth.py" "<your-folder>"` writes `depth.json` in the
    folder (each milestone a draft, not started, or reviewed where the person gave a go; the pages drawn for each).
    Then draw the home screen from it: `python "<skill>/home.py" "<your-folder>"` writes `index.html` beside the map,

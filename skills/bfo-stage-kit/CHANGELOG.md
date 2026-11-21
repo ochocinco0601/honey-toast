@@ -8,6 +8,47 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.6 — 2026-11-21
+
+What the run tells you now always agrees with what it has actually done. Where the kit's own checks find a gap in the
+draft, you are shown it as an open item, at the review and on every page, and nothing is hidden or treated as
+approved.
+
+### What you will notice
+
+- **The pick is offered when the run waits for it.** When you are asked how far each stage goes before any service
+  is read, the status line and the pages say the run is waiting on your pick, and the page offers it. Before, they
+  said the run was still naming what is at stake, and the page offered nothing.
+  Effect: none.
+- **Gaps are shown as open items at both reviews.** At the review of the measures and the review of the alerts, the
+  message is "Here is the draft", followed by "Open items in this draft": each thing the stage's own check found
+  (for example, a part with neither a measure nor a reason for having none), in plain words. The alerts review now
+  runs its own check; before, it ran none. You can still say go: your go is recorded with the items open, and never
+  refused for them.
+  Effect: none.
+- **A fix after your go is told, not reviewed again.** When the run puts its own open items right after your go, the
+  next message names each fix in one line and your go carries over. Any other change after your go still opens the
+  review again.
+  Effect: none.
+- **You can go on with items open.** By default the run puts its open items right before the next flow. Say "next
+  flow" and it goes on with them still open; they stay listed on the status line, the home page and in the report.
+  Effect: none.
+- **No approval wording.** Nothing asks you to accept or approve: the run status page says "Review the measures",
+  "Review the alerts" and "Reviewed", and each proposed alert on the home page is Keep or Drop. The kit's output is
+  a draft for the team to carry forward.
+  Effect: none.
+- **The dots, the run status page and the final check read the checks.** A stage's measures and alert pages are
+  written even when its check fails, with the open items at the top, so "Measures defined" fills as soon as the
+  measures are drafted. A stage reads "reviewed, with open items" where that is true, the run status page lists the
+  items under Issues, and the final check says not done while items are open. Before, a failing check left the
+  measures page unwritten and the dot empty, with nothing saying why, and the final check could say done.
+  Effect: none.
+- **"Could not be checked" is said, never nothing.** If the checks cannot read the register, the status line and the
+  run status page say the open items could not be checked, instead of showing none.
+  Effect: none.
+- **No warning under Python 3.13** from the sources page.
+  Effect: none.
+
 ## Release 9.5 — 2026-11-19
 
 You pick how far each stage goes before any service is read in depth, and only the services of the stages you take

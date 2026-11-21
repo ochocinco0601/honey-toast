@@ -77,11 +77,6 @@
 
 ## The reviews
 
-- **The review of the alerts accepts a go on alerts the person was not shown.** The review of the measures refuses
-  a go until the measures have been shown (`brief.py measures`), and refuses one on measures that changed since. The
-  review of the alerts refuses only a go on alerts that changed since they were shown: where they were never shown,
-  it takes the go. Show the alerts before recording the answer on them. Making that review as strict is for the
-  later work on choosing the alerts.
 - **A register migrated from an earlier release can have measures that do not say which flow they were proposed
   for.** Where the migration cannot place a measure, `for_flow` is left blank and the inspection of the measures
   (rule 6) reports each one; the rows are filled the next time that register is run.

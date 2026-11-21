@@ -13,7 +13,8 @@ The check fails the run when a move of the stage has a hop, a carrier or a need 
 mode names a part its move does not use, when an element the measure step accounts for is neither covered by a
 candidate in measures.csv nor gapped in measure-gaps.csv (`receipt`: an error for the run's stage and the flow, a
 warning for an element only other stages hold), and on the other rules listed
-in `check`. STRUCTURE.md and MEASURES.md are written even when it fails; the four alert and runbook files are not."""
+in `check`. STRUCTURE.md, MEASURES.md and the alert pages are written even when it fails, marked at their top with
+its open items (a draft with open items is still a draft); the runbook pages are not."""
 import argparse
 import csv
 import hashlib
@@ -90,8 +91,9 @@ def old_remedy_id_failures(R):
                        "version of this kit): " + cv.MIGRATE)
     return out
 RECOVERY = cv.RECOVERY
-RUNBOOK_LATER = ("The runbook comes at the runbooks stage, after these alerts are reviewed: it writes the ways each "
-                 "can fail, the tests that tell them apart, and what to do.")
+RUNBOOK_LATER = ("The runbook comes at the runbooks stage, after your review of these alerts and once their own check "
+                 "passes; any open item above is put right first, and that fix is told to you, not reviewed again. It "
+                 "writes the ways each can fail, the tests that tell them apart, and what to do.")
 THRESHOLD = ("*Operator value, not set here.* For each measure, the value at which the alert fires. Whether it "
              "pages a person, opens a ticket or shows on a dashboard is the operators' decision.")
 LAYERS = ["business health", "business impact", "application", "technology"]
@@ -994,6 +996,97 @@ def required_failure_rows(M, mv):
                         met=any(part in parts_of(r) for r in rows),
                         error=f"lifecycle {mv}: carrier {part} ({name(M, part)}) has no failure mode row"))
     return out
+
+
+RECEIPT_ITEM = re.compile(r"^receipt: (\S+)(?: ([^(]*?))? \((.*?)\), (.*?): no candidate in measures\.csv")
+
+
+BANDS = {"application", "technology", "business health", "business impact", "system"}
+ROW_ITEM = re.compile(r"^([a-z-]+)\.csv (?:step |row )?([A-Za-z]*\d[\w.-]*)\b[:,]?\s*(.*)$", re.S)
+TABLE_WORDS = {"alerts": "the alert on", "measures": "the measure", "steps": "the step", "subjects": "the part",
+               "lifecycle": "the move", "failure-modes": "a way the stage can fail, at", "stages": "the stage",
+               "expectations": "the expectation", "participation": "the step", "measure-gaps": "the reason for"}
+
+
+def id_names(R):
+    """{id: name} for every row a check's message can name by id: measures, parts, steps, stages, expectations."""
+    out = {}
+    for t, key, name in (("measures", "handle", "measure"), ("subjects", "subject_id", "name"),
+                         ("steps", "step", "name"), ("stages", "stage", "name"),
+                         ("expectations", "expectation_id", "expectation")):
+        for r in R.get(t) or []:
+            k, v = (r.get(key) or "").strip(), (r.get(name) or "").strip()
+            if k and v:
+                out.setdefault(k, v)
+    return out
+
+
+COLUMN_WORDS = {"guards": "what it guards", "counted_moves": "the moves it counts", "counted_at": "where it is counted",
+                "expectation": "the expectation it shows", "question_it_answers": "the question it answers",
+                "source_ref": "its source", "for_flow": "the flow it was proposed for"}
+
+
+def plain_words(text, names):
+    """A check's text with what only the kit's builder reads taken out: ids become names, file names and the
+    `column` marks go, and the fix instructions after the first clause are left to the session's own check."""
+    said = re.split(r":\s", text, maxsplit=1)[0]
+    said = re.sub(r"\b[\w-]+\.(?:csv|md|py|json|html)\b", "", said)
+    said = re.sub(r"\bits `([^`]+)`", lambda m: COLUMN_WORDS.get(m.group(1), "its " + m.group(1).replace("_", " ")),
+                  said)
+    said = re.sub(r"`([^`]+)`", lambda m: COLUMN_WORDS.get(m.group(1), m.group(1).replace("_", " ")), said)
+    said = re.sub(r"\b([A-Z]{1,2}\d[\w.]*|\d+)\b", lambda m: names.get(m.group(1), m.group(1)), said)
+    said = re.sub(r"\(\s*[^()]*\be\.\.\s*\)|\s*\(\s*\)", "", said)
+    return re.sub(r"\s{2,}", " ", said).strip(" ,;")
+
+
+def open_items(errors, R=None):
+    """A stage check's errors as the person reads them, one plain item each: an element owed a measure with neither
+    a measure nor a reason; otherwise the row the check names, by its name, and what the check found, never an id, a
+    file name or a column name."""
+    names = id_names(R) if R else {}
+    out = []
+    for e in errors:
+        m = RECEIPT_ITEM.match(e)
+        if m:
+            label, about, question = (m.group(2) or "").strip(), m.group(3), m.group(4)
+            kind, _, name = about.partition(": ")
+            what = f"{name} ({kind})" if name else f"{label} ({about})" if label else about
+            gap = (f"nothing measures it as {'an' if question[:1] in 'aeiou' else 'a'} {question} signal"
+                   if question in BANDS else f"no measure answers “{question}”")
+            out.append(f"{what}: {gap}, and no reason is recorded for having none")
+            continue
+        r = ROW_ITEM.match(e)
+        if r and r.group(1) in TABLE_WORDS:
+            who = names.get(r.group(2), r.group(2))
+            out.append(f"{TABLE_WORDS[r.group(1)]} {who}: {plain_words(r.group(3), names)}")
+        else:
+            out.append(f"in the map: {plain_words(e, names)}")
+    return list(dict.fromkeys(out))
+
+
+def stage_open(R, flow_id, stage, measured=None, part="measures"):
+    """The errors of a stage's own check, as `flow_outputs.py <flow> <stage> --check` finds them for `part` with the
+    stages the person chose to measure; [] when it passes."""
+    M = build(R, flow_id, stage)
+    if measured is not None:
+        M["measured"] = set(measured)
+    return check(M, part)[0]
+
+
+def mark_open(text, fname, errors, R=None):
+    """A page written although its stage's check failed: its open items said at its top in plain words, so it never
+    reads as finished."""
+    items = open_items(errors, R)
+    head = f"Open items in this draft: the check of this stage found {len(items)}."
+    if fname.endswith(".html"):
+        box = ('<div class="open-items" style="border:2px solid #b45309;padding:8px 12px;margin:8px 0"><b>'
+               + html.escape(head) + "</b><ul>" + "".join(f"<li>{html.escape(x)}</li>" for x in items)
+               + "</ul></div>")
+        m = re.search(r"<body[^>]*>", text)
+        return text[:m.end()] + box + text[m.end():] if m else box + text
+    first, _, rest = text.partition("\n")
+    body = "\n".join(f"> - {x}" for x in items)
+    return f"{first}\n\n> **{head}**\n>\n{body}\n{rest}"
 
 
 def check(M, part="all"):
@@ -3373,6 +3466,27 @@ def main(argv=None):
                   "counted moves in measures.csv). Run the alerting stage again: python flow_outputs.py "
                   f"{a.register} {a.flow} {a.stage} --out {a.out} --alerts, and bring the change to them.")
             return 2
+    if a.runbooks and a.out and stage_alerts(M):
+        # an alert page is written with its open items when the alerts check fails, so its being there proves nothing:
+        # a runbook is written from alerts whose own check passes
+        # the stage's own alerts check, as the record of open items reads it (open_items.stage_items wraps this);
+        # the check's own lines are printed, for the session
+        open_alerts = stage_open(R, a.flow, a.stage, M.get("measured"), "alerts")
+        if open_alerts:
+            print(f"REFUSED: the alerts check of this stage has {len(open_alerts)} open item(s), so no runbook is "
+                  "written from them. They are the draft's open items: tell the person, and offer both ways on. "
+                  "Putting them right is the run's work, told, not reviewed again: put each right (a measure, or its "
+                  "reason in measure-gaps.csv, or the row it names), record the fix with python "
+                  f"go.py {a.register} --open-fixed --words '<each item, and how>' (every go of the flow then "
+                  "covers the rows as they are, and the next message tells the person), run the alerting stage "
+                  f"again with python flow_outputs.py {a.register} {a.flow} {a.stage} --out {a.out} --alerts, then "
+                  "this. Any other change after the go reopens the review. Or, when the person says to go on with "
+                  f"them open (next flow), record their word with python go.py {a.register} --open-left --words "
+                  "'<their answer, word for word>': these runbooks then wait on the items, which stay listed. The "
+                  "open items:")
+            for e in open_alerts:
+                print("  -", e)
+            return 2
     if a.runbooks:
         # the alert rules run again: a change made after the review must not reach the alert pages unchecked
         part = "all"
@@ -3410,16 +3524,22 @@ def main(argv=None):
                 (out / fname).unlink(missing_ok=True)
         owed = (() if measures_only else ("ALERT.md", "ALERT.html") if alerts_only else
                 ("ALERT.md", "RUNBOOK.md", "ALERT.html", "RUNBOOK.html"))
-        # a stage measured on its own is done only when its measure check passes: its measures page waits for that
-        always = ("STRUCTURE.md",) if measures_only else ("STRUCTURE.md", "MEASURES.md")
-        if measures_only:
-            owed = ("MEASURES.md",)
+        # a draft with open items is still a draft: the measures and alert pages are written with the check's open
+        # items at their top, so a failing check never leaves the person with no page or an old one; a runbook waits
+        pages = ("STRUCTURE.md", "MEASURES.md") + tuple(f for f in owed if not (err and f.startswith("RUNBOOK.")))
+        m_err = err if part == "measures" else (check(M, "measures")[0] if err else [])
         with ps.home_beside(out.parent):  # the map sits one folder up from a stage's pages
-            for fname in always + (() if err else owed):
+            for fname in pages:
                 if fname.startswith("ALERT.") and not alerting:  # no alert, no alert page: one left by an earlier run goes
                     (out / fname).unlink(missing_ok=True)
                     continue
-                (out / fname).write_text(WRITERS[fname](M) + stamp(a.register, a.flow, a.stage), encoding="utf-8")
+                text = WRITERS[fname](M)
+                # the structure is the map's, drawn whatever the measures say; the measures page carries only the
+                # measures' own open items, so it reads as the Measures milestone does
+                mine = (m_err if fname == "MEASURES.md" else err) if fname != "STRUCTURE.md" else []
+                if mine:
+                    text = mark_open(text, fname, mine, M["R"])
+                (out / fname).write_text(text + stamp(a.register, a.flow, a.stage), encoding="utf-8")
                 print("wrote", out / fname)
     return 1 if err else 0
 

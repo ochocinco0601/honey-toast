@@ -774,12 +774,16 @@
          "M92"
         ]
        }
-      ]
+      ],
+      "open": [],
+      "open_items": 0
      },
      "alerts": {
       "status": "draft",
       "picked": "no pick recorded",
       "page": "stage-ST1/ALERT.html",
+      "open": [],
+      "open_items": 0,
       "count": 1,
       "items": [
        {
@@ -2208,12 +2212,16 @@
          "M111"
         ]
        }
-      ]
+      ],
+      "open": [],
+      "open_items": 0
      },
      "alerts": {
       "status": "draft",
       "picked": "no pick recorded",
       "page": "stage-ST2/ALERT.html",
+      "open": [],
+      "open_items": 0,
       "count": 2,
       "items": [
        {
@@ -3881,12 +3889,16 @@
          "M79"
         ]
        }
-      ]
+      ],
+      "open": [],
+      "open_items": 0
      },
      "alerts": {
       "status": "draft",
       "picked": "no pick recorded",
       "page": "stage-ST3/ALERT.html",
+      "open": [],
+      "open_items": 0,
       "count": 1,
       "items": [
        {
@@ -4760,12 +4772,16 @@
          "M79"
         ]
        }
-      ]
+      ],
+      "open": [],
+      "open_items": 0
      },
      "alerts": {
       "status": "draft",
       "picked": "no pick recorded",
       "page": "stage-ST4/ALERT.html",
+      "open": [],
+      "open_items": 0,
       "count": 1,
       "items": [
        {
@@ -5855,7 +5871,9 @@
       "stage-ST3/STAGE.html",
       "stage-ST4/STAGE.html"
      ],
-     "picked": "no pick recorded"
+     "picked": "no pick recorded",
+     "open": [],
+     "open_items": 0
     },
     {
      "milestone": "Alerts defined",
@@ -5867,7 +5885,9 @@
       "stage-ST3/ALERT.html",
       "stage-ST4/ALERT.html"
      ],
-     "picked": "no pick recorded"
+     "picked": "no pick recorded",
+     "open": [],
+     "open_items": 0
     },
     {
      "milestone": "Runbooks written",
@@ -5879,7 +5899,9 @@
       "stage-ST3/RUNBOOK.html",
       "stage-ST4/RUNBOOK.html"
      ],
-     "picked": "no pick recorded"
+     "picked": "no pick recorded",
+     "open": [],
+     "open_items": 0
     }
    ]
   },
@@ -5920,21 +5942,27 @@
      "status": "not started",
      "covers": null,
      "pages": [],
-     "picked": "no pick recorded"
+     "picked": "no pick recorded",
+     "open": [],
+     "open_items": 0
     },
     {
      "milestone": "Alerts defined",
      "status": "not started",
      "covers": null,
      "pages": [],
-     "picked": "no pick recorded"
+     "picked": "no pick recorded",
+     "open": [],
+     "open_items": 0
     },
     {
      "milestone": "Runbooks written",
      "status": "not started",
      "covers": null,
      "pages": [],
-     "picked": "no pick recorded"
+     "picked": "no pick recorded",
+     "open": [],
+     "open_items": 0
     }
    ]
   },
@@ -5975,21 +6003,27 @@
      "status": "not started",
      "covers": null,
      "pages": [],
-     "picked": "no pick recorded"
+     "picked": "no pick recorded",
+     "open": [],
+     "open_items": 0
     },
     {
      "milestone": "Alerts defined",
      "status": "not started",
      "covers": null,
      "pages": [],
-     "picked": "no pick recorded"
+     "picked": "no pick recorded",
+     "open": [],
+     "open_items": 0
     },
     {
      "milestone": "Runbooks written",
      "status": "not started",
      "covers": null,
      "pages": [],
-     "picked": "no pick recorded"
+     "picked": "no pick recorded",
+     "open": [],
+     "open_items": 0
     }
    ]
   },
@@ -6030,21 +6064,27 @@
      "status": "not started",
      "covers": null,
      "pages": [],
-     "picked": "no pick recorded"
+     "picked": "no pick recorded",
+     "open": [],
+     "open_items": 0
     },
     {
      "milestone": "Alerts defined",
      "status": "not started",
      "covers": null,
      "pages": [],
-     "picked": "no pick recorded"
+     "picked": "no pick recorded",
+     "open": [],
+     "open_items": 0
     },
     {
      "milestone": "Runbooks written",
      "status": "not started",
      "covers": null,
      "pages": [],
-     "picked": "no pick recorded"
+     "picked": "no pick recorded",
+     "open": [],
+     "open_items": 0
     }
    ]
   }

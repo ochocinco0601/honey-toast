@@ -217,6 +217,53 @@ def depth_of(reg):
     return dict(got) if isinstance(got, dict) else None
 
 
+def open_items_now(reg):
+    """(the stages whose own check fails, [each open item once]) for the flow worked now, read from its record of open
+    items (open_items.of_flow): one count for every surface that names them."""
+    import open_items
+    rec = open_items.of_flow(reg)
+    return rec["stages"], rec["items"]
+
+
+OPEN_LEFT_REASON = "open items left open at the person's word"  # every one is: never DONE, never holds the next flow
+
+
+def open_items_said(reg):
+    """(every flow's open items for the done check's reason, or "" when there are none; whether the person's word
+    covers every one). Each flow's items are its own, named under its flow, with the stages whose runbooks wait on
+    them."""
+    import open_items
+    said, left = [], True
+    for rec in open_items.every_flow(reg):
+        if not rec["items"]:
+            continue
+        n = len(rec["items"])
+        held = (f"; the runbooks of {', '.join(rec['held_runbooks'])} wait on them" if rec["held_runbooks"] else "")
+        said.append(f"{rec['name']}: {n} open item{'' if n == 1 else 's'} ({', '.join(rec['stages'])}{held})"
+                    + (", left open at the person's word" if rec["left_open"] else ""))
+        left = left and rec["left_open"]
+    return "; ".join(said), bool(said) and left
+
+
+def open_items_reason(reg):
+    """The done check's reason naming every flow's open items, or "" when there are none. It opens with
+    OPEN_LEFT_REASON when the person's word covers every one."""
+    said, left = open_items_said(reg)
+    if not said:
+        return ""
+    return ((OPEN_LEFT_REASON + ": " if left else "") + "stage checks failing, their pages written with the open items ("
+            + said + "): see each stage's check with flow_outputs.py --check; each is put right by the run and told "
+            "(go.py --open-fixed), or left open at the person's word (go.py --open-left)")
+
+
+def held_runbooks(reg):
+    """The runbook pages the done check does not count missing: those of the stages whose runbooks wait on open alert
+    items, which its open-items reason names instead."""
+    import open_items
+    return {f"stage-{s}/{f}" for rec in open_items.every_flow(reg) for s in rec["held_runbooks"]
+            for f in ("RUNBOOK.md", "RUNBOOK.html")}
+
+
 def expected(reg, named, scope=None, depth=None):
     """Every output owed. With `depth`, each stage owes what its depth does: mapped only (none), the page the map draws
     for it; measured, its structure and measures; alerting, those and the alert pages; runbooks, all six. Otherwise
@@ -822,7 +869,11 @@ def report(reg, named=(), full=True):
         out.append(f"{'stage-<id>/':<{width}}  MISSING (no stage has had Step 11)")
         missing += 1
         gone.append("stage-<id>/ (no stage has had Step 11)")
+    held = held_runbooks(reg) if depth is not None else set()
     for rel in owed:
+        if rel in held and not present(reg, rel):  # waits on open items, which the open-items reason names
+            out.append(f"{rel:<{width}}  WAITS ON OPEN ITEMS")
+            continue
         ok = present(reg, rel)
         missing += not ok
         why_stale = stale(reg, rel) if ok else ""
@@ -886,6 +937,15 @@ def report(reg, named=(), full=True):
         said += f"; {len(blank)} drawing{'s' if len(blank) > 1 else ''} blank"
         reasons.append(f"drawings with no content ({', '.join(blank)}): find why the drawing came out empty and draw "
                        "it again")
+    failing, left_open = open_items_said(reg)
+    if failing:
+        said += "; open items in the draft" + (", left open at the person's word" if left_open else "")
+        out.append("OPEN ITEMS: " + failing)
+        reasons.append((OPEN_LEFT_REASON + ": " if left_open else "") +
+                       "stage checks failing, their pages written with the open items (" +
+                       failing + "): see each stage's check with flow_outputs.py --check; "
+                       "each is put right by the run and told (go.py --open-fixed), or left open at the person's word "
+                       "(go.py --open-left)")
     unplaced = counted_at_missing(reg)
     out += unplaced
     if unplaced:
@@ -920,8 +980,8 @@ def report(reg, named=(), full=True):
     if why:
         reasons.append(f"view questions not answered: {'; '.join(why)}")
     outputs_done = not (missing or why or old or unread or no_scope or blank or unplaced or changed or twice
-                        or unclassed or unreviewed)
-    done = outputs_done and not reread_pending
+                        or unclassed or unreviewed or (failing and not left_open))
+    done = outputs_done and not reread_pending and not failing  # open items are never DONE, and never hidden
     if planned:  # a split run's rows are judged by the judges, and it draws no sample to re-read
         out.append(state_said(outputs_done, None if in_units(reg) else own_reread_passed(reg)))
         pending = earlier_pending(reg)
@@ -1068,8 +1128,10 @@ def flow_states(reg, outputs_now=None):
 
 
 def outputs_done_of(done, reasons):
-    """Everything but the sampled re-read passed: the next flow can open."""
-    return bool(done) or (bool(reasons) and all(r == REREAD_REASON for r in reasons))
+    """Everything but the sampled re-read, and the open items the person said to go on with, passed: the next flow
+    can open. Neither makes the run DONE."""
+    return bool(done) or (bool(reasons) and all(r == REREAD_REASON or r.startswith(OPEN_LEFT_REASON)
+                                                for r in reasons))
 
 
 ROUND_RECORD = re.compile(r"r\d+-rows\.csv")  # judging/<unit>/r<n>-rows.csv: derived, never fingerprinted

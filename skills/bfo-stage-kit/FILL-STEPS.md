@@ -944,21 +944,28 @@ and is not regenerated: its page comes from the map. With no pick recorded (an e
 Where `RUN.md` has the row *Review of the alerts*, `--runbooks`, and plain `--out` on a stage taken to runbooks,
 refuse until the person's go on the alerts is recorded (`go.py --alerts-reviewed --decision go`). `--runbooks`, and
 plain `--out` on a stage taken to alerting or runbooks, refuse when the alerts have changed since that go: the change
-goes back through `--alerts`, which opens the review again each time it runs; plain `--out` never opens it.
+goes back through `--alerts`, which opens the review again each time it runs, except after a fix of open items
+recorded with `go.py --open-fixed`, which keeps the go; plain `--out` never opens it.
 
-Together the two check, and write `ALERT.md` and `RUNBOOK.md` only when the checks pass: every hop, need and carrier of
+Together the two check. `ALERT.md` is written whether or not the alerting check passes: when it fails, the page
+opens with the check's open items in plain words, because a draft with open items is still a draft. `RUNBOOK.md` is
+written only from alerts whose own check passes; `--runbooks` refuses otherwise and names the open items, which the
+run puts right and tells the person (`go.py --open-fixed`), or which the person leaves open at their word
+(`go.py --open-left`), the runbooks then waiting on them. The checks: every hop, need and carrier of
 every move covered; every mode's part in its move's lifecycle row; every test's measures in `measures.csv`; no two
 modes in one state a responder cannot tell apart; a remedy for every restore and every stranded case; exactly the
 measures `alerts.csv` marks in `alert` proposed for alerting, each naming the expectation it guards, at whatever level it is.
 A stage no alert reaches is noted by `--check`, not failed: it gets its runbook, which says no alert is proposed for
 it, and no `ALERT.md`. A stage taken to alerting or runbooks still owes its alert at the done check, so `run_status.py` lists
-its `ALERT.md` missing until one is proposed. A failure is fixed in the step that produced it. **Never edit a generated file.**
+its `ALERT.md` missing until one is proposed. A failure is fixed in the step that produced it; a stage's open items
+are told to the person as the draft's open items, never hidden and never a reason to hold them. **Never edit a generated file.**
 `ALERT.md` gives each alert its runbook link, to its own entry in `RUNBOOK.md`.
 
 **Where other stages already have a `stage-<id>` folder**, this run can change what they rest on: a shared row, a
 flow-wide row, a remedy. So regenerate every one of them that the person's pick takes past *none* the same way, each
-with its own `--check`; a stage left mapped only is not regenerated. The run is not done until every such stage's
-check passes, because this stage's check only warns on what other stages hold.
+with its own `--check`; a stage left mapped only is not regenerated. The run is not DONE while any such stage's
+check fails, because this stage's check only warns on what other stages hold: its items are open items, put right
+and told, or left open at the person's word, and the done check names them either way.
 
 ## Step 12. Check and draw
 

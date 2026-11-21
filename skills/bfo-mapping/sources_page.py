@@ -206,7 +206,7 @@ def items(r, bases):
             seen.add(p)
             out.append(f'<a href="{E(editor_link(hit))}">{E(p + ("/" if hit.is_dir() else ""))}</a>')
     if not out:
-        out.append(E(re.split(r"[:,(]", what, 1)[0].strip() or what))
+        out.append(E(re.split(r"[:,(]", what, maxsplit=1)[0].strip() or what))
     return "<br>".join(out)
 
 
@@ -243,8 +243,8 @@ def paths_in(r, bases):
 def source_name(r):
     """A short name for the place a row came from: its name up to the first clause break."""
     what = clean(r.get("what", ""))
-    head = re.split(r",|:|\s+as found\b|\s+at commit\b|\s+in this register\b", what, 1)[0].strip()
-    return re.split(r"\s+\(", head, 1)[0].strip() or what
+    head = re.split(r",|:|\s+as found\b|\s+at commit\b|\s+in this register\b", what, maxsplit=1)[0].strip()
+    return re.split(r"\s+\(", head, maxsplit=1)[0].strip() or what
 
 
 def source_about(r):

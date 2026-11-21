@@ -40,11 +40,13 @@ RECOMMENDATION = "depth-recommendation.json"  # the session's recommendation at 
 KEYS = ("version", "register", "capability", "stop", "flows", "open_choice")
 
 NOT_STARTED, DRAFT, REVIEWED = "not started", "draft", "reviewed"
+REVIEWED_OPEN = "reviewed, with open items"  # the go is recorded on a draft its own check still fails
 PICKED, NOT_PICKED, NO_PICK = "picked", "not picked", "no pick recorded"
 MILESTONES = ("Identified", "Mapped", "Measures defined", "Alerts defined", "Runbooks written")
 # The ticks offered at the pick of how far each stage goes, in order, and the depth the furthest one ticked records
 # (go.py --depth); no tick is mapped only. One place: depth.json offers them and go.py --answers reads them back.
 DEPTH_OPTS = {"Measures defined": "measure", "Alerts defined": "alerting", "Runbooks written": "runbooks"}
+REVIEW_OPTS = ("Keep", "Drop")  # each proposed alert, kept in the draft or dropped from it: never approved
 FLOW_OPT = "Mapped"  # the one tick per flow at the go: this flow is mapped first
 CONCERNS = (("measures", "measure", "MEASURES.md", "STAGE.html"), ("alerts", "alerting", "ALERT.md", "ALERT.html"),
             ("runbooks", "runbooks", "RUNBOOK.md", "RUNBOOK.html"))
@@ -151,7 +153,7 @@ def measures_reviewed(reg, scope, fid):
     return bool((scope or {}).get("measures_reviewed")) and not go.measures_changed(reg, fid)
 
 
-def stage_record(reg, R, fid, st, depth, scope, rec, gapped, vm):
+def stage_record(reg, R, fid, st, depth, scope, rec, gapped, vm, opened=None):
     sid = st["stage"]
     M = quiet(fo.build, R, fid, sid)
     pick = depth.get(sid, "none") if depth is not None else None
@@ -181,12 +183,22 @@ def stage_record(reg, R, fid, st, depth, scope, rec, gapped, vm):
                                 defined=[measure_item(m) for m in R["measures"] if m.get("handle") in reached],
                                 items=[receipt_item(r, gapped) for r in rec if sid in r["stages"]])
     measured = pick in ("measure", "alerting", "runbooks")
+    # the stage's own check, read from the flow's record of open items (open_items.of_flow): a go on a draft it
+    # fails is "reviewed, with open items", never plain reviewed; the alerts rest on the measures, so their check
+    # finds the measures' items too
+    con = (opened or {}).get("concerns") or {}
+    m_open = list(((con.get("measures") or {}).get("by_stage") or {}).get(sid) or [])
+    a_open = list(((con.get("alerts") or {}).get("by_stage") or {}).get(sid) or [])
+    for key, items in (("measures", m_open), ("alerts", a_open)):
+        concerns[key]["open"] = items
+        concerns[key]["open_items"] = len(items)
     if concerns["measures"]["status"] == DRAFT and measured and measures_reviewed(reg, scope, fid):
-        concerns["measures"]["status"] = REVIEWED
+        concerns["measures"]["status"] = REVIEWED_OPEN if m_open else REVIEWED
     alerts = fo.stage_alerts(M)
     expect = {e.get("expectation_id"): e.get("expectation") for e in R["expectations"]}
-    if concerns["alerts"]["status"] == DRAFT and alerts_reviewed(reg, scope) and pick in ("alerting", "runbooks"):
-        concerns["alerts"]["status"] = REVIEWED
+    if (concerns["alerts"]["status"] == DRAFT and alerts_reviewed(reg, scope)
+            and pick in ("alerting", "runbooks")):
+        concerns["alerts"]["status"] = REVIEWED_OPEN if a_open else REVIEWED
     concerns["alerts"].update(
         count=len(alerts),
         items=[{"handle": m["handle"], "measure": m.get("measure"), "watches": m.get("question_it_answers"),
@@ -222,7 +234,9 @@ def flow_record(reg, R, f, o_flow, scope, scoped, VM):
     gapped = fo.gap_rows(R, rec)[2] if stages else {}
     vf = next((x for x in (VM or {}).get("flows", []) if x.get("flow_id") == fid), None) if fid else None
     vm = {s["stage"]: (VM, s) for s in (vf or {}).get("_stages") or []}
-    st = [stage_record(reg, R, fid, s, depth, scope, rec, gapped, vm.get(s["stage"])) for s in stages]
+    import open_items
+    opened = quiet(open_items.of_flow, reg, scope) if scoped and scope else None
+    st = [stage_record(reg, R, fid, s, depth, scope, rec, gapped, vm.get(s["stage"]), opened) for s in stages]
     out["stages"] = st
     stage_ids = {s["stage"] for s in stages}
     step_ids = {s["step"] for s in R["steps"] if s.get("stage") in stage_ids}
@@ -234,11 +248,14 @@ def flow_record(reg, R, f, o_flow, scope, scoped, VM):
     def across(name, key):
         worked = [s for s in st if s[key]["status"] != NOT_STARTED]
         status = (NOT_STARTED if not worked else
-                  REVIEWED if all(s[key]["status"] == REVIEWED for s in worked) else DRAFT)
+                  REVIEWED if all(s[key]["status"] == REVIEWED for s in worked) else
+                  REVIEWED_OPEN if all(s[key]["status"] in (REVIEWED, REVIEWED_OPEN) for s in worked) else DRAFT)
         p = {s[key]["picked"] for s in st}
         picked = (NO_PICK if p <= {NO_PICK} else PICKED if PICKED in p else NOT_PICKED)
+        opened = list(dict.fromkeys(x for s in worked for x in s[key].get("open") or []))
         return {"milestone": name, "status": status, "covers": ", ".join(s["name"] for s in worked) or None,
-                "pages": [s[key]["page"] for s in worked if s[key]["page"]], "picked": picked}
+                "pages": [s[key]["page"] for s in worked if s[key]["page"]], "picked": picked,
+                "open": opened, "open_items": len(opened)}
     out["milestones"] = [
         {"milestone": "Identified", "status": DRAFT, "covers": "found by a first look at the system", "pages": []},
         {"milestone": "Mapped", "status": DRAFT if stages else NOT_STARTED,
@@ -316,7 +333,7 @@ def open_choice(reg, R, o, scope, current, stop):
             for m in fo.stage_alerts(quiet(fo.build, R, fid, s["stage"])):
                 shown.setdefault(m["handle"], m)
         items = [{"key": h, "name": m.get("measure"), "recommended": True, "reason": fo.basis(m),
-                  "status": "proposed", "opts": ["Accept", "Reject"]} for h, m in shown.items()]
+                  "status": "proposed", "opts": list(REVIEW_OPTS)} for h, m in shown.items()]
         c = {"milestone": "Alerts defined", "task": "Review the alerts proposed", "items": items,
              "add": "Make any other measure an alert"}
     elif scope is not None and go.flows_left(reg) and go.run_finished(reg):

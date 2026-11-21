@@ -61,8 +61,9 @@ KEY = {MEAS: "measures", ALERTS: "alerts", RUNBOOKS: "runbooks"}
 # What fills a dot. Runbooks are drafted and never reviewed, so they fill once drafted, like the first three. Alerts
 # fill once the review of the proposed alerts is recorded. The three other teams carry out read "Nothing recorded
 # yet." until a later stage reads their tools; the count of measures sent to monitoring is read from the code.
-FILLED_WHEN = {IDENT: ("draft", "reviewed"), MAPPED: ("draft", "reviewed"), MEAS: ("draft", "reviewed"),
-               ALERTS: ("reviewed",), RUNBOOKS: ("draft", "reviewed")}
+FILLED_WHEN = {IDENT: ("draft", "reviewed"), MAPPED: ("draft", "reviewed"),
+               MEAS: ("draft", "reviewed", depth.REVIEWED_OPEN),
+               ALERTS: ("reviewed", depth.REVIEWED_OPEN), RUNBOOKS: ("draft", "reviewed")}
 
 TALK = "Tick what you want to talk about with Claude · say what in your words"
 WORDS_ONLY = "Your words go to Claude"
@@ -343,6 +344,10 @@ class Flow:
         elif p in (ALERTS, RUNBOOKS) and st != depth.NOT_STARTED:
             key = KEY[p]
             lst = [f"{(s.get(key) or {}).get('count', 0)} · {s.get('name')}" for s in self.stages]
+        if p in (MEAS, ALERTS) and st != depth.NOT_STARTED:  # a draft its own check fails says so, wherever it shows
+            n = (self.mile.get(COLS[p][0]) or {}).get("open_items", 0)  # each item once, however many stages find it
+            at = [s.get("name") for s in self.stages if (s.get(KEY[p]) or {}).get("open_items")]
+            lst += [f"{nn(n, 'open item')} · {', '.join(at)}"] if n else []
         return cls, st, lst
 
     # ---- the pages each drop-down links
@@ -529,16 +534,19 @@ class Flow:
 
     # ---- the tree's counts
     def count(self, p, s):
+        def opened(key):  # a draft its own check fails says so wherever the stage's measures or alerts show
+            n = (s.get(key) or {}).get("open_items", 0)
+            return f", {nn(n, 'open item')}" if n else ""
         if p == MAPPED:
             return f"{nn(len(s.get('steps') or []), 'step')}, {nn(len(s.get('parts') or []), 'part')}"
         if p == MEAS:
             gaps = sum(1 for r in (s.get("measures") or {}).get("items") or [] if r.get("state") != "measured")
-            return f"{nn(len(self.stage_measures(s)), 'measure')}, {nn(gaps, 'question')} without one"
+            return f"{nn(len(self.stage_measures(s)), 'measure')}, {nn(gaps, 'question')} without one{opened('measures')}"
         if p == INSTR:
             xs = self.stage_measures(s)
             return f"{self.sent(xs)} of {len(xs)} sent to monitoring"
         if p == ALERTS:
-            return nn((s.get("alerts") or {}).get("count", 0), "alert")
+            return nn((s.get("alerts") or {}).get("count", 0), "alert") + opened("alerts")
         if p == RUNBOOKS:
             return nn((s.get("runbooks") or {}).get("count", 0), "runbook")
         return ""

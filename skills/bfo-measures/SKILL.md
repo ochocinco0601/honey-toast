@@ -44,9 +44,12 @@ going back to the code; every measure said to be produced today cites the line t
 "collected" rests on the collection configuration that was read; every part of the picked stages has a measure or
 the reason it has none; and the person has seen the measures and said go. The inspection checks that each citation
 is there; whether each says what its row claims is checked by a reader who wrote none of the rows, which a run of
-this skill alone does not do yet, so its closing message says the measures are reviewed, not verified. Run by the
-stage kit, the person's go and that re-read are the kit's: done for this skill's part is its step 3 with its
-checks passing, handed back to the kit for the review.
+this skill alone does not do yet, so its closing message says the measures are reviewed, not verified. The measures are a draft the team carries
+forward through its own delivery lifecycle, never a sign-off: the person's go shapes the draft and is not an approval,
+and a go on a draft with open items is recorded with them, which the run puts right and tells the person. The person
+is never held by open items: they can go on with them still open, and the items stay listed. Run by the stage kit,
+the person's go and that re-read are the kit's: done for this skill's part is its step 3 with every failure it can
+put right put right, and what remains handed back to the kit as open items for the review.
 
 Inferred, and so to be checked first: that the person who asks is the same one who oversees operations and reviews the measures.
 
@@ -67,8 +70,8 @@ and stops. Read the folders this file and `MEASURES-STEPS.md` name (`register-te
 rest: no first message; no step 1 (the kit has found the register and holds it, and its run being
 under way is why you are here); no step 2 (the pick is recorded); no step 4 (the kit renders the review of the
 measures itself, naming every measured stage, and records the person's answer); no step 5 (no closing message, and
-never stop the page's listener: the kit's page and its wait stay up). When step 3 is done, its checks passing,
-go back to the stage kit's `SKILL.md`, phase 4, for the review. A `changes` at that review, or a correction a later
+never stop the page's listener: the kit's page and its wait stay up). When step 3 is done (every failure it can put right
+put right, the rest open items on the pages), go back to the stage kit's `SKILL.md`, phase 4, for the review. A `changes` at that review, or a correction a later
 step files, brings the kit back here, to step 3 again.
 
 ## Your first message
@@ -222,7 +225,7 @@ The work is in the **register folder**, `<your-folder>` below: the folder mappin
    where to look, never write a row. Then, for every stage of this flow picked to measure (run by the stage kit:
    every stage picked past mapped only, to measure, to alerts or to runbooks), `python "<skill>/flow_outputs.py" "<your-folder>"
    <flow id> <stage id> --out "<your-folder>/stage-<stage id>" --measures`, and fix what its check names, in the
-   rows, until it passes. Then `python "<skill>/check_measures.py" "<your-folder>" <flow id> <stage id>...`, naming
+   rows. The page is written whether or not the check passes: what you cannot put right stays on it as an open item. Then `python "<skill>/check_measures.py" "<your-folder>" <flow id> <stage id>...`, naming
    every stage you measured: it reports and never blocks; put right every failure that is this step's, and keep for the
    review only what you cannot (with the reason in your recommendation).
 
@@ -232,8 +235,11 @@ The work is in the **register folder**, `<your-folder>` below: the folder mappin
    runbooks), whose review is the stage kit's. It gives, per stage, what each party counts on, a short list of the
    stage's measures (what each shows, whether the system produces it today, whether anything collects it), what a
    measure produced today gets wrong, and each part with no measure and why; then the measures several stages
-   share and the flow's own, the coverage list and the inspection as counts with anything that fails, your
-   recommendation, and their options. Your recommendation is the only text you write, and the script refuses the
+   share and the flow's own, the coverage list and the inspection as counts with anything that fails, the draft's
+   open items, your recommendation, and their options. **Open items** are what a stage's own check (the one
+   `flow_outputs.py --measures` runs) still finds failing: a part, step or stage with neither a measure nor a reason
+   for having none, or a row the check names. The message names each once, in plain words; each stage's measures page
+   lists its own at the top. Your recommendation is the only text you write, and the script refuses the
    message while it, or register text it shows, carries an id, a file name or a kit term: fix the recommendation,
    or the row the text comes from, and run it again. Send what it printed, exactly, and end your turn.
    The detail one level down (where each measure is produced and of what kind, and every item of the coverage list
@@ -244,10 +250,13 @@ The work is in the **register folder**, `<your-folder>` below: the folder mappin
    Record their answer with `python "<skill>/go.py" "<your-folder>" --measures-reviewed --decision go|changes
    --words "<their answer, word for word>"` (`--test` when a test stands in for them). `go` keeps what they
    reviewed; it is refused when the measures changed after the message was rendered, so render it again and show
-   them. `changes`: make each change in step 3, and review again.
+   them. A go is never refused for open items: it is recorded with exactly the items the message showed. After the
+   go, putting them right is your work, told, not reviewed again: fix each (a measure, its reason, or the row the check names), record the fix with `python "<skill>/go.py" "<your-folder>" --open-fixed --words "<each item, and how>"` (one plain line per item; the go then covers the rows as they are, and the next message opens with that line), then run the stage again: the go carries over. Any other change after the go reopens the review, as before. The person is never held by open items: if they say to go on with them still open, record their word with `python "<skill>/go.py" "<your-folder>" --open-left --words "<their answer, word for word>"`. Run alone, this skill offers no next flow: step 5's closing message says how many stay open, and that they stay open at their word. Run by the stage kit, the kit finishes the flow and offers the next one; the items stay listed on the status line, the page and the report until put right. `changes`: make each change in step 3, and review again.
 
-5. **After their go.** Write to the person, through `say`: the measures of those stages are reviewed and kept
-   (reviewed by them, not yet re-read against the code by someone who wrote none of them); how many the system
+5. **After their go.** Write to the person, through `say`: the measures of those stages are kept as the draft they
+   reviewed (reviewed by them, not yet re-read against the code by someone who wrote none of them), and, where the
+   review named open items, how many are still open (and, when they said to go on with them open, that it was at
+   their word) and that each stays open until it is put right; how many the system
    produces today, how many it does not yet, how many are produced but collected by nothing, how many it is not
    known whether anything collects, and how many records the code does not keep; that the ones not produced, not
    collected or with no record are what the developers and whoever runs the monitoring would be asked for; any

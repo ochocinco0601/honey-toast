@@ -1,20 +1,20 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9.5 2026-11-19
+Build: release-9.6 2026-11-21
 2bccdf9e80e7  MEASURES-STEPS.md
-d689dc2d4fad  SKILL.md
+96b2a9f6fbd6  SKILL.md
 cad46fa40608  agents/bfo-row-judge.md
 dc0f0f8f2918  agents/bfo-unit-reader.md
 d4de8a382c95  all_systems.py
-9b64d3e61a07  brief.py
+181b0735df3c  brief.py
 14e1e7b16451  capability_views.py
 7fd0f62b0c36  case.py
 d8002daf778c  check_map.py
 6d92fa8a9848  check_measures.py
-3ad35127eacf  depth.py
-d17abfb87fea  flow_outputs.py
+7b2856ae076b  depth.py
+7db9415828a2  flow_outputs.py
 9726ce65121a  flow_page.py
-4689b8fe5a41  go.py
-e89b751b9dda  home.py
+5adaf130a68f  go.py
+dc264fc5fe16  home.py
 db0a5083ced3  home.template.html
 7484d97f3789  judges.py
 c1f12b4f6f27  listener.py
@@ -28,7 +28,8 @@ e4270c8420b7  method/hop-failures.csv
 8691712fae7c  method/measure-forms.csv
 6eb53baafd1f  method/part-kinds.csv
 895c93bf24d0  one_canvas.py
-47c3bcf4ce39  operator_page.py
+a71adffd68bf  open_items.py
+50ea1c4056c9  operator_page.py
 62505e86aebd  page/page-kit.js
 a70780da699b  page/page_ask.py
 1e15b3afa36f  page_style.py
@@ -73,7 +74,7 @@ c2ae3dc631c5  register-template/stages.csv
 cac01f263e60  register_layout.py
 923816867f91  reread.py
 0e819788a02b  run_lock.py
-1290bff3126a  run_status.py
+74104ad2f610  run_status.py
 ab0ec506c213  settings.py
 1ae24ff2b922  stage_flow_views.py
 52d50ab98292  start.py

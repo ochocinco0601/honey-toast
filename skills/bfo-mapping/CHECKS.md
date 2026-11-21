@@ -235,6 +235,7 @@ that is `count only` is counted and never gates, so it has no row.
 | rs-s9 | run_status.py | report | not done | d (process) | cited code not read by the run | every code citation in the map names a file the run read (reading_check.py); check_map.py runs it at mapping's end (run_status.mapping_owed) |
 | rs-s10 | run_status.py | report | not done | d (process) | drawings with no content | no drawing page came out blank; check_map.py runs it at mapping's end (run_status.mapping_owed) |
 | rs-s11 | run_status.py | report | not done | a | measures with a citation and no counted_at | the done check's side of fo-73 |
+| rs-s15 | run_status.py | report | not done | a | stage checks failing, their pages written with the open items | every stage taken past mapped only passes its own check at the work the run has reached (flow_outputs.stage_open); a page written with open items never counts as done |
 | rs-s12 | run_status.py | report | not done | b | rows of a finished flow changed | a finished flow's rows are as they were when the next flow began (go.changed_rows) |
 | rs-s13 | run_status.py | report | not done | a | ids used twice | an id is used once across the register (go.reused) |
 | rs-s14 | run_status.py | report | not done | c | view questions not answered | the reason for rs-01, rs-02 and rs-s5; check_map.py runs mapping's questions at mapping's end (run_status.mapping_owed) |

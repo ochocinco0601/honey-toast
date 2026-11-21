@@ -76,6 +76,8 @@ MADE = {1: "the flows found, and where to start", CASE: "where the flow starts, 
         ALERTS: "the alerts for the stages you picked", RUNBOOKS: "the runbooks for those alerts",
         5: "the map, checked against the code and drawn again", 6: "the report"}
 HOLDS = (0, REVIEW, DEPTH_PICK, MEASURES_REVIEW)  # the person's picks and review: never reported as drafted
+BEFORE_THE_REVIEW = (None, 0, 1, CASE, STRUCTURE, CAPABILITY, DEPTH_PICK, MEASURES)  # no open item said yet
+HELD_BY_OPEN = (RUNBOOKS, 5, 6)  # the runbooks wait on open alert items: the run puts them right next
 # What each hold waits on, as the status line's "Waiting on you" says it; the run status page says it in these words too.
 WAITS = {0: "your pick of which flow comes first", REVIEW: "your review of the proposed alerts",
          MEASURES_REVIEW: "your review of the proposed measures", DEPTH_PICK: "your pick of how far each stage goes"}
@@ -133,9 +135,28 @@ def page_line(folder):
 
 
 def with_page(text, folder):
-    """`text` with the page's address on a last line of its own while a listener serves the work."""
+    """`text` with the page's address on a last line of its own while a listener serves the work, and, the first time
+    a message goes out after the run put right open items a go was given on, the line naming that fix under its
+    status line: such a fix is told, never reviewed again (go.record_open_fixed)."""
+    import go
+    told = go.take_untold(folder) if (pathlib.Path(folder) / layout.SCOPE).is_file() else []
+    if told:
+        first, sep, rest = text.partition("\n\n")
+        text = f"{first}\n\n" + "\n\n".join(told) + (f"\n\n{rest}" if sep else "")
     line = page_line(folder)
     return f"{text.rstrip()}\n\n{line}" if line else text
+
+
+def state_names(*states):
+    """Each lifecycle state as written and as the pages name it (stage_flow_views.state_name: AwaitingValidation reads
+    "Awaiting validation"), without a state marked implicit or none."""
+    import stage_flow_views as sfv
+    out = set()
+    for s in states:
+        s = (s or "").strip()
+        if s and not s.startswith(("(", "implicit:")):
+            out |= {s, sfv.state_name(s)}
+    return out
 
 
 def register_names(reg):
@@ -148,6 +169,8 @@ def register_names(reg):
         try:
             for row in csv.DictReader(f.open(encoding="utf-8-sig")):
                 names |= {(row.get(c) or "").strip() for c in ("name", "measure", "title", "service")}
+                if f.name == "lifecycle.csv":  # the case's states (Paid, AwaitingValidation) are the business's names
+                    names |= state_names(row.get("from_state"), row.get("to_state"))
         except (OSError, csv.Error, UnicodeDecodeError):
             continue
     try:
@@ -389,6 +412,8 @@ def _mapping_from_case(reg, ph):
         now = {CASE: "done", STRUCTURE: "done", CAPABILITY: "done"}
     elif st == "mapping" and sub in STRUCTURE_SUBS:
         now = {CASE: "done", STRUCTURE: "doing", CAPABILITY: "to do"}
+    elif st == "mapping" and sub == "pick":  # Business Impact is written; the pick's own row says the run waits on it
+        now = {CASE: "done", STRUCTURE: "done", CAPABILITY: "done"}
     elif st == "mapping" and sub and sub != "lead steps":
         now = {CASE: "done", STRUCTURE: "done", CAPABILITY: "doing"}
     elif st == "mapping":
@@ -556,6 +581,13 @@ def measures_status(reg, flow, stage):
     elif ph.get(MEASURES_REVIEW) != "done":
         now, drafted, nxt, waiting = ("Your review of the measures", "the measures for the stages you picked",
                                       MEASURES_NEXT, "your review of the proposed measures")
+    elif open_record(reg)["items"]:  # reviewed, and the checks still find open items: said, and put right next
+        rec = open_record(reg)
+        n = len(rec["items"])
+        now, drafted, nxt, waiting = (f"The measures reviewed, with {count_word(n)} open item{'' if n == 1 else 's'}"
+                                      + (" left open at your word" if rec["left_open"] else ""),
+                                      "the measures for the stages you picked",
+                                      MEASURES_NEXT if rec["left_open"] else "putting the open items right", "nothing")
     else:
         now, drafted, nxt, waiting = ("The measures reviewed", "the measures for the stages you picked",
                                       MEASURES_NEXT, "nothing")
@@ -595,6 +627,16 @@ def status(reg):
         left = flows_left(reg)  # the flow is done; the first look found more, added to this map one at a time
         import run_status
         pending = "" if current is None or run_status.own_reread_passed(reg) else "; its re-read pending"
+        rec = open_record(reg)
+        n = len(rec["items"])
+        if n and rec["left_open"]:  # the person said go on with them open: listed, never held
+            return (f"{lead} Draft complete, with {count_word(n)} open item{'' if n == 1 else 's'} left open at your "
+                    f"word{pending} · Drafted: {drafted_said(reg, last)} · Next: "
+                    + ("the next flow" if left else "nothing") + " · Waiting on you: nothing")
+        if n:  # a draft whose own checks still fail: said here, and putting it right comes before anything else
+            return (f"{lead} Draft complete, with {count_word(n)} open item{'' if n == 1 else 's'}{pending} · "
+                    f"Drafted: {drafted_said(reg, last)} · Next: putting the open items right · Waiting on you: "
+                    "nothing")
         return (f"{lead} Draft complete{pending}, for your review · Drafted: {drafted_said(reg, last)} · Next: "
                 + ("the next flow · Waiting on you: nothing" if left else "nothing · Waiting on you: nothing"))
     waiting = "the run is blocked; the message below says why" if blocked else WAITS.get(current, "nothing")
@@ -606,7 +648,18 @@ def status(reg):
         nxt = "the report"
     # while it waits on the person, the activity would only repeat what it waits on
     now = "" if waiting != "nothing" and not blocked and current in HOLDS else f" {name(current, count)} ·"
-    return f"{lead}{now} Drafted: {drafted_said(reg, last)} · Next: {nxt} · Waiting on you: {waiting}"
+    opened = ""
+    if current not in BEFORE_THE_REVIEW:  # from the measures review on, the draft's open items, one count
+        rec = open_record(reg)
+        n = len(rec["items"])
+        if rec.get("unreadable"):
+            opened = " Open items: could not be checked ·"
+        elif n:
+            opened = f" Open items: {count_word(n).lower()} open item{'' if n == 1 else 's'}" + (
+                ", left open at your word ·" if rec["left_open"] else " ·")
+            if not rec["left_open"] and waiting == "nothing" and current in HELD_BY_OPEN:
+                nxt = "putting the open items right"  # the runbooks wait on them: the report does not come next
+    return f"{lead}{now}{opened} Drafted: {drafted_said(reg, last)} · Next: {nxt} · Waiting on you: {waiting}"
 
 
 def drafted_said(reg, last):
@@ -892,6 +945,60 @@ def capability_full(reg, o):
 {SEARCH_ASK + chr(10) if o.get('unresolved') else ''}"""
 
 
+def open_record(reg):
+    """The flow worked now's record of open items and the person's decisions on them (open_items.of_flow), read by
+    every surface; an empty record when the checks cannot read the register."""
+    import open_items
+    try:
+        return open_items.of_flow(pathlib.Path(reg))
+    except Exception:  # noqa: BLE001 - a register the checks cannot read: said as such, never as no open items
+        return open_items.empty(unreadable=True)
+
+
+def open_now(reg):
+    """(the stages whose own check fails, [each open item once]) from the flow's record of open items."""
+    rec = open_record(reg)
+    return rec["stages"], rec["items"]
+
+
+def still_open(reg):
+    """The draft's open items in a sentence for the person ("" when every check passes), each counted once."""
+    failing, items = open_now(reg)
+    if not items:
+        return ""
+    st = {(r.get("stage") or "").strip(): (r.get("name") or "").strip() for r in rows(pathlib.Path(reg) / "stages.csv")}
+    named = and_list([f"*{st.get(s) or s}*" for s in failing])
+    n = len(items)
+    return (f"The check of {named} still finds {count_word(n)} open item{'' if n == 1 else 's'}: "
+            + "; ".join(items) + ".")
+
+
+def reentry_open_tail(reg, current=None, nxt=""):
+    """The resume's close when the draft's own checks still fail: the items, that the run puts them right and tells
+    the person, and the person's way past them: they are never held. "" when every check passes."""
+    said = still_open(reg)
+    if not said:
+        return ""
+    rec = open_record(reg)
+    if rec["left_open"]:  # the person said to go on with them open: listed, never offered again
+        return (f"\n**Open items left open at your word.** {said} You said to go on with them still open "
+                f"(\"{(rec['left'] or {}).get('words', '')}\"); they stay listed for this flow until each is put "
+                "right.\n")
+    if current is None:
+        st = state(reg)
+        current = st[0] if st else None
+    # what comes after the fix is the work the run is at (the runbooks, say), not the status line's next
+    then = cont(short(current)) if current is not None and current not in HOLDS else nxt
+    if not then or then.startswith("putting the open items right"):
+        then = "the next flow" if flows_left(reg) else ""
+    past = ("or say next flow, and I go on with these still open: they stay listed until each is put right"
+            if flows_left(reg) else "or say stop, and the map stays as it is with these still open")
+    return (f"\n**Open items in this draft.** {said} The final check names them until each is put right. I put each "
+            "right and tell you what I changed; what you said stands, and nothing is reviewed again.\n\n"
+            "Shall I put them right" + (f", then carry on with {then}" if then else "") + f"? I recommend yes, {past}."
+            "\n")
+
+
 def reentry(reg, o):
     c, a = o["capability"], o["activity"]
     scope = scope_now(reg)
@@ -922,6 +1029,22 @@ def reentry(reg, o):
                             f"picked how far each stage goes, on {p.get('given', 'an earlier day')}, and that pick "
                             f"decides: {depth_said(reg, scope['depth'], '*')}.")
             decided += f" In those words: \"{p['words']}\"" if p.get("words") else ""
+        for key, what in (("measures_reviewed", "the measures"), ("alerts_reviewed", "the alerts")):
+            r = scope.get(key) or {}
+            if r:  # each go, and whether it was given on a draft with open items, is the person's decision
+                n = len(r.get("open") or [])
+                by = "a test standing in for you" if r.get("test") else "you"
+                decided += (f" On {r.get('given', 'an earlier day')}, {by} said go on {what}"
+                            + (f", a draft with {count_word(n)} open item{'' if n == 1 else 's'}" if n else "") + ".")
+        for f in scope.get("open_fixed") or []:  # a fix after a go: told, and the go carried over
+            decided += (f" On {f.get('given', 'an earlier day')}, I put open items right after your go, and told you: "
+                        f"{cont(f.get('words', ''))}; your go stood.")
+        left = scope.get("open_left") or {}
+        if left:
+            n = len(left.get("items") or [])
+            by = "a test standing in for you" if left.get("test") else "you"
+            decided += (f" On {left.get('given', 'an earlier day')}, {by} said to go on with {count_word(n).lower()} "
+                        f"open item{'' if n == 1 else 's'} left open, in these words: \"{left.get('words', '')}\".")
         rem = dict(scope.get("remains") or {})
         if scope.get("depth"):  # after the person's pick, the stages left without alerts are those it leaves below alerting
             names = {(r.get("stage") or "").strip(): (r.get("name") or "").strip() for r in rows(reg / "stages.csv")}
@@ -949,14 +1072,16 @@ def reentry(reg, o):
         # page is named as one place to choose it only where Home draws the pick
         tail = "\n**The flows still to add to this map.** " + "; ".join(f"*{n}*" for n in flows_left(reg)) + ".\n"
         rec = next_flow_recommended(reg) or (o.get("recommendation") or {})
-        where = "on the page or here in the chat" if on_page else "here in the chat"
+        pick_at = "on the page or here in the chat" if on_page else "here in the chat"
         if rec.get("flow") in flows_left(reg):
             why = (rec.get("why") or "").strip()
             tail += f"\n**My recommendation.** Next: *{rec['flow']}*." + (f" {sentence(why)}" if why else "") + "\n"
-            tail += f"\nSay carry on and I will map *{rec['flow']}*, or name another flow {where}."
+            tail += f"\nSay carry on and I will map *{rec['flow']}*, or name another flow {pick_at}."
         else:
-            tail += f"\nName the flow to map next {where}."
+            tail += f"\nName the flow to map next {pick_at}."
         tail += " Or say stop, and this map stays as it is, with those flows still to add.\n"
+        if open_record(reg)["left_open"]:  # open items left open at the person's word stay listed
+            tail += reentry_open_tail(reg)
     elif state(reg) and state(reg)[0] == DEPTH_PICK and (reg / PICK_FILE).is_file():
         # Waiting on the person's pick of how far each stage goes: the stages again, as last put to them
         tail = "\n**The stages you were asked to pick from, again.**\n\n" + shown_again(reg, PICK_FILE)
@@ -969,6 +1094,10 @@ def reentry(reg, o):
     elif state(reg) and state(reg)[0] == REVIEW and (reg / REVIEW_FILE).is_file():
         # Waiting on the person's review of the alerts: the alerts again, as last put to them, without their old status line
         tail = "\n**The alerts you were asked to review, again.**\n\n" + shown_again(reg, REVIEW_FILE)
+    elif waits == "nothing" and still_open(reg):
+        tail = reentry_open_tail(reg, current, nxt)
+        if open_record(reg)["left_open"]:  # their word stands: the run carries on to the end of this flow
+            tail += f"\nShall I carry on with {nxt}? I recommend yes.\n"
     elif waits == "nothing":
         tail = f"\nShall I carry on with {nxt}? I recommend yes.\n"
     else:
@@ -1126,6 +1255,31 @@ def mark_the_review(reg):
     p.write_text(text, encoding="utf-8", newline="\n")
 
 
+def open_items_said(reg, R, flow_id, stage_ids, part):
+    """The draft's open items, as the stages' own checks find them for `part` (flow_outputs.stage_open): lines for the
+    review, or [] when every check passes. A failing check never blocks the review or hides: it is said here, and the
+    go is recorded with these items open."""
+    import go
+    import open_items
+    picked = (go.record_of(reg, flow_id) or {}).get("depth") or go.depth_all(reg) or {}
+    chosen = {s for s, d in picked.items() if d != "none"} or None
+    failing, items = [], []
+    for sid in stage_ids:  # the one computation the record of open items uses (open_items.stage_items)
+        got = open_items.stage_items(R, flow_id, sid, chosen, part)
+        if got:
+            failing.append(sid)
+            items += [x for x in got if x not in items]
+    go.record_open_shown(reg, part, items)  # the go records exactly these: one computation, one count
+    if not failing:
+        return []
+    st = {s["stage"]: s.get("name") for s in R["stages"]}
+    named = and_list([f"*{st.get(s) or s}*" for s in failing])
+    n = len(items)
+    out = [f"**Open items in this draft.** The check of {named} found {count_word(n)} still open. This is a draft "
+           "with open items: if you say go, I record it with them open, and each stage's page lists them:"]
+    return out + [f"- {x}" for x in items]
+
+
 def alerts_review(reg, flow_id, stage_ids, recommend):
     """The message for the person's review of the proposed alerts, before any runbook: per stage, each proposed alert
     with what it watches, what it guards, its kind of health signal, whether it exists today and why it is proposed,
@@ -1142,12 +1296,14 @@ def alerts_review(reg, flow_id, stage_ids, recommend):
     import go
     picked = go.depth_all(reg) or {}
     runbooks = any(picked.get(sid) == "runbooks" for sid in stage_ids)  # else the alerts are as far as these stages go
-    out = [status(reg), "", "**The alerts proposed, for your review.** " + (
-        "Nothing about how each could fail, and no runbook, has been written yet: those come after your go on these "
-        "alerts." if runbooks else "They are written into the alert pages once you say go."), "",
+    opened = open_items_said(reg, R, flow_id, stage_ids, "alerts")
+    out = [status(reg), "", "**Here is the draft of the alerts.** " + (
+        "Nothing about how each could fail, and no runbook, has been written yet: those come after these alerts."
+        if runbooks else "They are as far as the stages you picked go, and they stay a draft."), "",
+        *([*opened, ""] if opened else []),
         f"**My recommendation.** {sentence(recommend)}", "",
-        "**What you can decide.** Keep these alerts as they are, drop one, change one or add one; or say go" +
-        (" on to the runbooks." if runbooks else ".")]
+        "**What you can decide.** Tell me anything to change: drop an alert, change one or add one. Or say go"
+        + (", and I go on to the runbooks." if runbooks else ", and I go on.")]
     for sid in stage_ids:
         M = fo.build(R, flow_id, sid)
         names |= set(fo.given_names(M)) | {fo.states_said(M, fo.state(v.get(k))) for v in M["moves"].values()
@@ -1409,14 +1565,16 @@ def measures_review(reg, flow_id, stage_ids, recommend):
 
     produced = [x for xs in placed.values() for x in xs if (x.get("exists") or "").strip() == "yes"]
     total = sum(len(xs) for xs in placed.values())
-    out = [status(reg), "", "**The measures proposed, for your review.** " + (
-        "No alert has been chosen yet: alerts are chosen from these measures after your go on them." if alerts else
-        "These are as far as the stages you picked go; they stand once you say go.")
+    opened = open_items_said(reg, R, flow_id, stage_ids, "measures")
+    out = [status(reg), "", "**Here is the draft of the measures.** " + (
+        "No alert has been chosen yet: alerts are chosen from these measures next." if alerts else
+        "These are as far as the stages you picked go, and they stay a draft.")
         + f" There are {total}: {len(produced)} the system produces today and {total - len(produced)} proposed. "
         "For each, what it shows, whether the system produces it today, and whether anything collects it.", "",
+        *([*opened, ""] if opened else []),
         f"**My recommendation.** {sentence(recommend)}", "",
-        "**What you can decide.** Keep these measures as they are, drop one, change one or add one; or say go"
-        + (" on to the alerts." if alerts else ".")]
+        "**What you can decide.** Tell me anything to change: drop a measure, change one or add one. Or say go"
+        + (", and I go on to the alerts." if alerts else ", and I go on.")]
     for sid in stage_ids:
         M = M_of[sid]
         out += section(M, f"{M['stage']['name']}, in the flow {cont(M['flow']['name'])}", placed[sid], sid)
@@ -1796,7 +1954,13 @@ def main(argv):
         left = flows_left(reg)
         if not left or not next_ready(reg):
             print("REFUSED: the next flow is offered once this flow is finished and the first look found flows still "
-                  "to map; " + ("none is left" if not left else "this flow is not finished") + ".", file=sys.stderr)
+                  "to map; " + ("none is left" if not left else "this flow is not finished" + (
+                      ": its stages' own checks still find open items. Either the run puts them right and tells the "
+                      "person (go.py --open-fixed --words), or the person says to go on with them open (go.py "
+                      "--open-left --words, their answer); then the done check, then the next flow"
+                      if open_now(reg)[1] and not open_record(reg)["left_open"] else
+                      ": run the done check (run_status.py), then offer the next flow" if open_now(reg)[1] else ""))
+                  + ".", file=sys.stderr)
             return 2
         flow, why = opts["--flow"].strip(), opts["--recommend"].strip()
         if refuse_reason(why, reg):

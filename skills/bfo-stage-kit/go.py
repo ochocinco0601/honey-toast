@@ -19,6 +19,14 @@ Usage: python go.py <register folder> --flow "<the flow to start with>" --words 
                                                                   open corrections it filed to proposing the measures'
                                                                   tables take the run back to phase 4 and the review
                                                                   of the measures, then on to where it was
+       python go.py <register folder> --open-fixed --words "<each item fixed, and how>"
+                                                                  the run put right open items the person's go was
+                                                                  given on: told, not reviewed again; every go of the
+                                                                  flow then covers the rows as they are, and the next
+                                                                  message opens with the line
+       python go.py <register folder> --open-left --words "<their answer, verbatim>" [--test]
+                                                                  the person said to go on with the open items still
+                                                                  open: recorded with the items, for this flow
        python go.py <register folder> --alerts-reviewed --decision go|changes --words "<their answer, verbatim>"
                     [--given] [--test]                            their review of the proposed alerts (phase 5):
                                                                   only `go` closes the review
@@ -657,8 +665,13 @@ def run_finished(reg):
     if any(s not in ("done", "not picked") for _, s in before):
         return False
     if last[1] == "not picked":
-        return run_status.mapping_check_holds(reg)
-    return run_status.outputs_hold(reg)
+        # a flow taken only as far as the measures is finished only when its stages' own checks pass: open items
+        # are put right first, never left behind the next flow (the final check counts them as rs-s15 does)
+        # unless the person said to go on with them still open: never held, and the items stay listed
+        import open_items
+        rec = open_items.of_flow(reg)
+        return run_status.mapping_check_holds(reg) and (not rec["items"] or rec["left_open"])
+    return run_status.outputs_hold(reg)  # the done check excuses open items the person said to go on with
 
 
 def split_unheld(reg):
@@ -1368,7 +1381,13 @@ def review_line(reg, line, row):
 
 
 def reset_review(reg):
-    """The alerts were written again: any earlier review no longer covers them."""
+    """The alerts were written again: any earlier review no longer covers them, unless they changed only by a fix of
+    open items recorded after the go (record_open_fixed), which is told, not reviewed again."""
+    if fixed_covers(reg, "alerts"):
+        return
+    was = ((load(reg) or {}).get("alerts_reviewed") or {}).get("alerts")
+    if was and was == alert_fingerprint(reg) and fixed_covers(reg, "measures"):
+        return  # the alerts are as reviewed; the measures under them changed only by a recorded fix
     s = load(reg)
     if s and s.pop("alerts_reviewed", None) is not None:
         save(reg, s)
@@ -1390,8 +1409,8 @@ def record_review(reg, a):
     if not (a.words or "").strip():
         return "--words is required: their answer on the alerts, word for word"
     if a.decision not in ("go", "changes"):
-        return ("--decision is required: go when they accept the alerts and say go on to the runbooks, changes when "
-                "they ask for any change")
+        return ("--decision is required: go when they say go on with the draft of the alerts, changes when they ask "
+                "for any change")
     who = "a test review, given by a test standing in for the person" if a.test else "the person"
     given = a.given or datetime.datetime.now().astimezone().isoformat(timespec="minutes")
     s = load(reg) or {}
@@ -1406,13 +1425,20 @@ def record_review(reg, a):
                                 flags=re.M), encoding="utf-8", newline="\n")
         return s
     shown = s.get("alerts_shown")
+    # a go on alerts never shown covers nothing the person saw; a register with no scope record (an earlier run)
+    # keeps nothing of what was shown, so its go is taken as before
+    if not shown and load(reg) is not None:
+        return ("the alerts have not been shown to the person: show them (brief.py alerts) and record their answer on "
+                "what they saw")
     if shown and shown != alert_fingerprint(reg):
         return ("the alerts have changed since they were shown to the person, so their go does not cover them. Show "
                 "them the alerts again (brief.py alerts) and record their answer on what they saw")
+    still_open = open_now(reg, "alerts") if s else []
     s["alerts_reviewed"] = {"words": a.words.strip(), "test": a.test, "alerts": shown or alert_fingerprint(reg),
-                            "given": given}
+                            "given": given, "open": still_open}
     save(reg, s)
-    review_line(reg, f"- **Alerts reviewed:** {a.words.strip()} ({who}, {given})", "done")
+    review_line(reg, f"- **Alerts reviewed:** go{open_said(still_open)}: {a.words.strip()} ({who}, {given})",
+                "done")
     return s
 
 
@@ -1608,7 +1634,10 @@ def proved_by(text, lead, proof):
 
 def reset_measures_review(reg):
     """The flow worked now's measures were proposed again: an earlier review no longer covers them, and the next go
-    retakes the snapshot. A review row the pick leaves out stays so."""
+    retakes the snapshot. A review row the pick leaves out stays so. A change made only by a fix of open items recorded
+    after the go (record_open_fixed) keeps the go: it is told, not reviewed again."""
+    if fixed_covers(reg, "measures"):
+        return
     s = load(reg)
     if s and ("measures_reviewed" in s or "measures_shown" in s):
         s.pop("measures_reviewed", None)
@@ -1675,13 +1704,152 @@ def back_to_measures(reg, ids):
     return s
 
 
+OPEN_SHOWN = "open_shown"  # scope.json: {part: [the open items the review showed]}, which the go records
+
+
+def record_open_shown(reg, part, items):
+    """The open items a review showed the person, kept until their answer: the go records exactly these."""
+    s = load(reg)
+    if s is None:
+        return
+    s.setdefault(OPEN_SHOWN, {})[part] = list(items)
+    save(reg, s)
+
+
+def open_now(reg, part, flow_id=None):
+    """The open items a go is recorded with: those its review showed (brief.py, through record_open_shown), else, for
+    a go given with no review rendered, the concern's items in the flow's record of open items (open_items.of_flow)."""
+    import open_items
+    reg = pathlib.Path(reg)
+    s = load(reg) or {}
+    shown = (s.get(OPEN_SHOWN) or {}).get(part)
+    if shown is not None:
+        return list(shown)
+    return open_items.of_flow(reg, flow_id)["concerns"][part]["items"]
+
+
+FIX_UNTOLD = "fix_untold"  # scope.json: the lines naming a fix after a go, until a message has told the person
+
+
+def record_open_fixed(reg, words, given=None):
+    """The run put right open items a go was given on. The rule: such a fix is told, not reviewed again. It is recorded
+    with every go of this flow (an item the measures check and the alerts check both find is fixed once, for both),
+    in the session's plain words; each go then covers its rows as they are now, keeping the items it was given on;
+    and the next message opens with the line. Any other change after the go still reopens the review. Returns the
+    open items still open, or a refusal."""
+    import open_items
+    if not (words or "").strip():
+        return "--words is required: each open item put right, and how, in plain words"
+    s = load(reg)
+    parts = [p for p, key in open_items.REVIEW.items() if s and s.get(key)]
+    if not parts:
+        return "no go on the draft is recorded, so there is nothing to fix after it: show them the draft first"
+    given = given or datetime.datetime.now().astimezone().isoformat(timespec="minutes")
+    for part in parts:
+        rec = s[open_items.REVIEW[part]]
+        if part == "measures":
+            rec["rows"], rec["measures"] = measures_snapshot(reg), measures_fingerprint(reg)
+            s["measures_shown"] = rec["measures"]
+        else:
+            rec["alerts"] = s["alerts_shown"] = alert_fingerprint(reg)
+        rec.setdefault("fixed", []).append({"words": words.strip(), "given": given,
+                                            "covers": rec["rows" if part == "measures" else "alerts"]})
+        (s.get(OPEN_SHOWN) or {}).pop(part, None)
+    s.setdefault("open_fixed", []).append({"words": words.strip(), "given": given, "concerns": parts})
+    save(reg, s)
+    still = open_items.of_flow(reg)["items"]  # the fix may leave some open
+    left = len(still)
+    s = load(reg)
+    s.setdefault(FIX_UNTOLD, []).append(
+        f"**Put right after your go on the {' and the '.join(parts)}:** {words.strip().rstrip('.')}. "
+        + (f"{count_word_go(left)} open item{'' if left == 1 else 's'} remain." if left else "No open item remains."))
+    save(reg, s)
+    p = pathlib.Path(reg) / "RUN.md"
+    if p.is_file():
+        text = p.read_text(encoding="utf-8")
+        for part in parts:
+            label = "Measures reviewed" if part == "measures" else "Alerts reviewed"
+            text = re.sub(rf"^(- \*\*{label}:\*\* .*)$", lambda m: m.group(1) + f" · fixed after the go: "
+                          f"{words.strip()} ({given})", text, count=1, flags=re.M)
+        p.write_text(text, encoding="utf-8", newline="\n")
+    return still
+
+
+OPEN_LEFT = "open_left"  # scope.json: the person's word to go on with these open items still open
+
+
+def record_open_left(reg, words, given=None, test=False):
+    """The person's word to go on (to the next flow) with the draft's open items still open: recorded with the items,
+    in this flow's record, so the next flow is offered once the done check has run, and the items stay listed for this
+    flow on every surface until the run puts them right. The runbooks that wait on them are passed over (5b done),
+    since nothing the run can do writes them while the items stay open."""
+    import open_items
+    if not (words or "").strip():
+        return "--words is required: their answer, word for word"
+    s = load(reg)
+    if s is None:
+        return "no go is recorded: the run begins with the go"
+    rec = open_items.of_flow(reg)
+    items = rec["items"]
+    if not items:
+        return "no open item is open, so there is nothing to go on past"
+    given = given or datetime.datetime.now().astimezone().isoformat(timespec="minutes")
+    s[OPEN_LEFT] = {"words": words.strip(), "given": given, "test": test, "items": items}
+    save(reg, s)
+    p = pathlib.Path(reg) / "RUN.md"
+    if p.is_file():
+        who = "a test standing in for the person" if test else "the person"
+        line = (f"- **Open items left open at their word:** {len(items)} ({'; '.join(items)}): {words.strip()} "
+                f"({who}, {given})")
+        text = p.read_text(encoding="utf-8")
+        text = (re.sub(r"^- \*\*Open items left open at their word:\*\* .*$", line, text, count=1, flags=re.M)
+                if "**Open items left open at their word:**" in text else text.rstrip("\n") + "\n" + line + "\n")
+        depth = s.get("depth") or {}
+        owed = [sid for sid, d in depth.items() if d == "runbooks"]
+        if rec["held_runbooks"] and all(sid in rec["held_runbooks"] or
+                                        (pathlib.Path(reg) / f"stage-{sid}" / "RUNBOOK.md").is_file() for sid in owed):
+            text = re.sub(r"^(\| 5b [^|]*\| )(?:to do|doing|blocked) \|[^|\n]*\|",
+                          lambda m: m.group(1) + "done | the runbooks of " + ", ".join(rec["held_runbooks"])
+                          + " wait on open items left open at the person's word |", text, count=1, flags=re.M)
+        p.write_text(text, encoding="utf-8", newline="\n")
+    return s
+
+
+def count_word_go(n):
+    return ("No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten")[n] if n <= 10 else str(n)
+
+
+def fixed_covers(reg, part):
+    """Whether the go's last recorded fix covers the rows as they are now: then writing the stage again keeps the go."""
+    s = load(reg) or {}
+    rec = s.get("measures_reviewed" if part == "measures" else "alerts_reviewed") or {}
+    last = (rec.get("fixed") or [None])[-1]
+    if not last:
+        return False
+    now = measures_snapshot(reg) if part == "measures" else alert_fingerprint(reg)
+    return last.get("covers") == now
+
+
+def take_untold(reg):
+    """The lines naming a fix after a go that no message has told yet, now told: [] when none."""
+    s = load(reg)
+    if not s or not s.get(FIX_UNTOLD):
+        return []
+    lines = s.pop(FIX_UNTOLD)
+    save(reg, s)
+    return lines
+
+
+def open_said(items):
+    return f", with {len(items)} open item{'' if len(items) == 1 else 's'} in the draft" if items else ""
+
+
 def record_measures_review(reg, a):
     """The person's answer on the measures: `go` keeps the flow's snapshot; `changes` sends the measures back."""
     if not (a.words or "").strip():
         return "--words is required: their answer on the measures, word for word"
     if a.decision not in ("go", "changes"):
-        return ("--decision is required: go when they accept the measures and say go on, changes when they ask for "
-                "any change")
+        return ("--decision is required: go when they say go on with the draft, changes when they ask for any change")
     s = load(reg)
     if s is None:
         return "no go is recorded: the run begins with the go"
@@ -1713,11 +1881,13 @@ def record_measures_review(reg, a):
     if shown != measures_fingerprint(reg):
         return ("the measures have changed since they were shown to the person, so their go does not cover them. Show "
                 "them the measures again (brief.py measures) and record their answer on what they saw")
+    still_open = open_now(reg, "measures")
     s["measures_reviewed"] = {"words": a.words.strip(), "test": a.test, "given": given, "measures": shown,
-                              "rows": measures_snapshot(reg)}
+                              "rows": measures_snapshot(reg), "open": still_open}
     s.pop("measures_asked", None)
     save(reg, s)
-    measures_review_line(reg, f"- **Measures reviewed:** {a.words.strip()} ({who}, {given})", "done",
+    measures_review_line(reg, f"- **Measures reviewed:** go{open_said(still_open)}: {a.words.strip()} ({who}, "
+                              f"{given})", "done",
                          (("4 ", "done", None), ("5a ", "doing", ("to do",))))
     return s
 
@@ -2181,6 +2351,8 @@ def main(argv):
     ap.add_argument("--stage-ids")
     ap.add_argument("--alerts-reviewed", action="store_true")
     ap.add_argument("--measures-reviewed", action="store_true")
+    ap.add_argument("--open-fixed", action="store_true")
+    ap.add_argument("--open-left", action="store_true")
     ap.add_argument("--back-to-measures", metavar="ID,...")
     ap.add_argument("--decision")
     ap.add_argument("--depth")
@@ -2237,6 +2409,29 @@ def main(argv):
             print(f"REFUSED: {got}. Nothing written.", file=sys.stderr)
             return 2
         print(f"Written: the report of {got.get('flow')} sent, in {layout.SCOPE}")
+        return 0
+    if a.open_left:
+        got = record_open_left(reg, a.words, a.given, a.test)
+        if isinstance(got, str):
+            print(f"REFUSED: {got}. Nothing written.", file=sys.stderr)
+            return 2
+        record_decision(reg, "open items left open", a.words, source, a.test)
+        import depth
+        depth.write_quietly(reg)
+        print(f"Written: their word to go on with {len(got[OPEN_LEFT]['items'])} open item(s) still open, in "
+              f"{layout.SCOPE} and RUN.md. Finish the flow (check and draw, then the done check and report), then "
+              "offer the next flow; the items stay listed for this flow until put right.")
+        return 0
+    if a.open_fixed:
+        got = record_open_fixed(reg, a.words, a.given)
+        if isinstance(got, str):
+            print(f"REFUSED: {got}. Nothing written.", file=sys.stderr)
+            return 2
+        import depth
+        depth.write_quietly(reg)
+        print(f"Written: the fix after the go, in {layout.SCOPE} and RUN.md, with every go of this flow: each covers "
+              f"the rows as they are now. {len(got)} open item(s) remain. Your next message to the person "
+              "opens with the line naming what you fixed.")
         return 0
     got = (add_flow(reg, a.add_flow, a.words, a.given, a.test) if a.add_flow is not None else
            mapping_ends(reg, a.mapping_ends) if a.mapping_ends is not None else

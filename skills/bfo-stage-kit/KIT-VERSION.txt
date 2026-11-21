@@ -1,27 +1,27 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9.5 2026-11-19
-e7ccf01d350d  CHANGELOG.md
-9dd8efc61a15  CHECKS.md
-f041ccc2ced1  FILL-STEPS.md
-638b070719b1  KNOWN-GAPS.md
+Build: release-9.6 2026-11-21
+74561df4b5ee  CHANGELOG.md
+0c64457c2de8  CHECKS.md
+6bbc25e6a085  FILL-STEPS.md
+5b50348c8de1  KNOWN-GAPS.md
 255978c2faa1  LAUNCH.md
-279dc5d4b378  SKILL.md
+d567d3ddb3f8  SKILL.md
 d865faa8ab50  USE.md
 cad46fa40608  agents/bfo-row-judge.md
 dc0f0f8f2918  agents/bfo-unit-reader.md
 d4de8a382c95  all_systems.py
-9b64d3e61a07  brief.py
+181b0735df3c  brief.py
 14e1e7b16451  capability_views.py
 7fd0f62b0c36  case.py
 d8002daf778c  check_map.py
 6d92fa8a9848  check_measures.py
-3ad35127eacf  depth.py
+7b2856ae076b  depth.py
 07aeb251ee37  example-eshop/about.csv
 73b50ee4f9f3  example-eshop/agent-system.csv
 8dafa09adc6a  example-eshop/alerts.csv
 497b4f9704af  example-eshop/capabilities.csv
 e79f7b31a25a  example-eshop/case-attributes.csv
-53eaa2093b79  example-eshop/depth.json
+61c2f5e94839  example-eshop/depth.json
 d4fe9bde051c  example-eshop/expectations.csv
 07486d06741a  example-eshop/failure-modes.csv
 b81dc352eb40  example-eshop/flow-F1/FLOW.html
@@ -126,10 +126,10 @@ b8e4326e26ee  fact-extractor/precision.py
 6cdefeacd275  fact-extractor/run.py
 85512e80010c  fact-extractor/selftest.py
 af655dd697d2  fact-extractor/semgrep_bin.py
-d17abfb87fea  flow_outputs.py
+7db9415828a2  flow_outputs.py
 9726ce65121a  flow_page.py
-4689b8fe5a41  go.py
-e89b751b9dda  home.py
+5adaf130a68f  go.py
+dc264fc5fe16  home.py
 db0a5083ced3  home.template.html
 f33c507d0d0e  jobs.py
 7484d97f3789  judges.py
@@ -145,7 +145,8 @@ e4270c8420b7  method/hop-failures.csv
 6eb53baafd1f  method/part-kinds.csv
 0edc17489fe1  next.py
 895c93bf24d0  one_canvas.py
-47c3bcf4ce39  operator_page.py
+a71adffd68bf  open_items.py
+50ea1c4056c9  operator_page.py
 62505e86aebd  page/page-kit.js
 a70780da699b  page/page_ask.py
 1e15b3afa36f  page_style.py
@@ -191,10 +192,10 @@ cac01f263e60  register_layout.py
 923816867f91  reread.py
 0e819788a02b  run_lock.py
 f40f4911f1de  run_page.py
-1290bff3126a  run_status.py
+74104ad2f610  run_status.py
 30a482c506ed  say_back.py
 ab0ec506c213  settings.py
-d93ca7887881  sources_page.py
+440ddbe5a6f2  sources_page.py
 d4fb73d188df  split-run-formats.md
 1ae24ff2b922  stage_flow_views.py
 52d50ab98292  start.py
