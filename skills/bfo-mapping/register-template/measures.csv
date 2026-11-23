@@ -1,1 +1,1 @@
-handle,subject_id,step,stage,flow,measure,question_it_answers,layer,counted_on,counted_how,form,exists,agent_question,source,source_ref,expectation,operation,receipt_question,defect,watched,watched_source,taken_from,counted_at,for_flow
+handle,subject_id,step,stage,flow,measure,question_it_answers,layer,counted_on,counted_how,form,exists,agent_question,source,source_ref,expectation,operation,receipt_question,defect,watched,watched_source,taken_from,counted_at,for_flow,instrumented_kind,instrumented_signature,exporter_name,taken_at

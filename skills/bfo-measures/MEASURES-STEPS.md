@@ -51,7 +51,7 @@ values of `layer` (`method/layers.csv`), `form` (`method/measure-forms.csv`), ea
 
 ```
 expectations.csv   expectation_id,flow,stage,party,expectation,satisfied_when,objective,objective_source,source
-measures.csv       handle,subject_id,step,stage,flow,measure,question_it_answers,layer,counted_on,counted_how,form,exists,agent_question,source,source_ref,expectation,operation,receipt_question,defect,watched,watched_source,taken_from,counted_at,for_flow
+measures.csv       handle,subject_id,step,stage,flow,measure,question_it_answers,layer,counted_on,counted_how,form,exists,agent_question,source,source_ref,expectation,operation,receipt_question,defect,watched,watched_source,taken_from,counted_at,for_flow,instrumented_kind,instrumented_signature,exporter_name,taken_at
 measure-gaps.csv   element,question,kind,why,source
 product-names.csv  name,source
 ```
@@ -362,6 +362,25 @@ that was read, the answer is `yes`, `no`, `only if configured` or `development o
 on a cited setting says what was `not read` (a configuration repository out of reach). `flow_outputs.py --check`
 fails the others. The page shows `watched` in an opened measure. Business measures count cases. No thresholds or targets unless a document or person states them, and
 then only as that source states them.
+
+**What shows the data, and what would send it on.** On every measure whose `exists` is `yes`, write
+`instrumented_kind`: `code` where the application's own code writes what the measure is counted from (a log line, a
+span, a metric, a table's schema), `built in` where it is a product's own status (a database server's, a message
+broker's, the hosting platform's); and `instrumented_signature`, a few words a reader can find it by: the log line's
+own words (`log line 'order placed'`), the span (`trace span on the charge call`), the metric's name, `table schema`,
+or for `built in` the product's name. It is a cell, not a sentence: at most 60 characters. On every measure whose
+`watched` is `yes`, `only if configured` or `development only`, write `exporter_name`, the configuration that sends
+the data on by its usual name, with the product where the configuration names one (`OTLP exporter`, `Prometheus scrape`, `Log shipper (Fluentd)`), from `watched_source`. On every measure, write
+`taken_at`: the subject id of the component the data comes from, the one whose code writes the line, span, metric or
+table, or whose own status it is (`S02`). It can differ from `subject_id`, which says what the measure is about: a
+measure of the flow, a stage or a step is about the case, but its data still comes from a component. Leave it blank
+only where the data comes from outside the application (`taken_from` `another organisation's record`). Fill all four
+per row from that row's own `source_ref`, `counted_at` and `watched_source`, never by walking the code again; leave
+them blank where they do not apply. In `counted_at`, name a component by its `subjects.csv` name, its own name as
+its code or deployment states it (`ordering-api log`), never another label for it. They say where a measure's data
+would come from; none of them says the measure itself is built or counted anywhere: every measure here is a proposal.
+`check_measures.py` (rule 8) fails a register with no such columns, a value missing where it applies or set where it
+does not, a kind outside the two, a signature longer than 60 characters, and a `taken_at` that names no component.
 
 **Every measure row says which flow it was proposed for**, in `for_flow`, by its `flows.csv` id: the flow whose
 stage or step led this step to propose it, a part's measure included. It is who made the row, not where the

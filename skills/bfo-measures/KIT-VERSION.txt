@@ -1,21 +1,21 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9.6 2026-11-21
-2bccdf9e80e7  MEASURES-STEPS.md
+Build: release-9.7 2026-11-22
+7fe59977e7f1  MEASURES-STEPS.md
 96b2a9f6fbd6  SKILL.md
 cad46fa40608  agents/bfo-row-judge.md
 dc0f0f8f2918  agents/bfo-unit-reader.md
 d4de8a382c95  all_systems.py
 181b0735df3c  brief.py
-14e1e7b16451  capability_views.py
+ca8f73a2c549  capability_views.py
 7fd0f62b0c36  case.py
 d8002daf778c  check_map.py
-6d92fa8a9848  check_measures.py
+254016b0eddc  check_measures.py
 7b2856ae076b  depth.py
 7db9415828a2  flow_outputs.py
 9726ce65121a  flow_page.py
 5adaf130a68f  go.py
-dc264fc5fe16  home.py
-db0a5083ced3  home.template.html
+df563d6cfe6e  home.py
+efec3f101e9a  home.template.html
 7484d97f3789  judges.py
 c1f12b4f6f27  listener.py
 05e3bab82ce9  map_record.py
@@ -47,7 +47,7 @@ b0f183b881b2  reconcile.py
 55491c31e702  reference/runbook-model.md
 44305e83ebd5  reference/vocabulary.md
 decb8b3b30d9  reference/what-each-level-can-report.md
-741c2a4814ab  register-template/REGISTER.md
+9bd35af9a5ef  register-template/REGISTER.md
 78295c695576  register-template/RUN.md
 9daa048e353f  register-template/about.csv
 fd9fdcf6ca52  register-template/agent-system.csv
@@ -61,7 +61,7 @@ c193b09a0cbf  register-template/failure-modes.csv
 d6edcbf68905  register-template/how-made.csv
 a55e98ace5d4  register-template/lifecycle.csv
 986d3f60d956  register-template/measure-gaps.csv
-3c488542d84f  register-template/measures.csv
+83adb58491a4  register-template/measures.csv
 ece15230a072  register-template/participation.csv
 a427544ca375  register-template/product-names.csv
 64d11f49aa68  register-template/remedies.csv

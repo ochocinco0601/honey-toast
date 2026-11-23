@@ -230,6 +230,160 @@ def counted_at_stand_in(reg):
     return out
 
 
+# ---------------------------------------------------------------- Measures defined: whether each can be counted today
+
+# The kind of source, in the reader's words, from the kind of record the measure is counted from (taken_from)
+SOURCE_KIND = {"the case's own record": "Database", "a message log kept with the state": "Database",
+               "log or event record": "Log", "metric": "Metric", "trace": "Trace", "external probe": "Probe",
+               "platform lifecycle events": "Platform event", "configuration": "Configuration", "the edge": "Gateway",
+               "client-side instrumentation": "Client app", "another organisation's record": "External party"}
+# Exporter, from `watched` (MEASURES-STEPS.md, "A measure can be emitted and never collected"): (label, class)
+EXPORTER = {"only if configured": ("Off by default", "st-off"), "development only": ("Development only", "st-off"),
+            "in the app only": ("In the app only", "st-off"), "no": ("Not found", "st-nf"),
+            "unknown": ("Not known", "st-nk")}
+OFF_QUALIFIER = "sends once its endpoint is set"
+NA = "n/a"
+OUTSIDE_APP = "Outside the application"
+MEASURE_DEFS = (
+    '<div class="defs" hidden>'
+    '<div><h4>Levels</h4><div class="ltree"><div class="ln"><b>Flow</b><span>measures of the flow as a whole; shown with every stage</span></div>'
+    '<div class="lk1"><div class="ln"><b>Stage</b><span>one part of a flow</span></div><div class="lk2">'
+    '<div class="ln"><b>Step</b><span>one thing that happens in a stage</span></div>'
+    '<div class="ln"><b>Component</b><span>does the work of one or more steps; can serve several</span></div>'
+    '</div></div></div></div>'
+    '<div><h4>Layer</h4><div class="kv"><span class="badge l-bh">Business health</span><span>cases moving: how many, how '
+    'long</span><span class="badge l-bi">Business impact</span><span>cases that went wrong for the customer or the '
+    'business</span><span class="badge l-ap">Application</span><span>a service\'s requests, errors and time to '
+    'answer</span><span class="badge l-te">Technology</span><span>what the services run on</span></div></div>'
+    '<div><h4>From and Source</h4><div class="kv"><b>From</b><span>the component the data comes from; empty when it is '
+    'the row\'s own component</span><b>Outside the application</b><span>the data is kept by another organisation</span>'
+    '<b>Source</b><span>the kind of record counted: log, trace, metric, database, probe, platform event</span>'
+    '<b>External party</b><span>another organisation\'s record</span></div></div>'
+    '<div><h4>In code and Exporter</h4><div class="kv"><b>Found</b><span>the code writes the record</span>'
+    '<b>Built in</b><span>the product provides it</span><b>Not found</b><span>In code: not in the code that was read. '
+    'Exporter: no configuration sends it</span><b>Off by default</b><span>the exporter sends once its endpoint is set'
+    '</span><b>Development only</b><span>collected only by a developer\'s tool</span><b>In the app only</b><span>shown '
+    'in the application, sent nowhere</span><b>Not known</b><span>the configuration that would say was not within '
+    'reach</span><b>n/a</b><span>does not apply: the data is outside the application</span><b>Nothing records it</b><span>the application keeps no record this question could be counted from</span><b>Not looked at yet</b><span>the code that would answer it was not read in this run</span></div></div></div>')
+BCLS = {"business health": "b-bh", "business impact": "b-bi", "application": "b-ap", "technology": "b-te"}
+LCLS = {"business health": "l-bh", "business impact": "l-bi", "application": "l-ap", "technology": "l-te"}
+QTYPE = {"in the stage": "Cases in the stage now", "oldest's age": "Age of the oldest case",
+         "time through": "Time through the stage", "past the time limit": "Cases past the time limit",
+         "did it happen": "Whether it happens", "was its outcome right": "Whether it comes out right"}
+
+
+def shown(name, comp):
+    """A component's measure whose name starts with the component's own name shows without it."""
+    if comp and re.match(re.escape(comp) + r"\s+", name or "", re.I):
+        rest = re.sub("^" + re.escape(comp) + r"\s+", "", name, flags=re.I)
+        return rest[:1].upper() + rest[1:]
+    return name
+
+
+def code_cell(v):
+    if v == "Not found":
+        return '<span class="chip nf">Not found</span>'
+    return f'<span class="q">{E(v)}</span>' if v == NA else f'<span class="ok">{E(v)}</span>'
+
+
+def exporter_cell(v):
+    if v == "Off by default":
+        return '<span class="chip off">Off by default</span>'
+    if v == "Not found":
+        return '<span class="chip nf">Not found</span>'
+    return f'<span class="q">{E(v)}</span>' if v in ("Not known", NA, "Development only", "In the app only") else \
+        f'<span class="ok">{E(v)}</span>'
+
+
+def ref_html(s, code=True):
+    """A long reference shows its first part, cut only where the register separates parts ("; "), with "more"."""
+    s = re.sub(r"^\s*proposed\s*;\s*", "", s or "", flags=re.I)  # an older register's bare mark is no reference
+    if not s:
+        return ""
+    head = re.split(r";\s+", s)[0]
+    rest = s[len(head):].lstrip("; ")
+    w = (lambda t: f"<code>{E(t)}</code>") if code else E
+    if not rest:
+        return w(s)
+    return (f'<span data-short>{w(head)}</span><span data-full hidden>{w(s)}</span> '
+            '<button type="button" class="more" data-more>more</button>')
+
+
+def measure_detail(c):
+    """An opened row: the measure, and whether it can be counted today, one label per value."""
+    absent = c["code"][0] in ("Not found", NA)
+    record = re.sub(r"^not in the code,\s*", "", c["source_name"] or "", flags=re.I)
+    e = c["exporter"][0]
+    exp = (f'{e}: {c["exporter_name"]}' if c["exporter_name"] else e) if e in ("Off by default", "Not found") else \
+        (c["exporter_name"] or e)
+    left = [("What it answers", E(c["question"])), ("How it is counted", E(c["how"]))]
+    right = [("Record", E(record)), ("Nearest code" if absent else "Code", ref_html(c["code_ref"])),
+             ("Exporter", "" if e == NA else E(exp)), ("Set up in", ref_html(c["exporter_ref"], code=False))]
+    dl = lambda xs: "<dl>" + "".join(f"<dt>{a}</dt><dd>{b}</dd>" for a, b in xs if b) + "</dl>"
+    return (f'<div class="evb"><section><h5>The measure</h5>{dl(left)}</section>'
+            f'<section><h5>Can it be counted today</h5>{dl(right)}</section></div>')
+
+
+def drafted(v):
+    """A value as the person reads it: a leading `proposed:` mark said as "(proposed)" after it."""
+    t, d = ss.unproposed((v or "").strip())
+    t = t.strip()
+    return t + (" (proposed)" if d and t else "")
+
+
+def cited(v):
+    """A citation as the person reads it: a `proposed:` mark inside it said as "proposed," (older registers)."""
+    t = re.sub(r"\bproposed\s*:\s*", "proposed, ", drafted(v), flags=re.I)
+    return "" if t.strip(" .,()").lower() == "proposed" else t  # a bare mark cites nothing
+
+
+def measure_cells(reg):
+    """{handle: the cells of the Measures defined screen}, read from measures.csv's own columns: nothing guessed.
+    In code and Exporter follow exists, instrumented_kind and watched as MEASURES-STEPS.md defines them."""
+    reg = pathlib.Path(reg)
+    rows = cv.read_csv(reg / "measures.csv") if (reg / "measures.csv").is_file() else []
+    names = {sid: v[0] for sid, v in part_info(reg).items()}
+    out = {}
+    for m in rows:
+        if not m.get("handle"):
+            continue
+        tf, at = m.get("taken_from", ""), drafted(m.get("counted_at"))
+        src_at = (m.get("taken_at") or "").strip()
+        came = names.get(src_at) or (OUTSIDE_APP if tf == "another organisation's record" else NA)
+        if at.lower().startswith("not in the code:"):
+            at = "not in the code, " + at.split(":", 1)[1].split(";")[0].strip()
+        if m.get("exists") == "yes":
+            code = ("Built in", "st-yes") if m.get("instrumented_kind") == "built in" else ("Found", "st-yes")
+        else:
+            code = (NA, "muted") if tf == "another organisation's record" else ("Not found", "st-nf")
+        w, name = (m.get("watched") or "").strip(), (m.get("exporter_name") or "").strip()
+        exp = (name, "st-yes") if w == "yes" else EXPORTER.get(w, (NA, "muted"))
+        said_exp = (f"{exp[0]}: {name}, {OFF_QUALIFIER}" if w == "only if configured" else
+                    f"{exp[0]}: {name}" if w == "development only" and name else exp[0])
+        sig = drafted(m.get("instrumented_signature"))
+        out[m["handle"]] = {
+            "source": SOURCE_KIND.get(tf, tf), "source_name": at, "code": code, "exporter": exp, "from": came,
+            "found": sig if m.get("exists") == "yes" else "", "exporter_name": name if w in ("yes", "only if configured",
+                                                                                         "development only") else "",
+            "sends": OFF_QUALIFIER.replace("sends ", "") if w == "only if configured" else "",
+            "said_code": f"{code[0]}: {sig}" if m.get("exists") == "yes" and sig else code[0],
+            "said_exporter": said_exp, "code_ref": cited(m.get("source_ref")),
+            "exporter_ref": cited(m.get("watched_source")), "how": drafted(m.get("counted_how")),
+            "step": (m.get("step") or "").strip(), "subject": m.get("subject_id", ""),
+            "question": drafted(m.get("question_it_answers")), "layer": m.get("layer", ""),
+            "measure": drafted(m.get("measure"))}
+    return out
+
+
+def part_info(reg):
+    """{subject_id: (name, part_kind, purpose without its trailing citation)} from subjects.csv."""
+    reg = pathlib.Path(reg)
+    rows = cv.read_csv(reg / "subjects.csv") if (reg / "subjects.csv").is_file() else []
+    return {s.get("subject_id"): (drafted(s.get("name")), s.get("part_kind") or "",
+                                  re.sub(r"\s*\([^()]*[:/][^()]*\)\s*$", "", drafted(s.get("purpose"))))
+            for s in rows}
+
+
 # ---------------------------------------------------------------- the pieces of a drop-down
 
 def table(cols, trs):
@@ -394,7 +548,8 @@ class Flow:
         if p == MAPPED:
             return {k: self.map_pane(s) for k, s in self.choices()}
         if p == MEAS:
-            return {k: self.measure_pane(s) for k, s in self.choices()}
+            return {"all": self.measure_pane(None, every=True), "flow": self.measure_pane(None),
+                    **{k: self.measure_pane(s) for k, s in self.choices() if s}}
         if p == INSTR:
             return {k: self.instr_pane(s) for k, s in self.choices()}
         if p == ALERTS:
@@ -452,27 +607,135 @@ class Flow:
                 + note("Mapped from one case traced through the code to each of its endings. A step or part the "
                        "trace missed would not show here."))
 
-    def measure_pane(self, s):
-        flows = [{"what": m.get("counts") or "", "measure": m.get("measure") or ""} for m in self.flow_measures()]
-        flows += [{"what": measure_what(r), "hole": "No measure: " + gap_why(r)}
-                  for r in (self.f.get("measures") or {}).get("flow_items") or [] if r.get("state") != "measured"]
+    def measure_groups(self, s):
+        """[(level, pill, name, kind, place, [measure handles], [unmeasured items])] in the flow's order: the flow,
+        then for a stage the stage, each step and each component it uses."""
+        cells, parts = getattr(self, "cells", {}), getattr(self, "parts", {})
+        fname = self.f.get("name") or ""
+        gaps = lambda items, keep: [r for r in items or [] if r.get("state") != "measured" and keep(r)]
+        out = [("Flow", "Flow", fname, "", [m["handle"] for m in self.flow_measures()],
+                gaps((self.f.get("measures") or {}).get("flow_items"), lambda r: True))]
+        if not s:
+            return out
+        items = (s.get("measures") or {}).get("items")
+        ms = self.stage_measures(s)
+        at = lambda lv: [m["handle"] for m in ms if LEVEL.get(m.get("level")) == lv]
+        out.append(("Stage", f"Stage {s.get('order')}", s.get("name") or "", "", at(1),
+                    gaps(items, lambda r: gap_level(r) == 1)))
+        for x in s.get("steps") or []:
+            k = str(x.get("step"))
+            out.append(("Step", f"Step {k}", x.get("name") or "", "",
+                        [h for h in at(2) if (cells.get(h) or {}).get("step") == k],
+                        gaps(items, lambda r, k=k: gap_level(r) == 2 and str(r.get("element")) == k)))
+        for x in s.get("parts") or []:
+            pid = x.get("part")
+            name, kind, _purpose = parts.get(pid, (x.get("name") or "", "", ""))
+            out.append(("Part", "Component", name or x.get("name") or "", kind[:1].upper() + kind[1:],
+                        [h for h in at(3) if (cells.get(h) or {}).get("subject") == pid],
+                        gaps(items, lambda r, pid=pid: gap_level(r) == 3 and str(r.get("element")) == pid)))
+        return out
 
-        def at(k):
-            if not s:
-                return []
-            got = [{"what": m.get("counts") or "", "measure": m.get("measure") or ""}
-                   for m in self.stage_measures(s) if LEVEL.get(m.get("level")) == k]
-            return got + [{"what": measure_what(r), "hole": "No measure: " + gap_why(r)}
-                          for r in (s.get("measures") or {}).get("items") or []
-                          if r.get("state") != "measured" and gap_level(r) == k]
-        none, pick = "Nothing is asked at this level here", "Shown when a stage is selected"
-        hf, hs, hp, hpt = self.selected(s)
-        levels = [("Flow", hf, flows, none), ("Stage", hs, at(1), none if s else pick),
-                  ("Step", hp, at(2), none if s else pick), ("Part", hpt, at(3), none if s else pick)]
-        trs = level_rows(levels, lambda x: [x["what"], x["measure"]], 4)
-        return (table(["Level", "", "What it answers", "Measure"], trs)
-                + note("What working means: each question at each level, and the measure that answers it, or why "
-                       "none does. A part used by several stages is listed under each of them."))
+    def all_groups(self):
+        """Every measure of the flow once: end to end, then each stage with its steps, then each component once
+        (a component serves several stages), its measures and its unanswered questions gathered from them all."""
+        out = [g for g in self.measure_groups(None)]
+        comps = {}
+        for s in self.stages:
+            for g in self.measure_groups(s):
+                if g[0] == "Flow":
+                    continue
+                if g[0] != "Part":
+                    out.append(g)
+                    continue
+                level, pill, name, kind, handles, holes = g
+                have = comps.setdefault(name, [level, pill, name, kind, [], [], set()])
+                have[4] += [h for h in handles if h not in have[4]]
+                for r in holes:
+                    key = (r.get("question"), r.get("element"))
+                    if key not in have[6]:
+                        have[6].add(key)
+                        have[5].append(r)
+        return out + [tuple(v[:6]) for v in comps.values()]
+
+    def measure_pane(self, s, every=False):
+        """One part of the flow, with the level chips over the table: All levels, Flow, Stage, Steps, Components, each
+        counted in this part, exactly one pressed. All measures (every) shows each measure once, each component once;
+        the flow (no stage) shows the flow's own measures; a stage shows only its own, never the flow's."""
+        cells = getattr(self, "cells", {})
+        groups = self.all_groups() if every else self.measure_groups(s) if not s else self.measure_groups(s)[1:]
+        lv_of = {"Flow": "flow", "Stage": "stage", "Step": "step", "Part": "part"}
+        seen = {}
+        for g in groups:
+            for h in g[4]:
+                if h in cells:
+                    seen.setdefault(lv_of[g[0]], set()).add(h)
+        total = len(set().union(*seen.values())) if seen else 0
+        scope = "the whole flow" if every else "this stage" if s else "the flow as a whole"
+        part = ("All measures" if every else f'Flow · {self.f.get("name") or ""}' if not s
+                else f'Stage {s.get("order")} of {len(self.stages)} · {s.get("name") or ""}')
+        chips = [("all", "All levels", total)] + [(k, lab, len(seen.get(k, ()))) for k, lab in
+                                                   (("flow", "Flow"), ("stage", "Stage"), ("step", "Steps"),
+                                                    ("part", "Components"))]
+        bar = ('<div class="lvbar" role="group" aria-label="Level">' + "".join(
+            f'<button type="button" class="lvchip{" zero" if n == 0 else ""}" data-lv="{k}" data-n="{n}" '
+            f'data-name="{E(lab)}" aria-pressed="{"true" if k == "all" else "false"}">{E(lab)}<span class="c">{n}</span>'
+            "</button>" for k, lab, n in chips) + "</div>")
+        count = f'<p class="count" data-scope="{scope}">{E(nn(total, "measure"))} in {scope}</p>'
+        strip = (f'<span class="sl">Part</span><span class="sn">{E(part)}</span>'
+                 '<span class="sl">Level</span><span class="sn" data-lvname>All levels</span>')
+        rows, prev = [], None
+        for level, pill, name, kind, handles, holes in groups:
+            lv = lv_of[level]
+            depth = {"Flow": 0, "Stage": 1}.get(level, 2)
+            comp = name if level == "Part" else None
+            ms = [h for h in handles if h in cells]
+            holes = [r for r in holes if r.get("gap_kind") not in ("does not apply", "counted by")]  # nothing missing
+            if not ms and not holes:
+                continue  # nothing to show at this level
+            if level == "Part" and prev != "Part":
+                rows.append(f'<tr class="lvh gs" data-lv="part"><td colspan="7" style="padding-left:{4 + depth * 6}px">'
+                            '<span class="pill">Components</span></td></tr>')
+            span = len(ms) + len(holes)
+            where = (f'<span class="cline"><span class="atname b">{E(name)}</span><span class="ktag">{E(kind)}</span></span>'
+                     if level == "Part" else f'<span class="pill">{E(pill)}</span><span class="atname">{E(name)}</span>')
+            at = (f'<td class="at{" stg" if level == "Stage" else ""}" rowspan="{max(span, 1)}" '
+                  f'style="padding-left:{4 + depth * 6}px">{where}</td>')
+            start = (" gp" if prev == "Part" else "") if level == "Part" else (" gs" if level != prev else " gp")
+            prev, first = level, [True]
+
+            def lead():
+                if first[0]:
+                    first[0] = False
+                    return at
+                return ""
+            for i, h in enumerate(ms):
+                c, key = cells[h], f"{self.i}|{h}"
+                lay = c["layer"].lower()
+                came = "" if c["from"] == comp else (f'<span class="q">{E(NA)}</span>' if c["from"] == NA else
+                                                     E(c["from"]) if " " in c["from"] else f'<span class="nm">{E(c["from"])}</span>')
+                rows.append(
+                    f'<tr class="m{start if i == 0 else ""}" data-lv="{lv}" tabindex="0" data-k="{E(key)}" '
+                    f'aria-expanded="false" title="Click to open or close">{lead()}<td class="mcol"><span class="mname">'
+                    f'{E(shown(c["measure"], comp))}</span></td>'
+                    f'<td class="lay"><span class="badge {LCLS.get(lay, "")}">{E(lay[:1].upper() + lay[1:])}</span></td>'
+                    f'<td class="can">{came}</td><td class="can">{E(c["source"])}</td>'
+                    f'<td class="can">{code_cell(c["code"][0])}</td><td class="can">{exporter_cell(c["exporter"][0])}</td></tr>')
+                rows.append(f'<tr class="ev" data-lv="{lv}" data-ev="{E(key)}" hidden><td colspan="6">{measure_detail(c)}</td></tr>')
+            for i, r in enumerate(holes):
+                said = "Nothing records it" if r.get("gap_kind") == "no record" else "Not looked at yet"
+                label = QTYPE.get(r.get("question") or "") or measure_what(r)
+                rows.append(f'<tr class="np{start if not ms and i == 0 else ""}" data-lv="{lv}">{lead()}<td class="mcol">'
+                            f'{E(label)}</td><td class="lay"></td><td class="can" colspan="4"><span class="chip nf">{said}</span>'
+                            "</td></tr>")
+            if not span:
+                rows.append(f'<tr class="np{start}" data-lv="{lv}">{lead()}<td colspan="6"></td></tr>')
+        table = ('<div class="m2s"><table class="mt"><colgroup><col><col><col><col><col><col><col>'
+                 '</colgroup>'
+                 '<thead><tr><th></th><th></th><th></th><th class="can" colspan="4">Can it be counted today</th></tr>'
+                 '<tr><th>Where</th><th>Measure</th><th>Layer</th><th class="can">From</th><th class="can">Source</th>'
+                 '<th class="can">In code</th><th class="can">Exporter</th></tr></thead><tbody>' + "".join(rows)
+                 + "</tbody></table></div>")
+        return f'{bar}{count}<div class="shead">{strip}</div>{table}'
 
     def instr_pane(self, s):
         xs = self.stage_measures(s) if s else self.flow_measures()
@@ -674,6 +937,44 @@ def talk_tick(milestone, key, label):
     return tick(f' name="{E(TALK_KEY + milestone + ":" + key)}" value="{E(label)}"', f"{milestone}: {label}")
 
 
+def measures_split(fl, d, name, panes, first, stage_choice, stage_keys, held):
+    """Measures defined: the flow on the left, its whole and its stages, the selected one a tab joined to the strip
+    over the table; while the person's pick of how far each stage goes is open, each stage carries its ticks beside
+    its tab (picking is not selecting). On the right the title, the meanings, one words box, and the selection's pane."""
+    f = fl.f
+    first = first if first in panes else "all"
+    cur = lambda k: f' aria-current="{"true" if k == first else "false"}"'
+    own = {m["handle"] for m in fl.flow_measures()}
+    side = [f'<nav class="mside" aria-label="Flow and stages"><div class="ents">'
+            f'<button type="button" class="ent whole" data-sel="all"{cur("all")}><span>All measures</span>'
+            f'<span class="c">{len(fl.ms)}</span></button></div><div class="fhead"><span class="flab">Flow</span></div>'
+            f'<div class="ents"><button type="button" class="ent whole fent" data-sel="flow"{cur("flow")}>'
+            f'<span class="fname">{E(f.get("name") or "")}</span><span class="c">{len(own)}</span></button></div>'
+            '<div class="fhead"><span class="flab">Stages</span></div><div class="ents">']
+    for k, s in enumerate(fl.stages):
+        picks = ""
+        if stage_choice and s["stage"] in stage_keys:
+            on = " checked" if name in held.get(s["stage"], ()) else ""
+            picks = ('<span class="epick">' + tick(f' name="{E(s["stage"])}" value="{E(name)}" data-stagetick{on}',
+                                                   f"{name}: {s.get('name')}") + "</span>")
+        side.append(f'<div class="erow">{picks}<button type="button" class="ent" data-sel="{k}"{cur(str(k))}>'
+                    f'<span class="n">{E(str(s.get("order")))}</span><span>{E(s.get("name") or "")}</span>'
+                    f'<span class="c">{len({m["handle"] for m in fl.stage_measures(s)} - own)}</span></button></div>')
+    side.append("</div></nav>")
+    if stage_choice:
+        talk = (f'<div class="tslot" data-ask data-flow="{E(f.get("name") or "")}" data-milestone="{E(name)}" '
+                f'data-note="{E(AT_THE_PICK)}"></div>')
+    else:
+        talk = (f'<div class="tslot talk"><input type="text" class="wi" name="{E(TALK_WORDS + name)}" '
+                f'data-flow="{E(f.get("name") or "")}" aria-label="Ask about this stage" placeholder="Ask about this '
+                'stage" autocomplete="off"><button type="button" class="ab2 dn" data-done>Done</button>' + CLEAR +
+                '<span class="mute" data-status></span></div>')
+    head = ('<div class="mhead"><h3 class="mtitle">Measures</h3><button class="tbtn" type="button" data-defs '
+            'aria-expanded="false">Meanings</button></div>')
+    pane = "".join(f'<div class="pane" data-pane="{k}"{"" if k == first else " hidden"}>{v}</div>' for k, v in panes.items())
+    return f'<div class="msplit">{"".join(side)}<div class="m2 mmain">{head}{talk}{MEASURE_DEFS}{pane}</div></div>'
+
+
 def dropdown(fl, p, d):
     f, i = fl.f, fl.i
     name, q, _ = COLS[p]
@@ -690,7 +991,14 @@ def dropdown(fl, p, d):
                                                        for rel, label in pages) + "</div>")
     panes = fl.panes(p)
     first = "0" if "0" in panes else "-1"
-    tree = [f'<div class="tree" role="tree" aria-label="Where this is"><div class="tn d0"><span class="tl">{E(d["_title"])}</span></div>']
+    if p == MEAS and fl.mapped and len(panes) > 1:
+        out.append(measures_split(fl, d, name, panes, first, stage_choice, stage_keys, held))
+        out.append("</div>")
+        return "".join(out)
+    picker = False
+    tree = [f'<div class="tree" role="tree" aria-label="Where this is"{" data-picker" if picker else ""}>'
+            + ('<div class="tlab"><span>Flow</span><span>Measures</span></div>' if picker else
+               f'<div class="tn d0"><span class="tl">{E(d["_title"])}</span></div>')]
     ticked = False
     flow_tick = ""
     if p == MAPPED:
@@ -698,7 +1006,9 @@ def dropdown(fl, p, d):
         flow_tick = (tick(f' name="{E(f.get("name") or "")}" value="{E(depth.FLOW_OPT)}" data-flowtick',
                           "Map this flow in the next run") if flow_choice
                      else talk_tick(name, f.get("name") or "", f.get("name") or ""))
-    flow_label = (f'<span class="tg">└─</span><span class="tl"><span class="lvl">Flow {i + 1}</span> '
+    flow_label = (f'<span class="tl">{E(f.get("name") or "")}</span><span class="tc">{len(fl.flow_measures())}</span>'
+                  if picker else
+                  f'<span class="tg">└─</span><span class="tl"><span class="lvl">Flow {i + 1}</span> '
                   f'{E(f.get("name") or "")}</span><span class="tc">{E(fl.flow_count(p))}</span>')
     if "-1" in panes and len(panes) > 1:
         tree.append(f'<div class="trow">{flow_tick}<button type="button" class="tn d1 tb" data-sel="-1" '
@@ -707,6 +1017,8 @@ def dropdown(fl, p, d):
         tree.append(f'<div class="trow">{flow_tick}<div class="tn d1">{flow_label}</div></div>')
     if fl.mapped and p != IDENT:
         n = len(fl.stages)
+        if picker:
+            tree.append('<div class="tlab"><span>Stages</span><span></span></div>')
         for k, s in enumerate(fl.stages):
             glyph = "└─" if k == n - 1 else "├─"
             t = ""
@@ -716,7 +1028,9 @@ def dropdown(fl, p, d):
                 t = (tick(f' name="{E(s["stage"])}" value="{E(name)}" data-stagetick{on}', f"{name}: {s.get('name')}")
                      if stage_choice and s["stage"] in stage_keys
                      else talk_tick(name, s["stage"], s.get("name") or ""))
-            body = (f'<span class="tg">{glyph}</span><span class="tl"><span class="lvl">Stage {E(str(s.get("order")))}</span> '
+            body = (f'<span class="sno">{E(str(s.get("order")))}</span><span class="tl">{E(s.get("name") or "")}</span>'
+                    f'<span class="tc">{len(fl.stage_measures(s))}</span>' if picker else
+                    f'<span class="tg">{glyph}</span><span class="tl"><span class="lvl">Stage {E(str(s.get("order")))}</span> '
                     f'{E(s.get("name") or "")}</span><span class="tc">{E(fl.count(p, s))}</span>')
             if str(k) in panes:
                 on = " on" if str(k) == first else ""
@@ -731,8 +1045,6 @@ def dropdown(fl, p, d):
             tree.append(f'<div class="trow"><div class="tn d2"><span class="tg">{glyph}</span><span class="tl">'
                         f'<span class="lvl">Stage {E(str(s.get("order")))}</span> {E(s.get("name") or "")}</span></div></div>')
     tree_note = {MAPPED: PART + " A part shared by several stages counts in each.",
-                 MEAS: "A question is one of the standard questions a measure should answer. A part shared by several "
-                       "stages counts in each, so the stages add up to more than the flow’s measures.",
                  INSTR: "A part shared by several stages counts in each."}.get(p) if fl.mapped else None
     if tree_note:
         tree.append(f'<div class="mute" style="padding: 6px 4px 0">{E(tree_note)}</div>')
@@ -801,6 +1113,9 @@ def render(reg, d):
     d = dict(d, _title=title(reg, d))
     counted = counted_at_stand_in(reg)
     flows = [Flow(reg, d, i, f, counted) for i, f in enumerate(d.get("flows") or [])]
+    cells, parts = measure_cells(reg), part_info(reg)
+    for fl in flows:
+        fl.cells, fl.parts = cells, parts
     head = ('<div class="trk hd"><span>Flow</span>' + "".join(
         f'<span class="sh"><b>{E(n)}</b><small>{E(q)}</small><small class="out">{E(o)}</small></span>'
         for n, q, o in COLS) + "</div>")

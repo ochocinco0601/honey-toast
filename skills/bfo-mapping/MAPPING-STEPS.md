@@ -453,9 +453,13 @@ For each move, record:
   `person;`: the first hop's body is what *How this process step is carried out* prints as the process step's trigger, so it is
   required.
 - `carried_by`: the parts that carry the act out. `needs`: the stores, brokers and outside services the move
-  cannot complete without. **Write each part as its subject id and name (`S04 Ordering API`)**, giving it the id now
+  cannot complete without. **Write each part as its subject id and name (`S04 ordering-api`)**, giving it the id now
   that becomes its `subjects.csv` row in Step 5. Every output is generated from these two columns, so a part named
-  here and nowhere in `subjects.csv` fails the check.
+  here and nowhere in `subjects.csv` fails the check. **A component's name is its own name**, as its code or
+  deployment states it: the deployment's or resource's name (`frontend`, `ordering-api`), else its image's, else
+  its folder's, with that file in the row's `source`. Never a label made up for it (`Storefront`) and never a
+  second name in brackets (`Storefront (frontend)`): a reader searches their code, deployments and monitoring by
+  the real name. What it does goes in `purpose`. `capability_views.py --check` fails a bracketed alias.
 - `started_by` (optional): on a move that can happen at any time while the case is in a stage (a cancel, a
   withdrawal), who starts it, cited: the flow's customer, a role, an outside party, `timer`, or `the software`.
   The stage's drawing names the starter; left blank, it reads as a condition whose starter is not recorded.

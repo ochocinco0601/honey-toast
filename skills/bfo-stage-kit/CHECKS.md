@@ -46,6 +46,7 @@ the run's process).
 | cv-22 | capability_views.py | check | 298 | error | a | a {pk} has no | subjects.level is blank where the part_kind's family is case, interaction or person |
 | cv-23 | capability_views.py | check | 301 | error | a (migration) | subjects.csv has no purpose | subjects.csv has the purpose column; said in place of cv-03, with what to do |
 | cv-24 | capability_views.py | check | 306 | error | a | no purpose; write what | subjects.purpose filled on a part row; the same rule as view question `part: purpose` (vq-q06) |
+| cv-76 | capability_views.py | check | 377 | warning | a | holds a second name in brackets | a component's subjects.name is its own name as its code or deployment states it, with no second name in brackets; a warning so a register made before the rule still draws |
 | cv-25 | capability_views.py | check | 310 | error | a (migration) | subjects.csv has no repository | subjects.csv has the repository column; said in place of cv-03, with what to do |
 | cv-26 | capability_views.py | check | 323 | error | d (text) | a component with no repository that | a component with no repository whose name, purpose or source says it is not separately built |
 | cv-27 | capability_views.py | check | 328 | error | a | a system component with | subjects.repository filled on a system component, or its source says no repository defines it |

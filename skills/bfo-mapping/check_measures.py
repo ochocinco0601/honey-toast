@@ -45,7 +45,8 @@ RULES = [
                                 "measure says nothing about what it gets wrong or whether anything collects it"),
     ("watched", 8, "produces", "Where a measure produced today says whether anything collects it, the answer is one "
                                "the method allows, rests on a source of its own, not the line that produces it, and "
-                               "is not unknown where the setting that decides it was read"),
+                               "is not unknown where the setting that decides it was read; and every measure says "
+                               "what shows its data and names what would send it on"),
     ("places", 9, "produces", "Every place a measure is taken at is named in plain words, and measures taken at one "
                               "place agree on whether it is produced today and say what tells them apart"),
     ("ids", 10, "produces", "No two measures, expectations or other rows share a name, across every flow's work"),
@@ -428,6 +429,59 @@ def watched_items(R, S):
     return out
 
 
+INSTRUMENTED = ("instrumented_kind", "instrumented_signature", "exporter_name", "taken_at")
+OUTSIDE = "another organisation's record"
+INSTRUMENTED_KINDS = ("code", "built in")
+EXPORTED = ("yes", "only if configured", "development only")
+SIGNATURE_MAX = 60
+
+
+def instrumented_items(R, S):
+    """What shows each measure's data and what would send it on: a register without the three columns fails once,
+    naming them; otherwise each row is held to its own exists and watched (MEASURES-STEPS.md, "What shows the data")."""
+    have = set(R["measures"][0]) if R["measures"] else set()
+    if R["measures"] and not all(c in have for c in INSTRUMENTED):
+        miss = [c for c in INSTRUMENTED if c not in have]
+        return [("The measures do not say what shows their data or what would send it on: add "
+                 f"{', '.join(miss)} and fill each row from its own citation",
+                 f"measures.csv has no {', '.join(miss)} column: add them and fill each row from its own citation "
+                 "(source_ref, counted_at, watched_source); nothing is walked again")]
+    out = []
+    components = {s["subject_id"] for s in R["subjects"] if fo.norm(s.get("level")) == "component"}
+    for m in R["measures"]:
+        name, h = S.measure(m["handle"]), m["handle"]
+        kind, sig, exp, at = (fo.norm(m.get(c)) for c in INSTRUMENTED)
+        if at and at not in components:
+            out.append((f"{name} says its data comes from something that is not one of the application's components",
+                        f"measures.csv {h}: taken_at is {at}, not a component in subjects.csv"))
+        elif not at and m.get("exists") == "yes" and fo.norm(m.get("taken_from")) != OUTSIDE:
+            out.append((f"{name} is produced today but does not say which component its data comes from",
+                        f"measures.csv {h}: exists is yes with no taken_at"))
+        if m.get("exists") == "yes":
+            if not kind or not sig:
+                out.append((f"{name} is produced today but does not say what shows its data",
+                            f"measures.csv {h}: exists is yes with no instrumented_kind or instrumented_signature"))
+            elif kind not in INSTRUMENTED_KINDS:
+                out.append((f"{name}: what produces its data is given as “{kind}”, not code or built in",
+                            f"measures.csv {h}: instrumented_kind is {kind}, not one of {', '.join(INSTRUMENTED_KINDS)}"))
+            elif len(sig) > SIGNATURE_MAX:
+                out.append((f"{name}: what shows its data is written as a sentence; say it in a few words",
+                            f"measures.csv {h}: instrumented_signature is longer than {SIGNATURE_MAX} characters"))
+        elif kind or sig:
+            out.append((f"{name} is not produced today but says what shows its data",
+                        f"measures.csv {h}: instrumented_kind or instrumented_signature is set and exists is not yes"))
+        w = fo.norm(m.get("watched"))
+        if m.get("exists") != "yes" or fo.watched_failures(m):
+            continue  # whether anything collects it is wrong already, and said so above (rules 7 and 8)
+        if w in EXPORTED and not exp:
+            out.append((f"{name} says something would send its data on ({w}) without naming it",
+                        f"measures.csv {h}: watched is {w} with no exporter_name"))
+        elif w not in EXPORTED and exp:
+            out.append((f"{name} names what would send its data on, while nothing does ({w or 'not said'})",
+                        f"measures.csv {h}: exporter_name is set and watched is {w or 'blank'}"))
+    return out
+
+
 def place_items(R, S):
     out = []
     for m in R["measures"]:
@@ -472,7 +526,7 @@ def inspect(reg, flow_id, picked):
         "unpicked": unpicked_items(R, flow_id, picked, S),
         "for-flow": for_flow_items(R, S),
         "produced": produced_items(R, S),
-        "watched": watched_items(R, S),
+        "watched": watched_items(R, S) + instrumented_items(R, S),
         "places": place_items(R, S) + alike_items(R, S),
         "ids": id_items(reg),
     }

@@ -372,6 +372,12 @@ def check(R):
                 err.append(f"subjects.csv {r['subject_id']}: no purpose; write what this part does in this flow, in one "
                            "sentence, cited")
     comps = [r for r in parts if r.get("level") == "component"]
+    for r in comps:
+        if re.search(r"\(.+\)", r.get("name") or ""):
+            warn.append(f"subjects.csv {r['subject_id']}: name {r.get('name')!r} holds a second name in brackets; a "
+                       "component is named by its own name as its code or deployment states it (the deployment's or "
+                       "resource's name, else its image's, else its folder's), never a label made up for it, and what "
+                       "it does goes in purpose (FILL-STEPS Step 5)")
     if comps and "repository" not in R["subjects"][0]:
         err.append("subjects.csv has no repository column (a register made before it was added, or one that kept each "
                    "repository inside name): add it after application_id, as in the template, move each repository out "

@@ -8,6 +8,35 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.7 — 2026-11-22
+
+The Measures defined tab shows, beside each measure, whether it can be counted today, so you no longer go to the
+Instrumented tab and match the two lists in your head.
+
+### What you will notice
+
+- **One table per part of the flow.** On the left, pick All measures, the flow itself, or one stage. Above the table,
+  filter by level: the flow, the stage, its steps or its components. Each measure sits under the step or component
+  it belongs to, and a row opens to where its answers were found.
+  Effect: none.
+- **Whether each measure can be counted today.** Four columns: From (the component the data comes from), Source (the
+  kind of record), In code (Found, Built in, Not found) and Exporter (its name, Off by default, Not found, Not
+  known). Only Not found and Off by default are marked. Everything is read from the code and its configuration,
+  never from a running system.
+  Effect: fill from each row's citation.
+- **The measures step records four more facts per measure**, and its check refuses a measure without them:
+  `instrumented_kind`, `instrumented_signature`, `exporter_name` and `taken_at` (the component the data comes from).
+  A register made before this release is not supported.
+  Effect: fill from each row's citation.
+- **Components are named by their own name**, as their code and deployment give it (`frontend`, `checkoutservice`),
+  never a made-up label; the same name is used where a measure says what it is counted from.
+  Effect: fill from each row's citation; the bundled eShop example still carries its older names.
+- **Questions with no measure say why only where something is missing:** "Nothing records it" or "Not looked at
+  yet". A question that does not apply, or another measure covers, draws no row.
+  Effect: none.
+- **The Instrumented tab is unchanged.**
+  Effect: none.
+
 ## Release 9.6 — 2026-11-21
 
 What the run tells you now always agrees with what it has actually done. Where the kit's own checks find a gap in the
