@@ -253,9 +253,9 @@ Your own turns are the first look's cost, so keep them few: scripts do the bookk
 source the person gave, each with its `location`; code rows with their repository folder), then run
 `python <skill>/first_look.py prepare <your-folder>`: it runs the survey, the code reader, the fetch and the reader
 prompts in one command, the code reader within a bounded time. Run it, and every command here, in the foreground and
-wait for it; never start one in the background, and never sleep or poll to wait for one. If it prints
-`code reader: NOT RUN` or `stopped`, do not diagnose, install or rerun anything: carry on, since the brief tells the
-person what to do. When it prints LAUNCH, start every `bfo-source-reader` line it prints in one message, each
+wait for it; never start one in the background, and never sleep or poll to wait for one. If it prints STOP (the code
+reader could not run: NOT RUN, stopped or failed), do not diagnose, install or rerun anything and do not go on: your
+final reply is exactly the text after MESSAGE:, the choices the person decides between. When it prints LAUNCH, start every `bfo-source-reader` line it prints in one message, each
 line as its whole prompt, in the foreground; when it says single, read each owed part yourself with the Read tool only
 and write its file in the form. Then run `first_look.py check`, `names` and `first_look.py merge` together; `merge` writes
 `first-look/leads-merged.json` (every lead grouped by name, with the sources it was seen in) and places each name no

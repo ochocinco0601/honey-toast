@@ -3158,7 +3158,7 @@ def runbook_html(M):
     words = stage_words(M)
     out = ['<section class="doc" id="top">' +
            ps.frame_head([(ps.MAP, f"../{MAP_FILE}"), (flow_words(M), f'../flow-{M["flow"]["flow_id"]}/FLOW.html'),
-                          (words, STAGE_FILE)], runbook_title(M)),
+                          (words, STAGE_FILE)], runbook_title(M), kit=False),
            '<div class="landing"><div class="col"><div class="lbl">Its alerts</div>']
     out += [f'<a class="card" href="#alert-{esc(m["handle"])}"><b>{esc(m["measure"])}</b>'
             f'<span class="sub">{say(M, m.get("question_it_answers"))}</span></a>' for m in alerts]
@@ -3325,7 +3325,7 @@ def alert_html(M):
                [(ps.MAP, f"../{MAP_FILE}"), (flow_words(M), f'../flow-{M["flow"]["flow_id"]}/FLOW.html'),
                 (stage_words(M), STAGE_FILE),
                 ("Runbook (not yet written)", None) if M.get("runbook_pending") else ("Runbook", "RUNBOOK.html")],
-               f"Alerts proposed: {stage['name']}"),
+               f"Alerts proposed: {stage['name']}", kit=False),
            ("<p>Each is its own alert. " + esc(RUNBOOK_LATER) if M.get("runbook_pending") else
             "<p>Each is its own alert. When one fires, follow its own entry in "
             '<a href="RUNBOOK.html">the runbook</a>.') + " Thresholds, windows and whether an alert pages a person "

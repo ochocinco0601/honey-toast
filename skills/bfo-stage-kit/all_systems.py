@@ -60,7 +60,7 @@ def render(work):
             "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
             f"<title>{ps.ALL_SYSTEMS}</title><style>{CSS}</style></head><body>"
-            f'<div class="nav"><span class="sys">{ps.ALL_SYSTEMS}</span></div><main>'
+            f'<div class="nav"><span class="sys">{ps.ALL_SYSTEMS}</span>{ps.kit_label()}</div><main>'
             '<p class="mute">Every system the kit has been run on in this folder, newest first. '
             "Click a name to open its Home page.</p>"
             '<div class="card"><table><thead><tr><th>System</th><th>Folder</th><th>Flows</th>'

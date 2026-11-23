@@ -1,9 +1,7 @@
-"""Defects a run finds in the kit itself, one short line each in the register's kit-findings.md.
+"""Defects a run finds in the kit itself, one line each in the register's kit-findings.md: a code from the fixed
+list below, a file of the kit as its version marker lists it, the line, and the kit's version. Nothing else is
+ever written. --list prints what each code means.
 
-The kit is never changed where it runs: a change made there is lost at the next release and makes the next start
-refuse the copy. The run may be on a machine that lets no free text out, so a finding holds no text anyone supplies:
-a code from the fixed list below, a file of the kit as its version marker lists it, the line, and the kit's version.
-What each code means is listed by --list; nothing else is ever written.
 
     python kit_findings.py "<register>" --code <one of the codes --list prints> --file <a file of the kit> --line <n>
     python kit_findings.py --list
@@ -43,13 +41,13 @@ def version():
         head = (HERE / MARKER).read_text(encoding="utf-8").splitlines()[1].split()
     except (OSError, IndexError):
         return None
-    if len(head) < 2 or not re.fullmatch(r"release-\d{1,3}(?:\.\d{1,3})?", head[1]):
+    if len(head) < 2 or not re.fullmatch(r"release-\d{1,3}(?:\.\d{1,3}){0,2}", head[1]):
         return None
     log = HERE / "CHANGELOG.md"
     if "CHANGELOG.md" in listed:
         if not log.is_file() or start._digest(log) != listed["CHANGELOG.md"]:
             return None
-        newest = re.search(r"^## Release (\d+(?:\.\d+)?)", log.read_text(encoding="utf-8"), re.M)
+        newest = re.search(r"^## Release (\d+(?:\.\d+)*)", log.read_text(encoding="utf-8"), re.M)
         if not newest or f"release-{newest.group(1)}" != head[1]:
             return None
     return head[1]

@@ -858,6 +858,9 @@ def main(argv):
               "message below tells the person; with no message, tell them in one line through brief.py say: " + told)
         print("\n".join(f"  {x}" for x in notes + owed if x))
     decision, message = resume(reg)
+    if decision in ("resume", "finish-first-look"):  # picked up again: its stop is over, a stopped first look asked anew
+        import run_state
+        run_state.resumed(reg)
     if decision == "resume" and coming_back and (reg / "case.json").is_file():
         # coming back to a case: what exists and what this session proposes, said back on the page, never a brief
         emit("resume", folders=[reg], earlier=earlier, extra=sayback("resume", reg))

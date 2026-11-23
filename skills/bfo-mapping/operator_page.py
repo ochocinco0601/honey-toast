@@ -250,6 +250,22 @@ def stamp(t, at="weekday"):
     return f'<time datetime="{u:%Y-%m-%dT%H:%M:%SZ}" data-at="{at}">{E(text)}</time>'
 
 
+def newest_write(reg):
+    """The newest file the run's own steps write as they work (first-look records, the survey, each unit's files,
+    the checks' verdicts), as UTC, or None. Never the lock, a page or a redraw."""
+    reg = pathlib.Path(reg)
+    pats = ("first-look/*.json", "survey.csv", "units/*/files.csv", "judging/*/r*-j*.csv", "fast/mappers/*/*.csv")
+    newest = None
+    for pat in pats:
+        for p in reg.glob(pat):
+            try:
+                t = p.stat().st_mtime
+            except OSError:
+                continue
+            newest = t if newest is None or t > newest else newest
+    return dt.datetime.fromtimestamp(newest, dt.timezone.utc) if newest else None
+
+
 def last_write(reg):
     lock = _json(reg / "RUN.lock") or {}
     try:
@@ -623,8 +639,19 @@ def read(reg, now=None, starting=False, transcripts=None):
     for k, s in enumerate(steps):
         s["current"] = k == current
     cur = steps[current] if current is not None else None
+    if cur is not None and cur["state"] == DOING and not starting:  # the step under way opens to its parts
+        import step_parts
+        got = step_parts.of(reg, cur["numbers"][0], scope, now)
+        if got:  # a line the step already says from the run's record (the checking or fixing round) is kept
+            cur["parts"] = got
+            if not cur["said"] or cur["numbers"][0] != 3:
+                cur["said"], cur["link"] = got["summary"], None
     last = last_write(reg)
-    times = [t for t in [last, reported] + [decision_time(r[0], scope) for r in rows if is_decision(r[0])] if t]
+    # Last activity: a real write of the run (its answers, its report, the case log, the first look's records, the
+    # survey, a unit's files), never the lock, which a check or a page redraw touches; the panel's newest sign wins
+    # below whenever the agents' records can be read
+    times = [t for t in [reported, last_work(reg), newest_write(reg)]
+             + [decision_time(r[0], scope) for r in rows if is_decision(r[0])] if t]
     last_any = max(times, key=lambda t: t.timestamp()) if times else None
     age_min = (now.timestamp() - last.timestamp()) / 60 if last else None
     try:  # agents launched and not finished are the run at work, though the lead writes nothing meanwhile
@@ -638,8 +665,8 @@ def read(reg, now=None, starting=False, transcripts=None):
     seen_badge = agents_now.badge(seen)
     if seen.get("count"):  # the first look's parts read, of its parts: the one count, on the row as on the panel
         for s in steps:
-            if s["numbers"] == [1] and s["state"] == DOING:
-                s["said"] = seen["count"] + " read"
+            if s["numbers"] == [1] and s["state"] == DOING:  # the panel's count, said on the row too
+                s["said"] = (s["said"] + " · " if s.get("parts") else "") + seen["count"] + " read"
     blocked = [s for s in steps if s["state"] == BLOCKED]
     choice = depth.get("open_choice") or None
     # the next flow is an open case's next step, offered with the recommendation, never a wait on the person (an
@@ -728,10 +755,8 @@ def read(reg, now=None, starting=False, transcripts=None):
         issues.append({"what": "The final check says the run is not done yet",
                        "clears": "Step 11, the final check passing on the map as it is", "bad": False})
     t0 = started_at(reg)
-    return {"title": STARTING_TITLE if starting else capability(reg, depth), "flow": scope.get("flow"), "started": when(t0),
+    m = {"title": STARTING_TITLE if starting else capability(reg, depth), "flow": scope.get("flow"), "started": when(t0),
             "started_at": t0 if t0 and t0.tzinfo else None, "last_at": last_any,
-            # in motion: agent work open in the case record, or a run under way; an unfinished case is not
-            "in_motion": bool(starting or working or status in ("running", "quiet", "stopped", "starting")),
             "last_work": last_work(reg),
             "last": when(local(last_any)) if last_any else None,
             "last_ago": ago(now, last_any) if last_any else None, "recent": bool(last_any) and
@@ -745,6 +770,21 @@ def read(reg, now=None, starting=False, transcripts=None):
             "agents": seen,
             "map_so_far": (map_so_far(reg, scope) if not starting and any(
                 s["numbers"] == [3] and s["state"] == DOING for s in steps) else None)}
+    import run_state  # the run's one state: the badge, the parts, the title, the banner, the notice, the watchdog
+    m["run"] = run_state.of(m, reg)
+    m["in_motion"] = bool(starting or m["run"]["state"] in run_state.IN_MOTION)
+    if cur is not None and cur.get("parts"):  # a stopped run's parts never say they are being read
+        import step_parts
+        was = cur["parts"]["summary"]
+        cur["parts"] = step_parts.settled(cur["parts"], m["run"]["state"])
+        cur["said"] = (cur["said"] or "").replace(was, cur["parts"]["summary"], 1)
+    return m
+
+
+# The badge, by the run's one state (run_state.of); the page's own status only marks the first look still starting
+RUN_BADGE = {"working": ("b-run", "i-run", "Running"), "quiet": ("b-you", "i-pause", "Quiet · no recent write"),
+             "waiting": ("b-you", "i-you", "Waiting on you"), "stopped": ("b-bad", "i-bad", "Stopped · needs you"),
+             "finished": ("b-ok", "i-ok", "Finished")}
 
 
 ICON = {DONE: "i-ok", "decided": "i-youdone", DOING: "i-run", BLOCKED: "i-bad", NOT_PICKED: "i-skip",
@@ -797,6 +837,9 @@ def step_html(s, status, waiting):
         desc.append("Waiting on you")
     spin = " spin" if st == DOING and status == "running" and not waiting else ""
     d = f'<span class="d">{" · ".join(desc)}</span>' if desc else ""
+    if s.get("parts"):  # the step under way, opened to its parts (step_parts.py)
+        import step_parts
+        d += step_parts.html_list(s["parts"], E)
     return (f'<li class="{cls}"><svg class="ic{spin}"><use href="#{ic}"/></svg>{title}{num}. {E(s["title"])}{tag}'
             f'</span>{d}<span class="t">{E(time)}</span></li>')
 
@@ -1019,10 +1062,14 @@ def render(reg, now=None, starting=False, transcripts=None):
     """The page. `starting`: the work folder before any run folder is in it (read's `starting`)."""
     reg = pathlib.Path(reg)
     m = read(reg, now, starting, transcripts)
-    spin = " spin" if m["status"] == "running" else ""
+    st = m["run"]  # the run's one state (run_state.of): badge, title, banner and notice all read it
+    spin = " spin" if st["state"] == "working" else ""
     badge = ""
-    if m["status"] in BADGE:
-        cls, ic, word = BADGE[m["status"]]
+    shown = (BADGE["starting"] if m["status"] == "starting" else None if m["status"] == IDLE
+             else BADGE["paused"] if m["status"] == "paused" and st["state"] == "waiting"  # waits on a resume
+             else RUN_BADGE.get(st["state"]))
+    if shown:
+        cls, ic, word = shown
         badge = f'<span class="badge {cls}"><svg class="ic{spin}"><use href="#{ic}"/></svg>{E(word)}</span>'
     asking = m["action"]["kind"] == "say_back"  # before Start nothing has begun: no empty times are shown
     sub = [] if asking else ['<span>Mapping run</span>']
@@ -1052,13 +1099,19 @@ def render(reg, now=None, starting=False, transcripts=None):
     # the run's home once drawn; before it, the list of runs at the listener's root, which picks none of them
     home_href, home_name = ("index.html", "Home") if (reg / "index.html").is_file() else ("/", "All runs")
     import page_style as ps
+    # the kit release on the run's own line, beside what kind of run it is: obvious, not a corner label
+    sub.insert(1 if sub[:1] == ['<span>Mapping run</span>'] else 0, ps.kit_sub())
     up = (f'<a class="go" href="{ps.all_systems_href(home_href)}">{ps.ALL_SYSTEMS}</a>'
           if home_name == "Home" and ps.all_systems_above(reg) else "")
     drawn = ("" if asking
              else "No run folder yet: the first look over the system is under way. " if starting
              else f"Drawn from the run's record in {E(reg.name)}. ")
-    body = f"""<div class="page"><div class="screen">
-<div class="nav">{up}<span class="sys">{E(m["title"])}</span><a class="go" href="{home_href}">{home_name}</a><a class="go on" href="{FILE}" aria-current="page">Run status</a></div>
+    import run_state
+    alarm =(f'<div class="stopped-banner" role="alert" style="margin:0 0 12px;padding:12px 16px;border-radius:6px;'
+             f'background:#B3261E;color:#fff;font-size:15px"><b>Stopped: this run needs you.</b> {E(st["reason"])} '
+             f'<b>Next:</b> {E(st["next"])}</div>' if st["state"] == run_state.STOPPED else "")
+    body = f"""<div class="page" data-run-state="{E(st['state'])}" data-run-key="{E(st.get('key') or '')}" data-run-why="{E(st.get('reason') or '')}">{alarm}<div class="screen">
+<div class="nav">{up}<span class="sys">{E(m["title"])}</span><a class="go" href="{home_href}">{home_name}</a><a class="go on" href="{FILE}" aria-current="page">Run status</a>{ps.kit_label()}</div>
 <div class="head"><div class="titlerow"><h1>{E(m["title"])}{flow}</h1>{badge}</div>
 <div class="sub">{"".join(sub)}</div></div>
 <div class="body{' ask' if m['action']['kind'] == 'say_back' else ''}"><nav class="rail" aria-label="Steps"><h2>Progress</h2><ol class="steps">{steps}</ol></nav>
@@ -1066,7 +1119,8 @@ def render(reg, now=None, starting=False, transcripts=None):
 <p class="foot">{drawn}This page reloads itself every 15 seconds.</p></div>"""
     # where this page is saved (saved_pages.py), for the line it shows once its listener has gone
     saved = f'<meta name="saved" content="{E(str((reg / FILE).resolve()))}">' if (reg / "RUN.md").is_file() else ""
-    return (PAGE.replace("<!--TITLE-->", E("Run status · " + m["title"])).replace("<!--BODY-->", body)
+    return (PAGE.replace("<!--TITLE-->", E(run_state.title(st, m["title"]))).replace("<!--BODY-->", body + NOTICE.replace(
+        "TOLD_RESET_MS", str(run_state.TOLD_RESET_SECONDS * 1000)))
             .replace("<title>", saved + "<title>", 1))
 
 
@@ -1102,6 +1156,9 @@ a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
 .step .d{grid-column:2/-1;font-size:12px;color:var(--fg2);overflow-wrap:break-word}
 .step .t{grid-column:3;grid-row:1;font-size:12px;color:var(--fg3);font-variant-numeric:tabular-nums;text-align:right;max-width:15em}
 .step .ic{grid-row:1/3;margin-top:1px}
+.parts{grid-column:2/-1;list-style:none;margin:3px 0 0;padding:0;font-size:12px;display:grid;gap:1px}
+.parts li{display:flex;justify-content:space-between;gap:8px;color:var(--fg2)}.parts .ps{color:var(--fg3);white-space:nowrap}
+.parts li.done .ps{color:var(--ok)}.parts .more{color:var(--fg3)}
 .step.cur{background:var(--surface);box-shadow:inset 3px 0 0 var(--run)}
 .step.curbad{box-shadow:inset 3px 0 0 var(--bad)}
 .step.off .n{color:var(--fg3);font-weight:400}
@@ -1193,6 +1250,18 @@ setInterval(function(){if(gone||document.visibilityState!=="visible"||busy())ret
 fetch(location.href,{cache:"no-store"}).then(function(r){if(!r.ok)throw r.status;failed=0;location.reload()},function(){if(++failed>=2)ended()})},15000)})();</script>
 </body></html>
 """
+# One browser notice per stop (run_state, the state the title and banner show), keyed as the watchdog keys it: the
+# stop's code, step and flow, never its words; told again only after the run works again. Permission asked once.
+NOTICE = """<script>(function(){if(!("Notification" in window))return;var p=document.querySelector(".page[data-run-state]");
+if(!p)return;var s=p.getAttribute("data-run-state"),key=p.getAttribute("data-run-key")||"",why=p.getAttribute("data-run-why")||"",
+k="bfo-run-told:"+location.pathname,told=localStorage.getItem(k);
+if(Notification.permission==="default"&&!localStorage.getItem("bfo-notice-asked")){localStorage.setItem("bfo-notice-asked","1");
+Notification.requestPermission()}
+var w="bfo-run-working:"+location.pathname;if(s!=="working")localStorage.removeItem(w);
+if(s==="working"){var since=+localStorage.getItem(w)||Date.now();localStorage.setItem(w,since);
+if(Date.now()-since>=TOLD_RESET_MS)localStorage.removeItem(k);return}
+if(s==="stopped"&&told!==key){localStorage.setItem(k,key);if(Notification.permission==="granted")new Notification("Run stopped: it needs you",{body:why})}})();
+</script>"""
 
 
 def main(argv):

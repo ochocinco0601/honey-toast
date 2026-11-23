@@ -167,6 +167,15 @@ def page_line(folder):
     return PAGE_LEAD + url + page
 
 
+def with_kit(text):
+    """The text with the kit release ("Kit 9.9.1", page_style.kit_version) at the end of its first line."""
+    import page_style
+    if not page_style.kit_known():  # no marker: the kit's source, never an installed kit
+        return text
+    first, nl, rest = text.partition("\n")
+    return f"{first} · {page_style.kit_version()}{nl}{rest}"
+
+
 def with_page(text, folder):
     """`text` with the page's address on a last line of its own while a listener serves the work, and, the first time
     a message goes out after the run put right open items a go was given on, the line naming that fix under its
@@ -727,6 +736,30 @@ def measures_status(reg, flow, stage):
 
 
 def status(reg):
+    """The status line, with the run's stop record (run_state.read_stop): a stopped run says so and what to do,
+    never "Waiting on you: nothing". The line goes out with the lead's own messages, so the lead is in its turn: the
+    rest of the run's state (its turn ended, no sign of work) cannot hold, and reading the agents' transcripts for it
+    on every message would cost the run its time. A page that shows the line while nobody writes (the work page)
+    passes the whole state through stopped_line."""
+    line = _status(reg)
+    try:
+        import run_state
+        stop = run_state.read_stop(reg)
+    except Exception:  # noqa: BLE001 - a record mid-write: the line as the run record has it
+        return line
+    return stopped_line(line, {"state": "stopped", **stop}) if stop else line
+
+
+def stopped_line(line, run):
+    """`line` as run_state's state `run` says it: stopped, with the reason and what to do; any other state as it is."""
+    if run.get("state") != "stopped":
+        return line
+    head = line.split(" · Stopped: ", 1)[0] if " · Stopped: " in line else (
+        line.rpartition(" · Waiting on you: ")[0] or line)
+    return f"{head} · Stopped: {run['reason']} · Waiting on you: {run.get('next') or ''}"
+
+
+def _status(reg):
     st = state(reg)
     count = activity_count(reg)
     if st is None and measures_skill():
@@ -1044,9 +1077,9 @@ def unread(reg):
     """The capability brief's line on files of the code that could not be read, as one more item, or nothing."""
     import first_look
     import map_record
-    lines = [x for x in (map_record.unread_line(reg), first_look.not_read_line(reg), first_look.code_reader_line(reg))
-             if x]
-    return "".join(f"\n- Not read: {x}" for x in lines)
+    lines = [x for x in (map_record.unread_line(reg), first_look.not_read_line(reg)) if x]
+    reader = first_look.code_reader_line(reg)  # whole sentences of its own: never after "Not read:"
+    return "".join(f"\n- Not read: {x}" for x in lines) + (f"\n- {reader}" if reader else "")
 
 
 def case_said(x):
@@ -2336,7 +2369,7 @@ def _main(argv):
         if len(argv) != 2 or not pathlib.Path(argv[1]).is_dir():
             print(__doc__, file=sys.stderr)
             return 2
-        print(checked_said(pathlib.Path(argv[1])))
+        print(with_kit(checked_said(pathlib.Path(argv[1]))))
         return 0
     if argv[:1] == ["page"]:
         if len(argv) != 2 or not pathlib.Path(argv[1]).is_dir():
@@ -2421,14 +2454,14 @@ def _main(argv):
             return 2
     if what == "capability":
         (reg / "PLAN.md").write_text(full, encoding="utf-8", newline="\n")
-        (reg / FLOWS_FILE).write_text(with_page(text, reg), encoding="utf-8", newline="\n")
+        (reg / FLOWS_FILE).write_text(with_page(with_kit(text), reg), encoding="utf-8", newline="\n")
         record_first_look(reg)
         import start  # the first look has reached its brief: its mark in the work folder ends here
         if reg.resolve().parent.name == "bfo-work":
             start.end_first_look(reg.resolve().parent)
         import depth  # the page draws this stop's open choice from depth.json
         depth.write_quietly(reg)
-    print(with_page(text, reg))
+    print(with_page(with_kit(text), reg))
     return 0
 
 

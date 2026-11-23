@@ -1197,9 +1197,35 @@ def decide(reg, flow, event=None, by_kit=False, test=False):
         if refusal:
             return {"kind": "stop", "stop": "held", "message": refusal, "records_with": "start.py --release"}
         by_kit = _kit(reg, by_kit)
-        return _decide(reg, flow, event, by_kit, test)
+        a = _decide(reg, flow, event, by_kit, test)
+        _stop_record(reg, a)
+        return a
     finally:
         _timings(reg, event[0] if event else "")
+
+
+HELD_STOPS = {"agents lost": "Mapping has stopped: agents of the run stopped without their work.",
+              "mapping held": "Mapping is held: it needs your choice before it can go on."}
+STEP_FAILED = "A step of the mapping failed, and the run stopped there."
+
+
+def _stop_record(reg, a):
+    """The kit's stop record (run_state.STOP), which the run status page and the watchdog read: written when run
+    control's step failed or it stops on the person, cleared when it moves on. The person reads one plain sentence of
+    the kit's own; what the step printed goes to the run's log only. Never raises."""
+    try:
+        import run_state
+        if a.get("kind") == "code" and a.get("ok") is False:
+            case.log(reg, "step failed", sub=a.get("sub"), said=str(a.get("said") or "")[-400:])
+            run_state.record_stop(reg, STEP_FAILED, code=f"step-failed:{a.get('sub') or ''}")
+        elif a.get("kind") == "stop" and a.get("stop") in HELD_STOPS:
+            run_state.record_stop(reg, HELD_STOPS[a["stop"]],
+                                  "Answer the run's last message in its chat; it lists your choices.",
+                                  code=a["stop"].replace(" ", "-"))
+        else:
+            run_state.clear_stop(reg)
+    except Exception:  # noqa: BLE001 - the record is for the person's notice; run control goes on without it
+        pass
 
 
 def _close_mapping_rows(reg, flow):

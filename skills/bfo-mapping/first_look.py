@@ -1067,15 +1067,114 @@ def _semgrep():
 
 
 def code_reader_line(reg):
-    """The brief's line on a code reader that could not run on this computer, or nothing."""
+    """The brief's line on a code reader that did not run, or that the person chose to go on without, or nothing."""
     p = pathlib.Path(reg) / CODE_READER_NOT_RUN
     return p.read_text(encoding="utf-8").strip() if p.is_file() else ""
 
 
+READER_STOP = "code-reader-held.json"  # the first look held for the person: its reason, remedy and choices; the
+# watchdog and the run status page read run_state's stop.json, written beside it
+HELD_NEXT = ("Answer the run's last message in its chat; it lists your choices: fix it and try again, go on without "
+             "it, or stop.")
+READER_SKIPPED = layout.CODE_READER_SKIPPED  # the person chose to go on without the code reader: {"reason", "words"}
+# What going on without the code reader costs, as the kit runs without fact-base.json: the reading plan and the
+# path a reader follows take only the lines the steps cite (path_reading.py, fast_map.py plan), not the places the
+# code receives, calls and stores; and no check compares the map with that list (fast_map.gaps, reading_check leads).
+WITHOUT_COST = ("the readers get no list of where the code receives, calls and stores, so they read more of each "
+                "service and take longer, and no check compares the map with that list, so a call they miss is not "
+                "flagged")
+HELD_LEAD = "The first look is held: the tool that lists the calls and messages in the code would not run on this computer"
+
+
+def reader_held(reg):
+    p = pathlib.Path(reg) / READER_STOP
+    try:
+        got = json.loads(p.read_text(encoding="utf-8")) if p.is_file() else None
+    except ValueError:
+        return None
+    return got if isinstance(got, dict) and got.get("stop") == "code reader" else None
+
+
+def reader_skipped(reg):
+    p = pathlib.Path(reg) / READER_SKIPPED
+    try:
+        return json.loads(p.read_text(encoding="utf-8")) if p.is_file() else None
+    except ValueError:
+        return None
+
+
+MORE_TIME = 3  # "try again with more time" gives the code reader this many times as long, applied by the kit
+
+
+def _hold(reg, reason, remedy, said, more_time=False):
+    """Stop the first look for the person: stop.json, and the numbered choices in plain words. Returns the line.
+    `reason` is one plain sentence of the kit's own; what the tool printed goes to fact-extractor.log only. A reader
+    stopped for time is offered more time as a choice the kit applies itself, never a file to edit."""
+    import datetime
+    reg = pathlib.Path(reg)
+    first = ("1. Try again with more time: I give it longer and run the first look again." if more_time else
+             f"1. Fix it and try again: {remedy}. Then tell me, and I run the first look again.")
+    text = "\n".join([
+        f"{HELD_LEAD}: {reason}. What would you like to do?", "", first,
+        f"2. Go on without it: {WITHOUT_COST}.",
+        "3. Stop here.", "",
+        "Answer with the number, or in your own words."])
+    (reg / READER_STOP).write_text(json.dumps({
+        "stop": "code reader", "reason": reason, "remedy": remedy, "message": text, "more_time": more_time,
+        "choices": ["retry", "without", "stop"], "at": datetime.datetime.now().astimezone().isoformat(
+            timespec="seconds")}, indent=1), encoding="utf-8")
+    import run_state
+    run_state.record_stop(reg, f"{HELD_LEAD}: {reason}.", HELD_NEXT, code="code-reader-held")
+    (reg / "fact-base.json").unlink(missing_ok=True)
+    (reg / "fact-extractor.log").write_text(said + "\n", encoding="utf-8")
+    return said + " HELD for the person (stop.json)."
+
+
+ANSWERS = {"1": "retry", "2": "without", "3": "stop", "retry": "retry", "without": "without", "stop": "stop"}
+
+
+def answer(reg, choice, words, test=False):
+    """Record the person's answer to the held first look and act on it; returns what to do next."""
+    import case
+    reg = pathlib.Path(reg).resolve()
+    held = reader_held(reg)
+    if held is None:
+        return "REFUSED: the first look is not held for the code reader. Nothing recorded."
+    kind = ANSWERS.get(str(choice).strip().lower())
+    if kind is None:
+        return "REFUSED: the answer is 1, 2 or 3 (retry, without, stop). Nothing recorded."
+    if not (words or "").strip():
+        return "REFUSED: --words is required: the person's answer, word for word. Nothing recorded."
+    case.decide(reg, "code reader", held.get("message", ""), words, "the person", test=test, choice=kind,
+                reason=held.get("reason", ""))
+    import run_state
+    if kind == "stop":
+        held["stopped"] = True
+        (reg / READER_STOP).write_text(json.dumps(held, indent=1), encoding="utf-8")
+        run_state.record_stop(reg, "The run stopped at the first look, as you chose: the tool that lists the calls and "
+                              "messages in the code would not run.", run_state.RESUME, code="first-look-stopped")
+        return "STOPPED: the run stops here, as the person chose."
+    if kind == "without":
+        (reg / READER_SKIPPED).write_text(json.dumps({"reason": held.get("reason", ""), "words": words},
+                                                     indent=1), encoding="utf-8")
+    if kind == "retry" and held.get("more_time"):  # the kit gives the code reader longer itself
+        import settings
+        s = settings.load(reg)
+        given = int(s.get("code_reader_seconds") or CODE_READER_SECONDS)
+        p = reg / layout.SETTINGS
+        got = json.loads(p.read_text(encoding="utf-8-sig")) if p.is_file() else {}
+        got["code_reader_seconds"] = given * MORE_TIME
+        p.write_text(json.dumps(got, indent=1) + "\n", encoding="utf-8")
+    (reg / READER_STOP).unlink(missing_ok=True)
+    run_state.clear_stop(reg)
+    return f'NEXT: run python "{HERE / "first_look.py"}" prepare "{reg}" again.'
+
+
 def _facts(reg):
     """Run the code reader over the surveyed services, its service map from survey.csv, in the foreground within
-    `code_reader_seconds`; write fact-base.json (only when it finished), its errors to fact-extractor.log; return a
-    one-line summary. A semgrep not installed is said once, with the remedy, and nothing is run."""
+    `code_reader_seconds`, with semgrep's own folder first on its PATH; write fact-base.json (only when it finished),
+    its errors to fact-extractor.log; return a one-line summary. When it cannot run or does not finish, the first look
+    is held for the person (_hold); once they chose to go on without it, it is not run and the note says so."""
     import subprocess
     import settings
     reg = pathlib.Path(reg).resolve()
@@ -1086,60 +1185,52 @@ def _facts(reg):
     root = layout.code_root(reg) if hasattr(layout, "code_root") else root_of(reg)
     pairs = [f"{r['path']}={r['service']}" for r in svc if (r.get("path") or "").strip()]
     marker, base, log = reg / CODE_READER_NOT_RUN, reg / "fact-base.json", reg / "fact-extractor.log"
-    carry = ("Do not diagnose, install or rerun anything: carry on with the first look; the brief tells the person, "
-             "and the mapping agents read the code without these facts.")
-    without = ("Mapping goes on without it: the mapping agents read the code themselves, and the check at the end "
-               "names this as the reason it cannot pass.")
-
-    def not_run(person, said):
-        marker.write_text(person + " " + without + "\n", encoding="utf-8")
+    skipped = reader_skipped(reg)
+    if skipped is not None:
+        marker.write_text(f"Code reader not used, as you chose: {skipped.get('reason', '')}. Without it, "
+                          f"{WITHOUT_COST}.\n", encoding="utf-8")
         base.unlink(missing_ok=True)
-        log.write_text(said + "\n", encoding="utf-8")
-        return said + " " + carry
-
+        return f"code reader: not used, by the person's choice ({skipped.get('reason', '')})"
+    marker.unlink(missing_ok=True)
     override = os.environ.get("DFO_SEMGREP")
     if override and not _usable(override):
-        return not_run(
-            f"The tool that lists the calls and messages in the code did not run: DFO_SEMGREP names {override}, "
-            "which is not there. Correct DFO_SEMGREP to the full path of the semgrep program, or remove it, then ask "
-            "me to run the first look's preparation again.",
-            f"code reader: NOT RUN: DFO_SEMGREP names {override}, which does not exist; it is used as given, never "
-            "searched past. Remedy: correct DFO_SEMGREP or unset it.")
+        return _hold(reg, f"the setting DFO_SEMGREP names {override}, which is not there",
+                     "correct DFO_SEMGREP to the full path of the semgrep program, or remove it",
+                     f"code reader: NOT RUN: DFO_SEMGREP names {override}, which does not exist.")
     exe = _semgrep()
     if exe is None:
-        fix = (f'run `"{sys.executable}" -m pip install semgrep`, or set DFO_SEMGREP to the full path of the semgrep '
-               "program")
-        return not_run(
-            "The tool that lists the calls and messages in the code is not installed on this computer, so it did "
-            f"not run: semgrep is missing for this Python. To add it, {fix}, then ask me to run the first look's "
-            "preparation again.",
-            f"code reader: NOT RUN: semgrep is not installed for {sys.executable} (looked in DFO_SEMGREP, PATH, this "
-            f"Python's scripts folder, the user scripts folder and the package's own files). Remedy: {fix}.")
-    marker.unlink(missing_ok=True)
+        fix = f'run "{sys.executable}" -m pip install semgrep'
+        return _hold(reg, "semgrep is not installed for this Python", fix,
+                     f"code reader: NOT RUN: semgrep is not installed for {sys.executable} (looked in DFO_SEMGREP, "
+                     "PATH, this Python's scripts folder, the user scripts folder and the package's own files).")
+    # semgrep's wrapper starts pysemgrep by name from PATH: its own folder (often a scripts folder not on PATH) first
+    folder = os.path.dirname(os.path.abspath(exe)) if os.path.isfile(exe) else ""
+    path = os.pathsep.join(x for x in (folder, os.environ.get("PATH", "")) if x)
+    env = dict(os.environ, DFO_SEMGREP=exe, PATH=path)
+    import shutil
+    if folder and not shutil.which("pysemgrep", path=path):
+        fix = f'run "{sys.executable}" -m pip install --force-reinstall semgrep'
+        return _hold(reg, f"semgrep is installed in {folder} but its companion program pysemgrep is not", fix,
+                     f"code reader: NOT RUN: {exe} is installed but pysemgrep is in neither its folder nor on PATH.")
     limit = int(settings.load(reg).get("code_reader_seconds") or CODE_READER_SECONDS)
     part = reg / "fact-base.json.part"
-    env = dict(os.environ, DFO_SEMGREP=exe)
     with open(part, "w", encoding="utf-8") as out, open(log, "w", encoding="utf-8") as err:
         code = _run_bounded([sys.executable, str(run), str(root), "--service-map", *pairs], out, err, str(root), env,
                             limit)
     if code is None:
         part.unlink(missing_ok=True)
-        marker.write_text(f"The tool that lists the calls and messages in the code was stopped after {limit} seconds, "
-                          "before it finished. To give it longer, raise code_reader_seconds in this run's "
-                          f"run-settings.json, then ask me to run the first look's preparation again. {without}\n",
-                          encoding="utf-8")
-        base.unlink(missing_ok=True)
-        return (f"code reader: stopped after {limit} s, before it finished, over {len(pairs)} service(s), it and every "
-                "program it started; no fact base written. The brief tells the person how to give it longer "
-                f"(code_reader_seconds in run-settings.json). {carry}")
-    if code == 0:
-        part.replace(base)
-    else:
+        return _hold(reg, f"it was stopped after {limit} seconds, before it finished",
+                     "give it more time", f"code reader: stopped after {limit} s over {len(pairs)} service(s), it and "
+                     "every program it started.", more_time=True)
+    if code != 0:
         part.unlink(missing_ok=True)
-        base.unlink(missing_ok=True)
-        marker.write_text("The tool that lists the calls and messages in the code failed on this computer; what it "
-                          f"said is in {log.name} in this run's folder. {without}\n", encoding="utf-8")
-        return f"code reader: failed over {len(pairs)} service(s), see {log}. {carry}"
+        said = log.read_text(encoding="utf-8", errors="replace").strip().splitlines()[-1:] if log.is_file() else []
+        last = (said[0] if said else "no message")[:200]
+        return _hold(reg, "it stopped with an error, which is kept in the run's log",
+                     f"see what it said in {log}, put that right (often: run \"{sys.executable}\" -m pip install "
+                     "--force-reinstall semgrep)",
+                     f"code reader: failed over {len(pairs)} service(s): {last}")
+    part.replace(base)
     contract = _tool("fact-extractor/contract.py")
     said = ""
     if contract is not None:
@@ -1149,15 +1240,22 @@ def _facts(reg):
             f.write((c.stdout or "") + (c.stderr or ""))
         said = (" Its contract check passed; its reach is in fact-extractor.log." if c.returncode == 0 else
                 " Its contract check failed: see fact-extractor.log.")
-    return f"code reader: ran over {len(pairs)} " \
-           f"service(s).{said}"
+    return f"code reader: ran over {len(pairs)} service(s).{said}"
 
 
 def prepare(reg):
     """The first look's bookkeeping in one command: survey, code reader, fetch, reader prompts. Return what to print:
-    the summary and, in split mode, every reader's pointer line, all to be launched in one message."""
+    the summary and, in split mode, every reader's pointer line, all to be launched in one message. A code reader
+    that cannot run holds the first look here, for the person (STOP and the message)."""
     reg = pathlib.Path(reg).resolve()
     out = [_survey(reg), _facts(reg)]
+    held = reader_held(reg)
+    if held is not None:
+        out.append("STOP: the first look is held for the person. End here: your final reply is exactly the text after "
+                   "MESSAGE:, and nothing else; the session that started you puts it to the person and records their "
+                   "answer.")
+        out.append("MESSAGE:\n" + held["message"])
+        return "\n".join(x for x in out if x)
     m, bad = fetch(reg)
     out.append(f"MODE: {m['mode']} ({m['parts']} owed part(s); other sources {m['other_chars']} characters; code read "
                f"by the {m['code']})")
@@ -1250,6 +1348,18 @@ def main(argv):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     args = list(argv)
+    if args[:1] == ["answer"]:  # answer <register> <1|2|3> --words "<their words>" [--test]
+        test = "--test" in args
+        args = [a for a in args if a != "--test"]
+        words = args[args.index("--words") + 1] if "--words" in args and args.index("--words") + 1 < len(args) else ""
+        if len(args) < 3:
+            print('usage: first_look.py answer <register> <1|2|3> --words "<their words>"', file=sys.stderr)
+            return 2
+        import run_lock
+        run_lock.guard(pathlib.Path(args[1]).resolve())
+        said = answer(args[1], args[2], words, test=test)
+        print(said, file=sys.stderr if said.startswith("REFUSED") else sys.stdout)
+        return 2 if said.startswith("REFUSED") else 0
     if len(args) < 2 or args[0] not in ("prepare", "fetch", "prompts", "check", "names", "merge", "holdings"):
         print(__doc__, file=sys.stderr)
         return 2

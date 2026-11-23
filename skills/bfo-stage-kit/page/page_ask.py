@@ -387,8 +387,15 @@ def serve(site):
     httpd.timeout = min(5.0, idle)
     grace = float(os.environ.get("BFO_LISTENER_END_GRACE_SECONDS") or 120)
     watch, ended_at = RunEnd(site), None
+    try:  # the run's watchdog: reads each run's state and tells the person when it stops or finishes
+        import watchdog
+        dog = watchdog.Watchdog(site)
+    except Exception:  # noqa: BLE001 - a kit without it serves its pages all the same
+        dog = None
     while time.time() - last[0] < idle:
         httpd.handle_request()
+        if dog:
+            dog.tick()
         if watch.ended():
             ended_at = ended_at or time.time()
             if time.time() - ended_at >= grace:  # an open tab keeps asking, so the idle clock never runs out

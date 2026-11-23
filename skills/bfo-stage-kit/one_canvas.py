@@ -1200,7 +1200,7 @@ def home_link():
         return ""
     up = (f'<a href="{ps.all_systems_href(ps.HOME_FILE)}">{ps.ALL_SYSTEMS}</a>{ps.TRAIL_SEP}'
           if ps.all_systems_on() else "")
-    return f'<p class="homelink">{up}<a href="{ps.HOME_FILE}">{ps.HOME}</a></p>'
+    return f'<p class="homelink">{up}<a href="{ps.HOME_FILE}">{ps.HOME}</a>{ps.kit_label()}</p>'
 
 
 def made_page(M, reg_label, checked):

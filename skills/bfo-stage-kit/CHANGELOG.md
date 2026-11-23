@@ -8,6 +8,46 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.9.1 — 2026-11-23
+
+A hotfix: a run that stops now says so; the code reader finds its own helper; the running step shows its parts; the kit version is on every page.
+
+- **Every page says which kit release it is.** The run status page says "Kit 9.9.1" on the run's own line beside
+  Started, Home lists it under the application, and every page names it in its top bar; the capability brief's
+  first line and the report's check line name it too. It is read from the installed kit's version marker, never
+  written into the code, and reads "unknown" without one.
+  Effect: none.
+- **The step under way opens to its parts.** On the run status page the step running lists its parts and a count,
+  read from the files the run writes: in discovery each source you gave, done or reading, with the flows and
+  services found so far; in mapping each unit of the reading plan; while checks run, each unit's checks judged; in
+  measures, alerts and runbooks each stage picked that far. Every other step stays one line. Last activity is the
+  run's newest real write, or the newest sign of its agents when they can be read, never the lock a check touches.
+  Effect: none.
+- **A stopped run shows as stopped, and the page says why.** The run's page server keeps a watchdog that is not the
+  lead and uses no model: every 20 seconds it reads each run's state (working, quiet, waiting on you, stopped or
+  finished) and keeps which stop it has seen, each by its step and reason, never by words that change while it
+  lasts. Stopped needs evidence, never a clock alone: a step that failed or holds on your choice, the final check not
+  passing, the session that runs it having ended its turn while no agent works and the step is not done, or no sign
+  of any agent for 40 minutes. A session quiet in the middle of its turn, waiting on the model or a long command, is
+  quiet: amber. The run status page reads the same state for its badge, its steps, its tab title ("STOPPED · needs
+  you" or "Finished"), a red banner with the reason and the next step, and one browser notice per stop (it asks once
+  for permission). A stop belongs to its flow, and ends when you answer or the run carries on. Only the kit's own
+  agents that may not run a shell (readers, mappers, checkers and launchers) are shown as discarded for running one;
+  the first look's helper runs the kit's scripts and is not.
+  Effect: none.
+- **The code reader finds pysemgrep, and when it cannot run, you decide.** Semgrep's own folder now comes first on the
+  code reader's path, so semgrep installed in a scripts folder that is not on your path starts its companion program
+  pysemgrep. When the code reader still cannot run or does not finish, the first look stops and asks you: fix it and
+  try again (with the exact command), or try again with more time when it ran out of time, which the kit gives it
+  itself; go on without it (what that costs); or stop. Going on without it is recorded with your words and shown as "Code reader not used" in the overview and the
+  done check. The first look no longer goes on by itself, and no longer ends with no overview. While it waits on
+  you, the run's state is stopped with that reason, and the page shows the banner.
+  Effect: none.
+
+**Known limits of 9.9.1.**
+
+No desktop notification yet; a stopped run shows in the page's tab title and banner.
+
 ## Release 9.9 — 2026-11-23
 
 Release 9.9 fixes a run that could stall with no way forward, runs that led into each other, waits in the first
@@ -114,11 +154,10 @@ from 9.8.
   A run that has ended (every step done, no flow left) shows its quiet agents as finished; a live run, the next flow
   included, shows every agent as it is. A say-back an earlier release left at the work folder's root is no longer drawn.
   Effect: none.
-- **The kit is never changed where it runs.** A defect a run finds in the kit is written down in the register's
-  `kit-findings.md` (`kit_findings.py`) as one short line with no free text: a code from the kit's fixed list, a
-  file the kit's version marker lists, its line and the kit's version. Only that script writes the file; anything
-  else is refused and nothing is written, and a repeat is written once. The run carries on or stops for you, and
-  the report names the file, each line short enough to pass on. A copy of the kit whose files were changed after it was
+- **Defects a run finds in the kit are recorded, never fixed in place.** `kit_findings.py` writes one line each to
+  the register's `kit-findings.md`: a code from the kit's fixed list, a file the kit's version marker lists, its line
+  and the kit's version. Only that script writes the file; anything else is refused and nothing is written, and a
+  repeat is written once. The run carries on or stops for you, and the report names the file. A copy of the kit whose files were changed after it was
   installed is refused at the start, naming the files and telling you to delete the skill's folder and copy it in
   fresh from its release. Where a message the kit builds is refused by its own word check, that is written down too.
   Effect: none.
@@ -864,7 +903,7 @@ verification.
   Effect: re-walk the agent actions left unmarked: a map whose measures were never proposed, or that an earlier
   release left part-marked, may hold some. The upgrade's line says how many; mapping re-reads the code behind each
   before the run is done, and says so before it starts.
-- **The run-at-work page shows "Where things stand:" in bold** instead of with asterisks; nothing to do.
+- **The work page shows "Where things stand:" in bold** instead of with asterisks; nothing to do.
   Effect: none.
 - **A service is named after its service folder.** A service whose build file sits in a generic folder below its
   service folder (such as `src/cartservice/src`) is now named after the service folder (`cartservice`). Two folders
@@ -973,7 +1012,7 @@ verification.
 - **The Mapped panel asks only what the stage's pick takes on.** Before the pick of how far each stage goes, and for
   a stage left at mapped only, the panel no longer lists "its alerts" or "what each party expects" as not known yet.
   Effect: none; the pages change on a redraw only (`depth.py` then `home.py`), with no register change.
-- **The run-at-work page says what it is for,** in one sentence under its heading.
+- **The work page says what it is for,** in one sentence under its heading.
   Effect: none.
 - **Mapping is not finished while the done check would still fail on its rows.** The map stop's inspection now
   runs the done check's own conditions that are mapping's (the questions about parts, stages, process steps and

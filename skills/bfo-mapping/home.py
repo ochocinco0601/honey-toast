@@ -1099,7 +1099,8 @@ def identity_html(reg, flows):
     n = len(flows)
     progress = " · ".join(f"{label} {sum(1 for fl in flows if fl.status(p) in FILLED_WHEN[p])}/{n}"
                           for p, label in PROGRESS)
-    rows = [("Application", system, True), ("Application ID", app_id, False), ("Line of business", "", False),
+    rows = [("Application", system, True)] + ([("Kit", ps.kit_number(), True)] if ps.kit_known() else []) + [
+            ("Application ID", app_id, False), ("Line of business", "", False),
             ("What it does", (what or "").strip(), False), ("Flows", str(n), False), ("Progress", progress, False)]
     cells = "".join(f'<span class="il">{E(k)}</span>'
                     + (f'<span>{"<b>" + E(v) + "</b>" if bold else E(v)}</span>' if v
@@ -1127,7 +1128,7 @@ def render(reg, d):
     up = (f'<a class="go" href="{ps.all_systems_href(FILE)}">{ps.ALL_SYSTEMS}</a>'
           if ps.all_systems_above(reg) else "")
     nav = (f'<div class="nav">{up}<span class="sys">{E(d["_title"])}</span><a class="go on" href="{FILE}" '
-           f'aria-current="page">Home</a>{the_map}{sources}{status}<span class="sp2"></span></div>')
+           f'aria-current="page">Home</a>{the_map}{sources}{status}<span class="sp2"></span>{ps.kit_label()}</div>')
     blind = ("Found is only what has been found so far; a traced flow shows only what its trace found."
              if any(fl.mapped for fl in flows) else "Found is only what has been found so far.")
     source = f"Drawn from depth.json in the register {d.get('register') or reg.name}. Where the run stands: {where_it_stands(d)}."

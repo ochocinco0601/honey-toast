@@ -159,13 +159,17 @@ def proved(reg):
     if map_proof(reg):
         out.update({"1 ": "done", "2 ": "done", "3 ": "done"})
     depth = ((go.load(reg) or {}).get("depth") or {}) if (reg / "scope.json").is_file() else {}
-    held = run_status.held_runbooks(reg) if depth else set()
+    held = None  # the runbooks held on open items: costly to read, so only when a runbook is not on disk
     for lead, need, name in (("4 ", ("measure", "alerting", "runbooks"), "MEASURES.md"),
                              ("5a ", ("alerting", "runbooks"), "ALERT.md"), ("5b ", ("runbooks",), "RUNBOOK.md")):
         owed = [f"stage-{s}/{name}" for s, d in depth.items() if d in need]
-        if owed and all(stage_proof(reg, f) or f in held for f in owed):
+        missing = [f for f in owed if not stage_proof(reg, f)]
+        if missing and name == "RUNBOOK.md":
+            held = run_status.held_runbooks(reg) if held is None else held
+            missing = [f for f in missing if f not in held]
+        if owed and not missing:
             out[lead] = "done"
-    if run_status.outputs_hold(reg) and verdict_this_flow(reg):
+    if verdict_this_flow(reg) and run_status.outputs_hold(reg):  # the cheap check first
         out["6 "] = "done"
     return out
 

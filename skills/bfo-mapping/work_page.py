@@ -115,7 +115,8 @@ def render(site):
         rel = html.escape("" if folder == site else folder.name + "/")
         if kind == "register":
             try:
-                line = brief.status(folder)
+                import run_state  # the row says the run's one state, as its run status page does
+                line = brief.stopped_line(brief.status(folder), run_state.state(folder))
             except Exception:  # noqa: BLE001 - a record mid-write: show the folder, the next request draws it whole
                 line = "Updating"
         else:

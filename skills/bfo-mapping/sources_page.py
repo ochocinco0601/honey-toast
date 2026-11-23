@@ -403,7 +403,7 @@ def render(reg, home_href=None):
             ".taken{margin:0;padding-left:16px;font-size:13px}.taken li{margin:0 0 4px}.use{color:#5A5850;max-width:640px}"
             "code{font:12px Consolas,monospace;background:#F1EFE8;border-radius:4px;padding:1px 5px}"
             "</style></head><body>"
-            f'<div class="nav">{up}<a href="{E(home_href)}">{back}</a><span class="on" aria-current="page">Sources</span></div>'
+            f'<div class="nav">{up}<a href="{E(home_href)}">{back}</a><span class="on" aria-current="page">Sources</span>{ps.kit_label()}</div>'
             '<div class="wrap"><div class="card"><h1>Sources</h1>'
             '<div class="mute">What this run is working from: each source gathered so far, and each one pointed at or '
             'found that could not be reached, with why.</div>'

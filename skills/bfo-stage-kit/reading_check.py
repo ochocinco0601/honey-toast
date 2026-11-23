@@ -346,6 +346,8 @@ class Result:
             out += [f"  not accounted: {m}" for m in self.leads[:25]]
             if len(self.leads) > 25:
                 out.append(f"  ... and {len(self.leads) - 25} more")
+        elif self.note.startswith("Code reader not used"):
+            out.append(self.note)
         else:
             out.append("Code reader: every finding in the services this map touches is cited or set aside: ok")
         return out
@@ -363,6 +365,8 @@ def check(reg, transcripts=None):
     cited = sorted(citations(reg), key=lambda c: (c[0], c[1] or 0))
     covered, by_reader, missing = _cover(cited, opened, extracted)
     leads = None if fb is None else unaccounted_leads(reg, fb, cited)
+    if fb is None and (reg / layout.CODE_READER_SKIPPED).is_file():
+        leads = []  # the person chose to go on without the code reader: no findings to account for
     r = Result(len(cited), covered, by_reader, missing, len(sessions), folders, leads)
     r.note = reader_note(reg)
     return r

@@ -1330,6 +1330,14 @@ def main(argv):
         record_verdict(reg, done, outputs_done_of(done, reasons))
         import run_md  # every phase its files prove done is written into RUN.md, whatever the lead set
         run_md.reconcile(reg)
+        import run_state  # NOT DONE is a stop the page and the watchdog tell the person of; DONE clears it
+        if done:
+            run_state.clear_stop(reg)
+        else:
+            n = len(reasons)
+            run_state.record_stop(reg, f"The final check found {n} {'thing' if n == 1 else 'things'} still to do.",
+                                  "Ask the run's session to put them right and run the final check again.",
+                                  code="final-check-not-done")
     for line in out:
         print(line)
     if done:  # the run's pages, saved for after its listener stops, and the file the report names

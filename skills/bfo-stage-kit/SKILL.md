@@ -158,7 +158,9 @@ that starts it sends one line that the first look is under way before you start 
 `say_back.py` printed after `MESSAGE:`, exactly as printed, then start the helper in the same response, so the
 person hears from the run within the first minute whether Claude Code runs the helper in the background or waits on
 it. The helper's reply reaches you later as a completion notification, in a turn of its own, and that turn sends the
-brief. A later turn that starts the helper again (after a search) sends one line through `say` that the first look
+brief. A reply that begins "The first look is held" is the person's choice, not a brief: send it as it is, start
+nothing, and record their answer with `python "<skill>/first_look.py" answer <your-folder> <1, 2 or 3> --words "<their
+words>"`; on 1 or 2, start the helper again as that command says. A later turn that starts the helper again (after a search) sends one line through `say` that the first look
 is under way again, before it starts the helper. If the person writes while the first-look helper is still running, answer in one line
 through `say` that the first look is still under way and its brief follows when it is done, and start nothing: no
 second helper, no start step. The register folder you named with `--register` is `<your-folder>` from then on. When
@@ -736,18 +738,11 @@ name as it is (the register folder, each earlier register's folder, the guides i
 - Never edit a generated file: fix the register and generate again.
 <!-- /shared: read-mapping-steps-md-then-register-temp -->
 <!-- shared: never-change-the-kit -->
-- **Never change the skill folder's own files**, not even to fix a defect in them: the kit is changed where it is
-  made and reaches the person in a release, a change made here is lost at the next one, and the next start refuses
-  the changed copy. When you find a defect in the kit (a script that fails on its own output, a refusal with no way
-  on, a message its own check rejects), write it down with `python "<skill>/kit_findings.py" "<your-folder>" --code
-  <one of the codes kit_findings.py --list prints> --file <the kit's file, as named in the skill folder> --line <its
-  line>`, then carry on with the run where it can, or stop and tell the person, through `say`, what is held. The run
-  may be on a machine that lets no free text out, so a finding holds no words of yours at all: a fixed code, a file
-  of the kit, a line and the kit's version; what each code means is listed in `kit_findings.py --list`.
-  `kit-findings.md` is written only by that script, never by hand or
-  by any other tool. If the script refuses, record nothing, and tell the person in plain words, through `say`, that
-  the kit has a problem the run could not write down. The report names the file (`brief.py checked` prints the
-  line), and tells the person each finding is one short line they can pass on.
+- **Never change the skill folder's own files**, not even to fix a defect in them. When you find a defect in the
+  kit, record it with `python "<skill>/kit_findings.py" "<your-folder>" --code <a code from kit_findings.py --list>
+  --file <the kit's file> --line <its line>`, then carry on where the run can, or stop and tell the person, through
+  `say`, what is held. `kit-findings.md` is written only by that script. If it refuses, record nothing and tell the person,
+  through `say`, that the kit has a problem the run could not record. The report names the file.
 <!-- /shared: never-change-the-kit -->
 
 ## What the person gets

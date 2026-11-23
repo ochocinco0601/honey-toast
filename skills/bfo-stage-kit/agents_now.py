@@ -71,7 +71,7 @@ def facts(f):
         if got and got[0] == key:
             return got[1]
     first = last = None
-    kind, tool, tool_at, n_tools, shell, error, prompt = None, None, None, 0, False, False, None
+    kind, tool, tool_at, n_tools, shell, error, prompt, ended = None, None, None, 0, False, False, None, False
     with open(f, encoding="utf-8", errors="replace") as fh:
         for line in fh:
             try:
@@ -116,8 +116,9 @@ def facts(f):
                 shell = shell or any(b.get("name") in SHELLS for b in uses)
             else:
                 kind = "writing"
+            ended = not uses and m.get("stop_reason") == "end_turn"  # a reply that called no tool and ended its turn
     got = {"first": first, "last": last, "kind": kind, "tool": tool, "tool_at": tool_at, "n_tools": n_tools,
-           "shell": shell, "error": error, "prompt": prompt or ""}
+           "shell": shell, "error": error, "prompt": prompt or "", "end_turn": kind == "writing" and ended}
     with _lock:
         _cache[str(f)] = (key, got)
     return got
@@ -252,14 +253,56 @@ def _folders(reg, transcripts):
     return reading_check.project_folders(reg)
 
 
-def _kit_prompt(text, prompts):
+def _kit_prompt(text, prompts, reg=None):
+    """The prompt a kit agent was given, relative to prompts/; a fast mapper's (fast/mappers/<group>/) as
+    timings names it ("fast mapper: <group>"); None for an agent the kit did not launch."""
     import timings
     m = timings.POINTED.search((text or "").strip())
     if not m:
         return None
     import paths
     target = m.group(1).replace("\\", "/")
-    return target[len(prompts) + 1:] if paths.norm(target).startswith(prompts + "/") else None
+    if paths.norm(target).startswith(prompts + "/"):
+        return target[len(prompts) + 1:]
+    if reg is not None:
+        fast = paths.norm((pathlib.Path(reg).resolve() / "fast" / "mappers").as_posix())
+        if paths.norm(target).startswith(fast + "/") and target.endswith("/mapper-prompt.md"):
+            return f"{timings.FAST_ROW}: {target.split('/')[-2]}"
+    return None
+
+
+AGENT_OF = {"reader": "bfo-unit-reader", "reader retry": "bfo-unit-reader", "fixer": "bfo-unit-reader",
+            "re-read": "bfo-unit-reader", "stop fixer": "bfo-unit-reader", "fast mapper": "bfo-flow-mapper",
+            "source reader": "bfo-source-reader", "judge round": "bfo-row-judge"}
+
+
+def no_shell_agents():
+    """The kit's agent types whose tools hold no shell, read from their own definitions (agents/*.md `tools:`)."""
+    out = set()
+    for f in sorted((HERE / "agents").glob("*.md")):
+        tools = next((x.split(":", 1)[1] for x in f.read_text(encoding="utf-8").splitlines()
+                      if x.startswith("tools:")), "")
+        if not {t.strip() for t in tools.split(",")} & set(SHELLS):
+            out.add(f.stem)
+    return out
+
+
+def shell_breaks(step):
+    """An agent of this step may not run a shell, so one that did is discarded: the kit's agent types with no shell,
+    and the launchers, which run none. The first-look helper runs the kit's own scripts and is never discarded."""
+    if step.startswith("launcher"):
+        return True
+    agent = next((a for s, a in AGENT_OF.items() if step == s or step.startswith(s + " ")), None)
+    return agent in no_shell_agents()
+
+
+def turn_ended(fx, now):
+    """The lead's turn has ended: its last line is a reply that called no tool and ended its turn, and nothing newer
+    came for run_state.TURN_ENDED_SECONDS (a reply's lines, its thinking, its text and its tool call, come apart by
+    up to a few minutes, so one alone never ends a turn)."""
+    import run_state
+    last = fx.get("last")
+    return bool(fx.get("end_turn") and last and (now - last).total_seconds() >= run_state.TURN_ENDED_SECONDS)
 
 
 def state_of(fx, md, now, lead=False):
@@ -420,7 +463,8 @@ def _gather_agents(reg, now, transcripts, look):
                 st, words = state_of(fx, {}, now, lead=True)
                 lead = {"who": "the lead", "on": "the run itself", "now": now_line(fx, now),
                         "last_action": last_action(fx, now), "last": fx["last"], "started": fx["first"],
-                        "state": st, "words": words, "kind": "lead", "idle_turn": fx["kind"] == "writing"}
+                        "state": st, "words": words, "kind": "lead", "replied": fx["kind"] == "writing",
+                        "idle_turn": turn_ended(fx, now)}
             sub = folder / sid / "subagents"
             for f in sorted(sub.glob("*.jsonl")) if sub.is_dir() else []:
                 if str(f) in seen:
@@ -428,7 +472,7 @@ def _gather_agents(reg, now, transcripts, look):
                 seen.add(str(f))
                 fx = facts(f)
                 md = meta(f)
-                rel = _kit_prompt(fx["prompt"], prompts)
+                rel = _kit_prompt(fx["prompt"], prompts, reg)
                 if rel is not None:
                     import timings
                     unit, step = timings.step_of(rel)
@@ -441,7 +485,7 @@ def _gather_agents(reg, now, transcripts, look):
                 if look and rel is not None and rel.startswith("first-look/") and on in look[2] and \
                         part_done(look[2][on], look[1]):
                     st, words = FINISHED, "finished"  # its record is written: done, whatever Claude Code recorded
-                if kind == "kit" and fx["shell"] and st != FINISHED:
+                if kind == "kit" and fx["shell"] and st != FINISHED and shell_breaks(who):
                     st, words = RED, "discarded: it ran a shell"
                 agents.append({"who": who, "on": on, "now": "" if st == FINISHED else now_line(fx, now),
                                "last_action": last_action(fx, now), "last": fx["last"], "started": fx["first"],
@@ -466,9 +510,12 @@ def _gather_agents(reg, now, transcripts, look):
     # the quiet limit is not one the lead is waiting on, so a quiet lead shows quiet, not "waiting on its agents"
     live = [a for a in agents if a["state"] in (WORKING, AMBER) or a["state"] == QUEUED and a.get("emitted")
             and (now - a["emitted"]).total_seconds() <= AMBER_MINUTES * 60]
-    if lead is not None and live and lead["idle_turn"]:
+    if lead is not None and live and lead["replied"]:
         lead.update(state=WAITING_AGENTS, words=f"waiting on its agents ({len(live)} running)",
                     now=f"waiting on its agents ({len(live)} running)")
+    elif lead is not None and lead["idle_turn"] and lead["state"] == WORKING:  # its turn has ended (turn_ended) and
+        # nothing it started is running: it no longer reads as working (run_state reads this as stopped)
+        lead.update(state=AMBER, words="its turn has ended", now="its turn has ended")
     rows = ([lead] if lead else []) + agents
     return {"readable": True, "reason": None, "lead": lead, "agents": agents,
             "finished": sum(a["state"] == FINISHED for a in agents),

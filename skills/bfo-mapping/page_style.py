@@ -112,6 +112,43 @@ def all_systems_on():
     return bool(_home and _home[-1][1])
 
 
+def kit_version(folder=None):
+    """The kit release these scripts were built as, "Kit 9.9.1", from the "Build:" line of KIT-VERSION.txt beside them
+    (written by the build), or "Kit version unknown" where there is none: never written into the code."""
+    p = _pathlib.Path(folder or _pathlib.Path(__file__).resolve().parent) / "KIT-VERSION.txt"
+    try:
+        m = _re.search(r"^Build: release-(\S+)", p.read_text(encoding="utf-8"), _re.M)
+    except OSError:
+        m = None
+    return f"Kit {m.group(1)}" if m else "Kit version unknown"
+
+
+def kit_number():
+    """The release alone, "9.9.1", or "unknown"."""
+    v = kit_version()
+    return v[len("Kit "):] if v.startswith("Kit ") and v != "Kit version unknown" else "unknown"
+
+
+def kit_known():
+    """Whether these scripts carry a version marker: an installed kit always does; the kit's source, which draws the
+    shipped example (not a run), does not, and its pages then carry no kit label at all."""
+    return kit_number() != "unknown"
+
+
+def kit_sub():
+    """The kit release as the run's subtitle line says it, in the weight of its other facts: "Kit <b>9.9.1</b>"; "" with
+    no marker."""
+    return f"<span>Kit <b>{_html.escape(kit_number())}</b></span>" if kit_known() else ""
+
+
+def kit_label():
+    """The kit release as the top bar of every page shows it; "" with no marker."""
+    if not kit_known():
+        return ""
+    return (f'<span class="kitv" style="margin-left:auto;float:right;color:#5A5850;font-size:13px;white-space:nowrap">'
+            f'{_html.escape(kit_version())}</span>')
+
+
 def all_systems_href(home):
     """The All systems page, from wherever `home` reaches the home screen."""
     return _posixpath.join(_posixpath.dirname(home), "..", HOME_FILE)
@@ -122,7 +159,7 @@ def home_href(map_href):
     return _posixpath.join(_posixpath.dirname(map_href), HOME_FILE)
 
 
-def frame_head(trail, title, here=None):
+def frame_head(trail, title, here=None, kit=True):
     """The trail and the page's title, which names its kind, as HTML. The trail is where the page sits: `trail`
     [(words, href)] is the map (MAP), then each level above the page, each named by its own page's title and opening
     that page; the page itself ends it as plain text, named `here`, else by its title. A step whose href is None is a
@@ -134,7 +171,8 @@ def frame_head(trail, title, here=None):
             trail = [(ALL_SYSTEMS, all_systems_href(trail[0][1]))] + trail
     links = [f'<a href="{E(h)}">{E(w)}</a>' if h else f"<span>{E(w)}</span>" for w, h in trail]
     links.append(f'<span aria-current="page">{E(title if here is None else here)}</span>')
-    return f'<p class="trail">{TRAIL_SEP.join(links)}</p><h1>{E(title)}</h1>'
+    # the kit release after the title on the run's own pages; a responder's alert and runbook pages carry none
+    return f'<p class="trail">{TRAIL_SEP.join(links)}</p><h1>{E(title)}</h1>' + (kit_label() if kit else "")
 
 
 TRAIL_SEP = ' <span class="sep">\u203a</span> '
