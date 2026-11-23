@@ -280,3 +280,17 @@ The work is in the **register folder**, `<your-folder>` below: the folder mappin
   left out.
 - Never stop to ask the person a fact you can read or infer: infer it, and label it `proposed:` with the reason.
   What is theirs (which stages, whether the measures will do) is brought to them with your recommendation.
+<!-- shared: never-change-the-kit -->
+- **Never change the skill folder's own files**, not even to fix a defect in them: the kit is changed where it is
+  made and reaches the person in a release, a change made here is lost at the next one, and the next start refuses
+  the changed copy. When you find a defect in the kit (a script that fails on its own output, a refusal with no way
+  on, a message its own check rejects), write it down with `python "<skill>/kit_findings.py" "<your-folder>" --code
+  <one of the codes kit_findings.py --list prints> --file <the kit's file, as named in the skill folder> --line <its
+  line>`, then carry on with the run where it can, or stop and tell the person, through `say`, what is held. The run
+  may be on a machine that lets no free text out, so a finding holds no words of yours at all: a fixed code, a file
+  of the kit, a line and the kit's version; what each code means is listed in `kit_findings.py --list`.
+  `kit-findings.md` is written only by that script, never by hand or
+  by any other tool. If the script refuses, record nothing, and tell the person in plain words, through `say`, that
+  the kit has a problem the run could not write down. The report names the file (`brief.py checked` prints the
+  line), and tells the person each finding is one short line they can pass on.
+<!-- /shared: never-change-the-kit -->

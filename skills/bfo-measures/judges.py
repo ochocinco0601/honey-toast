@@ -2,7 +2,7 @@
 
 Usage: python judges.py rows <reg> <unit>
        python judges.py run <reg> <ws> <unit> --round N [--rows all|flagged] [--model ID] [--again]
-                        [--transcripts DIR]
+                        [--set-aside "<the person's reason>"] [--transcripts DIR]
        python judges.py emit <reg> <unit> --round N [--rows all|flagged] [--ws DIR] [--again] [--transcripts DIR]
        python judges.py collect <reg> [--transcripts DIR]
        python judges.py --check <reg> <unit> [--round N] [--transcripts DIR]
@@ -668,7 +668,7 @@ def launcher_cap(reg):
     return max(1, SESSION_LIMIT // (max(1, settings(reg)["parallel"]) + 1))
 
 
-def launchers(reg, name, groups, keep=(), agent_type="general-purpose"):
+def launchers(reg, name, groups, keep=(), agent_type="general-purpose", parallel=None):
     """Write launcher files for `groups` [(label, [pointer line])], each split into files of at most LAUNCHER_MAX
     agents, under <reg>/prompts/launch/ as <name>[-<label>]-<i>.md; returns one pointer line per launcher file. This
     name's earlier launcher files are removed first, except those in `keep` (launchers still running, Launches): those
@@ -680,7 +680,7 @@ def launchers(reg, name, groups, keep=(), agent_type="general-purpose"):
     for old in folder.glob(f"{name}-*.md"):
         if old.resolve() not in keep:
             old.unlink()
-    par = max(1, settings(reg)["parallel"])
+    par = max(1, parallel or settings(reg)["parallel"])
     out = []
     for label, lines in groups:
         i = 0
@@ -813,8 +813,12 @@ class Launches:
     `relaunches` times (run-settings.json, default 2) counted since the go, or since the person last said to try again
     (prompts/relaunch-from.txt); then its state is 'gave up', and run control stops on it."""
 
-    def __init__(self, reg, transcripts=None, again=False):
+    def __init__(self, reg, transcripts=None, again=False, stuck_after=None):
         self.reg, self.again, self._tx, self._sessions = pathlib.Path(reg).resolve(), again, transcripts, None
+        # judges only: an agent live but silent this many seconds is 'stuck'; the prompts already relaunched for it
+        self.stuck_after = stuck_after
+        self.stuck_before = {r.get("prompt") for r in tables.dicts(layout.judging_dir(self.reg) / STUCK)} \
+            if stuck_after else set()
         self.since = go_given(self.reg)
         self.cap = relaunch_cap(self.reg)
         self.tries_from = self.since
@@ -831,6 +835,8 @@ class Launches:
         for f in sorted(folder.glob("*.md")) if folder.is_dir() else []:
             agents = {l.strip() for l in f.read_text(encoding="utf-8").splitlines() if l.startswith("Read ")}
             state = self.state(f, launcher=True)
+            if state == "still running" and not again and self.silent(f, agents):
+                state = "ended"  # died mid-turn: quiet, none of its agents running, and it never replied
             if state == "still running" and not again:
                 self.running.add(f.resolve())
                 self.held |= agents
@@ -838,6 +844,22 @@ class Launches:
                 self.replied |= agents
                 if state == "ended":
                     self.ended.append(f.name)
+
+    def silent(self, launcher, agents):
+        """Whether a launcher not finished has died mid-turn: every session given it has been quiet for LAUNCHER_QUIET
+        seconds and none of the agents it lists is still running. A live launcher is waiting on a running agent, or
+        launches the next within seconds of one finishing."""
+        import datetime
+        quiet = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=LAUNCHER_QUIET)
+        pointer = POINTER.format(pathlib.Path(launcher).resolve().as_posix())
+        mine = [mtime for first, when, _, _, _, mtime in self.sessions() if pointer in first and when is not None]
+        if not mine or any(m > quiet for m in mine):
+            return False
+        for line in agents:
+            f = line.split("Read ", 1)[1].split(" and do exactly", 1)[0]
+            if self.state(f) in ("still running", "stuck"):  # live, however long silent: the launcher waits on it
+                return False
+        return True
 
     def ended_lines(self, name):
         """One line per launcher of this name that stopped without its reply line."""
@@ -875,9 +897,15 @@ class Launches:
         if all(done and (not launcher or REPLIED.search(last or "") or last == META_FINISHED)
                for done, _, last, _ in got):
             return "finished"
-        quiet = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=LAUNCHER_QUIET)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        quiet = now - datetime.timedelta(seconds=LAUNCHER_QUIET)
         if launcher and all(done and mtime <= quiet for done, _, _, mtime in got):
             return "ended"
+        if not launcher and self.stuck_after:
+            limit = now - datetime.timedelta(seconds=self.stuck_after)
+            live = [mtime for done, _, _, mtime in got if not done]
+            if live and all(m <= limit for m in live):
+                return "stuck"
         return "still running"
 
     def errored(self, path):
@@ -897,9 +925,11 @@ class Launches:
         fixer). A finished agent is never launched again for the same prompt, `again` or not."""
         path = pathlib.Path(path).resolve()
         pointer = POINTER.format(path.as_posix())
+        state = self.state(path)
+        if state == "stuck":  # live but silent past its limit: launched afresh once, whatever holds it
+            return (False, "stuck twice") if path.name in self.stuck_before else (True, state)
         if pointer in self.held:
             return False, "queued"
-        state = self.state(path)
         if state is None:
             return True, None
         if state == "still running":
@@ -924,42 +954,121 @@ def emit(reg, unit, rnd, mode=None, ws=None, transcripts=None, again=False):
     if again:
         import timings
         timings.refresh(reg, transcripts, "judges.py emit --again")
+    seen = Launches(reg, transcripts, again, stuck_after=judge_seconds(reg))
+    groups, held, relaunched, todo = _owed_judges(reg, unit, rnd, mode, ws, seen)
+    pointers = launchers(reg, f"judges-{unit}-r{rnd}", sorted(groups.items()), keep=seen.running,
+                         agent_type=JUDGE_AGENT)
+    n = sum(len(v) for v in groups.values())
+    return ([f"Unit {unit}, round {rnd}: {n} judge(s) to launch in {len(pointers)} launcher(s), "
+             f"{todo - n - sum(held.values())} verdict file(s) already on disk; keep at most "
+             f"{launcher_cap(reg)} launcher(s) running at once"]
+            + _held_lines(unit, held, relaunched, seen.cap, judge_seconds(reg))
+            + seen.ended_lines(f"judges-{unit}-r{rnd}") + pointers)
+
+
+def _owed_judges(reg, unit, rnd, mode, ws, seen):
+    """({group: [pointer line]}, Counter of judges held by state, judges relaunched after an API error, judges owed):
+    each judge of the round whose verdict file is not on disk and that Launches says to launch now, its prompt
+    written."""
     s = settings(reg)
     body, ws, flow = agent_body(), workspace(reg, ws), flow_now(reg)
-    groups, held, relaunched = {}, Counter(), 0
-    seen = Launches(reg, transcripts, again)
+    groups, held, relaunched = {}, Counter(), Counter()
     todo = scope(reg, unit, rnd, s["judges"], mode)
     write_record(reg, unit, rnd, todo)
+    folder = layout.prompts_dir(reg, unit)
+    owed = set()
     for row in todo:
         for j in range(1, s["judges"] + 1):
             p = verdict_path(reg, row, rnd, j)
+            owed.add(f"{p.stem}.md")
             if p.is_file():
                 continue
-            f, text = layout.prompts_dir(reg, unit) / f"{p.stem}.md", prompt(body, row, rnd, j, p, ws, flow)
+            f, text = folder / f"{p.stem}.md", prompt(body, row, rnd, j, p, ws, flow)
             launch, state = seen.decide(f, text)
             if not launch:
                 held[state] += 1
                 continue
-            if state == "errored":
-                relaunched += 1
+            if state in ("errored", "stuck"):
+                relaunched[state] += 1
+            if state == "stuck":
+                _record_stuck(reg, f)
             groups.setdefault(row["table"] if unit == "flow" else "", []).append(write_prompt(f, text))
-    pointers = launchers(reg, f"judges-{unit}-r{rnd}", sorted(groups.items()), keep=seen.running,
-                         agent_type=JUDGE_AGENT)
-    n = sum(len(v) for v in groups.values())
+    _drop_unowed(folder, rnd, owed, seen)
+    return groups, held, relaunched, len(todo) * s["judges"]
+
+
+STUCK = "stuck.csv"  # judging/: prompt,at: each judge launched afresh because it sat silent past judge_seconds
+
+
+def judge_seconds(reg):
+    """Seconds a judge may sit live and silent before it counts as stuck (run-settings.json `judge_seconds`)."""
+    return run_settings.number(run_settings.load(reg), "judge_seconds")
+
+
+def _record_stuck(reg, f):
+    p = layout.judging_dir(reg) / STUCK
+    p.parent.mkdir(parents=True, exist_ok=True)
+    new = not p.is_file()
+    with p.open("a", encoding="utf-8", newline="") as fh:
+        w = csv.writer(fh)
+        if new:
+            w.writerow(["prompt", "at"])
+        w.writerow([pathlib.Path(f).name, datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")])
+
+
+def _drop_unowed(folder, rnd, owed, seen):
+    """Remove this round's judge prompts no judge is owed (a row the selection dropped, a row's earlier text) and no
+    agent was given: the status page counts every prompt on disk no agent took as queued."""
+    for f in folder.glob(f"r{rnd}-j*.md") if folder.is_dir() else []:
+        if f.name not in owed and seen.state(f) is None and POINTER.format(f.resolve().as_posix()) not in seen.held:
+            f.unlink()
+
+
+SELECTED = "judges-selected-r1"  # the launcher files of a fast map's selective checking, every unit packed together
+
+
+def emit_selected(reg, units, ws=None, transcripts=None, again=False):
+    """A fast map's selective checking (one round): the judges owed for every unit named, packed into as few launchers
+    as fill the session at once. With n judges, one launcher holding up to SESSION_LIMIT - 1 at once when n fits, else
+    two holding SESSION_LIMIT // 2 - 1 each, the judges dealt between them by turns, so no slot waits on a small unit.
+    Returns the lines to print, as `emit` does."""
+    reg = pathlib.Path(reg).resolve()
+    if again:
+        import timings
+        timings.refresh(reg, transcripts, "judges.py emit-selected --again")
+    seen = Launches(reg, transcripts, again, stuck_after=judge_seconds(reg))
+    lines, held, relaunched, todo = [], Counter(), Counter(), 0
+    for unit in units:
+        g, h, r, t = _owed_judges(reg, unit, 1, None, ws, seen)
+        lines += [x for v in g.values() for x in v]
+        held, relaunched, todo = held + h, relaunched + r, todo + t
+    count = 1 if len(lines) <= SESSION_LIMIT - 1 else 2
+    par = SESSION_LIMIT // count - 1
+    chunks = [lines[i::count] for i in range(count)] if lines else []
+    pointers = launchers(reg, SELECTED, [(str(i + 1), c) for i, c in enumerate(chunks) if c], keep=seen.running,
+                         agent_type=JUDGE_AGENT, parallel=par)
+    return ([f"Selective checking: {len(lines)} judge(s) of {len(units)} unit(s) to launch in {len(pointers)} "
+             f"launcher(s), {todo - len(lines) - sum(held.values())} verdict file(s) already on disk; launch every "
+             "launcher printed at once"]
+            + _held_lines("<unit>", held, relaunched, seen.cap, judge_seconds(reg))
+            + seen.ended_lines(SELECTED) + pointers)
+
+
+def _held_lines(unit, held, relaunched, cap, limit):
     why = {"queued": "queued in a launcher still running",
+           "stuck twice": f"stuck twice, silent past {limit} s each time ({layout.SETTINGS} `judge_seconds`): not launched again; "
+                          f"judging/{STUCK} lists them",
            "still running": "launched already and still running",
            "finished": f"finished without their verdict file: delete a judge's prompt file (prompts/{unit}/) to "
                        "launch it afresh",
            "ran a shell": "ran a shell and wrote no verdict file: run this again with --again to launch them afresh",
-           "gave up": f"stopped on an API error without their verdict file, launched afresh {seen.cap} time(s) "
+           "gave up": f"stopped on an API error without their verdict file, launched afresh {cap} time(s) "
                       f"already ({layout.SETTINGS} `relaunches`): not launched again"}
-    return ([f"Unit {unit}, round {rnd}: {n} judge(s) to launch in {len(pointers)} launcher(s), "
-             f"{len(todo) * s['judges'] - n - sum(held.values())} verdict file(s) already on disk; keep at most "
-             f"{launcher_cap(reg)} launcher(s) running at once"]
-            + [f"  {c} judge(s) {why[k]}" for k, c in held.items()]
-            + ([f"  {relaunched} judge(s) stopped on an API error without their verdict file: launched afresh"]
-               if relaunched else [])
-            + seen.ended_lines(f"judges-{unit}-r{rnd}") + pointers)
+    return ([f"  {c} judge(s) {why[k]}" for k, c in held.items()]
+            + ([f"  {relaunched['errored']} judge(s) stopped on an API error without their verdict file: launched "
+                "afresh"] if relaunched["errored"] else [])
+            + ([f"  {relaunched['stuck']} judge(s) silent past {limit} s ({layout.SETTINGS} `judge_seconds`): "
+                f"launched afresh once, recorded in judging/{STUCK}"] if relaunched["stuck"] else []))
 
 
 def prompt(body, row, rnd, j, path, ws=None, flow=""):
@@ -993,7 +1102,49 @@ def _launch(cmd, cwd):
         return -1
 
 
-def relaunchable(reg, unit, rnd, mode=None, transcripts=None):
+SET_ASIDE_DIR = "set-aside"  # judging/<unit>/set-aside/<when>/: verdict files moved aside on the person's word
+
+
+def unknown_choices(reg, ws, unit, rnd, mode, files):
+    """The refusal of `run --again` over failing verdict files no transcript here wrote: what happened, and
+    the person's choices in plain words for the session to put to them, each naming what the session then runs."""
+    rows = f" --rows {mode}" if mode else ""
+    again = f'python judges.py run "{reg}" "{ws}" {unit} --round {rnd}{rows} --again'
+    return "\n".join([
+        f"judges.py run --again: no transcript wrote {len(files)} failing verdict file(s) of unit {unit}, round {rnd} "
+        "(transcripts not found here: another PC, another project folder, or cleaned up?); nothing removed: "
+        + ", ".join(p.name for p in files[:10]),
+        "Put these choices to the person as written; take their answer by its number or its words:",
+        "---",
+        f"Some checks of the map against the code failed, and no session on this computer ran them, so the kit "
+        "cannot tell what went wrong in them. What would you like to do?",
+        "1. Set those results aside, kept but not counted, and check those findings again. I'll ask for your reason "
+        "and keep it, word for word, with the record.",
+        "2. Leave them as they are: mapping waits here until the record of the computer that ran them is brought here.",
+        "---",
+        f'On 1: ask for their reason in one plain question, then run {again} --set-aside "<their reason, word for '
+        'word>". On 2: tell them mapping waits here, and run nothing.'])
+
+
+def set_aside_unknown(reg, unit, files, words):
+    """Move `files` (failing verdict files no transcript here wrote) to judging/<unit>/set-aside/<when>/, kept and no
+    longer counted, and record the person's words with them: their judges are then launched afresh."""
+    import case
+    when = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    dest = layout.judging_dir(reg, unit) / SET_ASIDE_DIR / when
+    dest.mkdir(parents=True, exist_ok=True)
+    moved = []
+    for f in files:
+        shutil.move(str(f), str(dest / f.name))
+        moved.append(f.name)
+    (dest / "why.json").write_text(json.dumps({"words": words, "files": moved}, indent=1), encoding="utf-8")
+    case.log(reg, "verdict files set aside on the person's word", unit=unit, files=moved, words=words)
+    case.decide(reg, "check results set aside", f"failing check results of {unit} no session here wrote: "
+                + ", ".join(moved), words, "chat", choice="set aside and check again", unit=unit, files=moved)
+    return moved
+
+
+def relaunchable(reg, unit, rnd, mode=None, transcripts=None, set_aside_words=None, ws=None):
     """The round's verdict files that fail the check on their own (a judge that ran a shell, wrote another file or
     skipped a cited line, a malformed file, a file no Write matches): the ones a relaunch removes first. A failing file
     no transcript here wrote is never removed: its verdict, a flag perhaps, could not be told from nothing. The relaunch
@@ -1005,15 +1156,16 @@ def relaunchable(reg, unit, rnd, mode=None, transcripts=None):
     by_path = writers(reg, transcripts)
     _, _, _, bad, kept = _check_rows(pathlib.Path(reg).resolve(), todo, rnd, s["judges"], by_path)
     unknown = [p for p in bad if paths.norm(p) not in by_path]
-    if unknown:
-        raise SystemExit(f"judges.py run --again: no transcript wrote {len(unknown)} failing verdict file(s) of unit "
-                         f"{unit}, round {rnd} (transcripts not found here: another PC, another project folder, or "
-                         "cleaned up?); nothing removed: " + ", ".join(p.name for p in unknown[:10]))
+    if unknown and set_aside_words:
+        set_aside_unknown(reg, unit, unknown, set_aside_words)
+        bad = [p for p in bad if p not in unknown]
+    elif unknown:
+        raise SystemExit(unknown_choices(reg, ws or "<ws>", unit, rnd, mode, unknown))
     return bad, kept
 
 
 def run(reg, ws, unit, rnd, mode=None, model=None, launcher=None, agent=None, again=False, transcripts=None,
-        say=print):
+        say=print, set_aside_words=None):
     """Launch a judge for every verdict file of this round not yet written; returns how many were launched. With
     `again`, the round's verdict files that fail the check are removed first and their judges launched afresh onto the
     same paths: removed rather than read, so the new judge never sees the old verdict, and the Write tool, which
@@ -1024,7 +1176,7 @@ def run(reg, ws, unit, rnd, mode=None, model=None, launcher=None, agent=None, ag
     if not model and meta.get("model", "inherit") not in ("", "inherit"):
         model = meta["model"]
     if again:
-        bad, kept = relaunchable(reg, unit, rnd, mode, transcripts)
+        bad, kept = relaunchable(reg, unit, rnd, mode, transcripts, set_aside_words, ws)
         for p in bad:
             p.unlink(missing_ok=True)
         for p, ss in kept:
@@ -1595,6 +1747,15 @@ def _guarded(reg, unit, rnd):
 
 
 def main(argv):
+    """_main, then the timing record rewritten for a register mapped fast (timings.refresh_if_fast)."""
+    try:
+        return _main(argv)
+    finally:
+        import timings
+        timings.refresh_if_fast(argv, "judges.py")
+
+
+def _main(argv):
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
     run_lock.refuse_unless_register(argv)
@@ -1614,6 +1775,12 @@ def main(argv):
         return 0
     if cmd == "run":
         mode, model = _opt(argv, "--rows"), _opt(argv, "--model")
+        if "--set-aside" in argv and (argv.index("--set-aside") + 1 >= len(argv)
+                                      or argv[argv.index("--set-aside") + 1].startswith("--")):
+            print("REFUSED: --set-aside needs the person's reason after it, in quotes, word for word. Nothing was "
+                  "set aside or launched.", file=sys.stderr)
+            return 2
+        words = _opt(argv, "--set-aside")
         again = "--again" in argv
         argv = [a for a in argv if a != "--again"]
         reg, ws, unit = argv[:3]
@@ -1627,7 +1794,8 @@ def main(argv):
         if held:
             print(f"REFUSED: {held}. Nothing was launched.", file=sys.stderr)
             return 2
-        launched = run(reg, ws, unit, rnd, mode, model, again=again, transcripts=transcripts)
+        launched = run(reg, ws, unit, rnd, mode, model, again=again, transcripts=transcripts,
+                       set_aside_words=words)
         n = settings(reg)["judges"]
         missing = [verdict_path(reg, r, rnd, j).name for r in scope(reg, unit, rnd, n, mode)
                    for j in range(1, n + 1) if not verdict_path(reg, r, rnd, j).is_file()]

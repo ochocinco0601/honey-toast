@@ -33,6 +33,12 @@ def vouched_products(rows):
             if n and norm(r.get("source")) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9\-]*", n)}
 
 
+# files.csv `not read` reasons that say a read was blocked or failed, not that the file was skipped on purpose
+# (generated code, over the reading budget, ran out of room, read in part, off this stage's path)
+FAILED_READ = re.compile(r"block|hook|filter|denied|permission|fail|error|refus|could not|cannot|unable", re.I)
+NAMED = 10  # files named in the unread line; the rest counted
+
+
 def unread_files(reg):
     """The files of the system's code that the survey (survey.csv, column unread_files) or the code reader (the fact
     base's unread_files) could not read, each once. A register made before either listed them has none."""
@@ -52,6 +58,12 @@ def unread_files(reg):
         f = u.get("file") if isinstance(u, dict) else u
         if f:
             found.append(str(f))
+    units = reg / "units"
+    for p in sorted(units.glob("*/files.csv")) if units.is_dir() else []:  # a reader's or mapping agent's files
+        for r in read_csv(p):  # only a read that was blocked or failed; one skipped on purpose is said where it is
+            if (r.get("status") or "").strip() == "not read" and FAILED_READ.search(r.get("reason") or ""):
+                found.append((r.get("path") or "").strip())
+    found = [f for f in found if f]
     out = []
     for f in (f.replace(chr(92), "/").strip("/") for f in found):
         # the survey and the code reader may name one file from different folders: a path that ends the other is one
@@ -68,6 +80,16 @@ def unread_line(reg):
         return ""
     return (f"{n} file{'s' if n > 1 else ''} of the system's code could not be read, so mapping may have missed "
             f"code in {'those files' if n > 1 else 'that file'}.")
+
+
+def unread_named(reg):
+    """The files unread_line counts, named, for the map's inspection report (the brief's prose names no file):
+    "" when there are none."""
+    files = unread_files(reg)
+    if not files:
+        return ""
+    more = f", and {len(files) - NAMED} more" if len(files) > NAMED else ""
+    return "Not read: " + ", ".join(f"`{f}`" for f in files[:NAMED]) + more + "."
 
 
 def load(reg):

@@ -147,11 +147,12 @@ runs it in the background: in an interactive session (terminal, VS Code, desktop
 subagent while fork mode is on, as it is by default (Claude Code's documentation,
 code.claude.com/docs/en/sub-agents: "Which subagents run in the background", "Let Claude wait for a subagent",
 "Turn fork mode off"); the ways it names to wait are settings, none of them an argument of the call. So the turn
-that starts it sends one line that the first look is under way: run `say` on it, start the helper, then send what
-`say` printed, exactly as printed, and the turn ends on it. The helper's reply reaches you later as a
-completion notification, in a turn of its own, and that turn sends the brief. Where Claude Code waits for the helper
-instead, send that line before its brief, in the same turn. A later turn that starts the helper again (after a
-search) does the same. If the person writes while the first-look helper is still running, answer in one line
+that starts it sends one line that the first look is under way before you start the helper: send the text
+`say_back.py` printed after `MESSAGE:`, exactly as printed, then start the helper in the same response, so the
+person hears from the run within the first minute whether Claude Code runs the helper in the background or waits on
+it. The helper's reply reaches you later as a completion notification, in a turn of its own, and that turn sends the
+brief. A later turn that starts the helper again (after a search) sends one line through `say` that the first look
+is under way again, before it starts the helper. If the person writes while the first-look helper is still running, answer in one line
 through `say` that the first look is still under way and its brief follows when it is done, and start nothing: no
 second helper, no start step. The register folder you named with `--register` is `<your-folder>` from then on. When it returns
 blocked for want of code, see "When the system's code is not here" above. Otherwise, when it returns, your message is its reply, sent as it is, and nothing else: no sentence before it ("Here is the brief", "I'll pass this along"), none after it. Its first line
@@ -205,6 +206,20 @@ follow its DECISION the same way; never release it without their say-so. A test 
   (register, unit, phase numbers, judges, merge); define a term the first time you use it. Setup (Python, scripts,
   folders, the kit's files) is never their concern: if it fails, tell them in one plain sentence, through `say`, that the run is blocked, why, and what would
   unblock it.
+- **When the run is held, you put the choices; the person never remembers a command or a phrase.** A stop or a
+  refusal that prints numbered choices (a mapping agent stuck after it was sent back, a check result no session here
+  wrote) is sent as printed. Take their answer by its number or its words to one choice, and run what that choice
+  names, with their words exactly as they said them. A choice that needs their reason: ask for it in one plain
+  question, through `say`, and pass their words exactly. An answer that fits no choice: ask again in plain words,
+  through `say`. A command or a set phrase is never theirs to type, and a choice is never yours to pick for them.
+- **Which decisions are the person's, and which are yours.** The person's, and only these: the scope (which flows
+  and services the run takes in, whether the sources are enough, and fetching a source beyond those they agreed to);
+  the depth (how far each stage goes); whether to keep going; the picks the kit asks them for; the choices a held run
+  prints; and releasing the lock of another chat's run (they confirm no other chat is working on it). Each is
+  brought to them through `say` with your proposal, where this file says. Every other decision is yours: how to fix
+  a row, which agent to send back, how to read or check the code, what order to work in. Make it, and say what you did in one plain line, through `say`, where the person would want
+  to know. A go-ahead on it is never theirs to give: a question they cannot judge stalls the run and tells them
+  nothing.
 - **Every message you write yourself goes through `say`.** After the start step's MESSAGE, which is sent exactly as printed,
   write each message to a file outside the system's code and run
   `python "<skill>/brief.py" say "<your-folder>" "<message file>"` (before a register folder exists, the workspace
@@ -503,7 +518,7 @@ and all, which you send as it is, except the `pick` stop, whose message the kit 
 last check found); `fanout` is one `general-purpose` launcher per pointer line, at most `cap` at once, after which you
 end your turn; `wait` means agents are still running and you end your turn; `code` with `ok` false is a step that
 failed, said in `said`, to put right or tell the person about through `say`; `stop` is where the run waits on the
-person; a `stop` of helpers that stopped without their work (an error from the service that runs the model, each time they were tried) never moves on by itself: when the person says to try again, call it with `--event retry "<their words, word for word>"`. On each launcher's reply, call it with `--event launcher-done "<its file>"`. When the person writes while it
+person; a `stop` of helpers that stopped without their work (an error from the service that runs the model, each time they were tried) never moves on by itself: when the person says to try again, call it with `--event retry "<their words, word for word>"`; a `stop` named `mapping held` (a mapping agent stuck after it was sent back once) carries numbered `choices`: send its message as it is, and on the person's answer, by number or in their words, call it with that choice's `--event` and their words, word for word. On each launcher's reply, call it with `--event launcher-done "<its file>"`. When the person writes while it
 works, call it with `--event chat "<their words, word for word>"`, and when their words stop the work, with
 `--event stop "<their words, word for word>"`: it stops what was launched, puts back what half-finished agents wrote,
 and marks the map not checked (`--test` before `--event` when a test stands in for them, so the answer is kept
@@ -661,7 +676,14 @@ each step is; `next.py` says when.
   verbatim>"`. A row of a reading unit (`units/`) is
   written only by that unit's reader or fixer, launched on the pointer line of a prompt `readers.py` or `judges.py`
   wrote (one launched on a prompt you composed fails its unit), or is changed as the person states it: you never
-  write one yourself, by shell, Write or Edit. A unit row the person states is filed in `corrections.csv` (its
+  write one yourself, by shell, Write or Edit. On a fast map, too, you never write unit rows by script, Write or
+  Edit: the one change yours to make is the row run control names (the fast check, or the correction the person
+  chose), with `fast_map.py fix`. Run control records each unit as it collects it from its mapping agent; a unit
+  changed since by anything but a kit command is set aside, and its mapping agent writes it again. You never touch
+  that record, `fast/unit-hashes.json`: only the kit's scripts write it. On a fast map, a value the person states
+  for a row run control names (their reply to a held run's choices) goes in the same way, with `fast_map.py fix`:
+  run control's task carries their words. In a full mapping, a unit row the person states is filed in
+  `corrections.csv` (its
   `unit`, `table`, and the new `row_id` as `row`) and added with `go.py --apply-correction <id> --added --words
   "<their words, verbatim>" --value "<the row, one CSV line in the table's columns>"`; a cell or a removal they ask
   for takes `--words` the same way. go.py writes the row and records their words, and refuses the change without
@@ -677,4 +699,18 @@ each step is; `next.py` says when.
   first such point.
 - Never edit a generated file: fix the register and generate again.
 <!-- /shared: read-mapping-steps-md-then-register-temp -->
+<!-- shared: never-change-the-kit -->
+- **Never change the skill folder's own files**, not even to fix a defect in them: the kit is changed where it is
+  made and reaches the person in a release, a change made here is lost at the next one, and the next start refuses
+  the changed copy. When you find a defect in the kit (a script that fails on its own output, a refusal with no way
+  on, a message its own check rejects), write it down with `python "<skill>/kit_findings.py" "<your-folder>" --code
+  <one of the codes kit_findings.py --list prints> --file <the kit's file, as named in the skill folder> --line <its
+  line>`, then carry on with the run where it can, or stop and tell the person, through `say`, what is held. The run
+  may be on a machine that lets no free text out, so a finding holds no words of yours at all: a fixed code, a file
+  of the kit, a line and the kit's version; what each code means is listed in `kit_findings.py --list`.
+  `kit-findings.md` is written only by that script, never by hand or
+  by any other tool. If the script refuses, record nothing, and tell the person in plain words, through `say`, that
+  the kit has a problem the run could not write down. The report names the file (`brief.py checked` prints the
+  line), and tells the person each finding is one short line they can pass on.
+<!-- /shared: never-change-the-kit -->
 

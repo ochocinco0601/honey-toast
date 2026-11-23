@@ -527,8 +527,9 @@ def mapping_owed(reg, flow_id):
     if blank:
         out.append(("drawings", len(blank), f"drawings with no content ({', '.join(blank)}): find why the drawing "
                     "came out empty and draw it again"))
-    if plan_and_go(reg)[0] and not (reg / layout.UNITS_CSV).is_file() and not reading_check.check(reg).passed:
-        out.append(("code", 1, "cited code not read by the run (python reading_check.py <register folder> names "
+    reading = reading_check.check(reg) if plan_and_go(reg)[0] and not (reg / layout.UNITS_CSV).is_file() else None
+    if reading is not None and not reading.passed:
+        out.append(("code", 1, f"{reading_check.cause(reading)} (python reading_check.py <register folder> names "
                     "what to read, cite or set aside)"))
     return out
 
@@ -959,8 +960,12 @@ def report(reg, named=(), full=True):
         out.append("\n".join(reading.lines()))
         unread = not reading.passed
         if unread:
-            said += "; cited code not read by the run"
-            reasons.append("cited code not read by the run")
+            if reading_check.reader_missing(reading):
+                reasons.append("the code reader did not run on this computer"
+                               + (f" ({reading.note})" if reading.note else ""))
+            else:
+                reasons.append("cited code not read by the run")
+            said += "; " + reasons[-1]
         if in_units(reg):
             lines, why_split = split_checks(reg)
             out.append("\n".join(lines))
@@ -1263,8 +1268,12 @@ def record_verdict(reg, done, outputs_done=None):
     """The done check's verdict, kept with the fingerprint of the map it judged: phase 7 counts done only while it
     says DONE on the map as it is now, and the next flow opens while its outputs are done, the re-read apart."""
     import json
+    import run_md  # the verdict names the flow it was given on: an earlier flow's DONE says nothing of a later one
     got = {"done": bool(done), "outputs_done": bool(done if outputs_done is None else outputs_done),
            "tables": verdict_fingerprint(reg)}
+    flow = run_md.current_flow(reg)
+    if flow:  # never an empty flow: a verdict that names no flow finishes none
+        got["flow"] = flow
     (pathlib.Path(reg) / VERDICT).write_text(json.dumps(got) + "\n", encoding="utf-8")
 
 
@@ -1319,8 +1328,14 @@ def main(argv):
     d = run_lock.read(reg)  # the verdict is the run's: a check run by another session while it works writes nothing
     if not (d and d["run"] != run_lock.identity() and not run_lock.stale(d)):
         record_verdict(reg, done, outputs_done_of(done, reasons))
+        import run_md  # every phase its files prove done is written into RUN.md, whatever the lead set
+        run_md.reconcile(reg)
     for line in out:
         print(line)
+    if done:  # the run's pages, saved for after its listener stops, and the file the report names
+        import saved_pages
+        saved_pages.write(reg)
+        print(saved_pages.line(reg))
     return 0 if done else 1
 
 

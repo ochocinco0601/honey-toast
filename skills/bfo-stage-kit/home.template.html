@@ -464,7 +464,12 @@ a.pgl:hover,.nav a.go:hover{text-decoration:underline}
   // was closed): say so, and stop; if the run starts a new listener at a later stop, the chat says to open that page
   function stopped() {
     if (++failed < 2) { again(); return; }
-    say('Claude Code has stopped watching this page, so it no longer updates. Carry on in the chat.');
+    if (location.protocol === 'file:') { say('Saved copy of the run\'s Home: it does not update.'); return; }
+    // the folder this page is in is the run's register, where its pages are saved (saved_pages.py)
+    var parts = location.pathname.split('/'), folder = decodeURIComponent(parts[parts.length - 2] || '');
+    say('This run\'s page server has stopped (the run finished, or Claude Code was closed), so this page no longer ' +
+        'updates; its pages are saved: open operator.html in the run\'s folder' + (folder ? ', ' + folder : '') +
+        ', in your browser.');
   }
   // never reload over unsaved input: hold the reload until it is saved or cleared
   function moved() {

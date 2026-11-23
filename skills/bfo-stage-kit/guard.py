@@ -38,6 +38,20 @@ def order(reg):
 STEP_OF = {"read": "readers", "retry": "readers", "reread": "re-reads", "fix": "fixers", "stop": "check",
            "merge": "merge", "judge 1": "judge round 1", "judge 2": "judge round 2"}
 NEXT = "call run control (next.py) and do the one action it prints"
+FAILED = "failed"  # in a flow's case record: what run control's step said when it last failed, "" once one passes
+# what the session does when run control's own step has failed, so a refusal never sends it back to the same failure
+RECOVERY = {
+    "merge": ("do what that failure's own REFUSED line names: put right a reader that cannot be launched; tell the "
+              "person when it says the rows are still refused, a reader stopped on errors, or the merge names no unit"),
+    "fast read": ("run control relaunches the mapping agent with the reason, once; when it says refused again, tell "
+                  "the person what was refused"),
+    "fast check": ("run control relaunches the mapping agent with the reason, once; when it says refused again, tell "
+                   "the person what was refused"),
+    "fast draw": ("run control relaunches the mapping agent with the map's reason, once; when it says refused again, "
+                  "tell the person what was refused"),
+}
+OTHERWISE = ("put right what it says in the tables your task lets you write and call run control again; if it names "
+             "nothing you may change, tell the person what it says")
 
 
 def _go(reg):
@@ -93,15 +107,28 @@ def at_or_past(reg, flow, step):
     return steps.index(sub) >= steps.index(step)
 
 
+def _next(reg, flow):
+    """What the session does now, said at the end of an order refusal: call run control, unless its step has failed,
+    when calling it again returns the same failure: then that step, what it said, and its recovery."""
+    import case
+    f = case.flow(reg, flow)
+    said = f.get(FAILED)
+    if not said:
+        return NEXT
+    sub = f.get("sub") or "the start"
+    return (f"run control's step '{sub}' failed, so calling it again returns the same failure ({said}): "
+            f"{RECOVERY.get(sub, OTHERWISE)}")
+
+
 def _order(reg, flow, action):
     step = STEP_OF[action]
     if step not in order(reg):
-        return f"the flow is mapped fast (go.py --fast), and its order has no '{step}': {NEXT}"
+        return f"the flow is mapped fast (go.py --fast), and its order has no '{step}': {_next(reg, flow)}"
     past = at_or_past(reg, flow, step)
     if past is False:
         import case
         sub = case.flow(reg, flow).get("sub") or "the start"
-        return f"run control is at '{sub}' for {flow}, not yet at '{step}': {NEXT}"
+        return f"run control is at '{sub}' for {flow}, not yet at '{step}': {_next(reg, flow)}"
     return None
 
 

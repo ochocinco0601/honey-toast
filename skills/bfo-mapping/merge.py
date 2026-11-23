@@ -242,6 +242,20 @@ def found(source, kinds, idx):
     return False
 
 
+PART_IDS = "merge/part-ids.csv"  # source (a unit, `lead`, or blank for a minted part), local (the part's name, lower
+# case and single-spaced; a minted part's reference), subject_id: a part keeps its id while its unit and name do
+RENUMBERED = "part id renumbered"
+STABLE_ROUTE = ("part ids are stable, because the measures, alerts and runbooks cite them: to add a part, give it a new "
+                "id above every id in use; to rename a part, change its name and keep its id; to remove one, record its "
+                "removal (go.py --apply-correction)")
+
+
+def part_ids(reg):
+    """{(source, local): subject_id} as the last merge written gave them (merge/part-ids.csv)."""
+    return {((r.get("source") or "").strip(), (r.get("local") or "").strip()): (r.get("subject_id") or "").strip()
+            for r in tables.dicts(pathlib.Path(reg) / PART_IDS)}
+
+
 def max_id(rows, letter):
     nums = [int(m.group(1)) for r in rows for m in [re.fullmatch(letter + r"(\d+)", r.get("subject_id", ""))] if m]
     return max(nums, default=0)
@@ -335,19 +349,36 @@ def is_service_row(r):
     return (r.get("band") or "").strip() == "application" and not go.recorded_not_a_service(r, go.part_families())
 
 
+LEFT_UNREAD = "fast/left-unread.json"  # {unit: {"words", "at"}}: units the person chose to leave unread (fast_map)
+
+
+def left_unread(reg):
+    """{unit: the person's words} for each unit the person chose to leave unread when its mapping agent was held."""
+    p = pathlib.Path(reg) / LEFT_UNREAD
+    try:
+        got = json.loads(p.read_text(encoding="utf-8")) if p.is_file() else {}
+    except ValueError:
+        return {}
+    return {u: (v or {}).get("words") or "" for u, v in got.items()}
+
+
 def out_of_scope_units(reg):
-    """{unit: its service}: each unit units.csv lists that has no folder and whose deployable no go so far took in.
-    It owes nothing: it is not missing from the merge, its rows are not judged, and a call to it is out of scope. A
-    unit with a folder is always merged. With no go recording the services it took in, none is out of scope."""
+    """{unit: its service}: each unit units.csv lists that has no folder and whose deployable no go so far took in, and
+    each unit the person chose to leave unread (its tables set aside, whatever the go took in). It owes nothing: it is
+    not missing from the merge, none of its rows is merged, and a call to it is out of scope. Any other unit with a
+    folder is always merged. With no go recording the services it took in, only the units left unread are out."""
     reg = pathlib.Path(reg)
     ins, outs = scopes(reg)
-    if ins is None:
-        return {}
+    left = left_unread(reg)
     out = {}
     for r in tables.table(reg / layout.UNITS_CSV)[1]:
         u = (r.get("unit") or "").strip()
         dep = (r.get("deployable") or "").strip() or u
-        if u and u != "flow" and not layout.unit_dir(reg, u).is_dir() and dep.lower() not in ins:
+        if not u or u == "flow":
+            continue
+        if u in left:
+            out[u] = dep
+        elif ins is not None and not layout.unit_dir(reg, u).is_dir() and dep.lower() not in ins:
             out[u] = outs.get(dep.lower(), dep)
     return out
 
@@ -366,7 +397,7 @@ def build(reg, write=False, out=None):
     folder = reg / layout.UNITS
     if folder.is_dir():
         for d in sorted(p.name for p in folder.iterdir() if p.is_dir()):
-            if d not in units:
+            if d not in units and d not in outside:
                 problems.append(f"units/{d}/ is not in units.csv: its rows are not in the map")
     data, placed = {}, {}
     for u in units:
@@ -434,9 +465,19 @@ def build(reg, write=False, out=None):
 
     # elements
     ids, band, first_el = {}, {}, {}
+    given = part_ids(reg)
+    now_ids = []
+    lead_sids = {r.get("subject_id", "").strip() for r in lead_s}
     for r in lead_s:
         band[r.get("subject_id", "")] = r.get("band", "")
-    n = max(max_id(lead_s, "S"), record_max(record, "S"))
+        key = ("lead", " ".join((r.get("name") or "").split()).lower())
+        sid = r.get("subject_id", "").strip()
+        if key[1] and given.get(key) and given[key] != sid:
+            problems.append(f"{RENUMBERED}: '{r.get('name')}' was {given[key]} and is now {sid} in the lead's rows; "
+                            + STABLE_ROUTE)
+        if key[1] and sid:
+            now_ids.append({"source": "lead", "local": key[1], "subject_id": sid})
+    n = max(max_id(lead_s, "S"), record_max(record, "S"), max_id([{"subject_id": v} for v in given.values()], "S"))
     unit_elements = []
     # a finished flow's placeholder for a service this merge reads: the reader's row for that service takes its id,
     # so the service is one part, and the placeholder's row is replaced by a correction the merge records
@@ -449,6 +490,7 @@ def build(reg, write=False, out=None):
                 continue
             fill_repository(r, u, unit_rows)
             local = r.get("subject_id", "").strip()
+            part = " ".join((r.get("name") or "").split()).lower() or local  # its identity across rewrites: the name
             if (u, local) in ids:
                 problems.append(f"units/{u}/subjects.csv {r.get('row_id')}: subject_id {local} used twice")
                 continue
@@ -461,10 +503,14 @@ def build(reg, write=False, out=None):
             elif ph and ph["subject_id"] not in taken_over and is_service_row(r):
                 sid = ph["subject_id"]
                 taken_over[sid] = ph
+            elif given.get((u, part)) and given[(u, part)] not in lead_sids \
+                    and given[(u, part)] not in ids.values():  # as the last merge gave it: ids never shift
+                sid = given[(u, part)]
             else:
                 n += 1
                 sid = f"S{n:02d}"
             ids[(u, local)] = sid
+            now_ids.append({"source": u, "local": part, "subject_id": sid})
             first_el.setdefault(u, sid)
             band[sid] = r.get("band", "")
             unit_elements.append((u, r, sid))
@@ -503,8 +549,12 @@ def build(reg, write=False, out=None):
                 ext_rows.append(keep("external", kinded(rec, kind, f"merge: {ref} given the kind its calls show"),
                                      local=ref))
             continue
-        n += 1
-        ids[("", ref)] = sid = f"S{n:02d}"
+        sid = given.get(("", ref))
+        if not sid or sid in lead_sids or sid in ids.values():
+            n += 1
+            sid = f"S{n:02d}"
+        ids[("", ref)] = sid
+        now_ids.append({"source": "", "local": ref, "subject_id": sid})
         band[sid] = "technology"
         ext_rows.append(keep("external", {"subject_id": sid, "kind": "element", "band": "technology",
                                           "level": "external dependency", "part_kind": kind,
@@ -513,6 +563,7 @@ def build(reg, write=False, out=None):
                                           "source": externals[ref]}, local=ref))
 
     left_out = scopes(reg)[1]
+    unread_words = {dep_of.get(u, u): w for u, w in left_unread(reg).items()}
 
     def out_service(t):
         """The service a call's to_unit names when it is out of scope: a listed unit outside every scope so far, or a
@@ -541,13 +592,18 @@ def build(reg, write=False, out=None):
                 ext_rows.append(keep("out of scope", kinded(rec, LEFT_OUT_KIND, f"merge: {name} given the kind of a "
                                                             "service left out"), local=name))
             continue
-        n += 1
-        ids[("", OUT_OF_SCOPE + name)] = sid = f"S{n:02d}"
+        sid = given.get(("", OUT_OF_SCOPE + name))
+        if not sid or sid in lead_sids or sid in ids.values():
+            n += 1
+            sid = f"S{n:02d}"
+        ids[("", OUT_OF_SCOPE + name)] = sid
+        now_ids.append({"source": "", "local": OUT_OF_SCOPE + name, "subject_id": sid})
         band[sid] = "application"
+        why = (f"not read: left unread on the person's word: '{unread_words[name]}'" if name in unread_words
+               else "out of scope: left out of this run at the go; not read")
         ext_rows.append(keep("out of scope", {"subject_id": sid, "kind": "element", "band": "application",
                                               "level": "external dependency", "part_kind": LEFT_OUT_KIND,
-                                              "name": name,
-                                              "purpose": "out of scope: left out of this run at the go; not read",
+                                              "name": name, "purpose": why,
                                               "source": out_named[name]}, local=name))
 
     def unknown(u, row, col, local):
@@ -845,7 +901,7 @@ def build(reg, write=False, out=None):
     if gaps_now is not None:
         files["measure-gaps.csv"] = gaps_now
     if out is not None:
-        out.update(kit=kit, resolution=resolution, header=header)
+        out.update(kit=kit, resolution=resolution, header=header, part_ids=now_ids)
     return files, summary, problems
 
 
@@ -963,10 +1019,13 @@ def merge(reg):
     reg = pathlib.Path(reg)
     got = {}
     files, summary, problems = build(reg, write=True, out=got)
+    if any(x.startswith(RENUMBERED) for x in problems):  # nothing written: the map keeps the ids its rows are cited by
+        return summary, problems
     (reg / layout.MERGE).mkdir(exist_ok=True)
     for name, text in files.items():
         with open(reg / name, "w", encoding="utf-8", newline="") as f:
             f.write(text)
+    tables.write(reg / PART_IDS, ["source", "local", "subject_id"], got["part_ids"])
     _record_kit(reg, got["kit"])
     return summary, problems
 

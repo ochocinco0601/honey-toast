@@ -8,6 +8,172 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.9 — 2026-11-23
+
+Release 9.9 fixes a run that could stall with no way forward, runs that led into each other, waits in the first
+look, the mapping and the checking, and pages that said only what the lead remembered to write. Start a new
+run on 9.9 rather than carrying on one started on 9.8 (see Known limits). The kit's four agent files are unchanged
+from 9.8.
+
+- **A checker stuck in one long silence no longer holds the checking.** A checker live but silent past
+  `judge_seconds` (run-settings.json, default 420) is launched afresh once and listed in `judging/stuck.csv`; stuck a
+  second time it is held and named. A launcher waiting on a live checker, however quiet, is never taken for dead, so
+  no checker is launched twice. A re-emit removes the round's checker prompts no row is owed any more (a row the
+  selection dropped, a row's earlier text), which the run status page counted as queued. A fast map's go records in run-settings.json that `judges` and `judge_rounds` count only for a full map (a
+  fast map has one checker per row a proposal rests on, one round), and the capability brief says so.
+  Effect: none.
+- **What you are told comes from the run's files, never from a step the lead must remember.** Each phase its files
+  prove (the map drawn, each picked stage's measures, alerts and runbooks, the done check's verdict) reads done on
+  the status line and the run status page, and is written into the run record before every message and at the
+  done check; each proof names the flow it was made for (the map's drawing, the stage pages and the done check's
+  verdict carry it), so a second flow inherits nothing from the first, however the register is copied or the
+  clock is set; a proof that names no flow counts for none. A flow taken up
+  again to go further has its measures row set, so it can finish. The held-mapping choices go through the word
+  check, and are never sent unchecked. The first look's start hands the lead a message to send before it starts the helper, so
+  you hear from the run within the first minute. The run is called finished only when the done check said DONE on
+  this flow: the closing message comes from its result (`brief.py end`), and a message claiming finished before
+  then is refused. The timing record drops an empty lead row, fills every row's unit, never marks the first-look
+  helper discarded for running the kit's scripts, ends the lead's row when the run ended, and counts every input
+  token read: the API's own input count leaves out cached input.
+  Effect: none.
+- **Selective checking runs at full width.** `selective.py launch` packs every unit's checkers into the fewest
+  launchers that fill the session (one holding up to 19 at once, or two holding 9 each), instead of one launcher per
+  unit and two units at a time. A launcher that died mid-turn (quiet for two minutes, none of its checkers running, no
+  reply) is seen as stopped, and its checkers never launched are printed again on the next run of the command. The
+  lead runs `selective.py launch` in place of `judges.py emit <unit> --round 1` per unit.
+  Effect: none.
+- **A fast map's unit rows count only as their mapping agent wrote them or a kit command changed them.** Run control
+  records each unit's files as it collects them from the mapping agent; a unit changed since by anything else (a
+  script run by hand, say) is set aside before it counts, and its mapping agent writes it again with the reason. The
+  lead's correction of a named row goes through `fast_map.py fix`; the person's corrections and the list's spelling
+  check the record before writing, so none of them vouches for an earlier change. No transcript is read for this.
+  Effect: none.
+- **A fast map no longer stops on a spelling.** A mapping agent's value that differs from the kit's list only in case or
+  spacing (`api service` for `API service`, `Performs` for `performs`) is written back in the list's spelling, and a
+  numbered call sequence on a fast map is blanked; each change is noted in `fast/normalised.csv`. The mapping agent's
+  prompt shows the part kinds as the list spells them. A value no spelling matches is still sent back, and so is a row
+  with more or fewer cells than its header (a comma left unquoted), with its line: never read with a cell dropped. The
+  fast map page says how many values were respelled and links `fast/normalised.csv`. A fast map stopped on a spelling
+  goes on at the person's try again.
+  Effect: none.
+- **The lead may write the row of a service the fast map does not read,** a part of a stage left mapped only (the email
+  service carrying a confirmation step, say), recorded as not read in this run, with its `not read` gaps. A service the
+  fast map reads is refused as the lead's row by its unit, deployable or survey name, in any spelling.
+  Effect: none.
+- **Files a mapping agent or reader could not read** (blocked, denied, failed) **are counted and named:** the count in
+  the map stop's line on files not read, the names in the full inspection (`check_map.py --all`) and on the fast map
+  page. A file skipped on purpose (generated, over the reading budget, off the stage's path) keeps its own wording.
+  Effect: none.
+- **The first look never waits on the code reader.** It runs in the foreground within `code_reader_seconds` (90 by
+  default, in run-settings.json) and finds semgrep where pip puts it, the user scripts folder included. When semgrep is
+  not installed, when DFO_SEMGREP names a path that is not there, when it runs past its time (it and the semgrep it
+  started are both stopped) or when it fails, the brief tells you why and what to do, and the check at the end names
+  that as its reason rather than code left unread. Nothing is diagnosed by hand and nothing waits in the background.
+  Effect: none.
+- **Every mapping agent of a fast map starts at once,** up to Claude Code's limit on agents running at once in a
+  session (20, or `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`), less those already running; the rest start as each running
+  one returns. A launch Claude Code refuses at that limit is launched again once a slot frees, and nothing is dropped.
+  Effect: none.
+- **A fast map's done check owes only the picked stages' code-reader findings.** A finding in a service no picked stage
+  runs through is not owed a citation or a set-aside line.
+  Effect: none.
+- **The done check finds the run's sessions by their ids,** wherever each was started, so a session started in another
+  folder needs no `BFO_TRANSCRIPTS`.
+  Effect: none.
+- **The capability brief refuses a first-look citation without its repository folder,** and names the citation to write.
+  Effect: none.
+- **Run control closes phases 1 to 3 once a fast map is drawn,** through the logged writer, so the run status page times
+  them.
+  Effect: none.
+- **The timing record stays current after a fast map:** the scripts that run after it (the stops, the checkers' launch,
+  the selection, the report) rewrite `job/timings.csv`, so the checkers, their launchers and the rest of the lead's time
+  are recorded.
+  Effect: none.
+- **A new run's status page shows only that run's agents.** Before its register exists, the page no longer picks up an
+  earlier run in the same work folder (its start folder, a first look it never closed, or an earlier release's record),
+  so a finished run's agents are no longer listed as waiting or not heard from.
+  Effect: none.
+- **A step that refuses work now names a way forward the session is allowed to take.** In a full mapping, a merge that
+  refuses a service's rows sends them back to that service's reader once, with the merge's reason, instead of failing
+  the same way on every call. Ending a flow names the fixer for a service's rows. While run control's own step has
+  failed, a refused command names that step and what to do, never "call run control" again.
+  Effect: none.
+- **Sending refused rows back to their readers holds up in more cases.** Each service whose rows the merge refuses
+  gets its reader's one relaunch, even while another service's has run out. Once the merge passes, the run no longer
+  shows that reader as still reading, and stopping the run later keeps the reader's corrected rows. When a reader
+  cannot be launched, or stopped on errors, the message says so and gives the step that follows: put it right, or
+  your word to try again. In a full mapping ended at the map, a service's rows changed after the merge send run
+  control back to the merge and the checks, so ending the flow is not refused for good.
+  Effect: none.
+- **Two runs in one work folder no longer lead into each other.** Every link a run's pages draw stays inside that run.
+  The page at the work folder's own address lists every run, newest first, with its application, when it started and
+  links to its own pages, and never picks one: before, it and the work folder's run status address led to whichever
+  run was written to last, so clicking from a new run's page could land on an earlier run. A new run started in the same
+  chat no longer inherits the register the chat's earlier run led to. A run's timing record, its start time and its
+  list of sessions hold only that run's own sessions, never one an earlier release's record or another register holds.
+  A run that has ended (every step done, no flow left) shows its quiet agents as finished; a live run, the next flow
+  included, shows every agent as it is. A say-back an earlier release left at the work folder's root is no longer drawn.
+  Effect: none.
+- **The kit is never changed where it runs.** A defect a run finds in the kit is written down in the register's
+  `kit-findings.md` (`kit_findings.py`) as one short line with no free text: a code from the kit's fixed list, a
+  file the kit's version marker lists, its line and the kit's version. Only that script writes the file; anything
+  else is refused and nothing is written, and a repeat is written once. The run carries on or stops for you, and
+  the report names the file, each line short enough to pass on. A copy of the kit whose files were changed after it was
+  installed is refused at the start, naming the files and telling you to delete the skill's folder and copy it in
+  fresh from its release. Where a message the kit builds is refused by its own word check, that is written down too.
+  Effect: none.
+
+- **A stuck mapping agent gives you numbered choices instead of stopping the run.** When a fast map's mapping agent is
+  refused again after it was sent back once, or makes no progress past the relaunches allowed, the session puts the
+  choices to you in plain words, and you answer with the number or in your own words. The choices: the session corrects
+  the rows the check names (when the rows themselves are refused); send the agent once more (once); leave that service
+  unread, shown on the map as not read with your words; or stop mapping. A check result no session on this computer
+  wrote can be set aside, kept, with your reason, and checked again.
+  Effect: none.
+- **The run status page reads at a glance.** A step's note sits under its title at the column's full width, never
+  squeezed beside its time; the progress column and the panels stay side by side down to narrow desktop windows, with
+  tighter spacing. A step never starts before the work it waits on (measures start when the map is done, not at the
+  pick). A fast map lists the pick before the map. The counts under "Who is working now", and Last activity, come from
+  the rows the panel shows, in their words; queued counts only checks whose prompts are on disk, said as one line by
+  service, and rows are shown only for agents working or in trouble.
+  Effect: none.
+- **A finished run's pages stay open.** At every stop, at the done check, when the report is recorded and when the
+  page server stops, the run status page, the sources page and the map so far are saved into the register beside
+  Home, with links that work from disk, so the run opens in a browser with no server; the done check and the report
+  record name the file to open. A page whose server has stopped says so, and where its pages are saved, instead of
+  going blank. `listener.py up <work folder> <register>/operator.html` brings the live page back for any register.
+  Effect: none.
+- **A value the map's rules refuse is answered in one word.** Every column with a closed list is checked against the
+  method's lists (`method/closed-columns.csv`, beside the part kinds and involvement), and a refusal names the values
+  it takes. When the run is held on such a value, your choices name it and the values the kit takes, and you can
+  answer with the right one. The mapping agent is told every closed list up front.
+  Effect: none.
+- **The skills say which decisions are yours:** the scope, whether the sources are enough and fetching more, how far
+  each stage goes, whether to keep going, the picks the kit asks for, the choices a held run gives, and releasing
+  another chat's lock. Everything else the session decides and tells you, without asking your go-ahead.
+  Effect: none.
+- **A part keeps its id.** The merge keeps each part's id from one merge to the next, by its service and its name,
+  and gives a new part an id above every one in use, so measures, alerts and runbooks keep pointing at the right part.
+  A change that renumbers a part is refused with "part id renumbered", naming how to add, rename or remove one, and
+  nothing is written.
+  Effect: none.
+
+**Known limits of 9.9.**
+
+A run started on 9.8 and carried on with 9.9 shows its finished steps as not done, because its proofs name no flow;
+start a new run on 9.9.
+
+Checkers are launched in batches and a batch waits for its slowest checker, held to `judge_seconds` (420 by default)
+before that checker is launched again: Claude Code lets an agent's own agents return only together, so a checker
+cannot be replaced the moment another returns.
+
+A part renamed by its mapping agent between merges is taken as a new part and gets a new id; its old id is no longer
+given.
+
+A session that deletes `fast/unit-hashes.json` clears the record of every unit, so a change made to a unit before that is not caught.
+
+A change made to a unit its mapping agent has not yet finished (before run control collects it, or before its relaunch) is kept, since a unit is recorded only when it is collected.
+
 ## Release 9.8 — 2026-11-23
 
 A new fast mode maps a flow and goes on to measures, alerts and runbooks without the full reading's checks. The full way is still there and is still what you get unless you choose fast.

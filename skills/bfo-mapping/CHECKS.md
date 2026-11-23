@@ -235,6 +235,7 @@ that is `count only` is counted and never gates, so it has no row.
 | rs-s7 | run_status.py | report | not done | c | expected outputs missing | the reason for rs-s1 and rs-s2: every output owed exists |
 | rs-s8 | run_status.py | report | not done | d (freshness) | stale, generated from the register as it was | the reason for rs-s3 and rs-s4: no output is older than the register |
 | rs-s9 | run_status.py | report | not done | d (process) | cited code not read by the run | every code citation in the map names a file the run read (reading_check.py); check_map.py runs it at mapping's end (run_status.mapping_owed) |
+| rs-s16 | run_status.py | report | not done | d (process) | the code reader did not run on this computer | the code reader ran on this computer, so the reading check can count the citations it covers (reading_check.cause); check_map.py runs it at mapping's end (run_status.mapping_owed) |
 | rs-s10 | run_status.py | report | not done | d (process) | drawings with no content | no drawing page came out blank; check_map.py runs it at mapping's end (run_status.mapping_owed) |
 | rs-s11 | run_status.py | report | not done | a | measures with a citation and no counted_at | the done check's side of fo-73 |
 | rs-s15 | run_status.py | report | not done | a | stage checks failing, their pages written with the open items | every stage taken past mapped only passes its own check at the work the run has reached (flow_outputs.stage_open); a page written with open items never counts as done |

@@ -72,6 +72,10 @@ BY_STAGE = "read_by_stage"  # in a flow's record, set by its go: its services ar
 KIT = "kit"  # in a flow's record: the skill that took its go (bfo-stage-kit or bfo-mapping), so run control reads from
 # the register whether the person's pick is owed, never from a flag the session must remember
 KITS = ("bfo-stage-kit", "bfo-mapping")
+# run-settings.json, written at a fast map's go: what `judges` and `judge_rounds` do there (judges.settings)
+FAST_CHECKS = "fast_map_checks"
+FAST_CHECKS_SAID = ("one checker per map row a proposal rests on, one round (selective.py); judges and judge_rounds "
+                    "count only for a full map")
 
 
 def kit_running():
@@ -416,6 +420,11 @@ def apply_correction(reg, cid, value=None, added=False, remove=False, words=None
         home = layout.unit_dir(reg, unit)
         if not (home / f"{table}.csv").is_file():
             return f"{cid} names units/{unit}/{table}.csv, which the register does not have"
+        import fast_map
+        changed = fast_map.changed_outside(reg, unit)
+        if changed:  # never vouched for: run control sets the unit aside and its mapping agent writes it again
+            return (f"units/{unit}/{', '.join(changed)} changed outside the kit since it was collected: call run "
+                    "control (next.py), which sets the unit aside and has its mapping agent write it again")
     else:
         home = reg
         if remove and table in ("subjects", "participation") and (reg / layout.UNITS_CSV).is_file():
@@ -485,6 +494,8 @@ def apply_correction(reg, cid, value=None, added=False, remove=False, words=None
             w = csv.DictWriter(f, fieldnames=tcols, lineterminator="\r\n")
             w.writeheader()
             w.writerows(trows)
+    if unit and unit in fast_map._hashes(reg):  # the kit wrote it: its record follows, so it is not set aside
+        fast_map.record_unit(reg, unit)
     record_applied(reg, [rec])
     for r in filed:
         if (r.get("correction_id") or "").strip() == cid:
@@ -1316,8 +1327,10 @@ def record_go(reg, a):
     settings["judges"] = judges
     if s["mapping"] == "fast":  # one mapping agent per service and checks by script, no readers (fast_map.py)
         settings["mapping"] = "fast"
+        settings[FAST_CHECKS] = FAST_CHECKS_SAID
     else:
         settings.pop("mapping", None)
+        settings.pop(FAST_CHECKS, None)
     if getattr(a, "context_tokens", None):  # the mapping agents' context window, when the model has a larger one
         settings["fast_context_tokens"] = int(a.context_tokens)
     a.judges = judges
@@ -2064,11 +2077,15 @@ def record_stage_ids(reg, ids):
 def record_flow_id(reg, flow_id):
     """The id of the flow the pick is for, as the session names it at the pick (brief.py depth), so the run finds its
     flow by id once the walk has named it afresh. Nothing is written for an id not in flows.csv, or before the
-    go has made scope.json."""
+    go has made scope.json. An id another flow of the register already holds is refused (returned as the reason):
+    two flows under one id would share each other's proofs."""
     s = load(reg)
     known = {(r.get("flow_id") or "").strip() for r in rows(pathlib.Path(reg) / "flows.csv")}
     if s is None or flow_id not in known:
-        return
+        return None
+    held = {flow_id_of(reg, o): name for name, o in ((read_raw(reg) or {}).get(OTHER_FLOWS) or {}).items()}
+    if flow_id in held:
+        return f"{flow_id} is already the id of the flow {held[flow_id]}; nothing written"
     was = flow_key(reg, s)
     s["flow_id"] = flow_id
     if was and was not in known:  # judged under the name the go gave it, as a slug: those verdicts keep counting
@@ -2231,6 +2248,7 @@ def take_up_again(reg, owner):
     p = pathlib.Path(reg) / "RUN.md"
     text = p.read_text(encoding="utf-8")
     for lead, status in (("1 ", "done"), ("2 ", "done"), ("3 ", "done"),
+                         ("4 ", "done" if reached - {"none"} else "not picked"),
                          ("Review of the measures", "done" if reached - {"none"} else "not picked"),
                          ("5a ", "done" if reached & {"alerting", "runbooks"} else "not picked"),
                          ("Review of the alerts", "done" if reached & {"alerting", "runbooks"} else "not picked"),
@@ -2437,6 +2455,15 @@ def mark_taken(reg, key):
 
 
 def main(argv):
+    """_main, then the timing record rewritten for a register mapped fast (timings.refresh_if_fast)."""
+    try:
+        return _main(argv)
+    finally:
+        import timings
+        timings.refresh_if_fast(argv, "go.py")
+
+
+def _main(argv):
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
     run_lock.refuse_unless_register(argv)
@@ -2611,6 +2638,9 @@ def main(argv):
             print(f"REFUSED: {got}. Nothing written.", file=sys.stderr)
             return 2
         print(f"Written: the report of {got.get('flow')} sent, in {layout.SCOPE}")
+        import saved_pages  # the run's end: its pages saved, so they open once the listener stops
+        saved_pages.write(reg)
+        print(saved_pages.line(reg))
         return 0
     if a.open_left:
         got = record_open_left(reg, a.words, a.given, a.test)

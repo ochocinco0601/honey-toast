@@ -105,6 +105,8 @@ def main(argv):
     run_lock.guard(reg)
     c = depth.write(reg)["open_choice"]
     home.write(reg)  # drawn now from the depth.json just written: its choice id is the open choice's
+    import saved_pages  # every stop leaves the run's pages on disk, for when its listener has gone
+    saved_pages.write(reg)
     cmd = commands(reg)
     site = listener.site_of(reg)
     page = ("" if site == reg.resolve() else reg.resolve().name + "/") + home.FILE

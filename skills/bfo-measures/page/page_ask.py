@@ -132,21 +132,12 @@ def _waits(folder):
 
 
 def status_of(site):
-    """Where the work folder's run status address (/operator.html) leads: the folder whose say-back waits on the
-    person, newest first, else the newest run's own; None when that is the folder itself, and the address draws the
-    view there (the folder's own run, a new system's say-back, or the first look under way before any run folder
-    exists). Read here, not from work_page, which a skill that only picks a run up does not carry."""
+    """Where the work folder's own run status address (/operator.html) leads: nowhere while the folder is itself a
+    register, whose view the address draws; else the list of runs at the root. It never picks one of several runs: a
+    guess by time or by a say-back leads a new run's clicks to an earlier run's pages. A say-back an earlier release left
+    at the root (before each run had its start folder) belongs to no run now, and is not drawn."""
     site = pathlib.Path(site).resolve()
-    try:
-        found = [d for d in [site] + [p for p in site.iterdir() if p.is_dir()]
-                 if (d / "RUN.md").is_file() or _waits(d)]
-        # a say-back waiting on the person is where they are needed, however recently another run was written to
-        found.sort(key=lambda d: (_waits(d) is not None, _waits(d) or (d / "RUN.md").stat().st_mtime), reverse=True)
-    except OSError:
-        return None
-    if not found or found[0] == site:
-        return None
-    return "/" + found[0].name + "/operator.html"
+    return None if (site / "RUN.md").is_file() else "/"
 
 
 RUN_DIR = "_start-"  # start.RUN_DIR: one run's own folder before its register exists
@@ -177,8 +168,7 @@ def check_page(site, path):
     page = "/" + page.lstrip("/")
     bare = page.split("?")[0].split("#")[0]
     for _ in range(3):
-        to = home_of(site) if bare == "/" else status_of(site) if bare == "/operator.html" else run_leads(
-            site, unquote(bare))
+        to = status_of(site) if bare == "/operator.html" else run_leads(site, unquote(bare))
         if not to:
             break
         bare = to.split("?")[0]
@@ -196,15 +186,6 @@ def check_page(site, path):
             m = re.search(rb'<span class="badge [^"]*">.*?</svg>([^<]*)</span>', body)
             badge = m.group(1).decode("utf-8", "replace") if m else ""
     return json.dumps({"page": bare, "status": status, "badge": badge})
-
-
-def home_of(site):
-    """The newest run's home screen under the folder, once drawn, else None."""
-    try:
-        import work_page
-    except ImportError:
-        return None
-    return work_page.home(site)
 
 
 def live(site, path):
@@ -251,7 +232,7 @@ def live(site, path):
 
 
 def not_found(site):
-    """The page for an address that does not exist: links to the run status view and to the home screen of each
+    """The page for an address that does not exist: links to the list of runs and to the home screen of each
     register under the folder (the folder's own, when it is one), so the person is never left on a bare error."""
     from html import escape
     root = pathlib.Path(site).resolve()
@@ -271,7 +252,7 @@ def not_found(site):
             'sans-serif;max-width:40rem;margin:2rem auto;padding:0 16px;color:#1d1d1f;background:#fff}'
             '@media (prefers-color-scheme: dark){body{color:#eee;background:#1b1b1d}a{color:#8ab4f8}}</style></head>'
             "<body><h1>This page does not exist</h1><p>The address is not one of the run's pages. Go to:</p><ul>"
-            '<li><a href="/operator.html">Run status</a></li>%s</ul></body></html>' % "".join(rows)).encode("utf-8")
+            '<li><a href="/">Every run in this work folder</a></li>%s</ul></body></html>' % "".join(rows)).encode("utf-8")
 
 
 def serve(site):
@@ -311,10 +292,8 @@ def serve(site):
                 return
             if bare == "/" or bare.endswith(".html"):
                 note_seen(site, bare)
-            to = home_of(site) if bare == "/" else status_of(site) if bare == "/operator.html" else run_leads(
-                site, unquote(bare))
-            if to:  # the work page's address leads to the run's home once drawn, and its open tab follows; the run
-                # status address to the newest run's own status view
+            to = status_of(site) if bare == "/operator.html" else run_leads(site, unquote(bare))
+            if to:  # a run's start folder's status address leads to its own register's; the work folder's to the list
                 self.send_response(302)
                 self.send_header("Location", to)
                 self.send_header("Content-Length", "0")
@@ -416,6 +395,11 @@ def serve(site):
                 break
         else:
             ended_at = None
+    try:  # the run has ended or gone idle: its live pages are saved, so they still open from disk
+        import saved_pages
+        saved_pages.write_all(site)
+    except Exception:  # noqa: BLE001 - a page not saved never keeps the listener up
+        pass
     httpd.server_close()
 
 

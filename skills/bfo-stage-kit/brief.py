@@ -192,6 +192,42 @@ def state_names(*states):
     return out
 
 
+WORDS_REFUSED = "REFUSED: the message uses words the person does not know"
+FINISH_CLAIM = re.compile(r"(?i)\b(?:(?:the )?run (?:is|was|has) (?:now )?(?:finished|complete|completed|done)|"
+                          r"(?:all|everything is|we are|we're) (?:finished|done|complete)|"
+                          r"the work is (?:finished|done|complete))\b")
+
+
+def finish_claimed(text):
+    return bool(FINISH_CLAIM.search(text or ""))
+
+
+def reconcile_phases(reg):
+    """Every phase its files prove done written into RUN.md before a message goes out (run_md.reconcile)."""
+    run_md.reconcile(reg)
+
+
+def run_finished(reg):
+    """The run is finished only when the done check said DONE on the map as it is now, after this flow's go: an
+    earlier flow's DONE says nothing of the flow under way."""
+    import run_status
+    return run_status.verdict_holds(pathlib.Path(reg)) and run_md.verdict_this_flow(reg)
+
+
+def end_said(reg):
+    """The end-of-run message, built from the done check's own result: finished only when it said DONE on the map as
+    it is; otherwise not finished, with how many things it still owes."""
+    import run_status
+    reg = pathlib.Path(reg)
+    if run_finished(reg):
+        return "The run is finished: the final check passed on the map as it is now."
+    _, reasons = run_status.verdict(reg)
+    n = len(reasons)
+    return ("The run is not finished: the final check has not passed"
+            + (f" and still owes {n} {'thing' if n == 1 else 'things'}" if n else "")
+            + ". I am putting that right next, and will tell you when the check passes.")
+
+
 def register_names(reg):
     """The names the register gives (flows, stages, steps, parts, measures and the first look's), longest first: the
     business's own words, which the person knows the system by, so `say` lets them through."""
@@ -429,7 +465,12 @@ def phases(reg):
     if not p.is_file():
         return []
     out = []
-    for line in p.read_text(encoding="utf-8").splitlines():
+    text = p.read_text(encoding="utf-8")
+    try:  # a phase its files prove done reads done, whether or not the lead set the row
+        text = run_md.derived(text, run_md.proved(reg))
+    except Exception:  # noqa: BLE001
+        pass
+    for line in text.splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")] if line.startswith("|") else []
         if len(cells) >= 2:
             for lead, act in ROWS:
@@ -827,7 +868,37 @@ def problems(reg, o, brief_now=False):
     if brief_now:  # every source that is not code read, proven from the transcripts (first_look.py)
         import first_look
         out += first_look.brief_problems(reg, o)
+        out += first_look_citation_problems(reg, o)
     return out
+
+
+def first_look_citation_problems(reg, o=None):
+    """A citation the first look wrote (about.csv, each flow's found_in) that names a file only by its path inside a
+    repository, when the file is found under the repository's folder: every later step opens a citation as written,
+    from the folder that holds the repositories, so it names the repository's folder first."""
+    import fast_map
+    reg = pathlib.Path(reg)
+    ws = fast_map.workspace(reg)
+    texts = [" ".join(v or "" for v in r.values()) for r in rows(reg / "about.csv")]
+    if o is None:
+        try:
+            o = json.loads((reg / layout.ORIENTATION).read_text(encoding="utf-8-sig"))
+        except (OSError, ValueError):
+            o = {}
+    texts += [str(f.get("found_in") or "") for f in (o or {}).get("flows") or []]
+    spans = [s for text in texts for s in fast_map.spans(text)]
+    if not spans or not ws.is_dir():
+        return []
+    repos = [d for d in ws.iterdir() if d.is_dir()]  # one level only: the repositories sit side by side in ws
+    out = []
+    for f, lo, hi in spans:
+        if (ws / f).is_file():
+            continue
+        hits = [d for d in repos if (d / f).is_file()]
+        if len(hits) == 1:
+            out.append(f"the first look cites {f}:{lo}-{hi} without its repository folder: write "
+                       f"{hits[0].name}/{f}:{lo}-{hi}")
+    return sorted(set(out))
 
 
 def seen_of(reg, f):
@@ -874,7 +945,11 @@ def bullets(items):
 def checks_said(reg):
     """What this run does to check its findings against the code, as the person reads it: every run reads in units
     and has every finding that cites code checked by independent readers, at the count the go records."""
-    n = (load(reg, layout.SETTINGS) or {}).get("judges", 3)
+    got = load(reg, layout.SETTINGS) or {}
+    if got.get("mapping") == "fast":  # judges.settings: one check per row, one round, whatever `judges` says
+        return ("I will have one check read each finding a proposed measure, alert or failure mode rests on against "
+                "the code, by a reader who wrote none of it; every other finding is shown as not checked.")
+    n = got.get("judges", 3)
     return (f"I will have {n} independent checks read each finding against the code, each by a reader who wrote none "
             "of it; a finding they doubt is corrected and checked again, and one still in doubt is shown as not "
             "confirmed by the code. Three is the kit's default.")
@@ -958,6 +1033,10 @@ def checked_said(reg):
         out.append(f"Claude Code's own record of the work shows every place in the code the map cites was read: "
                    f"{by_run} opened by the run" + (f", and {reading.by_reader} found by the code reader, which reads "
                                                      "the code by rule" if reading.by_reader else "") + ".")
+    import kit_findings
+    found = kit_findings.line(reg)
+    if found:
+        out.append(found)
     return "\n".join(out)
 
 
@@ -965,7 +1044,8 @@ def unread(reg):
     """The capability brief's line on files of the code that could not be read, as one more item, or nothing."""
     import first_look
     import map_record
-    lines = [x for x in (map_record.unread_line(reg), first_look.not_read_line(reg)) if x]
+    lines = [x for x in (map_record.unread_line(reg), first_look.not_read_line(reg), first_look.code_reader_line(reg))
+             if x]
     return "".join(f"\n- Not read: {x}" for x in lines)
 
 
@@ -2031,6 +2111,15 @@ def depth_from_request(reg, flow_id, words, spec, given=None):
 
 
 def main(argv):
+    """_main, then the timing record rewritten for a register mapped fast (timings.refresh_if_fast)."""
+    try:
+        return _main(argv)
+    finally:
+        import timings
+        timings.refresh_if_fast(argv, "brief.py")
+
+
+def _main(argv):
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
     run_lock.refuse_unless_register(argv)
@@ -2101,7 +2190,10 @@ def main(argv):
         mark_stages_told(args[0], told.group(0) if told else "")
         import depth  # the page draws this stop's open choice from depth.json
         import go
-        go.record_flow_id(pathlib.Path(args[0]), args[1])  # found by id, not by a name the walk may change
+        refused = go.record_flow_id(pathlib.Path(args[0]), args[1])  # found by id, never a name the walk may change
+        if refused:
+            print(f"REFUSED: {refused}. Name the flow worked now by its own id and run this again.", file=sys.stderr)
+            return 1
         depth.write_quietly(args[0])
         print(with_page(text, args[0]))
         return 0
@@ -2213,11 +2305,15 @@ def main(argv):
         text = pathlib.Path(args[1]).read_text(encoding="utf-8-sig").strip()
         hits = say_terms(text, args[0])
         if hits:
-            print("REFUSED: the message uses words the person does not know (ids, file names or the kit's own "
-                  "process words): " + "; ".join(hits) + ". Say each in the person's terms (the flow, stage, step "
-                  "or service by its name; what was done or is next in plain words), and run this again. Nothing "
-                  "sent.", file=sys.stderr)
+            print(WORDS_REFUSED + " (ids, file names or the kit's own process words): " + "; ".join(hits)
+                  + ". Say each in the person's terms (the flow, stage, step or service by its name; what was done or "
+                  "is next in plain words), and run this again. Nothing sent.", file=sys.stderr)
             return 1
+        if finish_claimed(text) and not run_finished(args[0]):
+            print("REFUSED: the message says the run is finished, and the done check has not said DONE on the map as "
+                  f"it is. Send what `brief.py end {args[0]}` prints instead. Nothing sent.", file=sys.stderr)
+            return 1
+        reconcile_phases(args[0])
         if after:  # a line added to a message a script printed, which has its status line and the page's address
             print(text)
             return 0
@@ -2229,6 +2325,12 @@ def main(argv):
             print()
             mark_stages_told(args[0], changed)
         print(with_page(text, args[0]))
+        return 0
+    if argv[:1] == ["end"]:
+        if len(argv) != 2 or not pathlib.Path(argv[1]).is_dir():
+            print(__doc__, file=sys.stderr)
+            return 2
+        print(with_page(end_said(pathlib.Path(argv[1])), argv[1]))
         return 0
     if argv[:1] == ["checked"]:
         if len(argv) != 2 or not pathlib.Path(argv[1]).is_dir():

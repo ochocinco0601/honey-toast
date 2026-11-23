@@ -156,18 +156,9 @@ def asked_since(site, page, since, wait=0.0):
 
 
 def follows(site, page):
-    """True when an open tab can reach `page` by itself: it has been on the page (a page reloads itself), or on the
-    work page's address, which leads to the newest run's home."""
-    if seen_at(site, page) is not None:
-        return True
-    site = pathlib.Path(site)
-    try:  # the newest run folder, as the work page's address picks it (work_page.runs)
-        newest = sorted((d for d in [site] + [p for p in site.iterdir() if p.is_dir()] if (d / "RUN.md").is_file()),
-                        key=lambda d: (d / "RUN.md").stat().st_mtime, reverse=True)[:1]
-    except OSError:
-        return False
-    lead = "/" + ("" if not newest or newest[0].resolve() == pathlib.Path(site).resolve() else newest[0].name + "/")
-    return seen_at(site, "/") is not None and bool(newest) and "/" + page == lead + "index.html"
+    """True when an open tab can reach `page` by itself: it has been on the page (a page reloads itself). The work
+    folder's root lists the runs and leads to none, so a tab there never follows to a run's page."""
+    return seen_at(site, page) is not None
 
 
 def up(site, page="", opener=None, wait=10.0):
@@ -258,6 +249,11 @@ def stop(site, wait=10.0):
     program's, and is never touched. The folder's files are removed only once no listener of it runs: a listener
     still running keeps the pid file that names it."""
     site = pathlib.Path(site).resolve()
+    try:  # the pages it drew live are saved first, so each run still opens from disk once it has gone
+        import saved_pages
+        saved_pages.write_all(site)
+    except Exception:  # noqa: BLE001 - a page not saved never keeps the listener running
+        pass
     try:
         named = int((site / PID_FILE).read_text(encoding="utf-8").strip())
     except (OSError, ValueError):

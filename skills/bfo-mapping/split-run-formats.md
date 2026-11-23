@@ -34,8 +34,14 @@ existing checks read; nothing below is written at the root except the merged tab
 
 ```json
 {"judges": 3, "judge_rounds": 2, "unit_lines": 4000, "parallel": 6, "merge_rereads": 50,
- "lock_stale_minutes": 20, "relaunches": 2, "on_change": "python run_page.py {reg}", "reading": "path"}
+ "lock_stale_minutes": 20, "relaunches": 2, "on_change": "python run_page.py {reg}", "judge_seconds": 420,
+ "reading": "path"}
 ```
+
+`judge_seconds` is how long a judge may sit live and silent (its transcript unwritten) before it counts as stuck: it
+is launched afresh once, recorded in `judging/stuck.csv`, and held if stuck again. `judges` and `judge_rounds` count
+for a full map only: a fast map has one judge per row a proposal rests on, one round, and its go writes
+`fast_map_checks` into the file to say so.
 
 `reading` is how a flow read by stage reads its units: `path` (the default) reads the path of the stages taken past
 mapped only, from starting points derived by script (`path_reading.py`), and lists every other file `not read` with
@@ -193,8 +199,7 @@ beside the workspace, or `--ws`):
 
 - A **pointer line** is `Read <prompt file> and do exactly what it says. Reply with one line.`, the prompt file's path
   absolute with `/`. It is the whole prompt of one agent.
-- A **launcher file** holds at most 150 pointer lines (`judges.LAUNCHER_MAX`: a launcher's own context grows about
-  1,200 tokens per agent it launches). It tells the launcher to launch each line once as a `bfo-unit-reader` subagent (a
+- A **launcher file** holds at most 150 pointer lines (`judges.LAUNCHER_MAX`: a launcher's own context grows with each agent it launches). It tells the launcher to launch each line once as a `bfo-unit-reader` subagent (a
   readers' launcher) or a `bfo-row-judge` one (a judges' launcher), never a fork nor any other type, in the foreground, at most `parallel` at once, and to reply, once every agent has finished, with one
   line `launched <n>, finished <n>`. Names: `judges-<unit>-r<n>-<i>`, `judges-flow-r<n>-<table>-<i>` (the unit `flow`
   is always split by lead table), `readers-<mode>-<i>`. Readers, fixers and re-reads share launchers. Writing a name

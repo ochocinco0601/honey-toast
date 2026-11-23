@@ -353,7 +353,7 @@ def render(reg, home_href=None):
     bases = (reg.resolve().parent.parent, reg.resolve()) if in_workspace else ()
     if home_href is None:
         home_href = HOME if (reg / HOME).is_file() else "/"
-    back = "Home" if home_href != "/" else "The run at work"
+    back = "Home" if home_href != "/" else "All runs"
     import page_style as ps
     up = (f'<a href="{ps.all_systems_href(home_href)}">{ps.ALL_SYSTEMS}</a>'
           if home_href == HOME and ps.all_systems_above(reg) else "")

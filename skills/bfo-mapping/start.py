@@ -117,9 +117,15 @@ def kit_check(folder=None):
             ([f"{len(extra)} not in that build ({some(extra)})"] if extra else [])
     if not parts:
         return built, []
+    restore = (f"To put it right, delete {folder} whole and copy the skill folder in fresh from the release it came "
+               "from (copying over it leaves the changed and extra files in place), then run the start step again")
+    if changed or extra:
+        return built, [f"files of the kit at {folder} were changed after it was installed: " + "; ".join(parts)
+                       + ". The kit is never changed where it runs: a change made here is lost at the next release, "
+                       "and a problem found in the kit is written down in the run's kit-findings.md (kit_findings.py) "
+                       "for the person to report to whoever maintains the kit. " + restore]
     return built, [f"this copy of the kit at {folder} does not match the build it says it is: " + "; ".join(parts)
-                   + ". It is a partial copy, or mixed with another version: install the kit again from its source "
-                   "before going on"]
+                   + ". It is a partial copy, or mixed with another version. " + restore]
 
 
 def is_source(folder=None):
@@ -137,10 +143,18 @@ def kit_line(folder=None):
     return f"KIT: {built}" + "".join(f"; WARNING: {w}" for w in warnings)
 
 
+def restore_said(name):
+    """What the person is told to do with a changed or partial copy: the folder by its skill's name, never a path,
+    which the word check refuses; deleted first, since a copy over it keeps the changed and extra files."""
+    return (f"Your copy of the \"{name}\" skill was changed or is incomplete, so the run cannot start. Delete its "
+            f"folder, \"{name}\", in this project's skills folder, copy it in fresh from the release it came from, "
+            "then start again.")
+
+
 BLOCKED = ("DECISION: blocked\nThis copy of the kit does not match its build (the KIT line above names what is "
-           "missing or changed). Nothing was written. Tell the person in one line, through brief.py say, that this "
-           "copy of the kit is incomplete or out of date and needs installing again from its source; once it is, "
-           "run the start step again.")
+           "missing or changed). Nothing was written. Never edit the kit's files to get past this. Send the person "
+           "this, through brief.py say, as it is: " + restore_said(HERE.name) + "\nOnce they have, run the start "
+           "step again.")
 if __name__ == "__main__" and not is_source() and kit_check()[1]:
     print(kit_line())
     print(BLOCKED)
@@ -529,17 +543,19 @@ def request_of(reg):
     return m.group(1) if m else ""
 
 
-def record_start(site, request=None, reg=None):
+def record_start(site, request=None, reg=None, fresh=False):
     """When this run started, and which skill started it, in this run's own folder in the work folder: for the page's
     "running N minutes" and the status line's count of activities. Kept while the same run calls the start step
     again, written new for another run. The person's request, given, is kept with it, for the register started next
-    (start_register.py); `reg`, the register this run carries on, is where its page leads."""
+    (start_register.py); `reg`, the register this run carries on, is where its page leads. `fresh`: the start step
+    begins new work; a record that already led to a register belongs to an earlier run in the same chat, so it is
+    written new, or this run's page would lead to that run's register."""
     run = run_lock.identity()
     p = run_dir(site) / STARTED
     at = str(pathlib.Path(reg).resolve()) if reg is not None else None
     try:
         d = json.loads(p.read_text(encoding="utf-8"))
-        if d.get("run") == run and d.get("started"):
+        if d.get("run") == run and d.get("started") and not (fresh and d.get("register")):
             changed = False
             if (request or "").strip() and not d.get("request"):
                 d["request"] = request.strip()
@@ -779,7 +795,7 @@ def main(argv):
             print(first_look_refusal(first_look_open(site), args[0]), file=sys.stderr)
             return 2
         mark_first_look(site)
-        record_start(site, request)
+        record_start(site, request, fresh=True)
         emit("fresh", earlier=earlier, message=said("fresh"), extra=sayback("fresh") + [f"OTHER: {f}" for f in other] + [
             'NEW: the unfinished work here is for another system. Start the register with start_register.py --new '
             '--words "<the person\'s request, word for word>", which records them.'])
@@ -789,7 +805,7 @@ def main(argv):
             print(first_look_refusal(first_look_open(site), args[0]), file=sys.stderr)
             return 2
         mark_first_look(site)
-        record_start(site, request)
+        record_start(site, request, fresh=True)
         emit("fresh", earlier=earlier)
         if found:
             print("\n".join(f"BESIDE: {f}" for f in found))
@@ -810,7 +826,7 @@ def main(argv):
             print(first_look_refusal(first_look_open(site), args[0]), file=sys.stderr)
             return 2
         mark_first_look(site)
-        record_start(site, request)
+        record_start(site, request, fresh=True)
         emit("fresh", earlier=earlier, message=said("fresh"), extra=sayback("fresh"))
         return 0
     if len(found) > 1:

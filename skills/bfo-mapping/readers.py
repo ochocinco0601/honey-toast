@@ -154,7 +154,10 @@ def workspace_problem(reg, units, ws=None):
     return judges.where_to_say(w, missing) if missing else None
 
 
-def prompt(reg, unit, mode="read", ws=None):
+MERGE_FIX = "merge-fix.md"  # a reader relaunched once with the merge's reason for refusing its unit's rows
+
+
+def prompt(reg, unit, mode="read", ws=None, reason=None):
     reg = pathlib.Path(reg).resolve()
     u = unit_row(reg, unit)
     body = judges.agent_body(AGENT)
@@ -175,7 +178,12 @@ def prompt(reg, unit, mode="read", ws=None):
     if mode in ("read", "retry", "fix"):
         import path_reading  # a flow read by stage reads the path of its stages taken further (run-settings `reading`)
         out += path_reading.path_block(reg, unit, judges.workspace(reg, ws))
-    if mode == "retry":
+    if mode == "retry" and reason:
+        out += ["## What the merge refused in your unit's rows", "",
+                "The merge of the unit folders refused these rows of your unit. Put each right in your unit's tables "
+                "with Edit, from the code (a row id used once only, a part named as an element of the unit), keeping "
+                "every other row as it is:", "", reason, ""]
+    elif mode == "retry":
         why = [r.get("reason", "") for r in tables.dicts(reg / layout.JOBS_CSV)
                if r.get("item") == unit and r.get("step") == "read"]
         out += ["## The check that failed", "", "\n".join(w for w in why if w) or "(no output recorded)", ""]
@@ -278,7 +286,8 @@ def emit(reg, units, mode="read", ws=None, again=False, transcripts=None, reason
     with `fix`, a unit with no flagged row gets none, and the unit `flow` gets one fixer per lead table with flagged
     rows, <reg>/prompts/flow/fix-<table>.md; with `reread`, every call merge/unmatched-calls.csv lists (of the units
     named, or all when none is) gets <reg>/prompts/<unit>/reread-<row_id>.md; with `stop`, each unit named gets a fixer
-    given `reason`, <reg>/prompts/<unit>/stop-<hash of the reason>.md.
+    given `reason`, <reg>/prompts/<unit>/stop-<hash of the reason>.md; with `retry` and `reason` (a text, or one per
+    unit), the reader relaunched with what the merge refused in its rows, <reg>/prompts/<unit>/merge-fix.md.
 
     Run again at any time, it launches no agent twice (judges.Launches): an agent queued in a launcher still
     running, or launched and still running, or finished, is named and not launched; one still running whose launcher
@@ -340,6 +349,10 @@ def emit(reg, units, mode="read", ws=None, again=False, transcripts=None, reason
             agent(layout.prompts_dir(reg, u) / f"stop-{key}.md", stop_prompt(reg, u, reason, ws), u)
             continue
         if mode == "fix" and not _flagged(reg, u):
+            continue
+        if mode == "retry" and reason:
+            why = reason.get(u) if isinstance(reason, dict) else reason
+            agent(layout.prompts_dir(reg, u) / MERGE_FIX, prompt(reg, u, mode, ws, why), u)
             continue
         agent(layout.prompts_dir(reg, u) / f"{mode}.md", prompt(reg, u, mode, ws), u)
     pointers = judges.launchers(reg, f"readers-{mode}", [("", lines)] if lines else [], keep=seen.running,

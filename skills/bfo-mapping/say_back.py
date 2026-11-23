@@ -252,7 +252,10 @@ folder it names; on fresh, start the register folder above with `start_register.
 Your own turns are the first look's cost, so keep them few: scripts do the bookkeeping. Write `sources.csv` once (every
 source the person gave, each with its `location`; code rows with their repository folder), then run
 `python <skill>/first_look.py prepare <your-folder>`: it runs the survey, the code reader, the fetch and the reader
-prompts in one command. When it prints LAUNCH, start every `bfo-source-reader` line it prints in one message, each
+prompts in one command, the code reader within a bounded time. Run it, and every command here, in the foreground and
+wait for it; never start one in the background, and never sleep or poll to wait for one. If it prints
+`code reader: NOT RUN` or `stopped`, do not diagnose, install or rerun anything: carry on, since the brief tells the
+person what to do. When it prints LAUNCH, start every `bfo-source-reader` line it prints in one message, each
 line as its whole prompt, in the foreground; when it says single, read each owed part yourself with the Read tool only
 and write its file in the form. Then run `first_look.py check`, `names` and `first_look.py merge` together; `merge` writes
 `first-look/leads-merged.json` (every lead grouped by name, with the sources it was seen in) and places each name no
@@ -280,6 +283,16 @@ def taken(folder):
     """A folder that already holds a register (a CSV file, or RUN.md)."""
     folder = pathlib.Path(folder)
     return folder.is_dir() and ((folder / "RUN.md").is_file() or any(folder.glob("*.csv")))
+
+
+UNDER_WAY = "I am looking over the system now. I will tell you what I find as soon as that is done."
+
+
+def under_way(folder):
+    """The message the turn that starts the first look sends, with the run page's address when a listener serves it,
+    so the person hears from the run within the first minute, never only at the brief."""
+    import brief
+    return brief.with_page(UNDER_WAY, folder)
 
 
 def lead_prompt(run_folder, sb, register):
@@ -403,8 +416,11 @@ def answer(folder, answers=None, words=None, test=False, reading=None, register=
     if action == "start":
         if lead_at is not None:
             pointer = lead_prompt(folder, sb, lead_at)
-            return ("STARTED: recorded, with the lines shown. Now start the first-look helper (a general-purpose "
-                    "subagent) with the line below as its whole prompt, and nothing else.\n" + pointer), 0
+            return ("STARTED: recorded, with the lines shown. First send the text after MESSAGE as it is, before "
+                    "any other call, so the person hears from the run within the first minute whether or not Claude "
+                    "Code waits on the helper; then, in the same response, start the first-look helper (a "
+                    "general-purpose subagent) with the line below as its whole prompt, and nothing else.\n"
+                    + pointer + "\nMESSAGE:\n" + under_way(folder)), 0
         then = ("carry on with what the last line proposed" if sb["kind"] == "resume"
                 else "start the first-look helper now, as the skill says")
         return f"STARTED: recorded, with the lines shown. Now {then}.", 0

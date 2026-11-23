@@ -2,7 +2,9 @@
 
 Usage: python next.py <register folder> <flow id> [--by-kit] [--test] [--event stop "<the person's words>" | --event launcher-done <file>
                                                      | --event chat "<the person's words>"
-                                                     | --event retry "<the person's words>"]
+                                                     | --event retry "<the person's words>"
+                                                     | --event leave-unread|correct "<the person's words>"
+                                                     | --event choices]
 
 Prints one action as JSON. The session does what it says and calls this again; it never decides the next step itself.
   judgment  a bounded task for the model: `task`, `write` (the tables it may write), `contract` (the checks it must
@@ -32,6 +34,7 @@ row per agent attempt, timed from the agents' own transcripts (timings.py); a fa
 changes the action.
 """
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -149,17 +152,31 @@ def _lead_duplicates(reg):
     of units.csv): the merged map would hold it twice. Nothing in a full run, whose lead rows are checked otherwise."""
     if not fast(reg):
         return []
+    import fast_map
     import register_layout as layout
-    mapped = {(r.get("deployable") or "").strip().lower() for r in _rows(reg / layout.UNITS_CSV)}
-    mapped |= {(r.get("service") or "").strip().lower() for r in _rows(reg / "survey.csv")}
-    mapped -= {""}
+    units = _rows(reg / layout.UNITS_CSV)
+    planned = {(r.get("unit") or "").strip() for r in _rows(reg / fast_map.FOLDER / fast_map.PLAN)}
+    survey = _rows(reg / "survey.csv")
+    if planned:  # only the services the fast map reads: one it does not read (a stage left mapped only) is the lead's
+        read = [r for r in units if (r.get("unit") or "").strip() in planned]
+        mapped = {(r.get(k) or "").strip().lower() for r in read for k in ("unit", "deployable")}
+        paths = {p.strip().strip("/").lower() for r in read for p in (r.get("paths") or "").split(";") if p.strip()}
+        mapped |= {(r.get("service") or "").strip().lower() for r in survey  # the same service by its survey name
+                   if (r.get("path") or "").strip().strip("/").lower() in paths}
+    else:
+        mapped = {(r.get("deployable") or "").strip().lower() for r in units}
+        mapped |= {(r.get("service") or "").strip().lower() for r in survey}
+    import go
+    keys = {go._name_key(m) for m in mapped} - {""}  # letters and digits only: `Orders`, `orders-1`, `orders_1` alike
+
+    def maps(r):
+        return go._name_key(r.get("name") or "") in keys
     # once merged, the root holds the mapping agents' own service rows; the lead's rows are the merge's input
     lead = reg / layout.LEAD_ROWS / "subjects.csv"
     where = "merge/lead-rows/subjects.csv" if lead.is_file() else "subjects.csv"
     return [f"{where} {r.get('subject_id', '').strip()} names the service '{r.get('name', '').strip()}', which "
             "the mapping agent maps: remove it, and name the service by its name in the lifecycle (the mapping "
-            "agent writes its row)" for r in _rows(lead if lead.is_file() else reg / "subjects.csv")
-            if (r.get("name") or "").strip().lower() in mapped]
+            "agent writes its row)" for r in _rows(lead if lead.is_file() else reg / "subjects.csv") if maps(r)]
 
 
 def _fast_questions_owed(reg, flow):
@@ -367,6 +384,9 @@ def _lost(reg, sub):
     out = []
     if sub == "readers":
         out = [(u, layout.prompts_dir(reg, u) / "read.md") for u in readers.in_scope(reg)[0]]
+    elif sub == "merge":  # a reader relaunched with the merge's reason
+        out = [(u, layout.prompts_dir(reg, u) / readers.MERGE_FIX) for u in judges._units(reg)
+               if (layout.prompts_dir(reg, u) / readers.MERGE_FIX).is_file()]
     elif sub in ("judge round 1", "judge round 2"):
         rnd = int(sub[-1])
         n = judges.settings(reg)["judges"]
@@ -388,6 +408,22 @@ def _names(reg, units):
           for r in tables.dicts(pathlib.Path(reg) / layout.UNITS_CSV)}
     got = list(dict.fromkeys(by.get(u, u) for u in units))
     return got[0] if len(got) == 1 else ", ".join(got[:-1]) + " and " + got[-1]
+
+
+def _kit_defect(reg, template, fn, out):
+    """A message the kit wrote refused by its own word check is a kit defect: written down as kit facts only (the
+    template and the line that builds its text, never what was refused). Any other failure of `say` is not: None."""
+    import brief
+    import inspect
+    import kit_findings
+    if not out.startswith(brief.WORDS_REFUSED):
+        return None
+    call = sys._getframe(1).f_lineno
+    src, first = inspect.getsourcelines(fn)
+    built = max((first + i for i, x in enumerate(src) if x.strip().startswith("text = ") and first + i < call),
+                default=call)
+    p, _ = kit_findings.record(reg, f"say-refused-{template}", "next.py", built)
+    return f"written down in {p}: a problem in the kit itself; never change the kit's files" if p else None
 
 
 def _lost_stop(reg, sub, gone, lines):
@@ -418,7 +454,7 @@ def _lost_stop(reg, sub, gone, lines):
         str(x) for x in states))
     if code != 0:
         return {"kind": "code", "sub": sub, "ok": False, "command": ["python", "brief.py", "say", str(reg), str(f)],
-                "said": out}
+                "said": out, "kit_finding": _kit_defect(reg, "agents-lost", _lost_stop, out)}
     return {"kind": "stop", "stop": "agents lost", "sub": sub, "message": out, "said": lines,
             "records_with": "next.py --event retry \"<their words>\" on their word to try again; else "
                             "next.py --event chat"}
@@ -434,9 +470,11 @@ def _retry(reg, sub):
     (reg / layout.PROMPTS / judges.RETRY_FROM).write_text(
         datetime.datetime.now(datetime.timezone.utc).isoformat(), encoding="utf-8")
     for u, f, state in _lost(reg, sub):
-        if state == "ran a shell" and sub == "readers":
+        if state == "ran a shell" and sub in ("readers", "merge"):
             import provenance
             provenance.undo_breaches(reg, u)
+        if sub == "merge" and state == "finished":  # still refused after its one relaunch: not reset by a try again
+            continue
         if state in ("finished", "errored", "gave up", "ran a shell"):
             pathlib.Path(f).unlink(missing_ok=True)
 
@@ -460,19 +498,25 @@ def _judgment(sub, task, write, contract, findings):
     return {"kind": "judgment", "sub": sub, "task": task, "write": write, "contract": contract, "findings": findings}
 
 
-def _fast_set_aside(reg, sub):
-    """None when no mapping agent's rows are refused. Else {"kind": "code", ...} that stops for the person when a unit
-    was refused again after its relaunch, or {"kind": "set aside", "units"} when run control set the refused writers'
-    tables aside (fast_map.set_aside_refused) so the mapping agent is launched again for those units."""
+def _fast_set_aside(reg, flow, sub):
+    """None when no mapping agent's rows are refused. Else the person's choices (_stuck) when a unit was refused again
+    after its relaunch, or {"kind": "set aside", "units"} when run control set the refused writers' tables aside
+    (fast_map.set_aside_refused) so the mapping agent is launched again for those units."""
     import fast_map
+    checked = _correction_checked(reg, flow, sub)
+    if checked:
+        return checked
     owed, stuck, why = fast_map.set_aside_refused(reg)
     o2, s2, w2 = fast_map.set_aside_bad_ids(reg)  # row ids that break the unit format: written again before the merge
+    writer = bool(stuck)  # a writer refused for who it is: no correction of the rows makes its work count
+    # changed outside the kit, or not this flow's to write again: not a row the lead's correction can put right
+    outside = any(fast_map.OUTSIDE_MARK in w or "is not read in this flow" in w for w in w2)
     owed, stuck, why = sorted(set(owed) | set(o2)), sorted(set(stuck) | set(s2)), why + w2
     if stuck:
         said = (f"REFUSED: the mapping agent's rows for {', '.join(stuck)} were refused again after it was launched "
                 f"once more: {'; '.join(why)}. Nothing was launched.")
         case.log(reg, "fast read held", said=said)
-        return {"kind": "code", "sub": sub, "ok": False, "said": said}
+        return _stuck(reg, flow, sub, stuck, "writer" if writer else "outside" if outside else "rows", said, why)
     if owed:
         case.log(reg, "set aside a refused mapping agent's rows", units=owed)
         return {"kind": "set aside", "units": owed}
@@ -492,10 +536,16 @@ def _fast_stalled(reg, missing):
     p = pathlib.Path(reg) / fast_map.FOLDER / FAST_LAUNCHES
     got = json.loads(p.read_text(encoding="utf-8")) if p.is_file() else {}
     stuck = []
+    aside = {}
+    for r in fast_map.set_aside(reg):
+        for u in r.get("units") or []:
+            aside[u] = aside.get(u, 0) + 1
     for u in missing:
         rec = got.setdefault(u, {"launches": 0, "listed": 0, "stalled": 0})
         now = len(fast_map.listed(reg, u, read_only=True))
-        if rec["launches"] and now <= rec["listed"]:
+        if aside.get(u, 0) > rec.get("aside", 0):  # its tables were set aside for a relaunch: not a launch in vain
+            rec["aside"], rec["listed"] = aside[u], 0
+        elif rec["launches"] and now <= rec["listed"]:
             rec["stalled"] += 1
         rec["listed"] = max(rec["listed"], now)
         if rec["stalled"] > cap:
@@ -507,12 +557,252 @@ def _fast_stalled(reg, missing):
     return stuck
 
 
+VALUE_WORDS = {"part_kind": "kind of part", "carries_case_id": "answer to whether it carries the case's id"}
+STUCK = "stuck"  # in a flow's case record: {"units", "kind", "shown"}, the choices put to the person
+CORRECTING = "correcting"  # in a flow's case record: {"units", "kind", "shown"}, the person chose the lead's correction
+CAUSE = {
+    "rows": "the agent mapping it wrote findings the map's rules refuse, and did the same again after it was sent "
+            "back once with the reason",
+    "writer": "the agent that mapped it is not one whose work the map can count (it used a tool it is not allowed, or "
+              "is not the kit's mapping agent), and the same happened again after it was sent back once",
+    "stalled": "the agent mapping it made no progress, each time it was sent back",
+    "outside": "its findings were changed after its mapping agent wrote them, by something other than the kit (a "
+               "script or a hand edit), so they cannot be counted, and that happened again after it was written once "
+               "more",
+}
+
+
+def _stalled_resettable(reg, units):
+    import fast_map
+    p = pathlib.Path(reg) / fast_map.FOLDER / FAST_LAUNCHES
+    got = json.loads(p.read_text(encoding="utf-8")) if p.is_file() else {}
+    return [u for u in units if (got.get(u) or {}).get("resets", 0) < fast_map.MAX_RESETS]
+
+
+def _reset_stalled(reg, units):
+    """The person's "try again" on units held by the stall cap: each one's count of launches without progress starts
+    again (once, fast_map.MAX_RESETS), so its mapping agent is launched again."""
+    import fast_map
+    p = pathlib.Path(reg) / fast_map.FOLDER / FAST_LAUNCHES
+    got = json.loads(p.read_text(encoding="utf-8")) if p.is_file() else {}
+    done = []
+    for u in _stalled_resettable(reg, units):
+        rec = got.setdefault(u, {"launches": 0, "listed": 0, "stalled": 0})
+        rec["stalled"] = 0
+        rec["resets"] = rec.get("resets", 0) + 1
+        done.append(u)
+    if done:
+        p.write_text(json.dumps(got, indent=1), encoding="utf-8")
+    return done
+
+
+def _stuck(reg, flow, sub, units, kind, said, why):
+    """A mapping agent stuck after its relaunch: the lead's correction task when the person chose it,
+    else a stop that puts numbered choices to the person in plain words, each saying what happens next. They answer
+    with the number or in their own words; nothing they must remember. Every set of choices has a way on."""
+    import fast_map
+    f = case.flow(reg, flow)
+    chose = f.get(CORRECTING) or {}
+    if kind == "rows" and chose and set(units) <= set(chose.get("units") or []):
+        told = (f"The person said: '{chose['words']}'; where their words name a value, write that value. "
+                if (chose.get("words") or "").strip() else "")
+        return _judgment(sub, told + "The person chose that you correct these rows yourself. Put right each problem "
+                         "named below, changing only the rows it names, so the rows meet the unit rules, each change with "
+                         "`python <skill>/fast_map.py fix <register> <unit> <table> <row_id> <column> \"<value>\"` "
+                         "(or `--remove` in place of the column and value; `--nth 2` for a second row with the same "
+                         "id), never with Write, Edit or a script: a unit changed any other way is set aside and "
+                         "written again by its mapping agent. Then call this again. If you cannot put them right, "
+                         "call this again with --event choices, which puts the choices to the person again",
+                         [f"units/{u}/ (the rows named only, through fast_map.py fix)" for u in units],
+                         ["fast_map.py check"], why)
+    retry = (_stalled_resettable(reg, units) if kind == "stalled" else fast_map.can_reset(reg, units))
+    retry = retry and set(units) <= fast_map.planned(reg)  # only a unit of this flow's plan has an agent to send
+    who = _names(reg, units)
+    choices = []
+    if kind == "rows":
+        values = [m for u in units for m in fast_map.value_misses(reg, u)]
+        choices.append(("correct", ("Tell me the right value, or let me correct those findings myself, only where "
+                                    "the check names them; mapping goes on once they pass.") if values else
+                        "I correct those findings myself, only where the check names them, and mapping goes on once "
+                        "they pass."))
+    if retry:
+        told = "" if kind == "stalled" else ", told what was wrong"
+        choices.append(("retry", f"Send the agent once more{told}. If it is held again, you get these choices again, "
+                                 "without this one."))
+    choices.append(("leave-unread", f"Leave {who} unread: the map shows it as not read, with your words, and mapping "
+                                    "goes on with the rest."))
+    choices.append(("stop", "Stop mapping here: what is mapped so far is kept."))
+    lines = [f"Mapping is held at {who}: {CAUSE[kind]}. What would you like to do?", ""]
+    if kind == "rows":
+        named = list(dict.fromkeys(f"The {VALUE_WORDS.get(c, c.replace('_', ' '))} \"{v}\" is not one the kit takes; "
+                                   f"it takes one of: {', '.join(allowed)}."
+                                   for u in units for _, _, c, v, allowed in fast_map.value_misses(reg, u)))
+        lines[1:1] = named + ([""] if named else [])
+    lines += [f"{i}. {label}" for i, (_, label) in enumerate(choices, 1)]
+    lines += ["", "Answer with the number, or in your own words."]
+    text = "\n".join(lines)
+    folder = pathlib.Path(reg) / MESSAGES
+    folder.mkdir(exist_ok=True)
+    msg = folder / f"mapping-held-{sub.replace(' ', '-')}.md"
+    msg.write_text(text, encoding="utf-8")
+    code, out = _run(["brief.py", "say", str(reg), str(msg)])
+    if code != 0 and kind == "rows" and named:  # the value lines name the kit's columns: the choices alone
+        text = "\n".join(x for x in lines if x not in named)
+        msg.write_text(text, encoding="utf-8")
+        code, out = _run(["brief.py", "say", str(reg), str(msg)])
+    if code != 0:  # never sent unchecked: a message of the kit's that say refuses is a kit defect
+        return {"kind": "code", "sub": sub, "ok": False, "command": ["python", "brief.py", "say", str(reg), str(msg)],
+                "said": out, "kit_finding": _kit_defect(reg, "mapping-held", _stuck, out)}
+    shown = out
+    case.set_flow(reg, flow, **{STUCK: {"units": list(units), "kind": kind, "shown": shown, "text": text,
+                                        "choices": [ev for ev, _ in choices], "sub": sub, "said": said,
+                                        "why": list(why)}, CORRECTING: {}})
+    records = {str(i): f'next.py --event {ev} "<their words>"' for i, (ev, _) in enumerate(choices, 1)}
+    return {"kind": "stop", "stop": "mapping held", "sub": sub, "message": shown, "said": said, "why": why,
+            "units": list(units), "choices": [{"n": i, "event": ev, "label": label}
+                                              for i, (ev, label) in enumerate(choices, 1)],
+            "records_with": ("send the message as printed; take their answer by its number or its words to one "
+                             "choice and call " + "; ".join(f"{n} -> {c}" for n, c in records.items())
+                             + "; an answer that fits none: ask again in plain words; never ask them for a command "
+                             "or a set phrase")}
+
+
+CORRECTION_COPY = "correcting"  # fast/correcting/<unit>/: the unit's tables as they were when the person chose
+UNIT_FILES = ("subjects", "operations", "calls", "participation", "files")
+
+
+def _named_rows(unit, why):
+    """The row ids of `unit` the held step's problems name: the only rows the lead's correction may change."""
+    import re
+    return sorted(set(re.findall(rf"\b{re.escape(unit)}-[\w.-]*\w", " ".join(why))))
+
+
+def _correction_breaches(reg, chose):
+    """What the lead's correction changed beyond the rows named: a row not named that is changed or gone, or rows
+    added or removed. Compared with the copy taken when the person chose the correction."""
+    import fast_map
+    reg = pathlib.Path(reg)
+    out = []
+    for u in chose.get("units") or []:
+        named = set((chose.get("named") or {}).get(u) or [])
+        for t in UNIT_FILES:
+            old = fast_map.rows(reg / fast_map.FOLDER / CORRECTION_COPY / u / f"{t}.csv")
+            new = [dict(r) for r in fast_map.rows(reg / "units" / u / f"{t}.csv")]
+            free = sum((r.get("row_id") or "").strip() in named for r in old)
+            for r in old:
+                if (r.get("row_id") or "").strip() in named:
+                    continue
+                if r in new:
+                    new.remove(r)
+                else:
+                    out.append(f"{u}'s {t} row {(r.get('row_id') or '').strip() or '(no id)'} was changed or "
+                               "removed, and the check did not name it")
+            if len(new) > free:  # a named row may be removed (fast_map.py fix --remove), never one added
+                out.append(f"{u}'s {t} table has {len(new)} row(s) in place of the {free} the check named: rows were "
+                           "added")
+    return out
+
+
+def _correction_checked(reg, flow, sub):
+    """While the person's choice of the lead's correction is open: a refusal, as a task naming what to put back, when
+    the correction changed more than the rows named; once the units' rows meet the unit rules again, the choice is
+    closed (a later hold on them puts the choices to the person again). None otherwise."""
+    import fast_map
+    f = case.flow(reg, flow)
+    chose = f.get(CORRECTING) or {}
+    if not chose.get("units"):
+        return None
+    breaches = _correction_breaches(reg, chose)
+    if breaches:
+        case.log(reg, "the lead's correction changed rows not named", units=chose["units"], said=breaches)
+        return _judgment(sub, "REFUSED: your correction changed rows the check did not name. Put each back exactly as "
+                         f"it was (the copy is in {fast_map.FOLDER}/{CORRECTION_COPY}/<unit>/), keep only the "
+                         "changes to the rows named, then call this again",
+                         [f"units/{u}/ (the rows named only)" for u in chose["units"]], ["fast_map.py check"],
+                         breaches)
+    if not any(fast_map.unit_problems(reg, u) for u in chose["units"]):
+        case.set_flow(reg, flow, **{CORRECTING: {}})
+        case.log(reg, "the lead's correction holds", units=chose["units"])
+    return None
+
+
+ANSWER_EVENTS = {"retry": "try again", "leave-unread": "leave unread", "correct": "correct the rows"}
+
+
+def _not_a_choice(reg, flow, held, line):
+    """The held choices again, opened by one plain line saying why the answer was not taken."""
+    folder = pathlib.Path(reg) / MESSAGES
+    folder.mkdir(exist_ok=True)
+    msg = folder / "mapping-held-again.md"
+    msg.write_text(f"{line}\n\n{held.get('text') or ''}", encoding="utf-8")
+    code, out = _run(["brief.py", "say", str(reg), str(msg)])
+    return {"kind": "stop", "stop": "mapping held", "sub": held.get("sub") or "", "units": held.get("units") or [],
+            "message": out if code == 0 else msg.read_text(encoding="utf-8"), "said": held.get("said") or "",
+            "not taken": line,
+            "choices": [{"n": i, "event": ev, "label": ""} for i, ev in enumerate(held.get("choices") or [], 1)],
+            "records_with": "send the message as printed; take their answer to one choice and call next.py with that "
+                            "choice's --event and their words; never ask them for a command or a set phrase"}
+
+
+def _stuck_answer(reg, flow, kind, words, test):
+    """The person's answer to the choices of a stuck mapping agent, checked against the choices put to them before
+    anything is recorded: try again resets the units' counts once, leave unread records them as a gap with their words
+    (and sends a register already merged back to the merge, so their rows are merged out), correct hands the named
+    rows to the lead, choices puts them again. An answer that is not one of the choices returns them again, with one
+    line saying why; nothing is recorded."""
+    import fast_map
+    f = case.flow(reg, flow)
+    held = f.get(STUCK) or {}
+    if kind == "choices":
+        if f.get(CORRECTING):
+            case.set_flow(reg, flow, **{STUCK: f[CORRECTING], CORRECTING: {}})
+        return None
+    if not held.get("units"):
+        if kind == "retry":
+            return None  # a try again at another stop (agents lost): not an answer to these choices
+        return {"kind": "code", "sub": f.get("sub") or "", "ok": False,
+                "said": "REFUSED: no choice is waiting on the person; call run control without --event."}
+    if kind not in (held.get("choices") or []):
+        why = ("Sending the agent once more was already used for this service, so that choice is not open now."
+               if kind == "retry" else
+               "Correcting the findings myself is not open here, because the agent's work cannot be counted, "
+               "whatever is corrected." if kind == "correct" else "That answer is not one of the choices.")
+        return _not_a_choice(reg, flow, held, why)
+    units, why = held["units"], held.get("kind")
+    case.decide(reg, "mapping held", held.get("shown") or "", words, "chat", test=test, choice=ANSWER_EVENTS[kind],
+                units=units)
+    if kind == "retry":
+        done = _reset_stalled(reg, units) if why == "stalled" else fast_map.reset_set_aside(reg, units, words)
+        case.log(reg, "the person's try again reset", units=done)
+        case.set_flow(reg, flow, **{STUCK: {}, CORRECTING: {}})
+    elif kind == "leave-unread":
+        fast_map.leave_unread(reg, units, words)
+        case.log(reg, "left unread on the person's word", units=units)
+        steps = order(reg)
+        now = f.get("sub") or ""
+        if now in steps and "merge" in steps and steps.index(now) > steps.index("merge"):
+            case.set_flow(reg, flow, **{STUCK: {}, CORRECTING: {}, "sub": "merge"})  # merged again, without them
+        else:
+            case.set_flow(reg, flow, **{STUCK: {}, CORRECTING: {}})
+    elif kind == "correct":
+        import shutil
+        for u in units:
+            dest = pathlib.Path(reg) / fast_map.FOLDER / CORRECTION_COPY / u
+            if dest.exists():
+                shutil.rmtree(dest)
+            if (pathlib.Path(reg) / "units" / u).is_dir():
+                shutil.copytree(pathlib.Path(reg) / "units" / u, dest)
+        named = {u: _named_rows(u, held.get("why") or []) for u in units}
+        case.set_flow(reg, flow, **{STUCK: {}, CORRECTING: dict(held, named=named, words=words)})
+    return None
+
+
 def _fast_read(reg, flow, sub):
     """The mapping agent still owed (fast read), or None when every unit of the plan is written by a writer that is
     not refused."""
     import fast_map
-    held = _fast_set_aside(reg, sub)
-    if held and held.get("kind") == "code":
+    held = _fast_set_aside(reg, flow, sub)
+    if held and held.get("kind") != "set aside":
         return held
     if not (reg / fast_map.FOLDER / fast_map.GROUPS).is_file():
         got = fast_map.plan(reg, flow, judges.workspace(reg))
@@ -533,19 +823,101 @@ def _fast_read(reg, flow, sub):
                 "many times as run-settings.json relaunches allows: its tables list no more files than before. "
                 "Nothing was launched. Look at the unit's status note in fast/mappers/ for why.")
         case.log(reg, "fast read held", said=said)
-        return {"kind": "code", "sub": sub, "ok": False, "said": said}
+        return _stuck(reg, flow, sub, stuck, "stalled", said, [said])
     # one mapping agent per service, or per share of one; a relaunch names only the units still owed
     launch = fast_map.write_prompt(reg, flow, judges.workspace(reg),
                                    only=set(missing) if len(missing) < len(owed) else None)
-    import settings
-    at_once = int(settings.load(reg).get("parallel") or 6)
     agents = [{"name": g, "agent_type": fast_map.AGENT, "units": us,
                "prompt": f"Read {p.as_posix()} and do exactly what it says. Reply with one line."}
               for g, p, us in launch]
+    # every mapper the session has room for at once: one held back is the step's whole tail
+    room = _agent_room(reg)
+    at_once = min(len(agents), room)
+    first = (f"all {len(agents)} in one message, none held back" if at_once == len(agents) else
+             f"the first {at_once} in one message (the session has room for {room} more agents now), then each of "
+             "the rest, in order, as each running one returns")
     return {"kind": "agent", "sub": sub, "agent_type": fast_map.AGENT, "agents": agents, "units": missing,
-            "then": f"launch every agent listed, each with the Agent tool, subagent_type {fast_map.AGENT}, with its "
-                    f"prompt as its whole prompt, all in one message (at most {at_once} at once; launch the rest as "
-                    "each returns), wait for every reply, then call this again"}
+            "at_once": at_once,
+            "then": f"launch the agents listed, each with the Agent tool, subagent_type {fast_map.AGENT}, with its "
+                    f"prompt as its whole prompt: {first}. A launch Claude Code refuses with \"Concurrent subagent "
+                    "limit reached\" is expected here: its error says not to retry, but this step owes that agent, "
+                    "so launch the refused one again as each running one returns, never dropping it. Wait for every "
+                    "reply, then call this again: run control launches any mapper still owed"}
+
+
+def _agent_room(reg):
+    """How many agents Claude Code will start now: its limit on agents running at once in a session
+    (CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS, else judges.SESSION_LIMIT) less those the run has running; at least one."""
+    import agents_now
+    try:
+        limit = int(os.environ.get("CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS") or judges.SESSION_LIMIT)
+    except ValueError:
+        limit = judges.SESSION_LIMIT
+    running = int((agents_now.gather(reg) or {}).get("at_work") or 0)
+    return max(1, limit - running)
+
+
+def _merge_refused(reg, flow, sub, failed):
+    """A full mapping's merge that refused a unit's rows (merge.py `PROBLEM: units/<unit>...`): the reader of each unit
+    named is relaunched once with the merge's reason (readers.py retry, which the guard allows at the merge), as the
+    fast map relaunches its mapping agent. A unit whose relaunched reader is back and still refused, or a failure
+    naming no unit, is returned as the failed step, saying who acts next."""
+    import re
+    known = {(r.get("unit") or "").strip() for r in tables.dicts(reg / layout.UNITS_CSV)}
+    by = {}
+    for line in (failed.get("said") or "").splitlines():
+        m = re.match(r"PROBLEM: (units/([^/\s:]+)\S*.*)$", line.strip())
+        if m and m.group(2) in known:
+            by.setdefault(m.group(2), []).append(m.group(1))
+    if not by:
+        return failed
+    seen = judges.Launches(reg)
+    state = {u: seen.state(layout.prompts_dir(reg, u) / readers.MERGE_FIX) for u in by}
+    done = {u: s for u, s in state.items() if s in MERGE_FIX_ENDED}
+    fresh = [u for u in sorted(by) if u not in done]
+    if fresh:  # each unit refused for the first time gets its one relaunch, whatever the others' state
+        held = _readers_held(reg, fresh)
+        if held:
+            case.log(reg, "merge fix held", said=held)
+            return {**failed, "said": f"{failed['said']}\nREFUSED: the reader of {_names(reg, fresh)} cannot be "
+                                      f"launched again with the merge's reason: {held}. Nothing was launched. Put "
+                                      "that right and call run control again; if it is not yours to put right, tell "
+                                      "the person what it says."}
+        lines = readers.emit(reg, fresh, "retry", reason={u: "\n".join(by[u]) for u in fresh})
+        a = _fanout(reg, flow, sub, "reader", 1, fresh, lines)
+        if a is not None:
+            case.log(reg, "relaunched readers with the merge's reason", units=fresh)
+            return a
+        done.update({u: state[u] or "finished" for u in fresh})
+    _close_open(reg, flow, "reader", units=done)
+    said = [failed["said"]]
+    refused = sorted(u for u, s in done.items() if s == "finished")
+    erred = sorted(u for u, s in done.items() if s == "gave up")
+    shell = sorted(u for u, s in done.items() if s == "ran a shell")
+    if refused:
+        said.append(f"REFUSED: the merge still refuses the rows of {_names(reg, refused)} after its reader was launched "
+                    "once more with the merge's reason. Tell the person what the merge refuses, in their terms; on "
+                    "their word to stop mapping here, next.py --event stop \"<their words>\".")
+    if erred or shell:
+        why = ([f"the reader of {_names(reg, erred)}, launched again with the merge's reason, stopped on an error "
+                "from the service that runs the model each time it was tried"] if erred else []) + (
+               [f"the reader of {_names(reg, shell)}, launched again with the merge's reason, used a tool it is not "
+                "allowed, so its work is not counted"] if shell else [])
+        said.append("REFUSED: " + "; and ".join(why) + ". Tell the person; on their word to try again, next.py --event "
+                    "retry \"<their words>\" launches it afresh; on their word to stop mapping here, next.py --event "
+                    "stop \"<their words>\".")
+    case.log(reg, "merge held", units=sorted(done))
+    return {**failed, "said": "\n".join(said) + "\nNothing was launched."}
+
+
+MERGE_FIX_ENDED = ("finished", "gave up", "ran a shell")
+STEPPED_BACK = "stepped_back"  # in a flow's case record: the end-of-mapping refusal run control last stepped back on
+
+
+def _close_open(reg, flow, kind, units=None):
+    for r in case.records(reg):
+        if r["status"] == "open" and r["flow"] == flow and r["kind"] == kind and (units is None or r["unit"] in units):
+            case.close_record(reg, r["id"])
 
 
 def _step(reg, flow, sub):
@@ -578,16 +950,26 @@ def _step(reg, flow, sub):
         return _fast_read(reg, flow, sub)
     if sub == "fast check":
         import fast_map
-        refused = _fast_set_aside(reg, sub)
+        refused = _fast_set_aside(reg, flow, sub)
         if refused:  # a refused mapping agent: its units are launched again, never handed to the person to relaunch
-            return refused if refused.get("kind") == "code" else _fast_read(reg, flow, "fast read")
+            return refused if refused.get("kind") != "set aside" else _fast_read(reg, flow, "fast read")
         found, _ = fast_map.check(reg, flow, judges.workspace(reg))
         return _judgment(sub, "Put right what the fast map's rule check found: a cited range that does not exist, in "
-                         "the unit row or your own row it names; or, for a unit the mapping agent did not write, launch "
-                         "it again (fast read)", LEAD_WRITE + ["units/<unit>/ (the row named only)"],
+                         "the unit row or your own row it names (a unit row only with `python <skill>/fast_map.py fix "
+                         "<register> <unit> <table> <row_id> <column> \"<value>\"`, never Write, Edit or a script: a "
+                         "unit changed any other way is set aside and written again by its mapping agent); or, for a "
+                         "unit the mapping agent did not write, launch it again (fast read)",
+                         LEAD_WRITE + ["units/<unit>/ (the row named only, through fast_map.py fix)"],
                          ["fast_map.py check"], found) if found else None
     if sub == "fast draw":
         import fast_map
+        checked = _correction_checked(reg, flow, sub)
+        if checked:
+            return checked
+        if fast_map.normalise_units(reg):  # a unit corrected since the merge: written back in the list's spelling
+            a = _code(reg, sub, ["merge.py", str(reg)])
+            if a:
+                return a
         a = _code(reg, sub, ["fast_map.py", "draw", str(reg), flow], lambda: (reg / fast_map.PAGE).is_file())
         if a:
             return a
@@ -598,11 +980,14 @@ def _step(reg, flow, sub):
                 said = (f"REFUSED: the mapping agent's rows for {', '.join(stuck)} were refused again by the map's "
                         f"check after it was launched once more: {'; '.join(why)}. Nothing was launched.")
                 case.log(reg, "fast draw held", said=said)
-                return {"kind": "code", "sub": sub, "ok": False, "said": said}
+                return _stuck(reg, flow, sub, stuck, "rows", said, why)
             case.log(reg, "set aside units the map's check refused", units=owed)
             return _fast_read(reg, flow, "fast read")
-        return (_code(reg, sub, ["capability_views.py", str(reg), "--check"])
-                or _code(reg, sub, ["one_canvas.py", str(reg), str(reg / "views.html")]))
+        a = (_code(reg, sub, ["capability_views.py", str(reg), "--check"])
+             or _code(reg, sub, ["one_canvas.py", str(reg), str(reg / "views.html")]))
+        if a is None:  # the map is drawn: its phases are done, closed here so the run's record times them
+            _close_mapping_rows(reg, flow)
+        return a
     if sub == "units":
         _record_reading(reg)
         if (reg / layout.UNITS_CSV).is_file():
@@ -619,7 +1004,11 @@ def _step(reg, flow, sub):
         return _fanout(reg, flow, sub, "reader", 1, owed, readers.emit(reg, owed, "read"),
                        lambda: _lost(reg, sub))
     if sub == "merge":
-        return _code(reg, sub, ["merge.py", str(reg)]) or _redraw_stale(reg, flow, sub)
+        failed = _code(reg, sub, ["merge.py", str(reg)])
+        if failed:
+            return _merge_refused(reg, flow, sub, failed)
+        _close_open(reg, flow, "reader")  # a reader relaunched with the merge's reason: its work is merged now
+        return _redraw_stale(reg, flow, sub)
     if sub == "re-reads":
         if not _unmatched(reg):
             return None
@@ -640,8 +1029,14 @@ def _step(reg, flow, sub):
                 "delivers and a stage's cannot-be-undone answered from the "
                 "lifecycle and the map. You wrote the lifecycle before the mapping agents found the calls: for each "
                 "call listed whose step's moves do not name its callee, add the callee to that move's needs in "
-                "lifecycle.csv, or correct the call's step_hint. A row added to the parts after the merge goes in "
-                "merge/lead-rows/; merge again")
+                "lifecycle.csv, or correct the call's step_hint. A part a move names whose service the fast map does "
+                "not read (its stage is left mapped only): its row in merge/lead-rows/subjects.csv (level, band, "
+                "part_kind, repository and purpose, cited to what the first look read, with 'not read in this run' "
+                "in its source) and its performs or supports rows in merge/lead-rows/participation.csv from the "
+                "lifecycle's carried_by and needs, with no operation, and its subject_id in "
+                f"{PLACEHOLDERS} (columns subject_id and flow, this flow's id); then gap its 'part: operations' and "
+                f"'part: depends on' in measure-gaps.csv, kind 'not read', why '{NOT_READ_WHY}'. A row added to the "
+                "parts after the merge goes in merge/lead-rows/; merge again")
         return _judgment(sub, task, LEAD_ROWS_WRITE, ["impact", "parts"], found) if found else None
     if sub == "lead rows":
         found = _check_lead_rows(reg, flow)
@@ -690,8 +1085,23 @@ def _step(reg, flow, sub):
     if sub == "mapping ends":
         code, out = _run(["go.py", str(reg), "--mapping-ends", flow])
         case.log(reg, "ran go.py --mapping-ends", code=code, said=out[-400:])
+        if code != 0 and "the split run's checks do not pass" in out and case.flow(reg, flow).get(STEPPED_BACK) != out:
+            # a unit's rows changed after the merge (a stop fixer): the merge and the judging are owed again, so run
+            # control walks them from the merge, once for each refusal
+            case.set_flow(reg, flow, state="mapping", sub="merge", **{STEPPED_BACK: out})
+            case.log(reg, "ending refused by the split checks: back to the merge", said=out[-400:])
+            return {"kind": "step back", "sub": "merge"}
+        if code != 0 and fast(reg):  # the fast map has no fixers: the guard refuses one
+            return _judgment(sub, "Put right what ending the flow refused, then hand back: a reason on your own rows "
+                             "in your own tables; a reason on a unit's row with `python <skill>/fast_map.py fix "
+                             "<register> <unit> <table> <row_id> <column> \"<value>\"`, never Write, Edit or a script",
+                             ["the lead's own tables", "a unit's row, through fast_map.py fix"],
+                             ["go.py --mapping-ends"], [out])
         if code != 0:
-            return _judgment(sub, "Put right what ending the flow refused, then hand back", ["the lead's own tables"],
+            return _judgment(sub, "Put right what ending the flow refused, then hand back: a reason on your own rows "
+                             "in your own tables; a reason only a unit's rows can clear goes to that unit's fixer "
+                             "(readers.py prompt <register> <unit> --mode stop --reason \"<the reason, as printed>\")",
+                             ["the lead's own tables", "a unit's rows, through its fixer (readers.py ... --mode stop)"],
                              ["go.py --mapping-ends"], [out])
         return None
     raise ValueError(sub)
@@ -732,18 +1142,22 @@ def _map_stop(reg, flow, ended, by_kit=False):
         code, out = _run(["brief.py", "say", str(reg), str(f)])
         if code != 0:
             return {"kind": "code", "sub": "map stop", "ok": False,
-                    "command": ["python", "brief.py", "say", str(reg), str(f)], "said": out}
+                    "command": ["python", "brief.py", "say", str(reg), str(f)], "said": out,
+                    "kit_finding": _kit_defect(reg, "fast-map-stop", _map_stop, out)}
+        import kit_findings
+        beside = kit_findings.line(reg)
+        beside = f" Send beside the report, as it is: {beside}" if beside else ""
         if by_kit and _further(reg):
             return {"kind": "stop", "stop": "map", "message": out, "records_with": "next.py --event chat",
                     "then": ("back to the stage kit's SKILL.md: the measures for the stages taken further ("
                              + ", ".join(_further(reg)) + "), drafted from the fast map's rows; then selective.py "
                              "check before the measures review, which then shows each measure's rows as checked, "
-                             "flagged or not checked")}
+                             "flagged or not checked" + beside)}
         return {"kind": "stop", "stop": "map", "message": out, "records_with": "next.py --event chat",
                 "then": ("the flow is finished: this message is its report. Then, with flows left, the stage kit's "
                          "SKILL.md 'Then the next flow' (brief.py next --after, sent at the end of this message), "
-                         "and go.py --report-sent once it is sent" if by_kit else
-                         "the fast map is handed over: every stage was left mapped only")}
+                         "and go.py --report-sent once it is sent" + beside if by_kit else
+                         "the fast map is handed over: every stage was left mapped only" + beside)}
     if flow not in {f["flow_id"] for f in mr.load(reg)["flows"]}:
         text = "Mapping stopped before the flow's own rows were written, so there is no map yet and nothing to inspect."
     else:
@@ -757,7 +1171,8 @@ def _map_stop(reg, flow, ended, by_kit=False):
     code, out = _run(["brief.py", "say", str(reg), str(f)])
     if code != 0:
         return {"kind": "code", "sub": "map stop", "ok": False,
-                "command": ["python", "brief.py", "say", str(reg), str(f)], "said": out}
+                "command": ["python", "brief.py", "say", str(reg), str(f)], "said": out,
+                "kit_finding": _kit_defect(reg, "map-stop", _map_stop, out)}
     a = {"kind": "stop", "stop": "map", "message": out, "records_with": "next.py --event chat"}
     if by_kit:
         a["then"] = "back to the stage kit's SKILL.md for the pick of how far each stage goes"
@@ -787,6 +1202,14 @@ def decide(reg, flow, event=None, by_kit=False, test=False):
         _timings(reg, event[0] if event else "")
 
 
+def _close_mapping_rows(reg, flow):
+    """Set RUN.md's phases 1 to 3 done through run_md's logged writer, once a fast map is drawn: the lead writes their
+    rows but no later step of a fast run closes them. A row already done is left as it is."""
+    import run_md
+    for lead in ("1 ", "2 ", "3 "):
+        run_md.set_row(reg, lead, "done", flow=flow, by="run control")
+
+
 def _timings(reg, why=""):
     """Rewrite job/timings.csv (timings.refresh) on every call, whatever it decides: a launch, a launcher's reply, a
     wait, and every stop (mapping ends, the person's stop, agents lost), so the run's timing record is current while a
@@ -800,6 +1223,17 @@ def _timings(reg, why=""):
             case.log(reg, "timings.csv not written", said="timings.py could not be loaded")
         except Exception:  # noqa: BLE001
             pass
+
+
+def _note_failed(reg, flow, a):
+    """Keep in the flow's case record what its step said when it failed (guard.FAILED), cleared once a step does not,
+    so a script the guard refuses meanwhile names that step and its recovery instead of sending the session back to
+    run control, which would return the same failure."""
+    said = ""
+    if a is not None and a.get("kind") == "code" and a.get("ok") is False:
+        said = " ".join((a.get("said") or "the step's command failed").split())[-600:]
+    if (case.flow(reg, flow).get(guard.FAILED) or "") != said:
+        case.set_flow(reg, flow, **{guard.FAILED: said})
 
 
 def _decide(reg, flow, event, by_kit, test):
@@ -817,6 +1251,10 @@ def _decide(reg, flow, event, by_kit, test):
             return a
         if kind == "retry":
             _retry(reg, f.get("sub") or "")
+        if kind in ("retry", "leave-unread", "correct", "choices"):
+            answered = _stuck_answer(reg, flow, kind, payload, test)
+            if answered:
+                return answered
         if kind == "chat":
             return _judgment(f.get("sub"), "Read the person's words: a topic to talk about, a redirect, a stop, or an answer "
                              "to the open question. Say back your reading in one line before anything that discards "
@@ -844,6 +1282,9 @@ def _decide(reg, flow, event, by_kit, test):
             case.set_flow(reg, flow, state="mapping", sub="units")
             return _decide(reg, flow, None, by_kit, test)
         a = _step(reg, flow, s)
+        if a is not None and a.get("kind") == "step back":
+            return _decide(reg, flow, None, by_kit, test)
+        _note_failed(reg, flow, a)
         if a is not None:
             case.draw_run_md(reg)
             return a

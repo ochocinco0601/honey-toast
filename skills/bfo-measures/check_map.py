@@ -249,7 +249,8 @@ def report(reg, flow_id, items=None):
     """The inspection as the person reads it at the map stop, with mapping's part of the done check still open in its
     first line, and, when any file of the code could not be read, the line that says so."""
     items = open_items(reg, flow_id) if items is None else items
-    return "\n".join(x for x in (said(inspect(reg, flow_id), items), not_read_line(reg), mr.unread_line(reg)) if x)
+    return "\n".join(x for x in (said(inspect(reg, flow_id), items), not_read_line(reg), mr.unread_line(reg),
+                                 mr.unread_named(reg)) if x)
 
 
 def main(argv):

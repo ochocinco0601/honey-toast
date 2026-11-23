@@ -7,6 +7,7 @@ import pathlib
 
 CODE_ROOT = "code-root.txt"  # the folder the survey read the code from, relative to the workspace (survey.py)
 SETTINGS = "run-settings.json"
+CODE_READER_NOTE = "code-reader-not-run.txt"  # why the code reader did not finish, in the person's words (first_look.py)
 SCOPE = "scope.json"  # the person's picks at the go, written by go.py
 ORIENTATION = "orientation.json"  # the run's first look, for the capability brief (brief.py)
 RUN_HTML = "run.html"

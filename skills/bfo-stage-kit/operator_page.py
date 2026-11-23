@@ -212,11 +212,22 @@ def workspace(reg):
 
 
 def started_at(reg):
-    for p in (reg / "_run-state" / "run-started.json", reg / "run-started.json", reg.parent / "run-started.json"):
+    """When this run started, from its own records only: its run's start folder naming it, else the work folder's
+    window-wide record (an earlier release's) while that one is this register's (agents_now.window_record_is), so a
+    run never shows another run's start."""
+    import agents_now
+    reg = pathlib.Path(reg)
+    for p in (reg / "_run-state" / "run-started.json", reg / "run-started.json"):
         t = _iso((_json(p) or {}).get("started"))
         if t:
             return t
-    return None
+    mine = (str(reg), str(reg.resolve()))
+    for p in sorted(reg.parent.glob("_start-*/run-started.json")):
+        d = _json(p) or {}
+        if str(d.get("register") or "") in mine and _iso(d.get("started")):
+            return _iso(d.get("started"))
+    d = _json(reg.parent / "run-started.json") or {}
+    return _iso(d.get("started")) if agents_now.window_record_is(reg, d) else None
 
 
 def last_work(reg):
@@ -470,6 +481,11 @@ def said_back(reg):
     return sb if isinstance(sb, dict) and sb.get("state") == "waiting" and sb.get("lines") else None
 
 
+def s_no(steps, n):
+    """The number step `n` is shown with: its place, where a fast map puts the pick before the map."""
+    return next((s.get("shown", n) for s in steps if s["numbers"] == [n]), n) if n is not None else None
+
+
 def step_clock(reg, scope, steps, now, starting):
     """A time on every step (step_times): a work step's span, or how long it has run so far; a decision's answer time
     with how long the run waited on the person; "time not recorded" where the run recorded none. Never raises."""
@@ -480,6 +496,12 @@ def step_clock(reg, scope, steps, now, starting):
         changes = stt.seen_changes(reg, raw, flow, now) if raw else {}
         spans, pick_at = stt.mapping_spans(reg, flow)
         plan = stt._mtime(reg / "PLAN.md")
+        floor = None  # the latest end of the steps above, in the page's order: no work step starts before it
+
+        def later(t):
+            nonlocal floor
+            if t is not None and (floor is None or t.timestamp() > floor.timestamp()):
+                floor = t
         for s in steps:
             n, st = s["numbers"][0], s["state"]
             if st not in (DONE, DOING) or s.get("say_back"):
@@ -491,20 +513,29 @@ def step_clock(reg, scope, steps, now, starting):
                 asked = plan if n == 2 else pick_at if n == 4 else stt.row_span(changes, leads)[0]
                 if s["time"] and answered and asked and answered >= asked:
                     s["time"] += f" · answered after {stt._mins(asked, answered)} min"
-                continue
-            if s["time"]:
+                later(answered)
                 continue
             if n == 1:
                 begun = stt.start_answer(reg)
-                note = "" if begun else " (from the start step, includes the wait at the say-back)"
+                if not begun and started_at(reg):  # said under the title, so the time column stays short
+                    s["note"] = "from the start step, includes the wait at the say-back"
                 begun = begun or started_at(reg)
-                s["time"] = (stt.span_text(begun, plan if st == DONE else None, now) + note) if begun \
-                    else "time not recorded"
+                s["time"] = s["time"] or (stt.span_text(begun, plan if st == DONE else None, now) if begun
+                                          else "time not recorded")
+                later(plan if st == DONE else None)
             elif n == 3 and spans:
-                s["time"] = stt.spans_text(spans, now)
+                text, _, aside = stt.spans_text(spans, now).partition(" (")
+                s["time"] = s["time"] or text
+                if aside:  # "2 spans, the wait at the pick left out": under the title, not in the time column
+                    s["note"] = aside.rstrip(")")
+                later(spans[-1][1])
             else:
                 a, b, about = stt.row_span(changes, leads)
-                s["time"] = stt.span_text(a, b if st == DONE else None, now, about) if a or b else "time not recorded"
+                if a and floor and floor.timestamp() > a.timestamp():  # its row moved early (a fast map runs after
+                    a = floor  # the pick): the step began when the work it waits on was done
+                s["time"] = s["time"] or (stt.span_text(a, b if st == DONE else None, now, about) if a or b
+                                          else "time not recorded")
+                later(b if st == DONE else None)
     except Exception:  # noqa: BLE001  (a time is never worth losing the page for)
         pass
 
@@ -577,6 +608,10 @@ def read(reg, now=None, starting=False, transcripts=None):
             rec = recommended_next(reg, depth, left)
             s["said"] += f" · recommended next: {rec}" if rec else ""
         steps.append(s)
+    if scope.get("mapping") == "fast":  # a fast map is drawn after the pick: the pick, then the map, numbered so
+        k3, k4 = (next(k for k, s in enumerate(steps) if s["numbers"] == [n]) for n in (3, 4))
+        steps[k3], steps[k4] = steps[k4], steps[k3]
+        steps[k3]["shown"], steps[k4]["shown"] = 3, 4
     if sb:  # nothing is read before the person's Start: the say-back is the step now, before the run's own
         steps = [s for s in steps if s["numbers"] != [12]]  # no "next flow" before any flow is begun
         steps.insert(0,{"numbers": [0], "title": SAY_BACK_TITLE, "decision": True, "state": "to do", "time": None,
@@ -611,6 +646,16 @@ def read(reg, now=None, starting=False, transcripts=None):
     # unfinished case is not activity in motion); a review is a real stop on the person's word
     next_open = (choice or {}).get("task") == NEXT_TASK or bool(cur and cur["numbers"] == [12])
     choice = None if (choice or {}).get("task") == NEXT_TASK else choice
+    # every step done and no flow left: the run has ended, so its quiet agents are finished. The next flow offered is
+    # not an end (the lead may be starting it): there every agent shows as it is
+    if not starting and cur is None:
+        seen = agents_now.as_ended(seen)
+        seen_badge = agents_now.badge(seen)
+    signs = [r["last"] for r in ([seen.get("lead")] + list(seen.get("agents") or [])) if r and r.get("last")]
+    if seen.get("readable") and signs:  # the newest sign the panel shows, with the run's answers and report: never a
+        # lock touched by the page or a redraw
+        events = signs + [t for t in [reported] + [decision_time(r[0], scope) for r in rows if is_decision(r[0])] if t]
+        last_any = max(events, key=lambda t: t.timestamp())
     if blocked:
         status = "blocked"
     elif choice:  # the record says the run waits on the person's choice, whichever row is current
@@ -648,13 +693,13 @@ def read(reg, now=None, starting=False, transcripts=None):
         # a stop on a pick or review is said in the status line's own words for it, so the two never disagree
         held = brief.WAITS.get(activity(cur["rows"][0])) if brief and cur and cur["decision"] and cur["rows"] else None
         what = held or (choice or {}).get("task") or ASKS.get(at) or cur["title"]
-        action = {"kind": "decide", "step": at, "what": what[:1].lower() + what[1:],
+        action = {"kind": "decide", "step": s_no(steps, at), "what": what[:1].lower() + what[1:],
                   "on_page": (choice or {}).get("milestone") in ON_PAGE if choice else False,
                   "resume": resume if age_min is None or age_min > STALE_MINUTES else None}
     elif status in ("paused", "blocked"):
         action = dict(resume, kind="resume")
     else:
-        action = {"kind": "none", "next": nxt, "ask": ASKS.get(nxt)}
+        action = {"kind": "none", "next": s_no(steps, nxt), "ask": ASKS.get(nxt)}
     if cur is not None and status == "paused" and cur["state"] == "to do":
         cur["said"] = cur["said"] or "On resume"
     jobs = job_counts(reg) if status in ("running", "quiet") else None
@@ -662,7 +707,7 @@ def read(reg, now=None, starting=False, transcripts=None):
         cur["said"] = f'{jobs["done"]} of {jobs["all"]} done' + (f' · {jobs["blocked"]} blocked' if jobs["blocked"] else "")
     issues = []
     for s in blocked:
-        issues.append({"what": f"Step {s['numbers'][0]}, {s['title']}, is blocked: "
+        issues.append({"what": f"Step {s_no(steps, s['numbers'][0])}, {s['title']}, is blocked: "
                                f"{s['why'] or 'the record gives no reason'}",
                        "clears": "Fixing what the reason names, then resuming the run", "bad": True})
     if off:
@@ -692,7 +737,10 @@ def read(reg, now=None, starting=False, transcripts=None):
             "last_ago": ago(now, last_any) if last_any else None, "recent": bool(last_any) and
             (now.timestamp() - last_any.timestamp()) < 3600,
             "status": status, "steps": steps, "current": current, "action": action, "issues": issues,
-            "left": left, "quiet_min": int(age_min) if status == "quiet" else None,
+            # the same source as Last activity and the panel's rows: the newest sign, else the lock's touch
+            "left": left, "quiet_min": (int((now.timestamp() - last_any.timestamp()) // 60) if last_any
+                                        else int(age_min) if age_min is not None else None)
+            if status == "quiet" else None,
             "at_work": sorted({case.AT_WORK.get(r["kind"], "agents are at work") for r in working}) if working else [],
             "agents": seen,
             "map_so_far": (map_so_far(reg, scope) if not starting and any(
@@ -701,7 +749,7 @@ def read(reg, now=None, starting=False, transcripts=None):
 
 ICON = {DONE: "i-ok", "decided": "i-youdone", DOING: "i-run", BLOCKED: "i-bad", NOT_PICKED: "i-skip",
         "to do": "i-todo", "next": "i-next", "you": "i-you"}
-BADGE = {"running": ("b-run", "i-run", "Running"), "quiet": ("b-off", "i-info", "No recent write"),
+BADGE = {"running": ("b-run", "i-run", "Running"), "quiet": ("b-off", "i-info", "Quiet · no recent write"),
          "paused": ("b-you", "i-pause", "Paused · action required"), "waiting": ("b-you", "i-you", "Waiting on you"),
          "blocked": ("b-bad", "i-bad", "Blocked"), "finished": ("b-ok", "i-ok", "Finished"),
          "stopped": ("b-bad", "i-bad", "Stopped: no agent working"), "starting": ("b-off", "i-info", "Starting")}
@@ -709,7 +757,7 @@ BADGE = {"running": ("b-run", "i-run", "Running"), "quiet": ("b-off", "i-info", 
 
 def step_html(s, status, waiting):
     ns = s["numbers"]
-    num = f"{ns[0]}–{ns[-1]}" if len(ns) > 1 else str(ns[0])
+    num = f"{ns[0]}–{ns[-1]}" if len(ns) > 1 else str(s.get("shown", ns[0]))
     if s.get("say_back"):
         return (f'<li class="step cur"><svg class="ic"><use href="#i-you"/></svg><span class="n">{E(s["title"])}'
                 '<span class="dec">decision</span></span><span class="d">Waiting on you · nothing in the code is '
@@ -737,7 +785,12 @@ def step_html(s, status, waiting):
         said = f'<a href="{E(s["link"])}">{said}</a>'
     elif not s["said"] and s["link"]:
         said = f'<a href="{E(s["link"])}">Open</a>'
-    desc = [said] if said else []
+    time = s["time"] or ""
+    # a time too long for the narrow column goes first on the line under the title, which keeps its width
+    desc = ([E(time)] if len(time) > TIME_COLUMN else []) + ([said] if said else [])
+    time = "" if len(time) > TIME_COLUMN else time
+    if s.get("note"):
+        desc.append(E(s["note"]))
     if st == BLOCKED and s["why"]:
         desc.append(E(s["why"]))
     if s["current"] and waiting:
@@ -745,7 +798,10 @@ def step_html(s, status, waiting):
     spin = " spin" if st == DOING and status == "running" and not waiting else ""
     d = f'<span class="d">{" · ".join(desc)}</span>' if desc else ""
     return (f'<li class="{cls}"><svg class="ic{spin}"><use href="#{ic}"/></svg>{title}{num}. {E(s["title"])}{tag}'
-            f'</span>{d}<span class="t">{E(s["time"] or "")}</span></li>')
+            f'</span>{d}<span class="t">{E(time)}</span></li>')
+
+
+TIME_COLUMN = 28  # characters: "since 09:40 · 44 min so far" fits beside a title; "done by 08:09 · start not recorded" does not
 
 
 def copy_cmd(text, path=False):
@@ -808,7 +864,7 @@ def action_html(m):
         said = "; ".join(m["at_work"])
         lead += f' <span class="note">Now: {E(said[:1].upper() + said[1:])}.</span>'
     if m["status"] == "quiet":
-        lead += (f' <span class="note">No write for {m["quiet_min"]} min: check the run\'s Claude Code tab before '
+        lead += (f' <span class="note">Nothing heard for {m["quiet_min"]} min: check the run\'s Claude Code tab before '
                  'resuming it.</span>')
     return f'<div class="panel"><div class="panel-h"><h3>Required action</h3></div><div class="act">{lead}</div></div>'
 
@@ -903,7 +959,9 @@ def working_html(m):
     if not g.get("readable"):
         return f'<div class="panel">{head}</div><div class="act"><span class="note">{E(g.get("reason") or "")}</span></div></div>'
     import agents_now
-    rows = ([g["lead"]] if g["lead"] else []) + [a for a in g["agents"] if a["state"] != agents_now.FINISHED]
+    rows = [r for r in ([g["lead"]] if g["lead"] else []) + g["agents"]
+            if r["state"] not in (agents_now.FINISHED, agents_now.QUEUED)]
+    queued = [r for r in g["agents"] if r["state"] == agents_now.QUEUED]
     now = dt.datetime.now(dt.timezone.utc).astimezone()
 
     def since(t):
@@ -915,6 +973,14 @@ def working_html(m):
         f'<td>{E(r["last_action"] or "-")}</td><td>{since(r["last"])}</td><td>{E(r["words"])}</td></tr>'
         for r in rows)
     tally = (f'<p class="note">Finished: {g["finished"]}.</p>' if g["finished"] else "")
+    if queued:  # one line for the launches not yet taken, by what they are on: rows only for work under way
+        by = {}
+        for r in queued:
+            by[r["on"]] = by.get(r["on"], 0) + 1
+        what = "checks" if all("judge" in (r["who"] or "") for r in queued) else "agents"
+        tally = (f'<p class="note">{len(queued)} {what} queued: '
+                 + ", ".join(f"{n} {E(on)}" for on, n in sorted(by.items(), key=lambda x: (-x[1], x[0])))
+                 + "</p>" + tally)
     table = ('<table class="who-now"><thead><tr><th>On</th><th>Now</th><th>Last action</th><th>Last sign</th>'
              f'<th>State</th></tr></thead><tbody>{body}</tbody></table>' if rows
              else '<div class="none">No agent at work.</div>')
@@ -983,8 +1049,8 @@ def render(reg, now=None, starting=False, transcripts=None):
     steps = "".join(step_html(s, m["status"], waiting) for s in m["steps"])
     if not starting and not (reg / "RUN.md").is_file():
         steps = '<li class="step off"><span class="n">No run record (RUN.md) in this folder yet</span></li>'
-    # the run's home once drawn; before it, the work page at the listener's root, which shows the sources and progress
-    home_href, home_name = ("index.html", "Home") if (reg / "index.html").is_file() else ("/", "The run at work")
+    # the run's home once drawn; before it, the list of runs at the listener's root, which picks none of them
+    home_href, home_name = ("index.html", "Home") if (reg / "index.html").is_file() else ("/", "All runs")
     import page_style as ps
     up = (f'<a class="go" href="{ps.all_systems_href(home_href)}">{ps.ALL_SYSTEMS}</a>'
           if home_name == "Home" and ps.all_systems_above(reg) else "")
@@ -998,7 +1064,10 @@ def render(reg, now=None, starting=False, transcripts=None):
 <div class="body{' ask' if m['action']['kind'] == 'say_back' else ''}"><nav class="rail" aria-label="Steps"><h2>Progress</h2><ol class="steps">{steps}</ol></nav>
 <div class="main">{action_html(m)}{"" if asking else working_html(m)}{"" if asking else map_so_far_html(m)}{"" if asking else issues_html(m["issues"])}</div></div></div>
 <p class="foot">{drawn}This page reloads itself every 15 seconds.</p></div>"""
-    return PAGE.replace("<!--TITLE-->", E("Run status · " + m["title"])).replace("<!--BODY-->", body)
+    # where this page is saved (saved_pages.py), for the line it shows once its listener has gone
+    saved = f'<meta name="saved" content="{E(str((reg / FILE).resolve()))}">' if (reg / "RUN.md").is_file() else ""
+    return (PAGE.replace("<!--TITLE-->", E("Run status · " + m["title"])).replace("<!--BODY-->", body)
+            .replace("<title>", saved + "<title>", 1))
 
 
 PAGE = """<!doctype html>
@@ -1016,7 +1085,7 @@ a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
 .nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;background:var(--surface);border-bottom:1px solid var(--line);padding:10px 22px;font-size:14px}
 .nav .sys{font-weight:600}.nav .go{padding:4px 2px;border-bottom:2px solid transparent}.nav .go.on{border-bottom-color:var(--accent);font-weight:600}
 .screen{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:16px}
-.head{padding:18px 22px 16px;border-bottom:1px solid var(--line-soft);display:grid;gap:10px}
+.head{padding:14px 18px 12px;border-bottom:1px solid var(--line-soft);display:grid;gap:6px}
 .titlerow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .titlerow h1{font-size:22px;font-weight:700;margin:0}.titlerow h1 span{font-weight:500;color:var(--fg2)}
 .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px 3px 7px;font-size:12.5px;font-weight:600;white-space:nowrap}
@@ -1024,14 +1093,14 @@ a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
 .b-off{background:var(--off-bg);color:var(--fg2)}.b-ok{background:var(--ok-bg);color:var(--ok)}
 .sub{color:var(--fg2);font-size:13px;display:flex;flex-wrap:wrap;gap:4px 22px}.sub b{color:var(--fg);font-weight:600}
 .nr{color:var(--fg3);font-weight:400}
-.body{display:grid;grid-template-columns:minmax(300px,420px) minmax(0,1fr)}
-.rail{border-right:1px solid var(--line-soft);background:var(--sunk);padding:12px 0}
-.rail h2{font-size:13px;font-weight:600;color:var(--fg2);margin:0 0 6px;padding:4px 18px}
+.body{display:grid;grid-template-columns:minmax(250px,340px) minmax(0,1fr)}
+.rail{border-right:1px solid var(--line-soft);background:var(--sunk);padding:8px 0}
+.rail h2{font-size:13px;font-weight:600;color:var(--fg2);margin:0 0 6px;padding:2px 14px}
 .steps{list-style:none;margin:0;padding:0}
-.step{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:2px 10px;align-items:start;padding:7px 18px}
+.step{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:1px 8px;align-items:start;padding:5px 14px}
 .step .n{grid-column:2;font-size:13.5px;font-weight:500}
-.step .d{grid-column:2;font-size:12px;color:var(--fg2);overflow-wrap:anywhere}
-.step .t{grid-column:3;grid-row:1;font-size:12px;color:var(--fg3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.step .d{grid-column:2/-1;font-size:12px;color:var(--fg2);overflow-wrap:break-word}
+.step .t{grid-column:3;grid-row:1;font-size:12px;color:var(--fg3);font-variant-numeric:tabular-nums;text-align:right;max-width:15em}
 .step .ic{grid-row:1/3;margin-top:1px}
 .step.cur{background:var(--surface);box-shadow:inset 3px 0 0 var(--run)}
 .step.curbad{box-shadow:inset 3px 0 0 var(--bad)}
@@ -1040,12 +1109,12 @@ a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
 .live{margin:8px 18px 0;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-size:12.5px}
 .key{margin:10px 18px 0;font-size:12px;color:var(--fg3)}
 .ic{width:18px;height:18px;flex:none}
-.main{padding:18px 22px 24px;display:grid;gap:20px;min-width:0;align-content:start}
-.panel{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.main{padding:14px 16px 18px;display:grid;gap:14px;min-width:0;align-content:start}
+.panel{border:1px solid var(--line);border-radius:8px;overflow:hidden}.panel>.note{padding:8px 12px;border-top:1px solid var(--line-soft)}
 .who-now{width:100%;border-collapse:collapse;font-size:13px}.who-now th,.who-now td{text-align:left;padding:6px 10px;border-top:1px solid var(--line-soft);vertical-align:top}.who-now th{font-weight:600;color:var(--fg2);font-size:12px}.who-now .who{display:block;color:var(--fg3);font-size:11.5px}.who-now tr.warn td:last-child{color:var(--warn,#b26b00);font-weight:600}.who-now tr.bad td:last-child{color:var(--bad,#b3261e);font-weight:600}
-.panel-h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--sunk);border-bottom:1px solid var(--line-soft)}
+.panel-h{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--sunk);border-bottom:1px solid var(--line-soft)}
 .panel-h h3{margin:0;font-size:14px;font-weight:600}.panel-h .r{margin-left:auto;font-size:12.5px;color:var(--fg2)}
-.act{padding:14px 16px;font-size:14px;display:grid;gap:8px}
+.act{padding:10px 12px;font-size:14px;display:grid;gap:8px}
 .act ol{margin:0;padding-left:18px;display:grid;gap:8px;font-size:13px}
 .act-you{border-color:var(--you)}.act-you .panel-h{background:var(--you-bg)}
 .cmd{display:inline-flex;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 10px;font:13px var(--mono);max-width:100%}
@@ -1077,7 +1146,7 @@ a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
 .sb .sec{background:var(--surface);color:var(--accent);border:1px solid var(--line)}
 .sb button:disabled{opacity:.5;cursor:default}
 @media (max-width:820px){.ask .main{order:-1}.sbt th{display:block;width:auto;padding:10px 0 2px}.sbt tr{display:block;border-top:1px solid var(--line-soft)}.sbt td{border-top:0;padding-top:2px}}
-@media (max-width:820px){.body{grid-template-columns:minmax(0,1fr)}.rail{border-right:0;border-bottom:1px solid var(--line-soft)}
+@media (max-width:640px){.body{grid-template-columns:minmax(0,1fr)}.rail{border-right:0;border-bottom:1px solid var(--line-soft)}
 .ann li{grid-template-columns:22px minmax(0,1fr)}.ann .clr{grid-column:2;border-left:0;padding-left:0}}
 @media (prefers-reduced-motion:no-preference){.spin{animation:spin 1.1s linear infinite;transform-origin:50% 50%}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -1115,7 +1184,13 @@ fetch("/answers",{method:"POST",headers:{"Content-Type":"application/json"},body
 .then(function(r){if(!r.ok)throw r.status;try{sessionStorage.setItem(k,"1")}catch(e){}lock(said[act]||said.correct)})
 .catch(function(){st.textContent="Could not send from this page. Say start, or your correction, in the run's chat instead."})})})();
 function busy(){var f=document.querySelectorAll(".sbc");for(var i=0;i<f.length;i++)if(!f[i].disabled&&(f[i].value||f[i]===document.activeElement))return true;return false}
-setInterval(function(){if(document.visibilityState==="visible"&&!busy())location.reload()},15000);</script>
+(function(){if(location.protocol==="file:")return;var failed=0,gone=false;
+function ended(){if(gone)return;gone=true;var s=document.querySelector('meta[name="saved"]'),b=document.createElement("p");
+b.className="ended";b.style.cssText="margin:12px auto 0;max-width:1400px;padding:10px 14px;border:1px solid #B4561F;border-radius:6px;background:#F7EBE3;font-size:14px";
+b.textContent="This run's page server has stopped (the run finished, or Claude Code was closed), so this page no longer updates"+(s?"; its pages are saved: open "+s.content+" in your browser.":".");
+document.body.insertBefore(b,document.body.firstChild)}
+setInterval(function(){if(gone||document.visibilityState!=="visible"||busy())return;
+fetch(location.href,{cache:"no-store"}).then(function(r){if(!r.ok)throw r.status;failed=0;location.reload()},function(){if(++failed>=2)ended()})},15000)})();</script>
 </body></html>
 """
 

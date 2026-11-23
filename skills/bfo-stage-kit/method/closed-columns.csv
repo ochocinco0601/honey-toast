@@ -1,0 +1,18 @@
+table,column,value
+subjects,kind,element
+subjects,kind,relationship
+subjects,level,component
+subjects,level,external dependency
+subjects,band,business
+subjects,band,application
+subjects,band,technology
+operations,protocol,http
+operations,protocol,message
+operations,protocol,rpc
+calls,protocol,http
+calls,protocol,message
+calls,protocol,rpc
+calls,protocol,db
+calls,protocol,cache
+calls,carries_case_id,yes
+calls,carries_case_id,no

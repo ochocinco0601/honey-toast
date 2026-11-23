@@ -19,7 +19,8 @@ first look over the code, launched without a kit prompt. Any other session in th
 
 The columns:
   unit         the folder of the prompt file, prompts/<unit>/; for a launcher (prompts/launch/), the unit of a
-               judges launcher's name (judges-<unit>-r<N>-...), blank for a readers launcher and a lead's own agent
+               judges launcher's name (judges-<unit>-r<N>-...), `readers` for a readers launcher; a fast mapper's
+               group; `first look` for the first-look helper; `lead` for the lead and the lead's own agents
   step         from the prompt file's name: `read` reader, `retry` reader retry, `fix` and `fix-<table>` fixer,
                `reread-*` re-read, `stop-*` stop fixer, `r<N>-j<J>-*` judge round N, prompts/launch/readers-<mode>-*
                launcher of readers <mode>, prompts/launch/judges-*-r<N>-* launcher of judge round N; `lead's own
@@ -30,15 +31,20 @@ The columns:
   agent        the transcript's `agentId` (a subagent), else its `sessionId`, else the file's name
   model        `message.model` of its first assistant message that is not Claude Code's own error reply
   start, end   the `timestamp` of the transcript's first and of its last line that has one, in file order, as UTC
-               (YYYY-MM-DDTHH:MM:SSZ): when the agent wrote, never when run control looked
+               (YYYY-MM-DDTHH:MM:SSZ): when the agent wrote, never when run control looked. The lead's row counts its
+               lines from the run's start, and ends when the done check said DONE, never at the moment this record
+               is written
   seconds      end minus start, whole seconds
   turns        model responses: distinct `message.id` (else `requestId`) among `assistant` lines, Claude Code's own error
                replies (isApiErrorMessage, model <synthetic>) left out. One response is written as several lines (its
                text, and each tool call, on lines of their own, each carrying the same id and usage), so lines are
                never counted
   input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens
-               the sum over those responses of `usage` input_tokens, output_tokens, cache_read_input_tokens and
-               cache_creation_input_tokens, each response counted once (its last line's usage); blank where no
+               the sum over those responses of every input token the model read (`usage` input_tokens plus
+               cache_read_input_tokens plus cache_creation_input_tokens: with prompt caching the API's own
+               input_tokens counts only the uncached rest, about two a response, so alone it reads as nothing),
+               output_tokens, cache_read_input_tokens and cache_creation_input_tokens, each response counted once
+               (its last line's usage); blank where no
                response recorded that field. Other record kinds (api-request-blob, which replays a request) are never
                read for turns or tokens
   api_errors   failed model requests the transcript records: each `system` line of subtype `api_error` (a request that
@@ -60,8 +66,8 @@ The columns:
                  finished             it replied (its last response called no tool), or Claude Code's metadata says so
                  still running        none of these: its transcript has not ended. In a run that stopped, read `end`
                                       against the time the run stopped
-               A lead's own agent is never discarded (it may run a shell) nor relaunched (run control does not
-               launch it).
+               A lead's own agent and the first-look helper are never discarded (they may run a shell) and a lead's
+               own agent is never relaunched (run control does not launch it).
   prompt       the prompt file, relative to the register; for a lead's own agent, `lead: <its description>` (from
                Claude Code's metadata file beside the transcript; blank description when there is none)
 """
@@ -117,17 +123,18 @@ def pointed_prompt(f, prompts):
 
 FAST_PROMPT = "fast/mapper-prompt.md"  # the fast map's one mapping agent (fast_map.FOLDER / fast_map.PROMPT)
 FAST_ROW = "fast mapper"  # its step, and the prompt column's value for it
-LEAD_ROW = "lead"  # the run's own session: its row runs from its first line to its last
+LEAD_ROW = "lead"  # the run's own session: its row runs from its first line in the run to its last before it ended
+FIRST_LOOK_HELPER = "first-look-lead.md"  # the first-look helper's prompt, under prompts/ (first_look.LEAD_PROMPT)
 
 
 def step_of(rel):
     """(unit, step) from a prompt file's path relative to prompts/."""
-    if rel == FAST_ROW:
-        return "", FAST_ROW
+    if rel.startswith(FAST_ROW):
+        return rel[len(FAST_ROW) + 2:] or FAST_ROW, FAST_ROW
     parts = rel.split("/")
     stem = parts[-1][:-3] if parts[-1].endswith(".md") else parts[-1]
-    if rel == "first-look-lead.md":  # the first-look helper's own prompt (first_look.LEAD_PROMPT)
-        return "", "first-look helper"
+    if rel == FIRST_LOOK_HELPER:  # the first-look helper's own prompt (first_look.LEAD_PROMPT)
+        return "first look", "first-look helper"
     if parts[0] == "first-look" and len(parts) > 1:  # a source reader of the first look, never a code unit's reader
         return stem[len("read-"):] if stem.startswith("read-") else stem, "source reader"
     if parts[0] == "launch":
@@ -135,7 +142,7 @@ def step_of(rel):
         if m:
             return m.group(1), f"launcher of judge round {m.group(2)}"
         m = re.match(r"readers-([a-z]+)", stem)
-        return "", f"launcher of readers {m.group(1)}" if m else "launcher"
+        return "readers", f"launcher of readers {m.group(1)}" if m else "launcher"
     unit = parts[0] if len(parts) > 1 else ""
     m = re.match(r"r(\d+)-j\d+-", stem)
     if m:
@@ -148,24 +155,30 @@ def step_of(rel):
 
 
 def run_started(reg):
-    """When this run started (_run-state/run-started.json, else the register's or its work folder's), in UTC, or None."""
+    """When this run started, from its own records only (operator_page.started_at), in UTC, or None."""
+    import operator_page
+    t = operator_page.started_at(pathlib.Path(reg))
+    try:
+        return t.astimezone(datetime.timezone.utc) if t else None
+    except (ValueError, OSError):
+        return None
+
+
+def run_ended(reg):
+    """When this run ended, in UTC, or None while it runs: when the done check last said DONE on the map as it is (the
+    time it wrote its verdict). The lead's row ends there, never at the moment this record is written."""
+    import run_status
     reg = pathlib.Path(reg)
-    for p in (reg / "_run-state" / "run-started.json", reg / "run-started.json", reg.parent / "run-started.json"):
-        try:
-            got = json.loads(p.read_text(encoding="utf-8")).get("started")
-        except (OSError, ValueError, AttributeError):
-            continue
-        if got:
-            try:
-                return datetime.datetime.fromisoformat(got).astimezone(datetime.timezone.utc)
-            except ValueError:
-                continue
-    return None
+    if not run_status.verdict_holds(reg):
+        return None
+    t = (reg / run_status.VERDICT).stat().st_mtime
+    return datetime.datetime.fromtimestamp(t, tz=datetime.timezone.utc)
 
 
-def measure(f, since=None):
+def measure(f, since=None, until=None):
     """The counted columns of one transcript (module docstring); with `since`, only its lines at or after that time
-    (the lead's session may have run an earlier run before this one)."""
+    (the lead's session may have run an earlier run before this one); with `until`, none after it (a session that ran
+    on after its run ended, or the snapshot this record is written at)."""
     agent = model = None
     first = last = prev = None
     gap, gap_err, errors = 0.0, False, 0
@@ -182,6 +195,8 @@ def measure(f, since=None):
                 d.get("type") == "assistant" and d.get("isApiErrorMessage"))
             t = _when(d["timestamp"]) if d.get("timestamp") else None
             if since is not None and (t is None or t < since):
+                continue
+            if until is not None and t is not None and t > until:
                 continue
             errors += is_err
             agent = agent or d.get("agentId") or None
@@ -212,9 +227,11 @@ def measure(f, since=None):
         got = [u[field] for u in usage.values() if isinstance(u.get(field), (int, float))]
         return sum(got) if got else ""
 
+    read = [total(k) for k in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")]
     return {"agent": agent or pathlib.Path(f).stem, "model": model or "", "start": first, "end": last,
             "seconds": int(round((last - first).total_seconds())) if first and last else "",
-            "turns": len(usage), "input_tokens": total("input_tokens"), "output_tokens": total("output_tokens"),
+            "turns": len(usage), "input_tokens": sum(x for x in read if x != "") if any(x != "" for x in read) else "",
+            "output_tokens": total("output_tokens"),
             "cache_read_tokens": total("cache_read_input_tokens"),
             "cache_creation_tokens": total("cache_creation_input_tokens"), "api_errors": errors,
             "longest_gap_seconds": int(round(gap)), "gap_ends_on_error": "yes" if gap_err else "no"}
@@ -237,7 +254,8 @@ def rows(reg, transcripts=None):
                 target = pointed_prompt(f, prompts)
                 rel = pointed_prompt(f, fast) if target is None else None
                 if rel and rel.startswith("fast/") and rel.endswith("/mapper-prompt.md") or rel == FAST_PROMPT:
-                    target = FAST_ROW  # one mapping agent per service: fast/mappers/<group>/mapper-prompt.md
+                    group = rel.split("/")[-2] if rel.count("/") >= 3 else ""
+                    target = FAST_ROW + (f": {group}" if group else "")  # one mapping agent per service
                 if target is None:
                     if f.parent.name == "subagents":
                         others.append(f)
@@ -255,12 +273,14 @@ def rows(reg, transcripts=None):
         mains += [f for f in judges.run_session_files(reg) if f.resolve() not in seen_main]
     # the lead's own agents: the other subagents of a main session that launched one of this register's attempts, or
     # of any session the run has had (a first-look helper runs before any kit prompt exists)
-    began = run_started(reg)
+    began, ended = run_started(reg), run_ended(reg)
     for f in mains:
         try:
-            found.append((LEAD_ROW, measure(f, since=began), False, False, "", True))
+            m = measure(f, since=began, until=ended)
         except OSError:
             continue
+        if m["start"] is not None:  # a session with no line in this run is no lead row of it
+            found.append((LEAD_ROW, m, False, False, "", True))
     for f in others:
         if f.parent not in leads and f.parent.parent.name not in ids:
             continue
@@ -281,7 +301,7 @@ def rows(reg, transcripts=None):
         seen[target] = seen.get(target, 0) + 1
         later = seen[target] < tries[target] and not own
         lost = done and last.startswith(judges.API_STOPPED)
-        if shell:
+        if shell and not target.startswith(FIRST_LOOK_HELPER):  # the first-look helper runs the kit's scripts
             outcome = "discarded"
         elif later and (lost or not done):
             outcome = "relaunched"
@@ -292,12 +312,12 @@ def rows(reg, transcripts=None):
         else:
             outcome = "still running"
         if target == LEAD_ROW:
-            unit, step, outcome = "", LEAD_ROW, "the run's own session"
+            unit, step, outcome = LEAD_ROW, LEAD_ROW, "the run's own session"
         else:
-            unit, step = ("", "lead's own agent") if own else step_of(target)
+            unit, step = (LEAD_ROW, "lead's own agent") if own else step_of(target)
         out.append({**m, "unit": unit, "step": step, "attempt": seen[target], "start": _utc(m["start"]),
                     "end": _utc(m["end"]), "outcome": outcome,
-                    "prompt": target if own else FAST_PROMPT if target == FAST_ROW else f"{layout.PROMPTS}/{target}"})
+                    "prompt": target if own else FAST_PROMPT if target.startswith(FAST_ROW) else f"{layout.PROMPTS}/{target}"})
     return out
 
 
@@ -349,6 +369,24 @@ def _replace(tmp, path):
             if i + 1 < REPLACE_TRIES:
                 time.sleep(REPLACE_WAIT)
     return False
+
+
+def refresh_if_fast(argv, why=""):
+    """refresh() for the first register `argv` names, when it is mapped fast: after a fast map no step calls run
+    control, so the scripts that run then (the stops, the checkers' launch, the report) keep the record current.
+    Never raises; a register mapped the full way is left to run control."""
+    try:
+        for a in argv or []:
+            reg = pathlib.Path(str(a))
+            if not (reg / "RUN.md").is_file():
+                continue
+            scope = json.loads((reg / "scope.json").read_text(encoding="utf-8-sig")) \
+                if (reg / "scope.json").is_file() else {}
+            if scope.get("mapping") == "fast":
+                refresh(reg, why=why)
+            return
+    except Exception:  # noqa: BLE001  (the record is for evaluation; the script's own work is unaffected)
+        return
 
 
 def refresh(reg, transcripts=None, why=""):

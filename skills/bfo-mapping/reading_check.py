@@ -160,6 +160,31 @@ def run_sessions(folders, reg, wrote=None):
     return sorted(chosen)
 
 
+def sessions_by_id(reg, folders, wrote=None):
+    """The run's sessions found by their ids wherever they were started (judges.run_session_files), outside
+    `folders`: each that wrote into the register, and the subagents of each, as run_sessions takes them."""
+    if os.environ.get("BFO_TRANSCRIPTS"):
+        return []
+    wrote = wrote or writes_into
+    try:
+        import judges
+        mains = judges.run_session_files(reg)
+    except Exception:  # noqa: BLE001  (no id list: only the register's own project folders are read)
+        return []
+    inside = [pathlib.Path(f).resolve() for f in folders]
+    chosen = set()
+    for main in mains:
+        if pathlib.Path(main).parent.resolve() in inside:
+            continue
+        subs = list((main.parent / main.stem / "subagents").glob("*.jsonl"))
+        if wrote(tool_uses(main), reg):
+            chosen.add(main)
+            chosen.update(subs)
+        else:
+            chosen.update(s for s in subs if wrote(tool_uses(s), reg))
+    return sorted(chosen)
+
+
 def read_results(path):
     """[(input, ok, message)] of every Read call in transcript `path`, each paired with its tool_result by
     tool_use_id: ok is False when the result is an error (the Read tool refused the file, a hook blocked it), and
@@ -242,6 +267,20 @@ def _cites(cited, path, line):
     return any((path == c or path.endswith("/" + c)) and (a is None or a <= line <= b) for c, a, b in cited)
 
 
+def fast_services(reg):
+    """{service lower case} a fast map reads (go.services_read: the picked stages' closure), or None for a register
+    that is not mapped fast, or when the go records no services."""
+    try:
+        import go
+        s = go.load(reg) or {}
+        if s.get("mapping") != "fast":
+            return None
+        got = go.services_read(reg, s)
+    except Exception:  # noqa: BLE001  (no go or an older one: every cited service's findings are owed, as before)
+        return None
+    return None if got is None else {n.lower() for n in got}
+
+
 def unaccounted_leads(reg, fb, cited):
     """Calls, routes, messages and writes the reader found in a service the register cites, that no row cites and
     set-aside.csv does not name: the absences a run settles by reading (reflexion models). A service is touched by
@@ -251,6 +290,9 @@ def unaccounted_leads(reg, fb, cited):
     services = {f.get("service") for f in fb if _cites(touched, path_rule.norm(f.get("file", "")), int(f.get("line") or 0))
                 or any(path_rule.norm(f.get("file", "")).endswith("/" + c) or path_rule.norm(f.get("file", "")) == c
                        for c, _, _ in touched)}
+    picked = fast_services(reg)
+    if picked is not None:  # a fast map reads the picked stages' services only: the others' findings are not owed
+        services = {s for s in services if (s or "").lower() in picked}
     aside = pathlib.Path(reg) / SET_ASIDE
     aside = {(p.lower(), a, b) for p, a, b in cited_in(aside.read_text(encoding="utf-8"))} if aside.is_file() else set()
     out = []
@@ -282,6 +324,7 @@ class Result:
         self.leads = leads
         self.unaccounted = len(leads or [])
         self.passed = sessions > 0 and not missing and leads == []
+        self.note = ""  # why the code reader did not finish, when the first look recorded it
 
     def lines(self):
         if not self.sessions:
@@ -295,7 +338,8 @@ class Result:
         if len(self.missing) > 25:
             out.append(f"  ... and {len(self.missing) - 25} more")
         if self.leads is None:
-            out.append("Code reader: NOT RUN: no fact-base.json in the register folder; run the code reader")
+            out.append("Code reader: NOT RUN: " + (self.note or "no fact-base.json in the register folder; run the "
+                                                   "code reader"))
         elif self.leads:
             out.append(f"Code reader: {len(self.leads)} finding(s) in the services this map touches, cited by no row "
                        "and not set aside: read each, then cite it in a row or set it aside with the reason")
@@ -311,13 +355,36 @@ def check(reg, transcripts=None):
     reg = pathlib.Path(reg).resolve()
     folders = [pathlib.Path(transcripts)] if transcripts else project_folders(reg)
     sessions = run_sessions(folders, reg)
+    if not transcripts:  # a session started in another folder is found by its id
+        sessions = sorted(set(sessions) | set(sessions_by_id(reg, folders)))
     opened = reads(sessions)
     fb = fact_base(reg)
     extracted = facts(fb)
     cited = sorted(citations(reg), key=lambda c: (c[0], c[1] or 0))
     covered, by_reader, missing = _cover(cited, opened, extracted)
     leads = None if fb is None else unaccounted_leads(reg, fb, cited)
-    return Result(len(cited), covered, by_reader, missing, len(sessions), folders, leads)
+    r = Result(len(cited), covered, by_reader, missing, len(sessions), folders, leads)
+    r.note = reader_note(reg)
+    return r
+
+
+def reader_note(reg):
+    """Why the code reader did not finish on this computer, as the first look recorded it, or nothing."""
+    p = pathlib.Path(reg) / layout.CODE_READER_NOTE
+    return p.read_text(encoding="utf-8").strip() if p.is_file() else ""
+
+
+def reader_missing(result):
+    """Whether a failed reading check failed because the code reader did not run, not for cited code left unread."""
+    return result.leads is None and result.sessions and not result.missing
+
+
+def cause(result):
+    """What a failed reading check says as its reason: the code reader that did not run, when that is why, else
+    cited code the run did not read. run_status.report gives the same two reasons in its own words (CHECKS.md)."""
+    if reader_missing(result):
+        return "the code reader did not run on this computer" + (f" ({result.note})" if result.note else "")
+    return "cited code not read by the run"
 
 
 def _cover(cited, opened, extracted):

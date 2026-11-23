@@ -1403,7 +1403,12 @@ def draw(M, reg, out, argv, err, warn):
     cmd = "python -I one_canvas.py " + " ".join(argv)
     said = lambda text: fo.relabel_prose(M["_step_label"], M["R"]["steps"], text)
     docs = with_stage_pages(M, stage_docs(reg))
-    out.write_text(said(page(M, reg.as_posix(), cmd, (len(err), len(warn)), docs)), encoding="utf-8")
+    import run_md  # the drawing names the flow it was drawn for: it proves that flow's mapping, never a later one's
+    html = said(page(M, reg.as_posix(), cmd, (len(err), len(warn)), docs))
+    flow = run_md.current_flow(reg)  # a register with no go yet draws no stamp: it proves no flow's phases
+    head, end, tail = html.rpartition("</html>")
+    stamp = run_md.map_stamp(flow).strip() if flow else ""
+    out.write_text(f"{head}{stamp}\n{end}{tail}" if flow and end else html, encoding="utf-8")
     for st in M["stage"]:  # each stage's own page, beside its runbook and alert page, back to this map by its trail
         (out.parent / f"stage-{st}").mkdir(parents=True, exist_ok=True)
         (out.parent / f"stage-{st}" / STAGE_FILE).write_text(said(stage_page(M, st, "../" + out.name, stage_docs(reg))), encoding="utf-8")

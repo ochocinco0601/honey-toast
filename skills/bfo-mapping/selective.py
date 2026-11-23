@@ -5,12 +5,17 @@ How strongly a row is checked follows what a wrong row would cost where it is us
 Usage: python selective.py select <register>   writes fast/check-rows.csv: the unit rows to check, and why
        python selective.py states <register>   prints each measure's state: checked, flagged or not checked
        python selective.py review <register>   exit 0 when the measures review may be shown, 2 and why when not
+       python selective.py launch <register> [--again]   writes the checker of every selected row, every unit packed
+                                                into launchers that fill the session, and prints them; run it again on
+                                                each launcher's reply: a launcher that died leaves its unlaunched
+                                                checkers to be printed again
 
 A row is selected when a proposed measure (measures.csv), an alert on a measure (alerts.csv, by handle) or a failure
 mode (failure-modes.csv: its part and its measures) names it: a part by its subject_id, resolved to the reading unit's
 element of the same name; an operation by the operation a measure names; a process step's participation by its step
 and part; a call by the operation it calls. The judges are judges.py's, one per row and one round in a fast map
-(judges.settings), launched as for any unit (judges.py emit <unit> --round 1); judges.scope takes only these rows.
+(judges.settings), every unit's packed together (selective.py launch, judges.emit_selected); judges.scope takes only
+these rows.
 Python standard library only.
 """
 import csv
@@ -300,15 +305,36 @@ def review_problem(reg):
     have = len(verdicts(reg))
     if have < want:
         return (f"{want - have} of the {want} map rows the proposed measures rest on have no checker's verdict yet: "
-                "launch their judges (judges.py emit <unit> --round 1, one per unit with selected rows) and wait")
+                "launch their checkers (selective.py launch, every launcher it prints at once) and wait")
     return ""
 
 
 def main(argv):
-    if len(argv) != 2 or argv[0] not in ("select", "states", "review"):
+    """_main, then the timing record rewritten for a register mapped fast (timings.refresh_if_fast)."""
+    try:
+        return _main(argv)
+    finally:
+        import timings
+        timings.refresh_if_fast(argv, "selective.py")
+
+
+def _main(argv):
+    again = "--again" in argv
+    argv = [a for a in argv if a != "--again"]
+    if len(argv) != 2 or argv[0] not in ("select", "states", "review", "launch"):
         print(__doc__)
         return 2
     reg = pathlib.Path(argv[1])
+    if argv[0] == "launch":
+        import judges
+        import run_lock
+        run_lock.guard(reg)
+        units = sorted(selected(reg) or {})
+        for u in units or [""]:  # the same order check a judge emit makes (guard.py)
+            if judges._guarded(reg, u, 1):
+                return 2
+        print("\n".join(judges.emit_selected(reg, units, again=again)))
+        return 0
     if argv[0] == "select":
         import run_lock  # the register is written by one run at a time
         run_lock.guard(reg)

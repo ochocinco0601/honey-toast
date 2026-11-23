@@ -996,10 +996,88 @@ def _survey(reg):
     return (p.stdout or "").strip() or (p.stderr or "").strip()
 
 
-def _facts(reg):
-    """Run the code reader over the surveyed services, its service map from survey.csv; write fact-base.json, its
-    errors to fact-extractor.log; return a one-line summary."""
+CODE_READER_NOT_RUN = layout.CODE_READER_NOTE
+CODE_READER_SECONDS = 90  # run-settings.json `code_reader_seconds`; well inside one foreground command
+
+
+def _usable(x):
+    import shutil
+    return x and (os.path.isfile(x) and x or shutil.which(x))
+
+
+def _run_bounded(cmd, out, err, cwd, env, limit):
+    """Run cmd in the foreground; its exit code, or None when it ran past `limit` seconds, in which case it and every
+    program it started are stopped (semgrep runs as the reader's child and would otherwise keep scanning)."""
+    import signal
     import subprocess
+    if os.name == "nt":  # shares the caller's console, so no window opens; taskkill /T needs no process group
+        p = subprocess.Popen(cmd, stdout=out, stderr=err, cwd=cwd, env=env)
+    else:
+        p = subprocess.Popen(cmd, stdout=out, stderr=err, cwd=cwd, env=env, start_new_session=True)
+    try:
+        return p.wait(timeout=limit)
+    except subprocess.TimeoutExpired:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(p.pid)], capture_output=True)
+        else:
+            try:
+                os.killpg(p.pid, signal.SIGKILL)
+            except OSError:
+                pass
+        p.kill()
+        p.wait()
+        return None
+
+
+def _semgrep():
+    """semgrep's full path: where the code reader itself looks (DFO_SEMGREP, PATH, this Python's scripts folder), then
+    the user scripts folder `pip install --user` fills, then the files the installed package lists. None when it is
+    not installed for this Python."""
+    import importlib.util
+    import sysconfig
+
+    usable = _usable
+    loc = _tool("fact-extractor/semgrep_bin.py")
+    if loc is not None:
+        spec = importlib.util.spec_from_file_location("semgrep_bin", loc)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        found = usable(mod.resolve())
+        if found:
+            return found
+    names = ("semgrep.exe", "semgrep") if os.name == "nt" else ("semgrep",)
+    for scheme in (f"{os.name}_user", "posix_user", "nt_user"):
+        try:
+            folder = sysconfig.get_path("scripts", scheme)
+        except (KeyError, TypeError, ValueError):
+            continue
+        for n in names:
+            if folder and os.path.isfile(os.path.join(folder, n)):
+                return os.path.join(folder, n)
+    try:
+        import importlib.metadata
+        for f in importlib.metadata.distribution("semgrep").files or []:
+            if pathlib.PurePath(str(f)).name in names:
+                p = pathlib.Path(f.locate()).resolve()
+                if p.is_file():
+                    return str(p)
+    except Exception:
+        pass
+    return None
+
+
+def code_reader_line(reg):
+    """The brief's line on a code reader that could not run on this computer, or nothing."""
+    p = pathlib.Path(reg) / CODE_READER_NOT_RUN
+    return p.read_text(encoding="utf-8").strip() if p.is_file() else ""
+
+
+def _facts(reg):
+    """Run the code reader over the surveyed services, its service map from survey.csv, in the foreground within
+    `code_reader_seconds`; write fact-base.json (only when it finished), its errors to fact-extractor.log; return a
+    one-line summary. A semgrep not installed is said once, with the remedy, and nothing is run."""
+    import subprocess
+    import settings
     reg = pathlib.Path(reg).resolve()
     run = _tool("fact-extractor/run.py")
     svc = [r for r in rows(reg / "survey.csv") if (r.get("kind") or "").strip() == "service"]
@@ -1007,20 +1085,71 @@ def _facts(reg):
         return "code reader: nothing to read" if svc else "code reader: no surveyed service"
     root = layout.code_root(reg) if hasattr(layout, "code_root") else root_of(reg)
     pairs = [f"{r['path']}={r['service']}" for r in svc if (r.get("path") or "").strip()]
-    with open(reg / "fact-base.json", "w", encoding="utf-8") as out, \
-            open(reg / "fact-extractor.log", "w", encoding="utf-8") as err:
-        p = subprocess.run([sys.executable, str(run), str(root), "--service-map", *pairs], stdout=out, stderr=err,
-                           cwd=str(root), text=True, encoding="utf-8", errors="replace")
+    marker, base, log = reg / CODE_READER_NOT_RUN, reg / "fact-base.json", reg / "fact-extractor.log"
+    carry = ("Do not diagnose, install or rerun anything: carry on with the first look; the brief tells the person, "
+             "and the mapping agents read the code without these facts.")
+    without = ("Mapping goes on without it: the mapping agents read the code themselves, and the check at the end "
+               "names this as the reason it cannot pass.")
+
+    def not_run(person, said):
+        marker.write_text(person + " " + without + "\n", encoding="utf-8")
+        base.unlink(missing_ok=True)
+        log.write_text(said + "\n", encoding="utf-8")
+        return said + " " + carry
+
+    override = os.environ.get("DFO_SEMGREP")
+    if override and not _usable(override):
+        return not_run(
+            f"The tool that lists the calls and messages in the code did not run: DFO_SEMGREP names {override}, "
+            "which is not there. Correct DFO_SEMGREP to the full path of the semgrep program, or remove it, then ask "
+            "me to run the first look's preparation again.",
+            f"code reader: NOT RUN: DFO_SEMGREP names {override}, which does not exist; it is used as given, never "
+            "searched past. Remedy: correct DFO_SEMGREP or unset it.")
+    exe = _semgrep()
+    if exe is None:
+        fix = (f'run `"{sys.executable}" -m pip install semgrep`, or set DFO_SEMGREP to the full path of the semgrep '
+               "program")
+        return not_run(
+            "The tool that lists the calls and messages in the code is not installed on this computer, so it did "
+            f"not run: semgrep is missing for this Python. To add it, {fix}, then ask me to run the first look's "
+            "preparation again.",
+            f"code reader: NOT RUN: semgrep is not installed for {sys.executable} (looked in DFO_SEMGREP, PATH, this "
+            f"Python's scripts folder, the user scripts folder and the package's own files). Remedy: {fix}.")
+    marker.unlink(missing_ok=True)
+    limit = int(settings.load(reg).get("code_reader_seconds") or CODE_READER_SECONDS)
+    part = reg / "fact-base.json.part"
+    env = dict(os.environ, DFO_SEMGREP=exe)
+    with open(part, "w", encoding="utf-8") as out, open(log, "w", encoding="utf-8") as err:
+        code = _run_bounded([sys.executable, str(run), str(root), "--service-map", *pairs], out, err, str(root), env,
+                            limit)
+    if code is None:
+        part.unlink(missing_ok=True)
+        marker.write_text(f"The tool that lists the calls and messages in the code was stopped after {limit} seconds, "
+                          "before it finished. To give it longer, raise code_reader_seconds in this run's "
+                          f"run-settings.json, then ask me to run the first look's preparation again. {without}\n",
+                          encoding="utf-8")
+        base.unlink(missing_ok=True)
+        return (f"code reader: stopped after {limit} s, before it finished, over {len(pairs)} service(s), it and every "
+                "program it started; no fact base written. The brief tells the person how to give it longer "
+                f"(code_reader_seconds in run-settings.json). {carry}")
+    if code == 0:
+        part.replace(base)
+    else:
+        part.unlink(missing_ok=True)
+        base.unlink(missing_ok=True)
+        marker.write_text("The tool that lists the calls and messages in the code failed on this computer; what it "
+                          f"said is in {log.name} in this run's folder. {without}\n", encoding="utf-8")
+        return f"code reader: failed over {len(pairs)} service(s), see {log}. {carry}"
     contract = _tool("fact-extractor/contract.py")
     said = ""
-    if contract is not None and p.returncode == 0:
+    if contract is not None:
         c = subprocess.run([sys.executable, str(contract), str(root), str(reg / "fact-base.json")], capture_output=True,
                            text=True, encoding="utf-8", errors="replace", cwd=str(root))
-        with open(reg / "fact-extractor.log", "a", encoding="utf-8") as log:
-            log.write((c.stdout or "") + (c.stderr or ""))
+        with open(reg / "fact-extractor.log", "a", encoding="utf-8") as f:
+            f.write((c.stdout or "") + (c.stderr or ""))
         said = (" Its contract check passed; its reach is in fact-extractor.log." if c.returncode == 0 else
                 " Its contract check failed: see fact-extractor.log.")
-    return f"code reader: {'ran' if p.returncode == 0 else 'failed, see fact-extractor.log'} over {len(pairs)} " \
+    return f"code reader: ran over {len(pairs)} " \
            f"service(s).{said}"
 
 

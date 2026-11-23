@@ -15,6 +15,8 @@ Usage:
   python fast_map.py check   <register> <flow> [--ws DIR]   the rule checks; exit 1 with what must be put right
   python fast_map.py draw    <register> <flow> [--ws DIR]   refuses while the check fails; writes fast-map.html
   python fast_map.py summary <register> <flow>              counts, one line
+  python fast_map.py fix <register> <unit> <table> <row_id> (<column> "<value>" | --remove) [--nth N]
+                                                            the lead's one way to change a unit's row
 Python standard library only."""
 import csv
 import html
@@ -127,6 +129,18 @@ def picked_steps(reg, flow):
         return steps
     picked = set(go.picked_stages(s))
     return [r for r in steps if (r.get("stage") or "").strip() in picked]
+
+
+def carried_steps(reg, flow, unit):
+    """The picked steps whose moves the unit's service carries or needs (lifecycle.csv carried_by, needs): where a gap
+    in that service shows on the map."""
+    dep = next(((r.get("deployable") or "").strip() or unit for r in rows(pathlib.Path(reg) / "units" / "units.csv")
+                if (r.get("unit") or "").strip() == unit), unit).lower()
+    moves = flow_moves(reg, flow)
+    by = {m for m, r in moves.items()
+          if dep in {x.strip().lower() for c in ("carried_by", "needs") for x in re.split(r"[;,]", r.get(c) or "")}}
+    return [s["step"] for s in picked_steps(reg, flow)
+            if by & {x.strip() for x in re.split(r"[;,\s]+", s.get("source") or "")}]
 
 
 def flow_moves(reg, flow):
@@ -296,6 +310,7 @@ def write_prompt(reg, flow, ws=None, only=None):
         texts.append(text)
     (reg / FOLDER).mkdir(parents=True, exist_ok=True)
     (reg / FOLDER / PROMPT).write_text("\n\n---\n\n".join(texts), encoding="utf-8")
+    forget_units(reg, [u for _, _, us in out for u in us])  # their mapping agent writes them again: collected anew
     return out
 
 
@@ -314,7 +329,8 @@ def unfinished(reg):
     """The units of the plan still owed: no `files.csv` yet, or marked `unfinished` in a mapping agent's status file."""
     reg = pathlib.Path(reg)
     marked = statuses(reg)
-    owed = sorted({r["unit"] for r in rows(reg / FOLDER / PLAN)})
+    left = left_unread(reg)
+    owed = sorted({r["unit"] for r in rows(reg / FOLDER / PLAN)} - set(left))
     return [u for u in owed if not (reg / "units" / u / "files.csv").is_file()
             or (marked.get(u, ("", ""))[0] == "unfinished" and not only_blocked(marked[u][1]))]
 
@@ -401,7 +417,8 @@ as the caller writes it and say so in its `source`.{again}
 2. **Then write that unit's tables as soon as its files are read, in one pass,** before you read the next unit: its
    `subjects.csv`, `operations.csv`, `calls.csv`, `participation.csv` and `files.csv` in `units/<unit>/`, in the unit
    formats (`split-run-formats.md` beside this kit, section "units/<unit>/ (a reader's output)"). Row ids:
-   {ROW_ID_RULE}. Parts: {PART_RULES.format(kinds=_kinds_said())} A unit that breaks these rules is set aside as you return and written again.
+   {ROW_ID_RULE}. Parts: {PART_RULES.format(kinds=_kinds_said())} Columns with a closed list take exactly one of
+   its values: {closed_said()}. A unit that breaks these rules is set aside as you return and written again.
    A unit written is kept even if you are stopped later. Write rows only
    for the process steps below: they are the steps of the stages the person picked. Every row cites `path:line` or
    `path:first-last` from what you read. You read the code once: never re-read a file to check a row.
@@ -465,7 +482,7 @@ def part_problems(unit, row, families=None):
     kind = (row.get("part_kind") or "").strip()
     if kind and kind.lower() not in families:
         out.append(f"{where}: part_kind {kind!r} is not one of the kit's part kinds (method/part-kinds.csv): use one "
-                   f"of {', '.join(sorted(families))}")
+                   f"of {', '.join(k for k in _closed_lists()['subjects']['part_kind'] if k)}")
     if level == "component" and not (row.get("repository") or "").strip():
         if not (band == "technology" and re.search(r"\bno repository\b", row.get("source") or "", re.I)):
             out.append(f"{where}: a component with no repository: write the repository folder its code or its "
@@ -474,14 +491,40 @@ def part_problems(unit, row, families=None):
     return out
 
 
+def _ragged(p):
+    """[(line, cells, header cells)] of each row of a CSV file whose cell count is not its header's."""
+    with pathlib.Path(p).open(encoding="utf-8-sig", newline="") as f:
+        got = list(csv.reader(f))
+    if not got:
+        return []
+    width = len(got[0])
+    return [(n, len(r), width) for n, r in enumerate(got[1:], 2) if r and len(r) != width]
+
+
+def shape_problems(reg, unit):
+    """[a row of a unit's table that does not parse]: more or fewer cells than its header, which a cell holding an
+    unquoted comma makes. Refused with the line, so the relaunch writes it again; never read with a cell dropped."""
+    import register_layout as layout
+    folder = pathlib.Path(reg) / "units" / unit
+    out = []
+    for t in list(layout.UNIT_TABLES) + ["files"]:
+        p = folder / f"{t}.csv"
+        if p.is_file():
+            out += [f"units/{unit}/{t}.csv line {n}: {k} cells where the header has {w}: a cell that holds a comma "
+                    "must be in double quotes" for n, k, w in _ragged(p)]
+    return out
+
+
 def unit_problems(reg, unit, families=None):
     """[what is wrong with a unit the mapping agent wrote, by the register's rules]: its row ids, each part's kind,
     band, level and repository, and any numbered call sequence (a fast map leaves `sequence` blank: one agent per
     service cannot know the order of calls made from another). Found as the agent returns, never at the drawing."""
     folder = pathlib.Path(reg) / "units" / unit
-    out = row_id_problems(reg, unit)
+    out = shape_problems(reg, unit) + row_id_problems(reg, unit)
     for r in rows(folder / "subjects.csv"):
         out += part_problems(unit, r, families)
+    out += [f"units/{unit}/{t}.csv {rid}: {c} {v!r} is not one of the kit's values (method/{CLOSED_CSV}): use one of "
+            + ", ".join(allowed) for t, rid, c, v, allowed in closed_misses(reg, unit)]
     for t in ("subjects", "calls"):
         for r in rows(folder / f"{t}.csv"):
             if (r.get("sequence") or "").strip():
@@ -555,10 +598,11 @@ def refused_writers(reg, transcripts=None):
     sessions, _ = provenance.flow_sessions(reg, transcripts)
     units = paths.norm(reg / "units") + "/"
     any_type = bool(settings.load(reg).get(ANY_TYPE))
-    gone = {r["session"] for r in set_aside(reg)}
+    gone = {r["session"] for r in set_aside(reg) if r.get("session")}
+    left = set(left_unread(reg))
     out = []
     for s in sessions:
-        wrote = sorted({p[len(units):].split("/", 1)[0] for _, p in s.writes if p.startswith(units)})
+        wrote = sorted({p[len(units):].split("/", 1)[0] for _, p in s.writes if p.startswith(units)} - left)
         if not wrote or pathlib.Path(s.path).parent.name != "subagents":
             continue  # wrote no unit rows, or the lead's own corrections
         name = pathlib.Path(s.path).stem
@@ -589,6 +633,81 @@ def set_aside(reg):
         return []
 
 
+LEFT_UNREAD = "left-unread.json"  # fast/: {unit: {"words", "at"}}, units the person chose to leave unread
+MAX_RESETS = 1  # the person's "try again" on a stuck unit resets its count this many times; then only the other choices
+
+
+def times_set_aside(record):
+    """{unit: times set aside} counted from the unit's last reset by the person's "try again" (an entry with "reset")."""
+    times = {}
+    for r in record:
+        for u in r.get("reset") or []:
+            times[u] = 0
+        for u in r.get("units") or []:
+            times[u] = times.get(u, 0) + 1
+    return times
+
+
+def resets(record):
+    """{unit: how many times the person's "try again" has reset it}."""
+    got = {}
+    for r in record:
+        for u in r.get("reset") or []:
+            got[u] = got.get(u, 0) + 1
+    return got
+
+
+def can_reset(reg, units):
+    """The units of `units` the person's "try again" may still reset (fewer than MAX_RESETS resets so far)."""
+    done = resets(set_aside(reg))
+    return [u for u in units if done.get(u, 0) < MAX_RESETS]
+
+
+def reset_set_aside(reg, units, words):
+    """Record the person's "try again" for `units` (those can_reset allows): their count of times set aside starts
+    again, so each is set aside and its mapping agent launched once more. Returns the units reset."""
+    import datetime
+    reg = pathlib.Path(reg)
+    got = can_reset(reg, units)
+    if got:
+        record = set_aside(reg) + [{"reset": got, "words": words,
+                                    "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")}]
+        (reg / FOLDER).mkdir(parents=True, exist_ok=True)
+        (reg / FOLDER / SET_ASIDE).write_text(json.dumps(record, indent=1), encoding="utf-8")
+    return got
+
+
+def left_unread(reg):
+    p = pathlib.Path(reg) / FOLDER / LEFT_UNREAD
+    try:
+        return json.loads(p.read_text(encoding="utf-8")) if p.is_file() else {}
+    except ValueError:
+        return {}
+
+
+def leave_unread(reg, units, words):
+    """The person chose to leave `units` unread: each one's tables, if any, are moved to fast/refused/left-unread-<unit>/
+    (kept, not deleted) and the unit is recorded with their words, so it is no longer owed and the map shows it as a
+    gap (gaps)."""
+    import datetime
+    import shutil
+    reg = pathlib.Path(reg).resolve()
+    got = left_unread(reg)
+    at = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+    for u in units:
+        src = reg / "units" / u
+        if src.is_dir():
+            dest = reg / FOLDER / REFUSED / f"left-unread-{u}" / u
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            if dest.exists():
+                shutil.rmtree(dest)
+            shutil.move(str(src), str(dest))
+        got[u] = {"words": words, "at": at}
+    (reg / FOLDER).mkdir(parents=True, exist_ok=True)
+    (reg / FOLDER / LEFT_UNREAD).write_text(json.dumps(got, indent=1), encoding="utf-8")
+    return sorted(units)
+
+
 def set_aside_refused(reg, transcripts=None):
     """(units owed again, units stuck, why): each refused writer's unit tables moved to fast/refused/<session>/<unit>/
     and recorded in SET_ASIDE, so the mapping agent is launched again for those units only. A unit whose writers have
@@ -597,10 +716,8 @@ def set_aside_refused(reg, transcripts=None):
     import shutil
     reg = pathlib.Path(reg).resolve()
     record = set_aside(reg)
-    times = {}
-    for r in record:
-        for u in r.get("units") or []:
-            times[u] = times.get(u, 0) + 1
+    times = times_set_aside(record)
+    left = left_unread(reg)
     owed, stuck, why = [], [], []
     for w in refused_writers(reg, transcripts):
         if any(times.get(u, 0) >= MAX_SET_ASIDE for u in w["units"]):
@@ -633,8 +750,8 @@ ROW_ID_RULE = ("one `row_id` numbering across all of the unit's tables: `<unit>-
 
 
 def _kinds_said():
-    import go
-    return ", ".join(f"`{k}`" for k in sorted(go.part_families()))
+    """The part kinds as the method's list spells them, which is how the map's check compares them."""
+    return ", ".join(f"`{k}`" for k in _closed_lists()["subjects"]["part_kind"] if k)
 
 
 PART_RULES = ("each deployable you read is one `subjects.csv` row of kind `element`, level `component`, its "
@@ -697,31 +814,287 @@ def register_refusals(reg):
     return out
 
 
+NORMALISED = "normalised.csv"  # fast/: unit,table,row_id,column,was,now: each value written back in the list's spelling
+CLOSED_CSV = "closed-columns.csv"  # method/: table,column,value for every unit column with a closed list
+
+
+def _closed_lists():
+    """{table: {column: the list's own spellings}} of a unit's columns with a closed list (split-run-formats.md, the
+    register's columns), part_kind and involvement from the method's lists."""
+    here = pathlib.Path(__file__).resolve().parent / "method"
+    out = {}
+    for r in rows(here / CLOSED_CSV):
+        col = out.setdefault(r["table"].strip(), {}).setdefault(r["column"].strip(), [])
+        col.append(r["value"].strip())
+    out = {t: {c: tuple(v) for c, v in cols.items()} for t, cols in out.items()}
+    out.setdefault("subjects", {})
+    out["subjects"]["part_kind"] = tuple((r.get("part_kind") or "").strip() for r in rows(here / "part-kinds.csv"))
+    out["participation"] = {"involvement": tuple((r.get("involvement") or "").strip()
+                                                 for r in rows(here / "involvement.csv"))}
+    return out
+
+
+def closed_said():
+    """Every unit column with a closed list and its values, as the mapping agent's prompt states them."""
+    return "; ".join(f"`{t}.csv` `{c}`: " + ", ".join(f"`{v}`" for v in vs if v)
+                     for t, cols in _closed_lists().items() for c, vs in cols.items())
+
+
+def closed_misses(reg, unit):
+    """[(table, row_id, column, value, allowed)]: each value of a closed column of the unit that no spelling of its list
+    matches, even in case or spacing (part_kind is said by part_problems)."""
+    lists, out = _closed_lists(), []
+    folder = pathlib.Path(reg) / "units" / unit
+    for t, cols in lists.items():
+        for r in rows(folder / f"{t}.csv"):
+            for c, vs in cols.items():
+                v = (r.get(c) or "").strip()
+                if c == "part_kind" or not v or any(_spelled(x) == _spelled(v) for x in vs):
+                    continue
+                out.append((t, (r.get("row_id") or "").strip(), c, v, [x for x in vs if x]))
+    return out
+
+
+def value_misses(reg, unit):
+    """closed_misses, and each part_kind no spelling of the method's list of part kinds matches."""
+    kinds = [k for k in _closed_lists()["subjects"]["part_kind"] if k]
+    out = [("subjects", (r.get("row_id") or "").strip(), "part_kind", (r.get("part_kind") or "").strip(), kinds)
+           for r in rows(pathlib.Path(reg) / "units" / unit / "subjects.csv")
+           if (r.get("kind") or "").strip() == "element" and (r.get("part_kind") or "").strip()
+           and not any(_spelled(k) == _spelled(r.get("part_kind")) for k in kinds)]
+    return out + closed_misses(reg, unit)
+
+
+def _spelled(v):
+    return " ".join((v or "").split()).lower()
+
+
+def normalise_units(reg):
+    """[(unit, table, row_id, column, was, now)]: in each written unit, a value of a closed list that differs from one
+    of the list's spellings only in case or spacing is written back in the list's spelling, and a numbered `sequence`
+    is blanked (a fast map leaves it blank: one agent per service cannot know the order of calls made from another).
+    Each change is noted in fast/normalised.csv. A value no spelling matches is left for the unit check to refuse."""
+    import register_layout as layout
+    reg = pathlib.Path(reg)
+    lists, changed = _closed_lists(), []
+    units = reg / "units"
+    for d in sorted(p for p in units.iterdir() if p.is_dir()) if units.is_dir() else []:
+        if changed_outside(reg, d.name):  # changed outside the kit: left as it is, to be set aside, never vouched for
+            continue
+        recorded = d.name in _hashes(reg)
+        for t in layout.UNIT_TABLES:
+            p = d / f"{t}.csv"
+            if not p.is_file() or _ragged(p):  # a row that does not parse is left whole for the unit check to refuse
+                continue
+            with p.open(encoding="utf-8-sig", newline="") as f:
+                reader = csv.DictReader(f)
+                fields, table = list(reader.fieldnames or []), list(reader)
+            mine = []
+            for r in table:
+                for col, spellings in lists.get(t, {}).items():
+                    v = r.get(col)
+                    if v is None or v in spellings or not v.strip():
+                        continue
+                    hit = [s for s in spellings if _spelled(s) == _spelled(v)]
+                    if len(hit) == 1:
+                        mine.append((d.name, t, r.get("row_id") or "", col, v, hit[0]))
+                        r[col] = hit[0]
+                if t in ("subjects", "calls") and (r.get("sequence") or "").strip():
+                    mine.append((d.name, t, r.get("row_id") or "", "sequence", r["sequence"], ""))
+                    r["sequence"] = ""
+            if mine:
+                with p.open("w", encoding="utf-8", newline="") as f:
+                    w = csv.DictWriter(f, fieldnames=fields)
+                    w.writeheader()
+                    w.writerows(table)
+                if recorded:
+                    record_unit(reg, d.name)
+                changed += mine
+    if changed:
+        out = reg / FOLDER / NORMALISED
+        out.parent.mkdir(parents=True, exist_ok=True)
+        new = not out.is_file()
+        with out.open("a", encoding="utf-8", newline="") as f:
+            w = csv.writer(f)
+            if new:
+                w.writerow(["unit", "table", "row_id", "column", "was", "now"])
+            w.writerows(changed)
+    return changed
+
+
+def respelled_line(reg):
+    """One line saying how many values were written back in the kit's list's spelling (fast/normalised.csv); ""
+    when none were."""
+    n = len(rows(pathlib.Path(reg) / FOLDER / NORMALISED))
+    return f"{n} value{'s' if n != 1 else ''} respelled to the kit's list" if n else ""
+
+
+UNIT_HASHES = "unit-hashes.json"  # fast/: {unit: {file: sha256}}, each unit's files as run control collected them
+# from its mapping agent, or as a kit command last wrote them; no transcript is read for it
+
+
+def _hashes(reg):
+    try:
+        return json.loads((pathlib.Path(reg) / FOLDER / UNIT_HASHES).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_hashes(reg, got):
+    p = pathlib.Path(reg) / FOLDER / UNIT_HASHES
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(got, indent=1, sort_keys=True), encoding="utf-8")
+
+
+def unit_digest(reg, unit):
+    """{file name: sha256 of its bytes} of every table in units/<unit>/."""
+    import hashlib
+    d = pathlib.Path(reg) / "units" / unit
+    return {f.name: hashlib.sha256(f.read_bytes()).hexdigest() for f in sorted(d.glob("*.csv"))} if d.is_dir() else {}
+
+
+def record_unit(reg, unit):
+    got = _hashes(reg)
+    got[unit] = unit_digest(reg, unit)
+    _save_hashes(reg, got)
+
+
+def forget_units(reg, units):
+    got = _hashes(reg)
+    if any(u in got for u in units):
+        _save_hashes(reg, {u: h for u, h in got.items() if u not in set(units)})
+
+
+def is_fast(reg):
+    import settings
+    try:
+        return settings.load(reg).get("mapping") == "fast"
+    except ValueError:
+        return False
+
+
+def planned(reg):
+    """The units of the flow worked now's reading plan: those its mapping agents can write again."""
+    return {r["unit"] for r in rows(pathlib.Path(reg) / FOLDER / PLAN)}
+
+
+def changed_outside(reg, unit):
+    """The files of a recorded unit that differ from its record (changed, added or gone); [] when it matches or has
+    no record yet, or when the flow worked now is not a fast map (its readers and fixers rewrite units in place)."""
+    rec = _hashes(reg).get(unit)
+    if rec is None or not is_fast(reg):
+        return []
+    now = unit_digest(reg, unit)
+    return sorted(f for f in set(rec) | set(now) if rec.get(f) != now.get(f))
+
+
+def collect_finished(reg):
+    """Record the hashes of every unit its mapping agent has finished (files.csv written, not marked unfinished)
+    that has no record yet: run control's collection of the agent's work."""
+    reg = pathlib.Path(reg)
+    units = reg / "units"
+    owed = set(unfinished(reg)) | set(left_unread(reg))
+    got, done = _hashes(reg), []
+    for d in sorted(p for p in units.iterdir() if p.is_dir()) if units.is_dir() else []:
+        if d.name not in got and d.name not in owed and (d / "files.csv").is_file():
+            got[d.name] = unit_digest(reg, d.name)
+            done.append(d.name)
+    if done:
+        _save_hashes(reg, got)
+    return done
+
+
+OUTSIDE_MARK = "changed since run control collected it"  # how run control tells this reason from a row's
+OUTSIDE = ("units/{unit}/{files} changed since run control collected it from its mapping agent, and no kit command "
+           "made the change (a script or a hand edit, say). Rows changed so are not counted, so the unit is written "
+           "again by its mapping agent with this reason. Never write unit rows by script or by hand: a change goes "
+           "through `fast_map.py fix`, or the person's choice when the unit is held")
+
+
+def outside_writes(reg):
+    """{unit: [why]}: each recorded unit whose files no longer match their recorded hashes."""
+    out = {}
+    for u in sorted(_hashes(reg)):
+        files = changed_outside(reg, u)
+        if files and (pathlib.Path(reg) / "units" / u).is_dir():
+            out[u] = [OUTSIDE.format(unit=u, files=", ".join(files))]
+    return out
+
+
+def fix(reg, unit, table, row_id, column=None, value=None, remove=False, nth=1):
+    """The lead's correction of one row of a unit, the only way it changes a unit's rows: refused when the unit has
+    changed outside the kit since its record (that is set aside, never vouched for), else the cell is set (or the row
+    removed), and the unit's record updated. Returns what was done, or the refusal (starting REFUSED)."""
+    import register_layout as layout
+    reg = pathlib.Path(reg)
+    p = reg / "units" / unit / f"{table}.csv"
+    if table not in layout.UNIT_TABLES or not p.is_file():
+        return f"REFUSED: units/{unit}/{table}.csv is not a table of that unit. Nothing written."
+    changed = changed_outside(reg, unit)
+    if changed:
+        return (f"REFUSED: units/{unit}/{', '.join(changed)} changed outside the kit since it was collected; call "
+                "run control (next.py), which sets the unit aside and has its mapping agent write it again. Nothing "
+                "written.")
+    ragged = _ragged(p)
+    if ragged:
+        line, cells, width = ragged[0]
+        return (f"REFUSED: units/{unit}/{table}.csv line {line} has {cells} cells and its header {width}: the row does "
+                "not parse, so no cell of it can be set. Call run control (next.py), whose check sends the unit back "
+                "to its mapping agent. Nothing written.")
+    with p.open(encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        fields, table_rows = list(reader.fieldnames or []), list(reader)
+    hits = [i for i, r in enumerate(table_rows) if (r.get("row_id") or "").strip() == row_id]
+    if len(hits) < nth:
+        return f"REFUSED: units/{unit}/{table}.csv has no row {row_id} (occurrence {nth}). Nothing written."
+    i = hits[nth - 1]
+    if remove:
+        del table_rows[i]
+    else:
+        if column not in fields:
+            return f"REFUSED: units/{unit}/{table}.csv has no column {column!r}. Nothing written."
+        table_rows[i][column] = value if value is not None else ""
+    with p.open("w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        w.writerows(table_rows)
+    record_unit(reg, unit)
+    return (f"removed row {row_id}" if remove else f"set {column} of row {row_id}") + f" in units/{unit}/{table}.csv"
+
+
 def set_aside_bad_ids(reg, extra=None):
     """(units owed again, units stuck, why): each written unit that breaks the unit rules (unit_problems), or that
     `extra` ({unit: [problem]}, the register check's refusals of its rows) names, is moved to
     fast/refused/row-ids-<unit>-<n>/<unit>/ and recorded in SET_ASIDE, with the reason kept for its relaunch prompt, so
-    the mapping agent writes it again before the merge. A unit set aside MAX_SET_ASIDE times already is stuck."""
-    extra = extra or {}
+    the mapping agent writes it again before the merge. A unit set aside MAX_SET_ASIDE times already is stuck. A unit
+    whose files no longer match their recorded hashes (outside_writes) is set aside the same way."""
     import datetime
     import shutil
     reg = pathlib.Path(reg).resolve()
+    collect_finished(reg)
+    normalise_units(reg)
+    extra = {u: list((extra or {}).get(u) or []) for u in (extra or {})}
+    for u, found in outside_writes(reg).items():
+        extra.setdefault(u, []).extend(found)
     record = set_aside(reg)
-    times = {}
-    for r in record:
-        for u in r.get("units") or []:
-            times[u] = times.get(u, 0) + 1
+    times = times_set_aside(record)
+    left = left_unread(reg)
     reasons = row_id_reasons(reg)
     owed, stuck, why = [], [], []
     units = reg / "units"
+    plan = planned(reg) if (reg / FOLDER / PLAN).is_file() else None
     for d in sorted(p for p in units.iterdir() if p.is_dir()) if units.is_dir() else []:
         u = d.name
-        if not (d / "files.csv").is_file():
+        if u in left or not (d / "files.csv").is_file():
             continue
         found = unit_problems(reg, u) + list(extra.get(u) or [])
         if not found:
             continue
         said = "; ".join(found[:5]) + (f"; and {len(found) - 5} more" if len(found) > 5 else "")
+        if plan is not None and u not in plan:  # no mapping agent of this flow writes it again: never moved away
+            stuck.append(u)
+            why.append(f"{u} is not read in this flow, so no mapping agent writes it again: {said}")
+            continue
         if times.get(u, 0) >= MAX_SET_ASIDE:
             stuck.append(u)
             why.append(f"{u}'s rows broke the unit rules again after it was written once more: {said}")
@@ -751,7 +1124,7 @@ def check(reg, flow, ws=None, transcripts=None):
     if not plan_rows:
         return ["the reading plan has not been made (fast_map.py plan)"], []
     problems, notes = [], []
-    for u in sorted({r["unit"] for r in plan_rows}):
+    for u in sorted({r["unit"] for r in plan_rows} - set(left_unread(reg))):
         if not (reg / "units" / u / "files.csv").is_file():
             problems.append(f"unit {u}: the mapping agent has not written its tables")
     families = None
@@ -887,7 +1260,14 @@ def gaps(reg, flow, ws, transcripts=None):
             out.append(("", f"{u}: call {r.get('row_id') or ''} to {to}: {(r.get('operation') or '').strip()}",
                         "calls a service outside this run: its side is not read, so whether it serves the call is "
                         "not known"))
+    left = left_unread(reg)
+    for u, said in sorted(left.items()):
+        why = f"{LABEL_UNREAD}: left unread on the person's word: '{(said or {}).get('words') or ''}'"
+        steps = carried_steps(reg, flow, u)
+        out += [(st, f"{u}: unit left unread", why) for st in steps] or [("", f"{u}: unit left unread", why)]
     for u, (st, note) in sorted(statuses(reg).items()):
+        if u in left:
+            continue
         if st == "unfinished":
             out.append(("", f"{u}: unit not finished", f"{LABEL_UNREAD}: {note or 'unfinished'}"))
     cover = read_coverage(reg, ws, transcripts)
@@ -919,6 +1299,14 @@ def gaps(reg, flow, ws, transcripts=None):
     for r in planned.values():
         if r["status"] != "read":
             out.append(("", f"{r['unit']}: {r['path']}", f"{LABEL_UNREAD}: {r['reason']}"))
+    said = set(cover.get("blocked", {})) | set(cover["partly"]) | set(cover["unopened"])
+    said |= {p for p, r in planned.items() if r["status"] != "read"}
+    for u in sorted(planned_units):  # a file the mapping agent listed as not read (a filter or hook blocked it, say)
+        for r in rows(reg / "units" / u / "files.csv"):
+            path, why = (r.get("path") or "").strip(), (r.get("reason") or "").strip()
+            if (r.get("status") or "").strip() == "not read" and path and path not in said:
+                said.add(path)
+                out.append(("", f"{u}: {path}", f"{LABEL_UNREAD}: {why or 'no reason given'}"))
     return out
 
 
@@ -961,6 +1349,8 @@ def page(reg, flow, table):
     rest = "".join(f"<li class='gap'><b>{E(r['label'])}</b>: {E(r['what'])} <span class='why'>{E(r['note'])}</span></li>"
                    for r in other)
     views = '<a href="views.html">The map\'s views</a> &middot; ' if (pathlib.Path(reg) / "views.html").is_file() else ""
+    said = respelled_line(reg)
+    respelled = (f'<p>{E(said)}: <a href="{FOLDER}/{NORMALISED}">what each was and is now</a></p>' if said else "")
     return f"""<!doctype html><html><head><meta charset="utf-8"><title>Fast map, flow {E(flow)}</title>
 <style>body{{font-family:system-ui,sans-serif;max-width:1100px;margin:24px auto;padding:0 16px;line-height:1.45}}
 .note{{background:#fff7e0;border:1px solid #e8c66a;padding:10px 14px;border-radius:6px}}
@@ -969,7 +1359,7 @@ li.gap{{color:#9a4b00}} code{{font-size:12px}} .why{{color:#6b6b6b}}</style></he
 <h1>Fast map of flow {E(flow)}</h1>
 <p class="note">{E(NOT_DONE)}</p>
 <p>{E(summary(reg, flow, table))}</p>
-{''.join(parts)}
+{respelled}{''.join(parts)}
 <section><h3>Not on this map, or not read</h3><ul>{rest or '<li>nothing listed</li>'}</ul></section>
 </body></html>
 """
@@ -989,6 +1379,21 @@ def main(argv):
         i = argv.index("--ws")
         ws = argv[i + 1]
         argv = argv[:i] + argv[i + 2:]
+    if argv[:1] == ["fix"]:  # fix <register> <unit> <table> <row_id> (<column> <value> | --remove) [--nth N]
+        nth = 1
+        if "--nth" in argv:
+            i = argv.index("--nth")
+            nth, argv = int(argv[i + 1]), argv[:i] + argv[i + 2:]
+        remove = "--remove" in argv
+        argv = [a for a in argv if a != "--remove"]
+        if len(argv) != (5 if remove else 7):
+            print("usage: fast_map.py fix <register> <unit> <table> <row_id> (<column> <value> | --remove) [--nth N]")
+            return 2
+        import run_lock
+        run_lock.guard(pathlib.Path(argv[1]))
+        said = fix(argv[1], argv[2], argv[3], argv[4], *(argv[5:7] if not remove else ()), remove=remove, nth=nth)
+        print(said, file=sys.stderr if said.startswith("REFUSED") else sys.stdout)
+        return 2 if said.startswith("REFUSED") else 0
     if len(argv) < 3 or argv[0] not in ("plan", "check", "draw", "summary"):
         print(__doc__)
         return 2

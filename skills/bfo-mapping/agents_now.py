@@ -1,5 +1,5 @@
 """Who is working now: one account of every agent of a run, read from the agents' own transcripts on disk each time the
-run status page is drawn. The page's badge, its "at work" words and its "Who is working now" panel are all read from
+run status page is drawn. The page's badge, its working line and its "Who is working now" panel are all read from
 this one account, so they never disagree.
 
 Which agents: the lead (the current session's own transcript), the lead's own agents (every subagent of every session
@@ -28,6 +28,7 @@ RED_MINUTES = 40  # a run of retries after a 503 can last over half an hour befo
 LOST_QUIET = 120  # judges.LAUNCHER_QUIET: an API error with nothing after it for this long ended the agent
 SESSIONS = "sessions.json"  # in _run-state/: every session id the run has had, oldest first
 STATE_DIR = "_run-state"
+RUN_DIR = "_start-"  # start.RUN_DIR: one run's own folder in the work folder before its register exists
 SHELLS = ("Bash", "PowerShell")
 READS = {"Read": "file_path", "Grep": "pattern", "Glob": "pattern", "WebFetch": "url", "Write": "file_path",
          "Edit": "file_path", "NotebookEdit": "notebook_path"}
@@ -143,10 +144,30 @@ def meta(f):
     return d
 
 
+def window_record_is(reg, record):
+    """Whether the work folder's window-wide run-started.json (an earlier release's: one record for the window) is
+    this register's: it names this register, or names none while this is the only register in the work folder. With
+    several registers an unnamed record could be any of them, so it is none of theirs."""
+    reg = pathlib.Path(reg)
+    named = str((record or {}).get("register") or "")
+    if named:
+        return named in (str(reg), str(reg.resolve()))
+    try:
+        others = [d for d in reg.parent.iterdir() if d.is_dir() and d != reg and (d / "RUN.md").is_file()]
+    except OSError:
+        return False
+    return (reg / "RUN.md").is_file() and not others
+
+
 def session_ids(reg):
     """(every session id the run has had, oldest first; the current one, or None). Read from the run's lock, its
-    run-started.json, the first-look marks naming this folder, and _run-state/sessions.json."""
+    run-started.json, the first-look marks naming this folder, and _run-state/sessions.json. Another run's start
+    folder or an earlier release's window-wide record is never this run's. A folder that is neither a register nor
+    a run's start folder (the work folder) has no sessions of its own: it never borrows a run's."""
     reg = pathlib.Path(reg)
+    start_dir = reg.name.startswith(RUN_DIR)
+    if not start_dir and not (reg / "RUN.md").is_file() and not (reg / "RUN.lock").is_file():
+        return [], None
     ids = list((_json(reg / STATE_DIR / SESSIONS) or {}).get("ids") or [])
     current = None
     lock = _json(reg / "RUN.lock") or {}
@@ -156,16 +177,20 @@ def session_ids(reg):
         if r:
             found.append(r)
     parent = reg.parent
-    started = _json(parent / "run-started.json") or {}
-    if started.get("run") and str(started.get("register") or "") in ("", str(reg), str(reg.resolve())):
-        found.append(started["run"])
-    for mark in list(reg.glob("first-look.json")) + list(parent.glob("_start-*/first-look.json")) + \
-            list(reg.glob("_start-*/first-look.json")):
+    if not start_dir:
+        started = _json(parent / "run-started.json") or {}
+        if started.get("run") and window_record_is(reg, started):
+            found.append(started["run"])
+        for p in sorted(parent.glob(RUN_DIR + "*/run-started.json")):  # the run's start folder that led here
+            d = _json(p) or {}
+            named = d.get("register")
+            if d.get("run") and named and pathlib.Path(named).resolve() == reg.resolve():
+                found.append(d["run"])
+    marks = [reg / "first-look.json"] + ([] if start_dir else list(parent.glob(RUN_DIR + "*/first-look.json")))
+    for mark in marks:
         m = _json(mark) or {}
         folder = m.get("folder")
-        own = mark.parent == reg or mark.parent.parent == reg or (
-            folder and pathlib.Path(folder).resolve() == reg.resolve()) or (
-            not folder and not (reg / "RUN.md").is_file())
+        own = mark.parent == reg or (folder and pathlib.Path(folder).resolve() == reg.resolve())
         if m.get("run") and own:
             found.append(m["run"])
     if lock.get("run"):
@@ -174,7 +199,34 @@ def session_ids(reg):
     for r in found:
         if r not in ids:
             ids.append(r)
+    if not start_dir:  # a session another register holds as its own (its lock, a start folder naming it) is not this
+        # run's, unless this run's own records name it too: a list kept before runs were told apart may carry one
+        theirs = claimed_elsewhere(reg) - set(found)
+        ids = [r for r in ids if r not in theirs]
     return ids, current or (ids[-1] if ids else None)
+
+
+def claimed_elsewhere(reg):
+    """The session ids the other registers in the work folder hold as their own: each one's lock, and each run's start
+    folder naming one of them."""
+    reg = pathlib.Path(reg).resolve()
+    out = set()
+    try:
+        others = [d.resolve() for d in reg.parent.iterdir() if d.is_dir() and d.resolve() != reg
+                  and (d / "RUN.md").is_file()]
+    except OSError:
+        return out
+    for d in others:
+        r = (_json(d / "RUN.lock") or {}).get("run")
+        if r:
+            out.add(r)
+    names = {str(d) for d in others}
+    for p in reg.parent.glob(RUN_DIR + "*/run-started.json"):
+        d = _json(p) or {}
+        named = d.get("register")
+        if d.get("run") and named and str(pathlib.Path(named).resolve()) in names:
+            out.add(d["run"])
+    return out
 
 
 def remember_session(reg, run):
@@ -402,12 +454,18 @@ def _gather_agents(reg, now, transcripts, look):
         if any(a.get("prompt") == rel and a["started"] and a["started"] >= at - dt.timedelta(seconds=1)
                for a in agents):
             continue  # taken by a transcript that started after its latest emission
+        if not (reg / "prompts" / rel).is_file():
+            continue  # its prompt is gone (replaced, or its row not selected): it will never run
         unit, step = timings.step_of(rel)
         agents.append({"who": step, "on": unit or rel, "now": "", "last_action": "", "last": None, "started": None,
+                       "emitted": at,
                        "state": QUEUED, "words": "queued", "kind": "kit", "prompt": rel})
     if lead is None and not agents:
         return dict(empty, readable=False, reason="No agent started yet.") if folders else empty
-    live = [a for a in agents if a["state"] in (WORKING, AMBER, QUEUED)]
+    # running agents, and launches emitted moments ago that Claude Code has yet to start: a launch left queued past
+    # the quiet limit is not one the lead is waiting on, so a quiet lead shows quiet, not "waiting on its agents"
+    live = [a for a in agents if a["state"] in (WORKING, AMBER) or a["state"] == QUEUED and a.get("emitted")
+            and (now - a["emitted"]).total_seconds() <= AMBER_MINUTES * 60]
     if lead is not None and live and lead["idle_turn"]:
         lead.update(state=WAITING_AGENTS, words=f"waiting on its agents ({len(live)} running)",
                     now=f"waiting on its agents ({len(live)} running)")
@@ -415,8 +473,25 @@ def _gather_agents(reg, now, transcripts, look):
     return {"readable": True, "reason": None, "lead": lead, "agents": agents,
             "finished": sum(a["state"] == FINISHED for a in agents),
             "queued": sum(a["state"] == QUEUED for a in agents),
-            "at_work": sum(r["state"] in (WORKING, AMBER, WAITING_AGENTS) for r in rows),
+            "at_work": sum(r["state"] in (WORKING, WAITING_AGENTS) for r in rows),
             "red": sum(r["state"] == RED for r in rows), "amber": sum(r["state"] == AMBER for r in rows)}
+
+
+def as_ended(g):
+    """The account of a run that has ended (every step done, no flow left): an agent or lead not heard from lately is
+    finished, never waiting or not heard from, and a launch never taken is no longer queued. An agent still working
+    is shown as it is. Only for a run that has ended: a live run's account is never passed through this."""
+    if not g.get("readable"):
+        return g
+    done = dict(state=FINISHED, words="finished", now="")
+    agents = [a if a["state"] in (WORKING, FINISHED) else dict(a, **done) for a in g["agents"]
+              if a["state"] != QUEUED]
+    live = g["lead"] and (g["lead"]["state"] == WORKING or g["lead"]["state"] == WAITING_AGENTS and any(
+        a["state"] == WORKING for a in agents))
+    lead = g["lead"] if live or not g["lead"] else dict(g["lead"], **done)
+    rows = ([lead] if lead else []) + agents
+    return dict(g, lead=lead, agents=agents, finished=sum(a["state"] == FINISHED for a in agents), queued=0,
+                at_work=sum(r["state"] in (WORKING, WAITING_AGENTS) for r in rows), red=0, amber=0)
 
 
 def badge(g):
@@ -434,18 +509,25 @@ def badge(g):
 
 
 def words(g):
-    """The "at work" line under the badge."""
+    """The line under the badge, counted from the rows the panel shows and said in their own words ("not
+    heard from", "waiting on the model", "lost to an API error"), never a word no row says."""
     if not g["readable"]:
         return g.get("reason") or ""
+    rows = ([g["lead"]] if g.get("lead") else []) + list(g.get("agents") or [])
     bits = [g["count"]] if g.get("count") else []
-    if g["at_work"]:
-        bits.append(f"{g['at_work']} at work")
-    if g.get("queued"):
-        bits.append(f"{g['queued']} queued")
-    if g["amber"]:
-        bits.append(f"{g['amber']} quiet")
-    if g["red"]:
-        bits.append(f"{g['red']} stopped")
-    if g["finished"]:
-        bits.append(f"{g['finished']} finished")
+    working = sum(r["state"] in (WORKING, WAITING_AGENTS) for r in rows)
+    if working:
+        bits.append(f"{working} working")
+    queued = sum(r["state"] == QUEUED for r in rows)
+    if queued:
+        bits.append(f"{queued} queued")
+    kinds = {}
+    for r in rows:
+        if r["state"] in (AMBER, RED):
+            k = re.sub(r"( for \d+ min| at \d\d:\d\d|: .*)$", "", r["words"])
+            kinds[k] = kinds.get(k, 0) + 1
+    bits += [f"{n} {k}" for k, n in kinds.items()]
+    finished = sum(r["state"] == FINISHED for r in rows)
+    if finished:
+        bits.append(f"{finished} finished")
     return " · ".join(bits)
