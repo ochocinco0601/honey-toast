@@ -109,7 +109,7 @@ def derive(reg, size=None, kept=None):
     """The rows units.py writes to units.csv: `kept` (the rows listed already, as they are; [] for a fresh cut) and a
     unit, or a cut of units, for every surveyed service not listed in them."""
     reg = pathlib.Path(reg).resolve()
-    ws = reg.parent.parent
+    ws = layout.code_root(reg) or reg.parent.parent  # where the survey read the code, which its paths start from
     size = unit_lines(reg) if size is None else size
     with (reg / "survey.csv").open(encoding="utf-8-sig", newline="") as f:
         services = list(csv.DictReader(f))

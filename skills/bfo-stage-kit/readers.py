@@ -140,21 +140,18 @@ def reader_agent_problem(reg, ws=None):
     """None when the reader agent Claude Code would launch by the name READER_TYPE is the kit's own definition; else
     what to do. Claude Code takes a project's `.claude/agents/` (the folder the session started in: the register's
     grandparent by the kit's layout, or a folder above it) before the user's (CLAUDE_CONFIG_DIR, else `~/.claude`)."""
-    import os
-    name = f"{provenance.READER_TYPE}.md"
-    want = AGENT.read_bytes().replace(b"\r\n", b"\n")
-    start = judges.workspace(reg, ws)
-    home = pathlib.Path.home().resolve()
-    project = [d / ".claude" / "agents" / name for d in (start, *start.parents) if d != home and d != d.parent]
-    config = pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or home / ".claude")
-    found = next((p for p in project + [config / "agents" / name] if p.is_file()), None)
-    fix = (f"copy the kit's agents/{name} to {(config / 'agents').as_posix()}/ (or to .claude/agents/ in the folder "
-           "Claude Code starts in), then start Claude Code again: it loads agents when a session starts")
-    if found is None:
-        return f"the reader agent {provenance.READER_TYPE} is not installed: {fix}"
-    if found.read_bytes().replace(b"\r\n", b"\n") != want:
-        return f"the reader agent at {found.as_posix()} is not this kit's copy: {fix}"
-    return None
+    return judges.agent_problem(reg, provenance.READER_TYPE, AGENT, "reader")
+
+
+def workspace_problem(reg, units, ws=None):
+    """Why readers of `units` cannot be launched: a path of theirs (units.csv `paths`) not under the folder their
+    prompts name, so every read of it would fail and the reader be thrown away; None when all are there."""
+    w = judges.workspace(reg, ws)
+    f = pathlib.Path(reg) / layout.UNITS_CSV
+    rows = {r.get("unit"): r for r in tables.dicts(f)} if f.is_file() else {}
+    paths = [p for u in units for p in ((rows.get(u) or {}).get("paths") or "").split(";") if p.strip()]
+    missing = judges.missing_under(w, paths)
+    return judges.where_to_say(w, missing) if missing else None
 
 
 def prompt(reg, unit, mode="read", ws=None):
@@ -412,7 +409,8 @@ def main(argv):
     again, scoped = "--again" in argv, "--in-scope" in argv
     argv = [a for a in argv if a not in ("--again", "--in-scope")]
     if len(argv) >= 2 and argv[0] == "prompt" and (len(argv) >= 3 or scoped or mode == "reread"):
-        problem = reader_agent_problem(argv[1], ws)
+        import guard  # the order of mapping, held here whichever command was typed (guard.py)
+        problem = guard.require(argv[1], mode, units=argv[2:]) or reader_agent_problem(argv[1], ws)
         if problem:
             print(f"REFUSED: {problem}. Nothing was launched.", file=sys.stderr)
             return 2
@@ -421,11 +419,20 @@ def main(argv):
             owed, done = in_scope(argv[1])
             units = list(dict.fromkeys(units + owed))
             said = [f"{u}: read for this flow already (its files.csv is newer than the go)" for u in done]
+        problem = workspace_problem(argv[1], units, ws)
+        if problem:
+            print(f"REFUSED: {problem}. Nothing was launched.", file=sys.stderr)
+            return 2
         print("\n".join(said + emit(argv[1], units, mode, ws, again, transcripts, reason)))
         return 0
     if len(argv) >= 4 and argv[0] == "run":
         import run_lock  # the register is written by one run at a time
         run_lock.guard(argv[1])
+        import guard
+        problem = guard.require(argv[1], mode, units=argv[3:]) or workspace_problem(argv[1], argv[3:], argv[2])
+        if problem:
+            print(f"REFUSED: {problem}. Nothing was launched.", file=sys.stderr)
+            return 2
         n = run(argv[1], argv[2], argv[3:], mode, model)
         print(f"{n} reader(s) finished; replies in {pathlib.Path(argv[1]) / layout.REPLIES}")
         return 0

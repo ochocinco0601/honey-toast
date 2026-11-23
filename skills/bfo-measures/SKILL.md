@@ -190,9 +190,9 @@ The work is in the **register folder**, `<your-folder>` below: the folder mappin
    work as it stands now or have mapping take the corrections up first. Recommend the second when a failed rule changes what the
    coverage list asks (stages that do not lead into each other, a step tied to no move, an AI agent's decisions
    left unclassed, steps with no Business Impact, where some of those steps matter); otherwise recommend going on.
-   **The code must be open here.** Every repository `sources.csv` lists as code must be a folder of the open
-   workspace, because the citations start there and this step opens the cited lines itself. If one is not, tell
-   the person, through `say`, which (by its name) and that it needs opening here, and stop until it is.
+   **The code must be where `sources.csv` says.** Every repository it lists as code must be in the folder its
+   `location` records (or, with none recorded, under the workspace), because this step opens the cited lines itself.
+   If one is not, tell the person, through `say`, which (by its name) and where it was expected, and stop until it is.
    **If a script refuses because another chat holds the register** (at the start, `start.py` prints DECISION
    held), ask the person, through `say`, to confirm no
    other chat is working on it. On their yes, run `python "<skill>/start.py" "<workspace root>" --release

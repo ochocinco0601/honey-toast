@@ -5,6 +5,7 @@ and column lists from here, so a change to the layout is a change to this file. 
 folder <reg>, written with `/`; join them as `reg / UNITS_CSV`. Python standard library only."""
 import pathlib
 
+CODE_ROOT = "code-root.txt"  # the folder the survey read the code from, relative to the workspace (survey.py)
 SETTINGS = "run-settings.json"
 SCOPE = "scope.json"  # the person's picks at the go, written by go.py
 ORIENTATION = "orientation.json"  # the run's first look, for the capability brief (brief.py)
@@ -63,3 +64,55 @@ def judging_dir(reg, unit=None):
     """The judging folder, or one unit's verdict files in it."""
     p = pathlib.Path(reg) / JUDGING
     return p / unit if unit else p
+
+
+def holding_folder(base, repos):
+    """The folder citations into `repos` start from, so that a citation starts with its repository's folder name:
+    `base` (the workspace) when every repository is inside it; else the one folder they all sit directly in, wherever
+    it is (a `repos/` folder beside the workspace, say); None when they sit in different folders, where no citation
+    form would start with each repository's own name."""
+    base = pathlib.Path(base).resolve()
+    repos = [pathlib.Path(r).resolve() for r in repos]
+    if not repos or all(r == base or base in r.parents for r in repos):
+        return base
+    parents = {r.parent for r in repos}
+    return parents.pop() if len(parents) == 1 else None
+
+
+def code_folders(reg):
+    """{repository name: its folder (absolute, existing)} for the code rows of sources.csv: the folder recorded in
+    `location` (absolute, or relative to the workspace), else the repository's name under the workspace. A row whose
+    folder does not exist is left out."""
+    reg = pathlib.Path(reg).resolve()
+    base = reg.parent.parent
+    src = reg / "sources.csv"
+    if not src.is_file():
+        return {}
+    import csv
+    out = {}
+    with src.open(encoding="utf-8-sig", errors="replace", newline="") as f:
+        for r in csv.DictReader(f):
+            if (r.get("kind") or "").strip() != "code":
+                continue
+            name = (r.get("repository") or "").strip()
+            where = (r.get("location") or "").strip() or name
+            if not name or not where:
+                continue
+            p = (base / where).resolve()
+            if p.is_dir():
+                out[pathlib.PurePath(name.replace("\\", "/")).name] = p
+    return out
+
+
+def code_root(reg):
+    """The folder the run's code is read from, which every reader's and judge's prompt names: the one the survey
+    recorded (CODE_ROOT), else the folder holding the repositories sources.csv records (code_folders), else the
+    workspace (the register's grandparent). None when the recorded repositories sit in different folders."""
+    reg = pathlib.Path(reg).resolve()
+    base = reg.parent.parent
+    mark = reg / CODE_ROOT
+    if mark.is_file():
+        got = (base / mark.read_text(encoding="utf-8").strip()).resolve()
+        if got.is_dir():
+            return got
+    return holding_folder(base, list(code_folders(reg).values()))

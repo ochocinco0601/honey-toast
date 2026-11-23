@@ -79,6 +79,12 @@ def main(argv):
         print(f"refused: {reg} is named {run_lock.ANSWERS}, the name of the folder the page saves the person's answers "
               "in. Start the register in a folder named for the system. Nothing was copied.", file=sys.stderr)
         return 2
+    inside = next((d for d in [reg.resolve(), *reg.resolve().parents] if (d / "SKILL.md").is_file()), None)
+    if inside is not None:  # a relative path given from the kit's own folder lands in the kit
+        print(f"refused: {reg.resolve()} is inside the skill folder {inside}: a register is never written into a "
+              "skill. Give the register's full path, under the workspace's bfo-work/ folder. Nothing was copied.",
+              file=sys.stderr)
+        return 2
     held = sorted(p.name for p in reg.glob("*.csv")) if reg.is_dir() else []
     if held:
         print(f"refused: {reg} already holds a register ({', '.join(held)}). Nothing was copied, so the earlier "

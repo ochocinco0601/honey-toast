@@ -252,9 +252,15 @@ def first_look_open(site):
             continue
         if p.parent != run_dir(site) and m.get("run") != run_lock.identity():
             continue  # an earlier release's window-wide mark, made by another run
-        age = (time.time() - float(m.get("since_epoch", 0))) / 60
+        age = (time.time() - max(float(m.get("since_epoch", 0)), float(m.get("refreshed_epoch", 0)))) / 60
         if 0 <= age < FIRST_LOOK_MINUTES:
             return m
+        try:  # past the minutes, the mark holds while the first-look helper or a source reader is alive
+            import first_look
+            if first_look.agents_alive(site):
+                return m
+        except (ImportError, OSError, ValueError):
+            pass
     return None
 
 
@@ -652,8 +658,19 @@ def address_line(site, reg=None):
     return brief.PAGE_LEAD + url + run_page(site)
 
 
+START_LINES = "start-lines.json"  # in this run's own folder: the start step's DECISION, FOLDER and EARLIER lines
+_SITE = None  # the work folder of this start step, set by main once the page is up
+
+
 def emit(decision, folders=(), earlier=(), message="", wait="", extra=()):
     out = [f"DECISION: {decision}"] + [f"FOLDER: {f}" for f in folders] + [f"EARLIER: {e}" for e in earlier]
+    if _SITE is not None:  # kept on disk, so the say-back's Start writes the helper's prompt from them, not the chat
+        p = run_dir(_SITE) / START_LINES
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps({"decision": decision, "folders": [str(f) for f in folders],
+                                 "earlier": [str(e) for e in earlier],
+                                 "at": datetime.datetime.now().astimezone().isoformat(timespec="seconds")}),
+                     encoding="utf-8")
     out += list(extra)
     if wait:
         out.append(f"WAIT: {wait}")
@@ -708,7 +725,9 @@ def main(argv):
         print("REFUSED: --release needs the person's words, word for word: --words \"<their words>\". Release a run "
               "only when the person says the other chat has stopped. Nothing written.", file=sys.stderr)
         return 2
+    global _SITE
     site = open_the_page(args[0])  # first, so the person has the page while the rest runs
+    _SITE = site
     print(kit_line())  # which build this is, and a partial or mixed copy named, before any work
     if not is_source() and kit_check()[1]:  # a broken copy takes no lock, writes no mark, upgrades nothing
         print(BLOCKED)

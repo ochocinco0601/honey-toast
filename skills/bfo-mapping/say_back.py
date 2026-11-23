@@ -84,6 +84,21 @@ def root_of(folder):
     return folder.parent.parent if is_register(folder) or is_run_dir(folder) else folder.parent
 
 
+def placed(named, folder):
+    """(the register folder `named` means, None) or (None, why it is refused). A relative path is the workspace's,
+    never the folder the script was started in (the skill says to run the kit from its own folder); a folder inside
+    a skill folder (one holding SKILL.md) is refused: the kit's folder is never a register."""
+    p = pathlib.Path(named)
+    if not p.is_absolute():
+        p = root_of(folder) / p
+    p = p.resolve()
+    for d in [p, *p.parents]:
+        if (d / "SKILL.md").is_file():
+            return None, (f"{p} is inside the skill folder {d}: a register is never written into a skill. Name it "
+                          "under the workspace's bfo-work/ folder (bfo-work/<the system's name>). Nothing written.")
+    return p, None
+
+
 def _flow_names(reg):
     import brief
     return {(r.get("flow_id") or "").strip(): (r.get("name") or "").strip() for r in brief.rows(reg / "flows.csv")}
@@ -218,8 +233,79 @@ def draft(folder, given, register=None):
     return sb, ""
 
 
-def answer(folder, answers=None, words=None, test=False, reading=None):
-    """(what to print, exit code)."""
+LEAD_TASK = """# The first look of a business flow observability run
+
+You are the first-look helper. The person has pressed Start on the say-back below. Write nothing for the person.
+
+- **The person's request, word for word:** {request}
+- **The say-back's lines, as they started them:**
+{lines}
+- **The start step's lines (it has run; never run it again or decide by your own reading):**
+{start}
+- **The register folder (`<your-folder>`):** {register}
+- **The skill folder (`<skill>`):** {skill}
+- **The mapping skill's folder (`<mapping>`):** {mapping}
+
+Follow `<mapping>/SKILL.md`, section "The run", from the start step's decision through the stop for the person's word
+in phase 0, using `<mapping>/MAPPING-STEPS.md` "Before you start". On finish-first-look, finish the first look in the
+folder it names; on fresh, start the register folder above with `start_register.py` and do the first look there.
+Your own turns are the first look's cost, so keep them few: scripts do the bookkeeping. Write `sources.csv` once (every
+source the person gave, each with its `location`; code rows with their repository folder), then run
+`python <skill>/first_look.py prepare <your-folder>`: it runs the survey, the code reader, the fetch and the reader
+prompts in one command. When it prints LAUNCH, start every `bfo-source-reader` line it prints in one message, each
+line as its whole prompt, in the foreground; when it says single, read each owed part yourself with the Read tool only
+and write its file in the form. Then run `first_look.py check`, `names` and `first_look.py merge` together; `merge` writes
+`first-look/leads-merged.json` (every lead grouped by name, with the sources it was seen in) and places each name no
+code holds as unresolved. Write `orientation.json` from the merged leads and the survey in one write (each flow's
+`seen_in` from the merge; read code only where the merged leads leave a flow's stages unclear), then run
+`brief.py capability`, with `--from-request` when the request asked for every flow, and your final reply is exactly
+the text that script printed, and nothing else; with `--from-request`, end there too: start no wait and do not begin
+phase 1, which the session that started you does. If the run is blocked, your final reply is what `brief.py say` printed
+for one plain sentence saying why and what would unblock it, in the person's terms (with no code to read, or only
+code that is not the named system's: that the system's code is needed, and that they can point at it or agree to a
+search for it).
+"""
+
+
+def start_lines(folder):
+    """The start step's DECISION, FOLDER and EARLIER lines, as start.py kept them in this run's folder, or None."""
+    import start
+    try:
+        return json.loads((pathlib.Path(folder) / start.START_LINES).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def taken(folder):
+    """A folder that already holds a register (a CSV file, or RUN.md)."""
+    folder = pathlib.Path(folder)
+    return folder.is_dir() and ((folder / "RUN.md").is_file() or any(folder.glob("*.csv")))
+
+
+def lead_prompt(run_folder, sb, register):
+    """Write the first-look helper's prompt in the register's prompts/ through write_prompt; return its pointer line."""
+    import first_look
+    import judges
+    import start
+    lines = start_lines(run_folder) or {}
+    try:
+        request = json.loads((pathlib.Path(run_folder) / start.STARTED).read_text(encoding="utf-8")).get("request")
+    except (OSError, ValueError):
+        request = None
+    request = request or start.request_of(register)
+    said = "\n".join(f"  - {x}" for x in (sb.get("shown") or "").splitlines()) or "  - (none)"
+    start_said = "\n".join([f"  - DECISION: {lines.get('decision', '')}"]
+                           + [f"  - FOLDER: {f}" for f in lines.get("folders") or []]
+                           + [f"  - EARLIER: {e}" for e in lines.get("earlier") or []])
+    mapping = HERE if (HERE / "MAPPING-STEPS.md").is_file() else HERE.parent / "bfo-mapping"
+    text = LEAD_TASK.format(request=request or "(not kept)", lines=said, start=start_said,
+                            register=pathlib.Path(register).resolve().as_posix(), skill=HERE.as_posix(),
+                            mapping=mapping.as_posix())
+    return judges.write_prompt(pathlib.Path(register).resolve() / "prompts" / first_look.LEAD_PROMPT, text)
+
+
+def answer(folder, answers=None, words=None, test=False, reading=None, register=None):
+    """(what to print, exit code). `register`: on a fresh Start, the folder the first look's register goes in."""
     folder = pathlib.Path(folder).resolve()
     sb = load(folder)
     if not sb or sb.get("state") != "waiting":
@@ -287,6 +373,25 @@ def answer(folder, answers=None, words=None, test=False, reading=None):
                     "again, so the page shows them with Start. Read nothing in depth before Start."), 0
         return ("SEARCH DECLINED: recorded; search nothing. Ask them, through say, to point at the code; when they "
                 "do, redraft the lines with it and run say_back.py draft again."), 0
+    lead_at = None
+    if action == "start":  # where the first-look helper's prompt goes, checked before anything is recorded
+        lines = start_lines(folder) or {}
+        if lines.get("decision") == "finish-first-look":
+            lead_at, why = placed((lines.get("folders") or [None])[0] or register or "", folder)
+            if why:
+                return f"REFUSED: {why}", 2
+        elif sb["kind"] == "fresh":
+            named = register or sb.get("register")
+            if not named:
+                return ("REFUSED: name the register folder for this first look with --register "
+                        "bfo-work/<the system's name>. Nothing written."), 2
+            lead_at, why = placed(named, folder)
+            if why:
+                return f"REFUSED: {why}", 2
+            if taken(lead_at):
+                return (f"REFUSED: {lead_at} already holds a register; an earlier register is never written into. "
+                        "Name a new folder by the -<date> rule (bfo-work/<the system's name>-<date>/) and run this "
+                        "again with --register. Nothing written."), 2
     into = case.DECISIONS if sb["kind"] == "resume" else DECISIONS
     entry = case.decide(folder, STOP, sb["shown"], said, source, test, into=into, kind=action,
                         corrections=corrections)
@@ -296,6 +401,10 @@ def answer(folder, answers=None, words=None, test=False, reading=None):
     sb["answered"] = entry["at"]
     (folder / FILE).write_text(json.dumps(sb, indent=2, ensure_ascii=False), encoding="utf-8")
     if action == "start":
+        if lead_at is not None:
+            pointer = lead_prompt(folder, sb, lead_at)
+            return ("STARTED: recorded, with the lines shown. Now start the first-look helper (a general-purpose "
+                    "subagent) with the line below as its whole prompt, and nothing else.\n" + pointer), 0
         then = ("carry on with what the last line proposed" if sb["kind"] == "resume"
                 else "start the first-look helper now, as the skill says")
         return f"STARTED: recorded, with the lines shown. Now {then}.", 0
@@ -362,6 +471,7 @@ def main(argv):
         print("MESSAGE:\n" + body)
         return 0
     answers, args = option(args, "--answers")
+    register, args = option(args, "--register")
     words, args = option(args, "--words")
     reading, args = option(args, "--as")
     test = "--test" in args
@@ -369,7 +479,7 @@ def main(argv):
         print("REFUSED: give --answers <file> or --words \"<their words>\" --as <your reading>. Nothing written.",
               file=sys.stderr)
         return 2
-    said, code = answer(folder, answers, words, test, reading)
+    said, code = answer(folder, answers, words, test, reading, register)
     print(said, file=sys.stderr if code else sys.stdout)
     return code
 

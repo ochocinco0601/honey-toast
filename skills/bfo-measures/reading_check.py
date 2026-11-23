@@ -160,17 +160,65 @@ def run_sessions(folders, reg, wrote=None):
     return sorted(chosen)
 
 
+def read_results(path):
+    """[(input, ok, message)] of every Read call in transcript `path`, each paired with its tool_result by
+    tool_use_id: ok is False when the result is an error (the Read tool refused the file, a hook blocked it), and
+    message is the result's own text. A call whose result is not in the transcript is counted as before (no error is
+    recorded against it): only a result that says it failed is taken as a failure."""
+    calls, results = [], {}
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            try:
+                d = json.loads(line)
+                content = (d.get("message") or {}).get("content")
+            except (ValueError, AttributeError):
+                continue
+            if not isinstance(content, list):
+                continue
+            for b in content:
+                if not isinstance(b, dict):
+                    continue
+                if d.get("type") == "assistant" and b.get("type") == "tool_use" and b.get("name") == "Read":
+                    calls.append((b.get("id"), b.get("input") or {}))
+                elif d.get("type") == "user" and b.get("type") == "tool_result":
+                    c = b.get("content")
+                    text = c if isinstance(c, str) else " ".join(
+                        x.get("text", "") for x in c or [] if isinstance(x, dict))
+                    results[b.get("tool_use_id")] = (not b.get("is_error"), text.strip())
+    return [(inp, *results.get(tid, (True, ""))) for tid, inp in calls]
+
+
 def reads(sessions):
-    """{absolute path lowercased: [(first, last), ...]} from the Read calls in the sessions."""
+    """{absolute path lowercased: [(first, last), ...]} from the Read calls in the sessions whose result is not an
+    error: a Read the tool refused or a hook blocked returned nothing, so it covers no line."""
     got = {}
     for s in sessions:
-        for name, inp in tool_uses(s):
-            if name != "Read" or not inp.get("file_path"):
+        for inp, ok, _ in read_results(s):
+            if not ok or not inp.get("file_path"):
                 continue
             first = int(inp.get("offset") or 1)
             limit = int(inp.get("limit") or DEFAULT_LIMIT)
             got.setdefault(path_rule.norm(inp["file_path"]), []).append((first, first + limit - 1))
     return got
+
+
+READ_BLOCKED = "read blocked"
+
+
+def blocked(sessions):
+    """{absolute path lowercased: the last failed result's own message} for every file each of whose Reads failed. Its
+    cause is not guessed: the message is what the tool or the hook said."""
+    tried, good = {}, set()
+    for s in sessions:
+        for inp, ok, msg in read_results(s):
+            if not inp.get("file_path"):
+                continue
+            key = path_rule.norm(inp["file_path"])
+            if ok:
+                good.add(key)
+            else:
+                tried[key] = msg
+    return {k: m for k, m in tried.items() if k not in good}
 
 
 LEAD_KINDS = {"inbound_route", "outbound_http", "grpc_method", "grpc_call", "message_consumer", "message_producer",
@@ -331,6 +379,9 @@ def unit_paths(reg, unit):
 
 
 def workspace(reg, paths):
+    root = layout.code_root(reg)  # where the survey read the code, before any folder above the register
+    if root is not None and any((root / p).exists() for p in paths):
+        return root
     for d in (reg, *reg.parents):
         if any((d / p).exists() for p in paths):
             return d
@@ -463,6 +514,7 @@ def check_unit(reg, unit, transcripts=None, ws=None):
     who = provenance.unit(reg, unit, transcripts=folders)
     sessions = [s.path for s in who.readers]
     opened = reads(sessions)
+    stopped = blocked(sessions)
     ws = pathlib.Path(ws).resolve() if ws else workspace(reg, paths)
     low = [p.lower() for p in paths]
     wsn = path_rule.norm(ws) + "/"
@@ -513,7 +565,11 @@ def check_unit(reg, unit, transcripts=None, ws=None):
         n = _line_count(absolute)
         gaps = _gaps(1, n, spans) if n else []
         ranges = ", ".join(f"{a}-{b}" if a != b else str(a) for a, b in gaps)
-        if not spans:
+        why = next((m for p, m in stopped.items() if p == path_rule.norm(absolute) or p.endswith("/" + key)), None)
+        if not spans and why is not None:
+            problems.append(f"{READ_BLOCKED}: {rel}: every Read of it failed; the tool said: {why[:300]}. A reader "
+                            "launched again meets the same: the person decides what to do")
+        elif not spans:
             problems.append(f"not opened: {rel}")
         elif gaps and not on_path:
             problems.append(f"partly read: {rel}: lines {ranges} not read")

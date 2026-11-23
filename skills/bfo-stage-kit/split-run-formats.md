@@ -175,7 +175,11 @@ fails, whatever wrote it: a shell by absolute path or by `cd` and a relative one
 The run's agents are subagents launched through launchers (themselves `general-purpose` subagents): readers,
 fixers and re-reads as `bfo-unit-reader`, the kit's reader agent with no shell among its tools, which must be
 installed where Claude Code finds agents (`.claude/agents/` of the folder it starts in, or `~/.claude/agents/`;
-`readers.py prompt` refuses until the copy it would use is the kit's); judges as `general-purpose`:
+`readers.py prompt` refuses until the copy it would use is the kit's); judges as `bfo-row-judge`, the kit's judge
+agent, likewise with no shell and installed the same way (`judges.py emit` refuses until it is), so a judge that
+cannot find a cited file cannot search for it and be thrown away. Both refuse, too, while a path a prompt would cite
+is not under the folder the prompt names (the folder the survey read the code from, `code-root.txt` when it sits
+beside the workspace, or `--ws`):
 
 ```
 <reg>/prompts/<unit>/<verdict file stem>.md   one judge's prompt (judges.py emit)
@@ -191,7 +195,7 @@ installed where Claude Code finds agents (`.claude/agents/` of the folder it sta
   absolute with `/`. It is the whole prompt of one agent.
 - A **launcher file** holds at most 150 pointer lines (`judges.LAUNCHER_MAX`: a launcher's own context grows about
   1,200 tokens per agent it launches). It tells the launcher to launch each line once as a `bfo-unit-reader` subagent (a
-  readers' launcher) or a `general-purpose` one (a judges' launcher), never a fork nor any other type, in the foreground, at most `parallel` at once, and to reply, once every agent has finished, with one
+  readers' launcher) or a `bfo-row-judge` one (a judges' launcher), never a fork nor any other type, in the foreground, at most `parallel` at once, and to reply, once every agent has finished, with one
   line `launched <n>, finished <n>`. Names: `judges-<unit>-r<n>-<i>`, `judges-flow-r<n>-<table>-<i>` (the unit `flow`
   is always split by lead table), `readers-<mode>-<i>`. Readers, fixers and re-reads share launchers. Writing a name
   removes that name's earlier launcher files except a launcher still running, which is left as it is, byte for byte,
@@ -292,7 +296,8 @@ wrote: it refuses, naming the file, since its verdict could be a flag. Nor does 
 was replaced: a relaunch would only replace it again. It names the file and the clean judge's session, whose Write
 content, in its transcript, is restored to the file by hand.
 
-Every judge, under `emit` or `run`, must be a `general-purpose` subagent, read from its meta file as for a unit's
+Every judge, under `emit` or `run`, must be a `bfo-row-judge` subagent (or, judged before the kit's judge agent, a
+`general-purpose` one, still held to the no-shell check), read from its meta file as for a unit's
 writers (`provenance.agent_type`): a fork, a main session, or no agent type recorded fails its verdict with the cause
 named. A `claude -p` judge (`judges.py run`) has no meta file, so it fails this check.
 

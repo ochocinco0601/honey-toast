@@ -1,0 +1,451 @@
+"""Who is working now: one account of every agent of a run, read from the agents' own transcripts on disk each time the
+run status page is drawn. The page's badge, its "at work" words and its "Who is working now" panel are all read from
+this one account, so they never disagree.
+
+Which agents: the lead (the current session's own transcript), the lead's own agents (every subagent of every session
+the run has had, found by session id, so a first-look helper shows before any kit prompt exists), and the kit's agents
+(found by the pointer line of a prompt under prompts/, as timings.py finds them). Each transcript is taken once.
+
+State of an agent, in this order: finished (Claude Code's metadata says so; never read from the transcript's last
+line); lost to an API error; discarded (a kit agent that ran a shell); not heard from for N min (red, silence past
+RED_MINUTES); waiting on the model for N min, or quiet for N min (amber, past AMBER_MINUTES); working.
+
+gather() never raises: on any failure it returns the reason, and the page falls back to its own files and says so.
+Python standard library only."""
+import datetime as dt
+import json
+import os
+import pathlib
+import re
+import sys
+import threading
+
+HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+
+AMBER_MINUTES = 6  # above the 300 s request timeout, so a healthy wait on the model is not flagged
+RED_MINUTES = 40  # a run of retries after a 503 can last over half an hour before its error line
+LOST_QUIET = 120  # judges.LAUNCHER_QUIET: an API error with nothing after it for this long ended the agent
+SESSIONS = "sessions.json"  # in _run-state/: every session id the run has had, oldest first
+STATE_DIR = "_run-state"
+SHELLS = ("Bash", "PowerShell")
+READS = {"Read": "file_path", "Grep": "pattern", "Glob": "pattern", "WebFetch": "url", "Write": "file_path",
+         "Edit": "file_path", "NotebookEdit": "notebook_path"}
+
+WORKING, AMBER, RED, FINISHED, WAITING_AGENTS = "working", "amber", "red", "finished", "waiting on its agents"
+QUEUED = "queued"
+LEAD_PROMPT = "first-look-lead.md"  # first_look.LEAD_PROMPT: the lead's own; never shown queued
+
+_cache, _lock = {}, threading.Lock()
+
+
+def _when(v):
+    try:
+        t = dt.datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return t if t.tzinfo else t.replace(tzinfo=dt.timezone.utc)
+
+
+def _json(p):
+    try:
+        return json.loads(pathlib.Path(p).read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return None
+
+
+def _short(s, n=60):
+    s = " ".join(str(s).split())
+    return s if len(s) <= n else "…" + s[-(n - 1):]
+
+
+def facts(f):
+    """The raw facts of one transcript, cached by (path, size, mtime): first and last line times, the kind of its last
+    record, its last tool call and when, whether it ends on an API error, whether it ran a shell, its first user
+    message. Derived states depend on the time and are never cached."""
+    st = os.stat(f)
+    key = (str(f), st.st_size, st.st_mtime_ns)
+    with _lock:
+        got = _cache.get(str(f))
+        if got and got[0] == key:
+            return got[1]
+    first = last = None
+    kind, tool, tool_at, n_tools, shell, error, prompt = None, None, None, 0, False, False, None
+    with open(f, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            try:
+                d = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(d, dict):
+                continue
+            t = _when(d["timestamp"]) if d.get("timestamp") else None
+            typ = d.get("type")
+            if typ == "system" and d.get("subtype") == "api_error":
+                error, kind = True, "api_error"
+                last = t or last
+                continue
+            if typ in ("api-request", "api_request"):
+                kind, last = "model", t or last
+                continue
+            m = d.get("message")
+            if typ not in ("user", "assistant") or not isinstance(m, dict):
+                continue
+            if t is not None:
+                first = first or t
+                last = t
+            c = m.get("content")
+            blocks = [b for b in (c if isinstance(c, list) else []) if isinstance(b, dict)]
+            if typ == "user":
+                if prompt is None:
+                    prompt = c if isinstance(c, str) else " ".join(
+                        b.get("text", "") for b in blocks if b.get("type") == "text")
+                kind, error = "model", False  # a prompt or a tool's result: the model has the next move
+                continue
+            if d.get("isApiErrorMessage"):
+                error, kind = True, "api_error"
+                continue
+            error = False
+            uses = [b for b in blocks if b.get("type") == "tool_use"]
+            if uses:
+                kind, tool_at, n_tools = "tool", t, len(uses)
+                u = uses[-1]
+                arg = (u.get("input") or {}).get(READS.get(u.get("name"), ""), "") if isinstance(u.get("input"), dict) else ""
+                tool = (u.get("name") or "a tool", _short(arg) if arg else "")
+                shell = shell or any(b.get("name") in SHELLS for b in uses)
+            else:
+                kind = "writing"
+    got = {"first": first, "last": last, "kind": kind, "tool": tool, "tool_at": tool_at, "n_tools": n_tools,
+           "shell": shell, "error": error, "prompt": prompt or ""}
+    with _lock:
+        _cache[str(f)] = (key, got)
+    return got
+
+
+_meta_cache = {}
+
+
+def meta(f):
+    """Claude Code's metadata beside a transcript, cached by the file's size and time; {} when there is none."""
+    p = pathlib.Path(f).with_name(pathlib.Path(f).stem + ".meta.json")
+    try:
+        st = os.stat(p)
+    except OSError:
+        return {}
+    key = (st.st_size, st.st_mtime_ns)
+    with _lock:
+        got = _meta_cache.get(str(p))
+        if got and got[0] == key:
+            return got[1]
+    d = _json(p) or {}
+    with _lock:
+        _meta_cache[str(p)] = (key, d)
+    return d
+
+
+def session_ids(reg):
+    """(every session id the run has had, oldest first; the current one, or None). Read from the run's lock, its
+    run-started.json, the first-look marks naming this folder, and _run-state/sessions.json."""
+    reg = pathlib.Path(reg)
+    ids = list((_json(reg / STATE_DIR / SESSIONS) or {}).get("ids") or [])
+    current = None
+    lock = _json(reg / "RUN.lock") or {}
+    found = []
+    for p in (reg / STATE_DIR / "run-started.json", reg / "run-started.json"):
+        r = (_json(p) or {}).get("run")
+        if r:
+            found.append(r)
+    parent = reg.parent
+    started = _json(parent / "run-started.json") or {}
+    if started.get("run") and str(started.get("register") or "") in ("", str(reg), str(reg.resolve())):
+        found.append(started["run"])
+    for mark in list(reg.glob("first-look.json")) + list(parent.glob("_start-*/first-look.json")) + \
+            list(reg.glob("_start-*/first-look.json")):
+        m = _json(mark) or {}
+        folder = m.get("folder")
+        own = mark.parent == reg or mark.parent.parent == reg or (
+            folder and pathlib.Path(folder).resolve() == reg.resolve()) or (
+            not folder and not (reg / "RUN.md").is_file())
+        if m.get("run") and own:
+            found.append(m["run"])
+    if lock.get("run"):
+        found.append(lock["run"])
+        current = lock["run"]
+    for r in found:
+        if r not in ids:
+            ids.append(r)
+    return ids, current or (ids[-1] if ids else None)
+
+
+def remember_session(reg, run):
+    """Add `run` to the run's list of sessions, so a later session that rewrites RUN.lock never loses an earlier
+    session's agents. Never raises."""
+    if not run:
+        return
+    try:
+        p = pathlib.Path(reg) / STATE_DIR / SESSIONS
+        ids = list((_json(p) or {}).get("ids") or [])
+        if run in ids:
+            return
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps({"ids": ids + [run]}), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _folders(reg, transcripts):
+    if transcripts:
+        return [pathlib.Path(t) for t in (transcripts if isinstance(transcripts, (list, tuple)) else [transcripts])]
+    import reading_check
+    return reading_check.project_folders(reg)
+
+
+def _kit_prompt(text, prompts):
+    import timings
+    m = timings.POINTED.search((text or "").strip())
+    if not m:
+        return None
+    import paths
+    target = m.group(1).replace("\\", "/")
+    return target[len(prompts) + 1:] if paths.norm(target).startswith(prompts + "/") else None
+
+
+def state_of(fx, md, now, lead=False):
+    """(state, the words for it) of one agent from its raw facts, its metadata and the time now."""
+    if not lead and md.get("finished") is True:
+        return FINISHED, "finished"
+    last = fx["last"]
+    quiet = (now - last).total_seconds() if last else None
+    if fx["error"] and quiet is not None and quiet >= LOST_QUIET:
+        return RED, f"lost to an API error at {_clock(last, now)}"
+    if quiet is None:
+        return WORKING, "started"
+    mins = int(quiet // 60)
+    if quiet > RED_MINUTES * 60:
+        return RED, f"not heard from for {mins} min"
+    if quiet > AMBER_MINUTES * 60:
+        return AMBER, (f"waiting on the model for {mins} min" if fx["kind"] == "model" else f"quiet for {mins} min")
+    return WORKING, "working"
+
+
+def _clock(t, now):
+    return t.astimezone(now.tzinfo).strftime("%H:%M") if t else ""
+
+
+def now_line(fx, now):
+    """What the agent is doing right now, from the kind of its last record."""
+    k = fx["kind"]
+    if k == "model":
+        return f"waiting on the model since {_clock(fx['last'], now)}"
+    if k == "writing":
+        return "writing"
+    if k == "tool":
+        if fx["n_tools"] > 1:
+            return f"running {fx['n_tools']} tool calls"
+        name, arg = fx["tool"] or ("a tool", "")
+        verb = {"Read": "reading", "Grep": "searching", "Glob": "listing", "Write": "writing", "Edit": "editing",
+                "WebFetch": "fetching"}.get(name, f"running {name}")
+        return f"{verb} {arg}".strip()
+    if k == "api_error":
+        return "retrying after an API error"
+    return "starting"
+
+
+def last_action(fx, now):
+    if not fx["tool"]:
+        return ""
+    name, arg = fx["tool"]
+    return f"{name} {arg}".strip() + (f", {_clock(fx['tool_at'], now)}" if fx["tool_at"] else "")
+
+
+def first_look(reg):
+    """(mode, the window's start, the parts as {key: record path}) of the first look under way, or None: none started,
+    or its brief already rendered (PLAN.md newer than its mode.json). Parts are first-look/parts.csv's rows; a part is
+    done when its record (first-look/<key>.json) was written since the window started, so a record left by an earlier
+    look never counts."""
+    import csv
+    reg = pathlib.Path(reg)
+    fl = reg / "first-look"
+    m = _json(fl / "mode.json")
+    if not m:
+        return None
+    plan = reg / "PLAN.md"
+    try:
+        if plan.is_file() and plan.stat().st_mtime > (fl / "mode.json").stat().st_mtime:
+            return None
+        with open(fl / "parts.csv", encoding="utf-8-sig", newline="") as f:
+            rows = list(csv.DictReader(f))
+    except (OSError, csv.Error):
+        rows = []
+    parts = {}
+    for r in rows:
+        sid, part = (r.get("source_id") or "").strip(), (r.get("part") or "").strip()
+        if sid:
+            key = sid if part in ("", "whole") else f"{sid}-{part}"
+            parts[key] = fl / f"{key}.json"
+    return m.get("mode") or "single", _when(m.get("window_start")), parts
+
+
+def part_done(path, since):
+    try:
+        t = dt.datetime.fromtimestamp(pathlib.Path(path).stat().st_mtime, dt.timezone.utc)
+    except OSError:
+        return False
+    return since is None or t >= since
+
+
+def emissions(reg, floor):
+    """{prompt path under prompts/: the time of its latest emission at or after `floor`} from emitted-at.jsonl."""
+    got = {}
+    p = pathlib.Path(reg) / "prompts" / "emitted-at.jsonl"
+    try:
+        lines = p.read_text(encoding="utf-8").splitlines() if p.is_file() else []
+    except OSError:
+        return got
+    for x in lines:
+        try:
+            d = json.loads(x)
+        except ValueError:
+            continue
+        at = _when(d.get("at")) if isinstance(d, dict) else None
+        if at is None or (floor is not None and at < floor) or not d.get("path"):
+            continue
+        if d["path"] not in got or at > got[d["path"]]:
+            got[d["path"]] = at
+    return got
+
+
+def gather(reg, now=None, transcripts=None):
+    """{"readable", "reason", "lead", "agents", "finished", "at_work", "red", "amber"}; never raises."""
+    try:
+        return _gather(pathlib.Path(reg), now or dt.datetime.now(dt.timezone.utc).astimezone(), transcripts)
+    except Exception as e:  # noqa: BLE001  (the page draws its other panels whatever this meets)
+        return {"readable": False, "reason": f"Cannot read the agents' records: {type(e).__name__}: {e}"[:300],
+                "lead": None, "agents": [], "finished": 0, "at_work": 0, "red": 0, "amber": 0, "queued": 0,
+                "count": None}
+
+
+def _count(look):
+    if not look:
+        return None
+    _, since, parts = look
+    return f"{sum(part_done(p, since) for p in parts.values())} of {len(parts)} parts"
+
+
+def _floor(reg, look):
+    """The earliest emission that can still be queued: the flow worked now's go, else the first look's window."""
+    s = _json(pathlib.Path(reg) / "scope.json") or {}
+    given = _when(s.get("given")) if s.get("given") else None
+    return given or (look[1] if look else None)
+
+
+def _gather(reg, now, transcripts):
+    look = first_look(reg)
+    got = _gather_agents(reg, now, transcripts, look)
+    got["count"] = _count(look)
+    return got
+
+
+def _gather_agents(reg, now, transcripts, look):
+    ids, current = session_ids(reg)
+    folders = [f for f in _folders(reg, transcripts) if f.is_dir()]
+    empty = {"lead": None, "agents": [], "finished": 0, "at_work": 0, "red": 0, "amber": 0, "queued": 0}
+    if not ids:
+        return dict(empty, readable=False, reason="No session is recorded for this run yet, so who is working "
+                                                  "cannot be read; the badge is read from the run's files.")
+    if not folders:
+        return dict(empty, readable=False, reason="Cannot read the agents' records: no transcript folder was found "
+                                                  "for this workspace. The badge falls back to the run's own files, "
+                                                  "which can show a stopped agent as running for up to 90 minutes.")
+    import paths
+    prompts = paths.norm((reg.resolve() / "prompts").as_posix())
+    seen, agents, lead = set(), [], None
+    for folder in folders:
+        for sid in ids:
+            main = folder / f"{sid}.jsonl"
+            if sid == current and main.is_file() and lead is None:
+                fx = facts(main)
+                st, words = state_of(fx, {}, now, lead=True)
+                lead = {"who": "the lead", "on": "the run itself", "now": now_line(fx, now),
+                        "last_action": last_action(fx, now), "last": fx["last"], "started": fx["first"],
+                        "state": st, "words": words, "kind": "lead", "idle_turn": fx["kind"] == "writing"}
+            sub = folder / sid / "subagents"
+            for f in sorted(sub.glob("*.jsonl")) if sub.is_dir() else []:
+                if str(f) in seen:
+                    continue
+                seen.add(str(f))
+                fx = facts(f)
+                md = meta(f)
+                rel = _kit_prompt(fx["prompt"], prompts)
+                if rel is not None:
+                    import timings
+                    unit, step = timings.step_of(rel)
+                    who, on, kind = step, unit or rel, "kit"
+                else:
+                    if (fx["prompt"] or "").strip().startswith("Read ") and "do exactly what it says" in fx["prompt"]:
+                        continue  # another register's kit agent
+                    who, on, kind = "helper", " ".join(str(md.get("description") or "").split()) or "the lead's own agent", "lead's agent"
+                st, words = state_of(fx, md, now)
+                if look and rel is not None and rel.startswith("first-look/") and on in look[2] and \
+                        part_done(look[2][on], look[1]):
+                    st, words = FINISHED, "finished"  # its record is written: done, whatever Claude Code recorded
+                if kind == "kit" and fx["shell"] and st != FINISHED:
+                    st, words = RED, "discarded: it ran a shell"
+                agents.append({"who": who, "on": on, "now": "" if st == FINISHED else now_line(fx, now),
+                               "last_action": last_action(fx, now), "last": fx["last"], "started": fx["first"],
+                               "state": st, "words": words, "kind": kind, "prompt": rel})
+    single = bool(look) and look[0] != "split"
+    import timings
+    for rel, at in sorted(emissions(reg, _floor(reg, look)).items()):
+        if rel == LEAD_PROMPT or (single and rel.startswith("first-look/")):
+            continue  # the lead's own prompt, and a single-mode look's parts, which the lead reads itself
+        if any(a.get("prompt") == rel and a["started"] and a["started"] >= at - dt.timedelta(seconds=1)
+               for a in agents):
+            continue  # taken by a transcript that started after its latest emission
+        unit, step = timings.step_of(rel)
+        agents.append({"who": step, "on": unit or rel, "now": "", "last_action": "", "last": None, "started": None,
+                       "state": QUEUED, "words": "queued", "kind": "kit", "prompt": rel})
+    if lead is None and not agents:
+        return dict(empty, readable=False, reason="No agent started yet.") if folders else empty
+    live = [a for a in agents if a["state"] in (WORKING, AMBER, QUEUED)]
+    if lead is not None and live and lead["idle_turn"]:
+        lead.update(state=WAITING_AGENTS, words=f"waiting on its agents ({len(live)} running)",
+                    now=f"waiting on its agents ({len(live)} running)")
+    rows = ([lead] if lead else []) + agents
+    return {"readable": True, "reason": None, "lead": lead, "agents": agents,
+            "finished": sum(a["state"] == FINISHED for a in agents),
+            "queued": sum(a["state"] == QUEUED for a in agents),
+            "at_work": sum(r["state"] in (WORKING, AMBER, WAITING_AGENTS) for r in rows),
+            "red": sum(r["state"] == RED for r in rows), "amber": sum(r["state"] == AMBER for r in rows)}
+
+
+def badge(g):
+    """The page's badge from the account alone: running, stopped, quiet, starting; None when it cannot be read (the
+    page then uses its own files, and says so)."""
+    if not g["readable"]:
+        return "starting" if g.get("reason") == "No agent started yet." else None
+    if g["at_work"]:
+        return "running"
+    rows = ([g["lead"]] if g["lead"] else []) + g["agents"]
+    open_ = [r for r in rows if r["state"] != FINISHED]
+    if open_ and all(r["state"] == RED for r in open_) and any(r["kind"] != "lead" for r in open_):
+        return "stopped"
+    return "quiet"
+
+
+def words(g):
+    """The "at work" line under the badge."""
+    if not g["readable"]:
+        return g.get("reason") or ""
+    bits = [g["count"]] if g.get("count") else []
+    if g["at_work"]:
+        bits.append(f"{g['at_work']} at work")
+    if g.get("queued"):
+        bits.append(f"{g['queued']} queued")
+    if g["amber"]:
+        bits.append(f"{g['amber']} quiet")
+    if g["red"]:
+        bits.append(f"{g['red']} stopped")
+    if g["finished"]:
+        bits.append(f"{g['finished']} finished")
+    return " · ".join(bits)

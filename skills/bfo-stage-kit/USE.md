@@ -49,13 +49,12 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
   the kit runs its `on_change` command through the shell (by default the kit's own `python run_page.py {reg}`).
   `capability_views.py` run without `--out` writes its page to `out/` inside the kit's own folder.
 - The code, or where it is: name the repositories, pages, diagrams and process descriptions in your request, and
-  the run gets them. Code already open in the workspace is read too; where it spans several repositories, add each
-  as a folder of one workspace. You can start with as much or as little as you have: a name, some repositories, all of them, documents. For what is not there (the repositories behind references nothing in the workspace answers, those that call this flow's services, a service the code calls whose code is not there), the run says what it cannot find and proposes where to look, and searches only where you agree. It searches and fetches with access you already have and read-only: it never requests access, enters credentials, or changes anything at the source, and `RUN.md` lists every source it fetched with what referenced it and why. What you do not agree to search is listed under *still missing*. To keep it to the sources you name, say *use only the sources I name*: it then neither fetches nor searches, and lists the rest under *still missing*.
-- Every repository open as a folder of one workspace (a multi-root workspace when there are several), never in a
-  temporary folder: the run's code tools reach only the open workspace, and a run that can't add them is blocked: it names the
-  repositories and tells you to open them as one multi-root workspace and start again.
-  Keep your own working folder as the first folder of the workspace, so your notes and the register stay in reach,
-  and add the repositories after it.
+  the run gets them. Code already in the workspace is read too, and so is code cloned into a folder of its own beside
+  it (a `repos/` folder, say): the run records where each repository is. You can start with as much or as little as you have: a name, some repositories, all of them, documents. For what is not there (the repositories behind references nothing in the workspace answers, those that call this flow's services, a service the code calls whose code is not there), the run says what it cannot find and proposes where to look, and searches only where you agree. It searches and fetches with access you already have and read-only: it never requests access, enters credentials, or changes anything at the source, and `RUN.md` lists every source it fetched with what referenced it and why. What you do not agree to search is listed under *still missing*. To keep it to the sources you name, say *use only the sources I name*: it then neither fetches nor searches, and lists the rest under *still missing*.
+- The repositories side by side in one folder, never in a temporary folder: inside your working folder, or in a
+  folder of their own beside it (`repos/`, say). No multi-root workspace is needed; the run records each
+  repository's folder in `sources.csv` and tells its readers and checkers where the code is. Repositories spread over
+  different folders are refused, because every citation starts with its repository's folder name.
 - This folder, `bfo-stage-kit/`, in one of two places:
   - **as a skill** (the simpler way): copy it to `~/.claude/skills/bfo-stage-kit/` for every workspace, or to
     `.claude/skills/bfo-stage-kit/` in the folder Claude Code starts in. Then ask Claude Code in your own words, for
@@ -67,11 +66,13 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
   folder as `bfo-stage-kit/`: the kit hands the mapping of the flow to the first and the proposing of the measures
   to the second, and runs neither itself.
 
-  Then copy the reader agent, `bfo-stage-kit/agents/bfo-unit-reader.md`, to `~/.claude/agents/` (or to
-  `.claude/agents/` in the folder Claude Code starts in), and start Claude Code again: it loads agents only when a
-  session starts, and never from inside a skill's folder. The run reads each part of the code with that agent, whose
-  tools hold no shell, and refuses to launch a reader until the copy Claude Code would use is the kit's own. Copy it
-  again with every new build.
+  Then copy the kit's four agents from `bfo-stage-kit/agents/` into `.claude/agents/` in the folder Claude Code
+  starts in (the folder you open Claude Code in, not the one above it), before you start Claude Code:
+  `bfo-unit-reader.md` (reads one part of the code in the full reading), `bfo-source-reader.md` (reads one source at
+  the first look), `bfo-flow-mapper.md` (reads one service's code for the fast map) and `bfo-row-judge.md` (checks one
+  row of the map). A session loads agent types when it starts, and never from inside a skill's folder; if you copy
+  them after starting, start a new session. None of their tools holds a shell. The run refuses to launch an agent of
+  a type that is missing or is not the kit's own copy. Copy them again with every new build.
 
   Copy the whole folder, never part of it. Its `KIT-VERSION.txt` names the build it is (the release and date it was
   built from) and lists every file in it. At every start and resume the run prints which build it is running and,

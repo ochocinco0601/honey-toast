@@ -70,9 +70,17 @@ def now():
 def write(reg, run, taken=None):
     """Write the lock for `run` by replacing the file whole, so a reader never sees half of it."""
     p = pathlib.Path(reg) / LOCK
+    before = (read(reg) or {}).get("run")
     tmp = p.with_name(f"{LOCK}.{os.getpid()}.tmp")
     tmp.write_text(json.dumps({"run": run, "taken": taken or now(), "touched": time.time()}), encoding="utf-8")
     os.replace(tmp, p)
+    if before and before != run:  # a later session takes the run: keep the earlier one's agents in view
+        try:
+            import agents_now
+            agents_now.remember_session(reg, before)
+            agents_now.remember_session(reg, run)
+        except ImportError:
+            pass
 
 
 def create(reg, run):

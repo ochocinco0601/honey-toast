@@ -139,7 +139,17 @@ def resolve(token, subj):
 
 def parts(text, subj, unresolved):
     out = []
-    for tok in split_top(strip_parens(text), ";,"):
+    text = strip_parens(text)
+    # a part's own name may hold a comma ("anyone, the code checks no identity"): taken whole before the split
+    for sid, s in subj.items():
+        name = (s.get("name") or "").strip()
+        if s.get("kind") == "element" and ("," in name or ";" in name):
+            hit = re.search(r"(?<![^\s;,])" + re.escape(name) + r"(?![^\s;,])", text, re.I)
+            if hit:
+                if sid not in out:
+                    out.append(sid)
+                text = text[:hit.start()] + text[hit.end():]
+    for tok in split_top(text, ";,"):
         sid = resolve(tok, subj)
         if sid and sid not in out:
             out.append(sid)

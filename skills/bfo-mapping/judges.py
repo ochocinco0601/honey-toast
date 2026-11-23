@@ -13,7 +13,7 @@ disk to <reg>/prompts/<unit>/<verdict file stem>.md, gathers their pointer lines
 says. Reply with one line.") into launcher files under <reg>/prompts/launch/ (judges-<unit>-r<n>[-<table>]-<i>.md, at
 most LAUNCHER_MAX agents each; the unit `flow` one or more per lead table), and prints a count, then one pointer line
 per launcher. The lead launches each launcher as a `general-purpose` subagent, which launches its judges as
-`general-purpose` subagents, at most `parallel` at once; the lead keeps at most the count line's number of launchers
+`bfo-row-judge` subagents (the kit's judge agent, with no shell), at most `parallel` at once; the lead keeps at most the count line's number of launchers
 running (launcher_cap). Run again at any time, it launches no judge twice (Launches): it prints only judges
 whose verdict is not on disk and that were never launched, or that stopped (still running when their launcher
 replied); a launcher still running is left as it is and its judges held. `--again` is for after a crash or restart:
@@ -43,9 +43,11 @@ whose tool result is an error is not a write. It reports the model(s) the judges
 and every disputed row carries its label. Exit status 0 only when the check passes. `run` passes `--model` only when
 given one (the model the lead session runs on) or when the agent definition names one other than `inherit`."""
 import csv
+import datetime
 import hashlib
 import io
 import json
+import os
 import pathlib
 import re
 import shutil
@@ -84,8 +86,12 @@ NO_SHELL = "Use no shell (no Bash, no PowerShell). Write only with the Write and
 
 
 def settings(reg):
+    """The run's counts. A fast map is checked selectively (selective.py): one judge per row, one round."""
     s = run_settings.load(reg)
-    return {k: run_settings.number(s, k) for k in COUNTS}
+    got = {k: run_settings.number(s, k) for k in COUNTS}
+    if s.get("mapping") == "fast":
+        got["judges"], got["judge_rounds"] = 1, 1
+    return got
 
 
 # ---- the agent definition ----
@@ -120,6 +126,8 @@ def _strip(v):
 def make_row(unit, table, key, header, cells, path=None, index=None):
     seen, cites = set(), []
     for c in rc.cited_in(" ".join(cells)):
+        if c[1] is None:  # a file named in prose: the register cites code as path:line or path:first-last
+            continue
         if c not in seen:
             seen.add(c)
             cites.append(c)
@@ -475,6 +483,10 @@ def scope(reg, unit, rnd, n, mode=None):
     the rows flagged in this round and fixed since, which are due in the next."""
     last = settings(reg)["judge_rounds"]
     rws = rows(reg, unit)[0]
+    if run_settings.load(reg).get("mapping") == "fast":  # only the rows a proposal rests on (selective.py)
+        import selective
+        keep = (selective.selected(reg) or {}).get(unit, set())
+        rws = [r for r in rws if (r["table"], r["key"]) in keep]
     if (mode or ("all" if rnd <= 1 else "flagged")) != "all":
         rws = flagged_in(reg, rws, rnd - 1, n)
     return [r for r in rws if not _moved_on(reg, r, rnd, last)]
@@ -483,9 +495,77 @@ def scope(reg, unit, rnd, n, mode=None):
 # ---- run ----
 
 def workspace(reg, ws=None):
-    """The workspace folder citations are relative to: `ws`, else the register's grandparent (<ws>/bfo-work/<reg>,
-    as units.py takes it)."""
-    return pathlib.Path(ws).resolve() if ws else pathlib.Path(reg).resolve().parent.parent
+    """The folder citations are relative to, which every reader's and judge's prompt names: `ws`, else where the code
+    is (layout.code_root: the folder the survey read it from, or that holds the repositories sources.csv names), else
+    the register's grandparent (<ws>/bfo-work/<reg>)."""
+    if ws:
+        return pathlib.Path(ws).resolve()
+    return layout.code_root(reg) or pathlib.Path(reg).resolve().parent.parent
+
+
+def session_root(reg):
+    """The folder the run's Claude Code session starts in, where a project's `.claude/agents/` is looked for: the
+    register's grandparent (<workspace>/bfo-work/<reg>), whatever folder the code is read from."""
+    return pathlib.Path(reg).resolve().parent.parent
+
+
+JUDGE_AGENT = "bfo-row-judge"  # provenance.JUDGE_TYPE: the kit's agents/bfo-row-judge.md, launched by that name
+JUDGE_AGENT_FILE = pathlib.Path(__file__).resolve().parent / "agents" / f"{JUDGE_AGENT}.md"
+
+
+def agent_problem(reg, name, want, kind):
+    """None when the agent Claude Code would launch by `name` is the kit's own definition `want` (a file); else what
+    to do. Claude Code takes a project's `.claude/agents/` (the folder the session started in, or one above it) before
+    the user's (CLAUDE_CONFIG_DIR, else `~/.claude`)."""
+    import os
+    file = f"{name}.md"
+    start = session_root(reg)
+    home = pathlib.Path.home().resolve()
+    project = [d / ".claude" / "agents" / file for d in (start, *start.parents) if d != home and d != d.parent]
+    config = pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or home / ".claude")
+    found = next((p for p in project + [config / "agents" / file] if p.is_file()), None)
+    fix = (f"copy the kit's agents/{file} to .claude/agents/ in the folder Claude Code starts in ({start.as_posix()}) "
+           f"(or to {(config / 'agents').as_posix()}/ for every project), then start a new session: it loads agents "
+           "when a session starts")
+    if found is None:
+        return f"the {kind} agent {name} is not installed: {fix}"
+    if found.read_bytes().replace(b"\r\n", b"\n") != pathlib.Path(want).read_bytes().replace(b"\r\n", b"\n"):
+        return f"the {kind} agent at {found.as_posix()} is not this kit's copy: {fix}"
+    return None
+
+
+def judge_agent_problem(reg):
+    """None when the judge agent (JUDGE_AGENT, no shell) is installed as the kit's copy; else what to do."""
+    return agent_problem(reg, JUDGE_AGENT, JUDGE_AGENT_FILE, "judge")
+
+
+def missing_under(ws, paths):
+    """The paths (relative, `/`) that are not a file or folder under `ws`, each once, in order."""
+    ws = pathlib.Path(ws)
+    return [p for p in dict.fromkeys(p.strip().strip("/") for p in paths if p and p.strip())
+            if not (ws / p).exists()]
+
+
+def where_to_say(ws, missing):
+    return (f"the code these agents would be told to open is not under {pathlib.Path(ws).as_posix()} (the folder "
+            f"their prompts name): {', '.join(missing[:6])}{' ...' if len(missing) > 6 else ''}. Every one would fail "
+            "its first read and be thrown away; run the survey on the repositories where they are (it records that "
+            "folder), or pass --ws <the folder holding the repositories>")
+
+
+def launch_problem(reg, unit, rnd, mode=None, ws=None):
+    """Why this round's judges of `unit` cannot be launched now, or None: the judge agent not installed as the kit's
+    copy, or a cited file not under the folder their prompts name. Checked by a direct `emit` and by run control."""
+    return judge_agent_problem(reg) or workspace_problem(
+        reg, scope(reg, unit, rnd, settings(reg)["judges"], mode), ws)
+
+
+def workspace_problem(reg, rows, ws=None):
+    """Why judges of `rows` (rows() dicts, each with `cited` [(path, first, last)]) cannot be launched: a cited file
+    not under the folder their prompts name; None when every one is there."""
+    w = workspace(reg, ws)
+    missing = missing_under(w, [c[0] for r in rows for c in r.get("cited") or []])
+    return where_to_say(w, missing) if missing else None
 
 
 def ws_line(ws):
@@ -494,6 +574,7 @@ def ws_line(ws):
 
 
 EMITTED = "emitted.txt"  # prompts/emitted.txt: '<sha256 of the file as written> <its path under prompts/>', one a line
+EMITTED_AT = "emitted-at.jsonl"  # prompts/emitted-at.jsonl: {"path", "sha256", "at"} per emission, "at" in UTC
 
 
 def _prompts_root(path):
@@ -514,8 +595,13 @@ def write_prompt(path, text):
     path.write_text(text, encoding="utf-8")
     root = _prompts_root(path)
     if root is not None:
+        digest, rel = _digest(path), path.relative_to(root).as_posix()
         with (root / EMITTED).open("a", encoding="utf-8") as f:
-            f.write(f"{_digest(path)} {path.relative_to(root).as_posix()}\n")
+            f.write(f"{digest} {rel}\n")
+        # when, beside it and never in it: the prompt check parses emitted.txt as '<hash> <path>' and nothing more
+        at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        with (root / EMITTED_AT).open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"path": rel, "sha256": digest, "at": at}) + "\n")
     return POINTER.format(path.as_posix())
 
 
@@ -587,7 +673,7 @@ def launchers(reg, name, groups, keep=(), agent_type="general-purpose"):
     agents, under <reg>/prompts/launch/ as <name>[-<label>]-<i>.md; returns one pointer line per launcher file. This
     name's earlier launcher files are removed first, except those in `keep` (launchers still running, Launches): those
     are left as they are, byte for byte, and no new file takes their name. Each launcher launches its agents as
-    `agent_type` subagents: `general-purpose` for judges; provenance.READER_TYPE for readers, fixers and re-reads."""
+    `agent_type` subagents: JUDGE_AGENT for judges; provenance.READER_TYPE for readers, fixers and re-reads."""
     folder = pathlib.Path(reg).resolve() / layout.LAUNCH
     folder.mkdir(parents=True, exist_ok=True)
     keep = {pathlib.Path(k).resolve() for k in keep}
@@ -857,7 +943,8 @@ def emit(reg, unit, rnd, mode=None, ws=None, transcripts=None, again=False):
             if state == "errored":
                 relaunched += 1
             groups.setdefault(row["table"] if unit == "flow" else "", []).append(write_prompt(f, text))
-    pointers = launchers(reg, f"judges-{unit}-r{rnd}", sorted(groups.items()), keep=seen.running)
+    pointers = launchers(reg, f"judges-{unit}-r{rnd}", sorted(groups.items()), keep=seen.running,
+                         agent_type=JUDGE_AGENT)
     n = sum(len(v) for v in groups.values())
     why = {"queued": "queued in a launcher still running",
            "still running": "launched already and still running",
@@ -1045,7 +1132,32 @@ class Session:
 def _folders(reg, transcripts):
     if transcripts:
         return [pathlib.Path(t) for t in (transcripts if isinstance(transcripts, (list, tuple)) else [transcripts])]
-    return rc.project_folders(reg)
+    found = rc.project_folders(reg)
+    return found + [d for d in run_session_dirs(reg) if not any(d == f or f in d.parents for f in found)]
+
+
+def run_session_files(reg):
+    """The main transcript of every session the run has had (agents_now.session_ids), wherever Claude Code keeps it:
+    a session started in a folder other than the register's (a VS Code window on another repository, the code beside
+    the work folder) keeps its transcripts under that folder's project folder, which project_folders never reaches."""
+    try:
+        import agents_now
+        ids = agents_now.session_ids(reg)[0]
+    except Exception:  # noqa: BLE001  (no id list: only the register's own project folders are read)
+        return []
+    if not ids or os.environ.get("BFO_TRANSCRIPTS"):
+        return []
+    home = pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or pathlib.Path.home() / ".claude") / "projects"
+    out = []
+    for sid in ids:
+        out += [p for p in home.glob(f"*/{sid}.jsonl") if p.is_file()]
+    return out
+
+
+def run_session_dirs(reg):
+    """The folder of each run session's own subagents (<project>/<session id>/), so the agents a session launched are
+    found wherever the session was started."""
+    return [p.with_suffix("") for p in run_session_files(reg) if p.with_suffix("").is_dir()]
 
 
 def writers(reg, transcripts=None):
@@ -1120,10 +1232,11 @@ class Result:
 
 def _faults(sess, p, row):
     """What makes this session not a clean judge of the row's verdict file p: other files written, a shell run, a cited
-    line not opened, a session that is not a `general-purpose` subagent (provenance.agent_type: fails closed)."""
+    line not opened, a session that is not the kit's judge agent (or, judged before it, a `general-purpose` subagent:
+    provenance.JUDGE_TYPES; provenance.agent_type fails closed)."""
     import provenance  # it imports this module
     out = []
-    _, why = provenance.agent_type(sess.path)
+    _, why = provenance.agent_type(sess.path, provenance.JUDGE_TYPES)
     if why:
         out.append(f"the judge session is {why}")
     other = sorted({q for t, q in sess.writes if not (t in ("Write", "Edit") and q == paths.norm(p))})
@@ -1228,6 +1341,10 @@ def _moved_notes(reg, unit, rnd, n, mode=None):
     """Notes for the rows this round no longer holds: flagged in it, fixed since, due in the next round."""
     last = settings(reg)["judge_rounds"]
     rws = rows(reg, unit)[0]
+    if run_settings.load(reg).get("mapping") == "fast":  # only the rows a proposal rests on (selective.py)
+        import selective
+        keep = (selective.selected(reg) or {}).get(unit, set())
+        rws = [r for r in rws if (r["table"], r["key"]) in keep]
     if (mode or ("all" if rnd <= 1 else "flagged")) != "all":
         rws = flagged_in(reg, rws, rnd - 1, n)
     return [f"{r['table']} {r['key']}: round {rnd}: flagged, fixed since (its verdicts here are stale); due in round "
@@ -1467,6 +1584,16 @@ def _opt(argv, name, default=None):
     return default
 
 
+def _guarded(reg, unit, rnd):
+    """2, having said why, when judging `unit` in round `rnd` is out of mapping's order (guard.py); else None."""
+    import guard
+    problem = guard.require(reg, f"judge {2 if rnd >= 2 else 1}", unit=unit)
+    if problem:
+        print(f"REFUSED: {problem}. Nothing was launched.", file=sys.stderr)
+        return 2
+    return None
+
+
 def main(argv):
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
@@ -1493,6 +1620,13 @@ def main(argv):
         import run_lock  # the register is written by one run at a time
         run_lock.guard(reg)
         rnd = rnd or 1
+        refused = _guarded(reg, unit, rnd)
+        if refused:
+            return refused
+        held = workspace_problem(reg, scope(reg, unit, rnd, settings(reg)["judges"], mode), ws)
+        if held:
+            print(f"REFUSED: {held}. Nothing was launched.", file=sys.stderr)
+            return 2
         launched = run(reg, ws, unit, rnd, mode, model, again=again, transcripts=transcripts)
         n = settings(reg)["judges"]
         missing = [verdict_path(reg, r, rnd, j).name for r in scope(reg, unit, rnd, n, mode)
@@ -1504,6 +1638,13 @@ def main(argv):
         mode, ws = _opt(argv, "--rows"), _opt(argv, "--ws")
         again = "--again" in argv
         argv = [a for a in argv if a != "--again"]
+        refused = _guarded(argv[0], argv[1], rnd or 1)
+        if refused:
+            return refused
+        held = launch_problem(argv[0], argv[1], rnd or 1, mode, ws)
+        if held:
+            print(f"REFUSED: {held}. Nothing was launched.", file=sys.stderr)
+            return 2
         print("\n".join(emit(argv[0], argv[1], rnd or 1, mode, ws, transcripts, again)))
         return 0
     if cmd == "collect":

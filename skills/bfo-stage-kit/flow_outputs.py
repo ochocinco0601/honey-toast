@@ -226,7 +226,7 @@ def build(R, flow_id, stage_id):
         raise ValueError(f"{stage_id} is not a stage of flow {flow_id}; its stages: {', '.join(s['stage'] for s in stages) or 'none'}")
     moves = {m["move_id"]: m for m in R["lifecycle"] if m.get("flow", flow_id) in (flow_id, "")}
     order = list(moves)
-    steps = sorted([s for s in R["steps"] if s["stage"] == stage_id], key=lambda s: int(s["step"]))
+    steps = sorted([s for s in R["steps"] if s["stage"] == stage_id], key=lambda s: cv.step_key(s["step"]))
     kinds = list(dict.fromkeys(h["hop_kind"] for h in R["hop-failures"]))
     unresolved = []
     M = dict(R=R, subj=subj, flow=flow, stages=stages, stage=stage, steps=steps, moves=moves, kinds=kinds,
@@ -1089,6 +1089,24 @@ def mark_open(text, fname, errors, R=None):
     return f"{first}\n\n> **{head}**\n>\n{body}\n{rest}"
 
 
+def needs_from_calls_failures(M):
+    """Each call placed under a step (subjects.csv relationship, step_hint) whose callee none of that step's lifecycle
+    moves carries or needs: the lifecycle's `needs` is missing it, or the step_hint is wrong. A call into a part that
+    carries the step out is the step's own work; any other callee is one it needs."""
+    out = []
+    for r in M["R"]["subjects"]:
+        to = r.get("to_id", "")
+        if r.get("kind") != "relationship" or not to:
+            continue
+        for h in ids(r.get("step_hint")):
+            mvs = M["step_moves"].get(h)
+            if mvs and not any(x in M["needs"][mv] + M["carried"][mv]
+                               for mv in mvs for x in (to, M["subj"].get(to, {}).get("part_of"))):
+                out.append(f"subjects.csv {r['subject_id']}: step_hint {h} names a step none of whose lifecycle moves "
+                           f"needs {to} ({name(M, to)}): add it to that move's needs, or correct the step_hint")
+    return out
+
+
 def check(M, part="all"):
     """(errors, warnings). An error fails the run. `part` "alerts" or "runbooks" keeps the register's structure and only
     that stage's own rules; "all" is both, in one pass."""
@@ -1117,17 +1135,7 @@ def check(M, part="all"):
         if R["participation"] and perf != set(M["performers"][s["step"]]):
             warn.append(f"participation.csv step {s['step']}: performs {sorted(perf)}; the lifecycle's carried_by gives "
                         f"{sorted(M['performers'][s['step']])}. The outputs follow the lifecycle")
-    for r in R["subjects"]:
-        to = r.get("to_id", "")
-        if r.get("kind") != "relationship" or not to:
-            continue
-        for h in ids(r.get("step_hint")):
-            mvs = M["step_moves"].get(h)
-            # a call into a part that carries the step out is the step's own work; any other callee is one it needs
-            if mvs and not any(x in M["needs"][mv] + M["carried"][mv]
-                               for mv in mvs for x in (to, M["subj"].get(to, {}).get("part_of"))):
-                warn.append(f"subjects.csv {r['subject_id']}: step_hint {h} names a step none of whose lifecycle moves "
-                            f"needs {to} ({name(M, to)}): add it to that move's needs, or correct the step_hint")
+    warn += needs_from_calls_failures(M)
     rel = [r for r in R["subjects"] if r.get("kind") == "relationship" and r.get("to_id")]
     for s in M["steps"]:
         for d in dict.fromkeys(d for mv in M["step_moves"][s["step"]] for d in M["needs"][mv]):

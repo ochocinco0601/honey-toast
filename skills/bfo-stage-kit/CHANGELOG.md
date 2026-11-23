@@ -8,6 +8,257 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.8 — 2026-11-23
+
+A new fast mode maps a flow and goes on to measures, alerts and runbooks without the full reading's checks. The full way is still there and is still what you get unless you choose fast.
+
+### Do this once, before your first run
+
+1. **Copy the kit's four agent files from `bfo-stage-kit/agents/` into the agents folder of the folder Claude Code
+   starts in**, as USE.md says: `bfo-unit-reader.md`, `bfo-source-reader.md`, `bfo-flow-mapper.md` and
+   `bfo-row-judge.md`. Replace any older copy, then start a new session. Without them the kit refuses to start the
+   step that needs one, and says which file to copy.
+2. **If your code is cloned beside your work folder** (for example `repos/` next to it), nothing more is needed: the
+   kit records where each repository is. If reading those files makes Claude Code ask for permission each time, run
+   `/add-dir <the folder holding the repositories>` at the start of the session.
+
+### Each run
+
+- **Choose fast at the go.** The first brief lists your decisions as numbered items; answer item 1 with the flow and
+  "fast", for example "1 fast, 2 no".
+  Effect: none.
+- **Tell the kit how much your model can hold.** With your answer at the go, say the model's context size, for example
+  "the model has a one-million-token context"; the session records it (`go.py --fast --context-tokens 1000000`).
+  Without it the kit assumes 200,000 and splits each service's reading more finely than it needs to.
+  Effect: none.
+- **At the pick, choose how far each stage goes,** as before: mapped only, measured, measured with alerts, or with
+  alerts and runbooks.
+  Effect: none.
+
+### What you will notice
+
+- **Every stop lists its decisions as numbered items, each with its choices and a recommendation.** An item you do
+  not answer is never taken as a yes; the kit asks only the open ones again.
+  Effect: none.
+- **The fast map:** one mapping agent per service, all at once, each reading that service's code and writing its part
+  of the map. Scripts then check every citation and list every gap.
+  Effect: none.
+- **Measures, alerts and runbooks follow from the fast map.** Only the map rows a proposed measure, alert or runbook
+  rests on are checked, each by one checker that wrote none of it, before the measures review. The reviews say which
+  measures rest on checked, flagged or unchecked rows, and whether each measure's signal was found in the code.
+  Effect: none.
+- **The run status page shows who is working on what,** each step's start, finish and duration, and the map as it
+  grows. The spinner no longer stops after ten minutes while agents are still working.
+  Effect: none.
+- **The first look reads every source you give it,** one reader per source, and the brief says where each flow was
+  seen. The first look's own work is bounded however many sources you give it.
+  Effect: none.
+- **Steps cannot run out of order.** Reading before your pick, checking before the merge, and the like are refused by
+  the kit's scripts, not left to the session.
+  Effect: none.
+- **A Read that failed no longer counts as read.** A file no Read could open is shown to you as read blocked, with the
+  tool's own message.
+  Effect: none.
+- **Code kept beside the workspace is read where it is.** No multi-root workspace is needed: the repositories may sit
+  side by side in a folder of their own beside the workspace (`repos/`, say). The survey records each repository's
+  folder in `sources.csv` (`location`) and the folder holding them (`code-root.txt`), and every reader, judge and
+  mapping agent is told that folder. A reader or judge whose cited code is not under it is refused before launch, with
+  what to do; repositories spread over different folders are refused at the survey.
+  Effect: none; for a register whose code sits beside the workspace, run the survey again with the repository folders
+  named, or pass `--ws <the folder holding them>` to `readers.py` and `judges.py`.
+- **Judges run as the kit's judge agent, `bfo-row-judge`, which has no shell.** A judge whose cited file will not open
+  records that and stops; it never searches for the file. `judges.py emit` refuses until the agent is installed.
+  Effect: none.
+- **The first look's brief asks each search as its own item.** Item 1 is which flow to map first; each search it
+  proposes (a repository it has not found, say) is item 2, 3 and so on. An answer that picks the flow and says
+  nothing of a search leaves that search open: the run asks it again, alone, and reads no code in depth until it is
+  answered.
+  Effect: none.
+- **The pick of how far each stage goes asks its two things as two items**: how far each stage goes, and whether the
+  stages match how the business sees the work.
+  Effect: none.
+- **The reviews of the measures and of the alerts put their one decision first**, as item 1, before the detail.
+  Effect: none.
+- **Every source you give that is not code is read at the first look, and the reading is proven.** A process page, a
+  ticket export, a dashboard or alert file, a runbook, a generated wiki or a document bundle is listed part by part
+  (a long document by its sections, a PDF by 20 pages at a time, an Office file converted to text), and read by its
+  own reader, several at once, when there is more than one reader's share; else by the first-look helper alone. A
+  script then proves, from Claude Code's own records, that every part was read and that every passage and name a
+  reader cites is in the source; the brief is not sent until it does. The brief says where each flow was seen ("in
+  the code and a process page", "only in a ticket export"), and a service or repository a document names that the
+  code does not hold comes to you as an open item. What a source holds for later (an existing alert, a dashboard,
+  runbook notes) is kept, with its spot, for the phase that judges it. A reader given a connector source that none of
+  its tools reaches says so in its file instead of guessing, and the check names the fallback: the lead copies the
+  result Claude Code saved, or you export the source.
+  Effect: none. A first look picked up on this release, not yet at its brief, runs the reading step
+  (`first_look.py fetch`) before its brief.
+- **The run status page says who is working.** A panel, *Who is working now*, lists each agent at work: what it is
+  on, what it is doing right now (waiting on the model, reading a file, writing), its last action and last sign of
+  life, and its state. An agent quiet for more than 6 minutes shows amber; one lost to an API error, or not heard from
+  for 40 minutes, shows red. The lead itself is a row, and while it waits on its own agents it says so rather than
+  going red. Agents the run has sent out that have not started yet, including a second try of one that failed, show as
+  *queued*. Everything is read from the agents' own records on disk at each reload.
+  Effect: none.
+- **The badge keeps spinning while the run works.** In 9.7 it read only how recently a script wrote to the register,
+  so ten minutes into a first look it said *No recent write* while the helper was reading. It is read from the same
+  records as the panel: *Running* while any agent works, *Stopped: no agent working* when every agent at work has
+  failed. Where those records cannot be read, the page says so and falls back to the old reading.
+  Effect: none.
+- **Every step on the progress list has a time.** A work step shows when it ran and for how long, or how long it has
+  run so far; process mapping leaves out your wait at the pick of how far each stage goes, which shows on that
+  decision as *answered after N min*. The run sets each phase's status with `go.py --row`, which logs the change, so
+  its time is exact; a time the run did not record says *time not recorded*.
+  Effect: none. Steps finished before this release show *time not recorded*.
+- **The page shows the map as it grows.** While process mapping runs, a *Map so far* panel counts the stages and steps
+  written, the steps with their business impact, and the parts found, read from the register's tables at each reload,
+  and a link draws the partial map from what is written so far, with any row the check refuses left out and listed.
+  Effect: none.
+- **Asked why the page is not updating, the run checks the page itself.** The run status page is drawn on each
+  request and is never a file in the folder; the run checks it through the listener (`listener.py check`), a message
+  never prints a page address the listener says does not answer, and a listener that stopped is started again before
+  the next message gives its address.
+  Effect: none.
+- **The first look counts its sources as it reads them.** The panel and the first step say how many parts of the
+  sources are read, of how many (a long document cut in three counts three).
+  Effect: none.
+
+### Known limits
+
+- **Timings vary** with the code, the model and the machine.
+  Effect: none.
+- **Fast map rows are labelled unchecked,** except the rows a measure, alert or runbook rests on, which are checked
+  once each. The full way still checks every row three times.
+  Effect: none.
+- The full way is unchanged in what it produces.
+  Effect: none.
+- **In fast mode the done check still asks** for each code-reader finding of services outside the picked stages to be
+  cited or set aside.
+  Effect: none.
+- **If the session was started in another folder,** set `BFO_TRANSCRIPTS` to that session's transcript folder.
+  Effect: none.
+- **A first-look citation without its repository folder is not refused.**
+  Effect: none.
+- **The run log leaves phases 1 and 2 open in fast mode.**
+  Effect: none.
+- **The timing record has no rows for checkers.**
+  Effect: none.
+
+A register you already have needs nothing for this release. The detailed changes follow.
+
+### In detail
+
+**The fast map.** Answer the first look's item 1 with "fast" (`go.py --flow ... --fast`). After the stages, steps,
+Business Impact and your pick, run control lists one `bfo-flow-mapper` per service of the picked stages (a service too
+big for one agent is split across several), and the session launches them all in one message. Each agent reads its
+service's code, first and to each file's last line, and writes each unit's tables as soon as it has read that unit, so
+a stop or a lost agent keeps every finished unit. Each agent's budget is its context window less about 120,000 tokens
+for its prompt, tools and writing; the window is 200,000 unless `go.py --fast --context-tokens <n>` records a larger
+one, because whether a subagent with `model: inherit` gets a larger window is not stated in the documentation the kit
+could reach. When the code is larger than the budget, the files on the picked stages' path come first, the services a
+picked stage's move names before those only reached by following calls (the reading plan's `why` column), and the rest
+are listed as not read with that reason. The code is read from the folder the register records, the same folder
+readers and judges use. Each agent's prompt is written afresh at every launch, so a register copied or moved names its
+own folder.
+
+As each agent returns, run control checks its units: row ids are numbered once across all of a unit's tables; each
+part's `part_kind` is one of the kit's part kinds, its band set (a service is `application`, a store or platform
+`technology`) and its level set unless it is a person, the case or an interaction; a component carries its repository
+or says none defines it; `sequence` is blank. A unit that breaks these is set aside and its agent launched again with
+the reason; if it repeats, the run stops and tells you which unit. A subagent that wrote the map's rows must be
+`bfo-flow-mapper` and must have run no shell, or its tables are moved to `fast/refused/<agent>/<unit>/` and the agent
+launched again for those units only; refused a second time, the run stops and tells you why. A unit left short only
+by files a hook or the tool blocks is done, its files shown as gaps, and is never launched again; a unit launched
+again with no progress more times than run-settings.json `relaunches` allows stops for you; a unit whose agent ran out
+of room is launched again for the files it did not list, half at a time.
+
+After the merge the lead writes its own rows: the case as a part, a part's operations and what it depends on (answered,
+or gapped `not read` for a part no stage taken further involves and for an outside service seen only by its calls),
+the flow's delivers, a stage's cannot-be-undone, and the needs of each move whose step holds a call to a part the move
+does not name. The lead never gives a surveyed service a part row or id; it names the service in the lifecycle. Then, by
+script: every cited range must exist and carry its repository folder; only `path:line` or `path:first-last` is a
+citation, never a file named in a row's text; a name a row spells differently from its code is reported; a call between
+two units must be spelled as the called unit serves it; a call into a service outside this run, and anything the code
+scanner found that no row covers, is listed as a gap, never added for you; a planned file the agent did not read to
+the end is shown as read in part. The map is drawn as `fast-map.html`, linked from step 3 of the run status page, and
+the whole map (`views.html`) is drawn too; a row the drawing's check refuses goes back to the agent that wrote it. The
+merge step draws again any stage output a later merge left stale.
+Effect: none.
+
+**A fast map goes on to measures, alerts and runbooks, and checks only the rows they rest on.** The pick offers the same
+four choices as a full run. The stages taken further go on from the map stop to their measures, alerts and runbooks,
+with your reviews as the only stops; when every stage is left mapped only, run control ends the flow after the map, the
+map stop is the flow's report, and the next flow is offered. Checking is selective (`selective.py`): once the measures
+are drafted, the map rows a proposed measure, alert or failure mode rests on are selected (a row whose part, operation,
+call or step a proposal names, a row cited at the lines a measure or failure mode rests on, or a part of a step a
+measure of the case rests on), and each is checked by one `bfo-row-judge`, in one round; `brief.py measures` refuses
+until every selected row has its verdict. The measures and alerts reviews say how many measures rest on rows checked,
+flagged or not checked, naming each flagged one; per measure said to exist, whether its signal is found at a cited
+emission site the code scanner recorded, cited without the scanner confirming it, or not found in code; and per
+failure mode, whether what the runbook will say the code does on failure cites code or is unsupported. A map row nothing
+proposed rests on is not checked in this run. The done check holds a fast flow to the fast map's checks, the merge and
+its selective checking, never to readers or three judges per row. A full map is judged as before.
+Effect: none.
+
+**Each agent type is checked before the step that launches it.** The mapping agent at the go with `--fast` and again
+at its launch, the source readers before the first look writes their prompts, the judge before `judges.py emit`; the
+refusal names the project's `.claude/agents/` and the file to copy. USE.md names all four agent types and where they
+go. The mapping skill run alone does not offer "fast", and `go.py --fast` refuses there: the fast map reads the stages
+the person picks, and that skill never asks.
+Effect: none.
+
+**The first look's own work is bounded, whatever the number of sources.** `first_look.py prepare` runs the survey, the
+code reader, the fetch and the reader prompts in one command; the readers are capped (`first_look_readers` in
+run-settings.json, default 12) and all launched in one message, a reader's share growing before any part is left, and
+parts that still do not fit are listed in the brief as not read; `first_look.py merge` groups every reader's leads by
+name with the sources each was seen in and places each name no code holds as unresolved; and the brief's prose faults
+name the field of orientation.json they are in. The code reader's run instruction sends its messages to
+`fact-extractor.log` in the register.
+Effect: none on an existing register; the next first look uses it.
+
+**The run's sessions are found wherever they were started.** A lead running in a session started in another folder
+keeps its transcripts, and its agents', under that folder's project. The timing record and the run's checks find the
+run's sessions by their ids, with the agents they launched, and the lead's timing row counts from this run's start.
+Effect: none on an existing register; its timing record fills on the next run-control call.
+
+**A Read that failed no longer counts as read.** In 9.7 the reading check paired no Read with its result, so a file
+the Read tool refused as too large, or a hook blocked, counted as lines 1 to 2,000 read. Each Read is paired with its
+result; a failed one covers nothing, and a file every Read of which failed is named `read blocked` with what the tool
+said, and the run stops at that unit for you instead of relaunching a reader that would meet the same.
+Effect: none; a register already checked may now show a unit as not read in full where a Read had failed.
+
+**The rules the stage kit and the mapping skill both state say the same thing.** In 9.7 sixteen paragraphs appeared in
+both skills' instructions, and nine had drifted apart. They come from one source and are written into both by the
+build, and a test fails if either copy changes on its own or a rule is restated outside them. Where they had drifted,
+the code decided: a reading unit's rows are written only by that unit's reader or fixer, or changed as the person
+states it, recorded with `--apply-correction ... --value`. Where the skills differ on purpose, each keeps its own words.
+Effect: none.
+
+**A process step id like `P1` no longer stops the pick.** The register allows a step id to be "a number or short id";
+in 9.7 the stage pages sorted steps as numbers, so `P1` stopped `brief.py depth` and `depth.py`. Steps sort by one
+shared key (`capability_views.step_key`: numbers by value, a short id by its letters then its number). A person named
+with a comma in it ("anyone, the code checks no identity") is one part, and how-made.csv's done_by reads "a tool" as
+tool.
+Effect: none.
+
+**The order of mapping is held by the scripts, not only by the instructions.** A reader, a judge or the merge started
+out of order is refused, with the reason, whichever command the session typed.
+
+- **No code is read in depth before your pick of how far each stage goes.** A reader named by hand before the
+  stages and process steps are written, before your pick, or for a service outside the stages you took further, is
+  refused (`readers.py prompt` and `readers.py run` alike). With no go recorded, no reader is launched at all.
+  Effect: none.
+- **Judging waits for the merge, and round 2 for round 1 and its fixers; the merge waits for the readers.**
+  Effect: none.
+- **Your pick is recorded only after it was put to you, with what is at stake in each stage written.** `go.py
+  --depth` refuses a pick when Business Impact is missing, or, in a stage kit run, when the pick message was never
+  shown (`brief.py depth` marks it).
+  Effect: none.
+- **The pick is never skipped for a missing flag.** The go records which skill took it, and a run control call made
+  with `--by-kit` records it too, so a later call without the flag still stops for your pick. Run control's own reader
+  step makes the checks a direct call makes: no reader while a search is unanswered or the reader agent is not the
+  kit's copy.
+  Effect: none.
+
 ## Release 9.7 — 2026-11-22
 
 The Measures defined tab shows, beside each measure, whether it can be counted today, so you no longer go to the

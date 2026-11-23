@@ -418,6 +418,8 @@ added it.
 | pass | The pass that first read it |
 | found_by | Optional: a register made with an earlier version of this kit may leave it out. `person` when the person named or gave the source (a source inside a repository they gave counts as theirs), `run` when the run's own search found it |
 | note | One line: what it covers, and what it does not |
+| location | Optional: a register made with an earlier version of this kit may leave it out. For code: the repository's folder on this machine (a full path, or a path from the workspace root), where the kit's scripts and agents open it; blank means the repository's name under the workspace. The survey, run with the repository folders named, writes it. For every other source that is not the run's own output, where it is, for the first look's reading step (`first_look.py fetch`): paths relative to the workspace root, several joined by `; `, or `connector:<connector>:<reference>` for a source fetched through a connector. A folder stands for every file in it |
+| derived_from | Optional. For a source generated from code (a generated code wiki): the `source_id` of that code. A flow seen only in the code and a source derived from it is seen in the code, never twice |
 
 ### product-names.csv: product names the run vouches for
 

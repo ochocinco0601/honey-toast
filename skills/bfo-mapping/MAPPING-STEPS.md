@@ -59,8 +59,8 @@ page on an error. A script handed a folder that is not a register refuses it and
    what will be re-read and why, and goes ahead unless they object; only a failed check makes it a question, so if
    the check still fails after migrating, stop and tell them, through `say`, with what you recommend.
    This is the run's own register; an earlier register, made by another run, is never written into. As you
-   do each step below, add a row to `how-made.csv`: what went in, which files came out, and who did it (a tool,
-   a model drafting, a person confirming, or by hand). `RUN.md` from the same folder is the run's record of its
+   do each step below, add a row to `how-made.csv`: what went in, which files came out, and who did it, in
+   `done_by` as exactly `tool`, `model drafting`, `person confirming` or `by hand`. `RUN.md` from the same folder is the run's record of its
    phases: when the kit is run as a skill, the skill's `SKILL.md` says how it is written and kept.
 2. **Gather what you will read**, and list it. Take every source the person pointed at, and what is in the
    workspace, and get each with your own tools. List each in `sources.csv` with pass `1`; `kind` is `code`,
@@ -71,15 +71,17 @@ page on an error. A script handed a folder that is not a register refuses it and
    place, never all at the end: the run's page reads these files to show how far the first look has got. Keep the summary in
    `about.csv` → `sources_examined`, so a reader knows what "not assessed" covers. If the code has no
    version history, list it as the folder as found, with the date you read it. For code, write the repository's
-   folder and the commit read in `repository` and `commit`, one row per repository. With more than one, open each
-   as a folder of one workspace and **write every citation from the workspace root**, starting with the
-   repository's folder (`orders-api/src/Orders.cs:12`), so the same file name in two repositories is not
-   ambiguous; the check warns on a citation whose first folder is no listed repository. Cite a shared library at
-   the version the service's own lockfile or build manifest names, and cite that line. Every repository the run
-   uses, fetched ones included, is a folder of the open workspace (a multi-root workspace when there are several),
-   never a temporary folder, because the environment's code tools reach only the open workspace. If you cannot add
-   folders to the workspace yourself, stop: record in `RUN.md` the repositories and that the person must open them
-   as one multi-root workspace and start again.
+   folder name and the commit read in `repository` and `commit`, one row per repository, and in `location` where its
+   folder is on this machine (a full path, or a path from the workspace root). The code may live anywhere the
+   session can read: inside the workspace, or cloned into a folder of its own beside it (`repos/`, say), as long as
+   the repositories sit side by side in one folder. **Every citation starts with the repository's folder name**
+   (`orders-api/src/Orders.cs:12`), so the same file name in two repositories is not ambiguous; the check warns on a
+   citation whose first folder is no listed repository. Cite a shared library at the version the service's own
+   lockfile or build manifest names, and cite that line. A fetched repository is cloned beside the others, never into
+   a temporary folder. The survey, run with the repository folders named, reads them where they are and writes each
+   folder into `location` (and, when they sit outside the workspace, the folder holding them into `code-root.txt`);
+   every reader and judge is then told that folder. A reader or judge is never launched while a path its prompt would
+   cite is not under that folder: `readers.py` and `judges.py` refuse and say what to do.
 
    What the method takes from each kind of source:
 
@@ -94,7 +96,23 @@ page on an error. A script handed a folder that is not a register refuses it and
    | A document saying what the organisation is able to do | The capability, named from the documents alone | Step 8, second route |
    | People's notes, tickets, recorded answers | Owners, responders, parties with their expectations and objectives, and volumes no other source states | Steps 3, 5, 9; "When something new arrives" |
 
-   A source is read only far enough here to place it in this table; the steps read it in full.
+   **Every source that is not code is read at the first look, and the reading is proven.** Give each such row of
+   `sources.csv` its `location` (paths relative to the workspace root, several joined by `; `, a folder for every file
+   in it, or `connector:<connector>:<reference>`) and, for a source generated from code, its `derived_from`. Then
+   `python "<skill>/first_look.py" fetch "<your-folder>"` lists every owed part (`first-look/parts.csv`: a file, a
+   page range of at most 20 pages of a PDF, a section of a long document; Office files converted to text) and decides,
+   by script, whether the first look reads single or split (`first-look/mode.json`). On split, `first_look.py prompts`
+   writes one reader's prompt per part: start one `bfo-source-reader` subagent per pointer line it prints, directly,
+   in the foreground, at most `parallel` at once. On single, read each part yourself, with the Read tool only (a file
+   read by shell does not count), and write its file in the same form. Each part's file says what the source suggests
+   exists in the flows (leads, each with its spot and its words copied exactly) and what it holds for a later phase
+   (holdings), and judges nothing: a source may be current, out of date or wrong, and the phase that uses a holding
+   judges it. `first_look.py check` then proves from Claude Code's transcripts that every owed part was read by its
+   owed writer and that every quote and name is in its source; `first_look.py names` lists every name the sources
+   mention that no code holds, each placed in `first-look/placed.csv` (`used`, `unresolved` with the place to look,
+   or `set aside`, with why). `brief.py capability` refuses until both pass and each flow in `orientation.json` has
+   `seen_in`, the sources its leads rest on. Later phases find what a source holds for them with `first_look.py
+   holdings "<your-folder>" --for <measures|alerts|runbooks|...>`, and open the source at the cited spot.
 
    Read backwards, the same table says which kind of source would settle what the run had to propose. The report's
    *What would make this map fuller* counts the `proposed:` or blank cells this way:
@@ -134,7 +152,7 @@ page on an error. A script handed a folder that is not a register refuses it and
    (`RUN.md` *Sources* records what they agreed to search), and its repository or documents can be reached, get
    them; otherwise ask the person, as a question that needs their judgement, with where you propose to look, and get
    them only on their yes. A source found during the first run is pass `1`, not a
-   new pass, and it goes into a folder of the workspace (item 2). Fetch it only with access the person already has, and read-only: never request access, enter credentials, or change anything at the source. Record every fetched source in `RUN.md` *Sources* with what referenced it and why. If the person's request says to use only the sources they name, do not fetch: list it under *still missing* instead. With its code, it is a component (Step 5), whatever its application id or owning team, and you read the
+   new pass, and it is cloned beside the other repositories, with its folder recorded in `sources.csv` (item 2). Fetch it only with access the person already has, and read-only: never request access, enter credentials, or change anything at the source. Record every fetched source in `RUN.md` *Sources* with what referenced it and why. If the person's request says to use only the sources they name, do not fetch: list it under *still missing* instead. With its code, it is a component (Step 5), whatever its application id or owning team, and you read the
    operations this flow calls and what those call. If its code cannot be had, it is still a part (Step 5), cited by
    the line that identified it, with `repository` blank: an external dependency, and its measures are gapped with
    the reason. List it under *still missing* in `RUN.md`.
@@ -149,8 +167,8 @@ page on an error. A script handed a folder that is not a register refuses it and
    itself. The brief lists them under what is still open. At the brief the person can say yes to any of these
    searches. Search only on that yes, with the person's own access and read-only: a yes is a change to the brief
    (below, "If they ask for changes to the brief"), and (c) what the repositories found reference is brought to the
-   person the same way. Record each repository found in `sources.csv` with the search that found it and `found_by` `run`, add it to the
-   workspace as a further folder, read-only, and write in `RUN.md` *Sources* what the person agreed to search; what
+   person the same way. Record each repository found in `sources.csv` with the search that found it and `found_by` `run`, clone it beside the
+   other repositories with its folder in `location`, read it read-only, and write in `RUN.md` *Sources* what the person agreed to search; what
    is found and cannot be had goes under *still missing*, and what the person does not agree to search goes under
    *still missing* too. `RUN.md`'s Phase 0 line answers "Is this the complete set of
    repositories?" with that evidence, and Phase 0 is not done while a reference is neither resolved nor put to the
@@ -167,7 +185,7 @@ page on an error. A script handed a folder that is not a register refuses it and
    points and routes to say what it does in one line. Nothing else is read in depth yet. Add the survey to
    `sources.csv` as `tool output` and to `how-made.csv`.
    Then run the code reader over the same repositories, from the workspace root:
-   `python "<skill>/fact-extractor/run.py" . --service-map <folder>=<service> ... > "<your-folder>/fact-base.json"`,
+   `python "<skill>/fact-extractor/run.py" . --service-map <folder>=<service> ... > "<your-folder>/fact-base.json" 2> "<your-folder>/fact-extractor.log"` (its messages go to the register, never to the folder you run it from),
    one `--service-map` pair per service folder (`fact-extractor/README.md` says how to run it and what it cannot
    reach). It finds each service's routes, calls, messages and database writes, each with file and line, by rule and
    never by a model. Check what it produced with `python "<skill>/fact-extractor/contract.py" . "<your-folder>/fact-base.json"`
@@ -175,7 +193,7 @@ page on an error. A script handed a folder that is not a register refuses it and
    stop. The reader is a module: any tool whose output `fact-extractor/contract.py` accepts can take its place. A row
    resting on one of its facts is labelled `extracted` and cites the fact's file and line. What it finds are leads,
    not rows: each one in a service the flow touches is read, then cited by a row or set aside with the reason, and
-   the done check names any left over. What it misses (most calls between services, in practice) is found by
+   the done check names any left over. What it misses is found by
    reading, labelled `proposed:`, and cites both ends, the call and the operation that receives it.
    A file the survey or the code reader could not read is listed with the reason (`survey.csv` → `unread_files`,
    and the fact base's `unread_files`); the capability brief and the map's inspection then tell the person how many,
@@ -200,7 +218,8 @@ page on an error. A script handed a folder that is not a register refuses it and
                  "one_case": "what one case of this flow is, the thing followed start to end", "found_in": "where in the code you saw it (path:line; kept
                  for checking, never shown)", "stages": [{"name": "", "what": "one sentence"}],
                  "services": ["each service this flow touches, exactly as in the survey; the go reads these for
-                 this flow, and without them reads every service for any flow but the one recommended"]}],
+                 this flow, and without them reads every service for any flow but the one recommended"],
+                 "seen_in": ["the source_id of every source whose leads this flow rests on, the code's included"]}],
       "searched": ["what you looked at"], "unresolved": ["what is still open, and where I propose to look"],
       "earlier": "an earlier map found, and what it changes for this run (leave out when none)",
       "recommendation": {"flow": "a flow named above", "why": "",
@@ -253,10 +272,12 @@ for its own service, in the unit formats (`split-run-formats.md`), and the lead 
 case, the people who act).
 
 **Who does what.** The lead is the run's own session, the one that talks to the person: it writes the flow-level
-rows, launches every other agent and decides each next step. The first-look helper launches none, and nothing but
-the first-look helper is launched before the go. The lead never writes into `units/`, a verdict file or a unit's row itself: a unit holding the
-lead's writing fails its check. Every agent is launched with the Agent tool, never a fork: a launcher or a judge as
-`general-purpose`, a reader, fixer or re-read as `bfo-unit-reader` (its launcher says which), and
+rows, launches every other agent and decides each next step. The first-look helper launches only the first look's
+source readers (Before you start, item 2), and nothing but the first-look helper and those readers is launched before
+the go. The lead never writes into `units/`, a verdict file or a unit's row itself: a unit holding the
+lead's writing fails its check. Every agent is launched with the Agent tool, never a fork: a launcher as
+`general-purpose`, a judge as `bfo-row-judge`, a reader, fixer or re-read as `bfo-unit-reader` (its launcher says
+which; neither of the last two can run a shell), and
 every prompt is a file a script wrote: each Agent call carries only its pointer line. The check reads this from the
 transcripts: a reader, fixer or re-read whose first message is not the pointer line of a prompt `readers.py` or
 `judges.py` wrote, unchanged since, has its writes left out and fails its unit, named, until relaunched.

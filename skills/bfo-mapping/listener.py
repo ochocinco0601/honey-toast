@@ -4,6 +4,8 @@ the call that starts it, and the person's browser opened on it.
 Usage: python listener.py up <work folder> [<page under it>]   reuse the listener serving the folder, or start one;
                                                                  open the page in the browser; say whether it opened
        python listener.py stop <work folder>                    stop the listener serving the folder
+       python listener.py check <work folder> [<page>]          whether the page answers and what it shows now,
+                                                                 never counted as the person's browser
 
 The listener (page_ask.py serve) draws the work page on each request from the folder's files, serves each run's home
 screen from its own folder, and records when each page was last asked for (seen.json), so what the person sees moves
@@ -290,6 +292,34 @@ def say(address, started, opened):
             f"in PowerShell, Start-Process \"{address}\". {give}")
 
 
+def ask_check(url, page):
+    """The listener's own answer about `page` (/.check), or None when it does not answer. The check is never counted
+    as the person's browser."""
+    from urllib.parse import quote
+    try:
+        with LOCAL.open(url + ".check?page=" + quote(page), timeout=10) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def check(site, page="/operator.html"):
+    """(what to say, exit code): whether the listener serving `site` answers, and what `page` gives through it. For the
+    session asked why the page is not updating: the run status page is drawn on each request and is never a file."""
+    site = pathlib.Path(site).resolve()
+    url = serving(site)
+    if not url:
+        return (f"NOT ANSWERING: no listener serves {site}. Restart it (listener.py up, as at every stop) and say so "
+                "in one line."), 1
+    got = ask_check(url, page)
+    if got is None:
+        return f"NOT ANSWERING: the listener at {url} did not answer the check.", 1
+    said = f"ANSWERS {got.get('status')}: {url.rstrip('/')}{got.get('page')}"
+    if got.get("badge"):
+        said += f" · the page's badge now: {got['badge']}"
+    return said, 0 if got.get("status") == 200 else 1
+
+
 def main(argv):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -301,6 +331,10 @@ def main(argv):
                   "run carries on in the chat.")
             return 2
         return 0
+    if len(argv) in (2, 3) and argv[0] == "check":
+        said, code = check(argv[1], argv[2] if len(argv) == 3 else "/operator.html")
+        print(said)
+        return code
     if len(argv) == 2 and argv[0] == "stop":
         if stop(argv[1]):
             print("STOPPED")

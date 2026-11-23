@@ -73,11 +73,17 @@ import judges  # noqa: E402
 import paths  # noqa: E402
 import register_layout as layout  # noqa: E402
 
-AGENT_TYPE = "general-purpose"  # the judges' agent type (judges.py)
+AGENT_TYPE = "general-purpose"  # a launcher's agent type, and the judges' before the kit's judge agent (judges.py)
+# The judges' agent type: the kit's agents/bfo-row-judge.md, whose `tools` list holds no shell, so a judge that cannot
+# find a cited file cannot search for it with one and have its verdict thrown away. A register judged before
+# it keeps its `general-purpose` judges, held to the same no-shell check.
+JUDGE_TYPE = "bfo-row-judge"
+JUDGE_TYPES = (JUDGE_TYPE, AGENT_TYPE)
 # The type of every agent that writes a unit's tables (a reader, a fixer, a re-read; the unit `flow`'s fixers too):
 # the kit's agents/bfo-unit-reader.md, whose `tools` list holds no shell, so such an agent cannot run one at all
 # rather than being found to have run one after it finished. Launched by that name (readers.py's launchers).
 READER_TYPE = "bfo-unit-reader"
+SOURCE_READER_TYPE = "bfo-source-reader"  # the first look's reader of one source that is not code (first_look.py)
 NO_TYPE = "no agent type recorded (Claude Code older than the meta files?)"
 SNAPSHOT = "the finished flow's judged snapshot"  # the setter of a cell the replay starts with
 CORRECTION = "a recorded correction"  # the setter of a cell a recorded correction set

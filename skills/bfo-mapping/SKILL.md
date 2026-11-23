@@ -5,10 +5,13 @@ description: Map the business flows of an application's capability from its code
 
 # Business flow mapping: one flow, from the sources to the map
 
+<!-- shared: this-folder-is-the-mapping-skill -->
 This folder is the mapping skill. Everything below calls it **the skill folder**. Wherever `MAPPING-STEPS.md` writes
 `<skill>`, it means this folder, and the folders it names (`register-template/`, `reference/`, `method/`) are
 inside this folder too.
+<!-- /shared: this-folder-is-the-mapping-skill -->
 
+<!-- shared: start-here-before-you-write-anything-to -->
 **Start here, before you write anything to the person.** Your first action is a tool call, the start step:
 `python "<skill>/start.py" "<workspace root>" --request "<their request, word for word>" --gave <code, name or
 nothing>` ("The start step", below, says which). **Nothing is read before the person's Start.** On a fresh start, or a
@@ -20,10 +23,14 @@ exactly as printed, as your whole reply this turn, with no text before it, not e
 something; then end your turn. Start no helper and open no code until their Start. A script's output left inside its
 tool call never reaches the person. On a case picked up, no page asks it: `MESSAGE:` holds the lines themselves and asks,
 with numbered choices, whether to carry on or change a line, in the chat, and no `WAIT:` is printed; send it and end your turn.
+<!-- /shared: start-here-before-you-write-anything-to -->
 
+<!-- shared: their-answer-to-the-say-back -->
 **Their answer to the say-back** comes from the page (an `ANSWERS` line whose file holds `say_back`) or typed in the
 chat. Record it with `python "<skill>/say_back.py" answer "<the folder you drafted in>" --answers "<file>"` or
-`--words "<their words, word for word>" --as <your reading>`. The reading is yours, from what they meant, never
+`--words "<their words, word for word>" --as <your reading>`, and on a fresh start with `--register
+"bfo-work/<the system's name>"` at the workspace root, the register folder you name for the first look (it refuses a
+folder that already holds a register, and names the `-<date>` rule). The reading is yours, from what they meant, never
 from a list of words: `start` for a go in any wording ("continue", "looks good", "1"), `correct` for a line to
 change, and while the search is asked `search-yes` or `search-no`. If you cannot tell what they meant, ask them in
 one line, through `say`, and record nothing. On `STARTED`, do what it says: on a fresh start, start the first-look
@@ -31,10 +38,12 @@ helper ("The first look runs in one helper", below) with their request and the l
 through `say`, that the first look is under way; on a case picked up, carry on with what the last line proposed.
 On `CORRECTED`, redraft the lines with their correction, run `say_back.py draft` again, send what it prints, and wait
 again. When the code is not open in this window, give the lines a `search` too (where you propose to look, from the environment): the page then asks that one question, with Yes and No and no Start, and their answer is recorded the same way. On `SEARCH AGREED`, search there and draft the lines again with what was found, so Start appears; on `SEARCH DECLINED`, search nothing and ask them to point at the code. Start never stands for a yes to a search. `go.py --answers` refuses a say-back answer and names this command.
+<!-- /shared: their-answer-to-the-say-back -->
 
 ## The job this serves
 
-Step 1 of the path from a new capability to supported in production: understand who depends on it. From the code
+Two levels up, the customers and the business who depend on a capability, and the team that runs it in production,
+who need its failures seen and acted on. Step 1 of the path from a new capability to supported in production: understand who depends on it. From the code
 and the documents the person points at, this skill draws one business flow: what one case of it is and how to follow
 it, the stages it goes through and the process steps in each, the services, stores, outside parties and people that
 carry each step, and each step's Business Impact. **In:** what the person points at (repositories, documents,
@@ -43,9 +52,21 @@ diagrams, notes), as much or as little as they have. **Out:** the map, written i
 `set-aside`, `agent-system`, `step-impact`, `case-attributes`), every fact cited to its source or marked proposed,
 drawn as the map's page, with the map's own inspection. The register is the capability's one map and grows flow by
 flow: a further flow is added beside the finished ones, and changes none of their rows. It stops there: deciding what to count, alerts and
-runbooks are later steps, done by other skills on what this one hands on. **Done:** the next step can work from the
-map alone, the map is faithful to its sources (every finding that cites code checked against it by readers who
-wrote none of it, and one still in doubt shown as not confirmed), and its inspection says what is missing.
+runbooks are later steps, done by other skills on what this one hands on (the measures skill, `bfo-measures`, or the
+stage kit, which takes the stages the person picks on to measures, alerts and runbooks). **Done:** the next step can
+work from the map alone, the map is faithful to its sources, and its inspection says what is missing. How faithful
+depends on the mode chosen at the go. In the full reading, every finding that cites code is checked against it by
+readers who wrote none of it, and one still in doubt is shown as not confirmed. In a fast map (`go.py --fast`, offered and accepted only when the stage kit runs this skill), one
+agent reads the picked stages' code and maps them in one pass; a script checks that every cited range exists and
+lists what was not read and the gaps, and no second agent checks any row; the map's page says so, so the person
+knows what they are trusting.
+
+<!-- shared: agent-types-before-a-run -->
+**Before a run,** the agent types it launches are installed in the project's `.claude/agents/` (copied from this
+skill's `agents/` folder) before the session starts: `bfo-source-reader` (the first look's source readers),
+`bfo-flow-mapper` (the fast map), `bfo-unit-reader` and `bfo-row-judge` (the full reading's readers and judges).
+Each step that launches one refuses, naming the copy step, while it is missing.
+<!-- /shared: agent-types-before-a-run -->
 
 ## Run alone, or from the stage kit
 
@@ -56,6 +77,7 @@ names, and at the map stop go back to the kit's `SKILL.md` for the pick of how f
 
 ## Your first message: the say-back
 
+<!-- shared: the-first-message-is-the-say-back-s -->
 The first message is the say-back's one line, printed by `say_back.py draft` ("Start here", above); the lines
 themselves are on the run page, never in the chat. `--gave` is `code` when the request pointed at the system's code
 (its repositories, a link to its code, or "this application" with its code open here); `name` when it named only
@@ -64,13 +86,17 @@ start step's MESSAGE asks which system, in one line: send it as printed, end the
 the say-back from their answer (`say_back.py draft` on the work folder) without running the start step again.
 Where and how to search is taken from the environment the run is in (its own instructions, tools and sources),
 never from a fixed place, and the run searches only where the person agrees.
+<!-- /shared: the-first-message-is-the-say-back-s -->
 
+<!-- shared: when-only-a-name-was-given -->
 When only a name was given, look, without reading any file, at whether the folders open here hold that system's
 code (their names alone). If they do not, the code line says so and where you propose to look ("When the system's
 code is not here", below), and give the lines that place as their `search`: the page asks them Yes or No to that
 search before Start appears, and a correction of that line is where they would rather you looked. Once a helper is started, write nothing more until its reply, except as below when the
 person writes.
+<!-- /shared: when-only-a-name-was-given -->
 
+<!-- shared: when-the-system-s-code-is-not-here -->
 **When the system's code is not here.** If the helper returns blocked for want of code, write to the person, through
 `say`: that
 the system's code is not in what is open here, where you propose to look for it, taking where and how from the
@@ -81,7 +107,9 @@ with their own access and read-only, and add each repository found to the worksp
 the helper again with their request and their answer, naming each repository added and the search they agreed to, so
 the helper records it as a source. If the search finds nothing, say so in a sentence, through `say`, and ask them to point at the code, and start
 nothing. When they point at code, start the helper with their answer added to the request.
+<!-- /shared: when-the-system-s-code-is-not-here -->
 
+<!-- shared: the-start-step-comes-first-in-this-sessi -->
 **The start step comes first, in this session, by script.** Before any other tool call or any text, run
 `python "<skill>/start.py" "<workspace root>" --request "<their request, word for word>" --gave <code, name or
 nothing>` (in a multi-root workspace, the first folder), with
@@ -106,9 +134,15 @@ From then until the first look's brief, a second start step on
 the workspace is refused with "the first look is already running", so start one helper only, once. If the helper
 returns blocked and the run starts over, end that mark first with `python "<skill>/start.py" "<workspace root>"
 --first-look-ended`.
+<!-- /shared: the-start-step-comes-first-in-this-sessi -->
 
+<!-- shared: the-first-look-runs-in-one-helper-so-not -->
 **The first look runs in one helper, so nothing of the setup reaches the person.** On their Start (`STARTED` from
-`say_back.py answer`), start one subagent with the Agent tool (general-purpose). Claude Code
+`say_back.py answer`), start one subagent with the Agent tool (general-purpose), with the pointer line `say_back.py`
+printed after `STARTED` as its whole prompt and nothing else: the script wrote the helper's task, with the person's
+request, the say-back's lines and the start step's lines, into the register's `prompts/`, so the run's checks know the helper by it. The helper starts the first
+look's source readers itself (one `bfo-source-reader` per source that is not code, or one part of one, when
+`first_look.py fetch` says split); it launches nothing else before the go. Claude Code
 runs it in the background: in an interactive session (terminal, VS Code, desktop app) a session cannot wait for a
 subagent while fork mode is on, as it is by default (Claude Code's documentation,
 code.claude.com/docs/en/sub-agents: "Which subagents run in the background", "Let Claude wait for a subagent",
@@ -119,28 +153,23 @@ completion notification, in a turn of its own, and that turn sends the brief. Wh
 instead, send that line before its brief, in the same turn. A later turn that starts the helper again (after a
 search) does the same. If the person writes while the first-look helper is still running, answer in one line
 through `say` that the first look is still under way and its brief follows when it is done, and start nothing: no
-second helper, no start step. Give the helper: the person's request word for word, and the say-back's lines as they
-started them;
-the skill folder's path; the start step's DECISION, FOLDER and EARLIER lines as printed; on fresh, the register
-folder you name for it, `bfo-work/<the system's name>/` at the workspace root, which is `<your-folder>` from then on;
-and this task: *"Follow
-`<skill>/SKILL.md`, section 'The run', from the start step's decision through the stop for the person's word in
-phase 0, using `<skill>/MAPPING-STEPS.md` 'Before you start'. Write nothing for the person. The start step has run;
-never run it again or decide by your own reading. On finish-first-look, finish the first look in the folder it
-names; on fresh, start the register folder you were given with `start_register.py` and do the first look there. Write each of
-the sources list, the survey and the code reader's facts as soon as it is complete, so the page shows the progress.
-Then run `brief.py capability`, and your final reply is exactly the text that script printed, and nothing
-else. If the run is blocked, your
-final reply is what `brief.py say` printed for one plain sentence saying why and what
-would unblock it, in the person's terms (with no code to read,
-or only code that is not the named system's: that the system's code is needed, and that they can point at it or agree to a search for it)."* When it returns
+second helper, no start step. The register folder you named with `--register` is `<your-folder>` from then on. When it returns
 blocked for want of code, see "When the system's code is not here" above. Otherwise, when it returns, your message is its reply, sent as it is, and nothing else: no sentence before it ("Here is the brief", "I'll pass this along"), none after it. Its first line
 is already the status line. Then end your turn: the brief ends with what it waits on, the person's picks or one question
 whether to carry on. Write nothing between the say-back and that message, except the one line that the first look is
 under way.
+<!-- /shared: the-first-look-runs-in-one-helper-so-not -->
 
+<!-- shared: when-the-person-answers-the-brief -->
 **When the person answers the brief**, record their picks with `go.py` (phase 0, "Their answer is recorded as data"),
-unless they agreed to a search: then search first and brief again, as phase 0 says there. `go.py` prints a status line;
+unless they agreed to a search: then search first and brief again, as phase 0 says there. The brief numbers what
+it needs under *What I need from you*: item 1 the flow, then one item per search it proposes. Record the searches
+by number with `--searches 2=yes,3=no`, beside `--flow` when the same answer picked the flow, or alone with
+`--words` when it answers only the searches. An item they leave unanswered is never taken as a yes or a no: when
+`go.py` prints `STILL TO ANSWER`, send what follows it exactly as printed, wait, and record their answer
+with `--searches`; no reader is launched while a search is unanswered, and on `SEARCH AGREED` search as phase 0
+says. At every stop the same holds: an answer that leaves a numbered item unanswered is never taken as a yes;
+record what was answered and ask only the open items again, numbered as before. `go.py` prints a status line;
 then write a sentence or two saying what was recorded and what happens next, through `say`, and send what
 `say` printed, whose status line takes the place of the one `go.py` printed. When they answer which earlier work to carry on (DECISION choose), run `python "<skill>/start.py"
 "<workspace root>" --resume "<that folder>"`, the FOLDER lines being in the order the list numbers them, and follow
@@ -154,7 +183,9 @@ words, word for word>"`, which records them; without them it refuses a new regis
 `python "<skill>/start.py" "<workspace root>" --release "<that folder>" --words "<their words, word for word>"` and
 follow its DECISION the same way; never release it without their say-so. A test standing in for them adds
 `--test`, so the answer is kept as a test's.
+<!-- /shared: when-the-person-answers-the-brief -->
 
+<!-- shared: talking-to-the-person-for-the-whole-run -->
 **Talking to the person, for the whole run.**
 - **Every later message opens with the status line**, copied exactly from `python "<skill>/brief.py" status
   "<your-folder>"` run just before you write it, or as `say` or a script prints it. Never type the line yourself,
@@ -191,10 +222,12 @@ follow its DECISION the same way; never release it without their say-so. A test 
   reply; the read-it reply; the report's own prose; the carry-on answer after a re-entry brief; and the proposal of
   where to look for the code. A live answer to the person's own question is the one exception, and so is the talk about their topics once
 the line back has opened it: write those in the same plain words, with no ids, phase numbers or kit terms.
+<!-- /shared: talking-to-the-person-for-the-whole-run -->
 
 
 ## The run
 
+<!-- shared: a-run-is-four-phases-0 -->
 A run is four phases, 0 to 3, done in order.
 Between the first and the second, the run shows the person its plan and
 waits for their go, whatever the run's size. Each phase has an **In → Out**, and the files it names are what prove it done. The
@@ -207,7 +240,9 @@ also holds `answers/`, where the page saves what the person sends, and a listing
 then drawn in the wrong folder and the person's page shows an error instead of it. A script handed a folder that is
 not a register refuses it and names the register folders it found; run the command again with the one it names. Run the kit's scripts from the skill folder, exactly as `MAPPING-STEPS.md`
 writes them, with `<skill>` replaced by the skill folder's path.
+<!-- /shared: a-run-is-four-phases-0 -->
 
+<!-- shared: the-run-s-first-work-is-the-start-step-b -->
 **The run's first work is the start step, by script, before any text:** `python "<skill>/start.py"
 "<workspace root>" --request "<their request, word for word>" --gave <code, name or nothing>` (in a multi-root
 workspace, the first folder), run by the session itself before any helper; the say-back it hands to (or its own
@@ -215,7 +250,7 @@ MESSAGE, where it prints one), sent exactly as printed, is the run's first messa
 records it, so a later stop the request already answers reads it from there.
 First it brings up the run status page, served from the workspace's `bfo-work/` folder (made if need be), so
 the person has the page while the rest runs: before the register exists it shows step 1, Discovery, under way, then
-the run's own; it links to the work page and, once drawn, the home. Then it prints a `KIT:` line: the build this copy of the skill is, as its
+the run's own; it links to the work page and, once drawn, the home. The run status page (`<register>/operator.html`) and the sources page are drawn by the listener on each request and are never files in the folder; the home screen, `index.html`, is a file a script redraws. When the person asks why the page is not updating, never answer from a listing of the folder: run `python "<skill>/listener.py" check "<work folder>" "<register>/operator.html"`, which says whether the listener answers and what the page shows now (its check is never counted as the person's browser), answer from that, and on NOT ANSWERING restart the page as at every stop and say so in one line, through `say`. Then it prints a `KIT:` line: the build this copy of the skill is, as its
 `KIT-VERSION.txt` names it (the release and date it was built as). A `WARNING` on that line means the copy is
 partial, mixed with another version, or made before the kit had a version marker (a file missing, changed, or from another build, or
 no marker at all), and the start step stops there with DECISION blocked, before it takes any lock or writes
@@ -255,28 +290,36 @@ sources into a new register folder (`bfo-work/<application>-<yyyy-mm-dd>/` when 
 lists each earlier register in `RUN.md` → *Earlier registers* → *Found*, and reconciles each with the new register (the stage kit's
 phase 7). If the stage to cover is not named, prefer one an earlier register has `stage-<id>/` work for, so the
 re-derivation can be compared.
+<!-- /shared: the-run-s-first-work-is-the-start-step-b -->
 
+<!-- shared: then-run-md-and-nothing-else-starts-befo -->
 **Then `RUN.md`, and nothing else starts before it.** Before reading any code or writing any other file, on
 DECISION fresh, create the register folder with `python "<skill>/start_register.py" "<your-folder>"`, which copies
 `RUN.md` and the empty tables from `register-template/` into it, and write its section *What this run will produce* in your
 own words, from this file: the application, the flow and the stages (named by the person, or left to the plan's
 decisions), and, phase by phase,
 what the phase does and the files it must leave. Then set Phase 0 to *doing*.
+<!-- /shared: then-run-md-and-nothing-else-starts-befo -->
 
-**`RUN.md` is kept as you go.** At the end of each phase, set it to *done* with the files that prove it, and the
-next to *doing*. A phase that cannot be done is set to *blocked* with the reason (for example "python is not on
+<!-- shared: run-md-is-kept-as-you-go -->
+**`RUN.md` is kept as you go.** At the end of each phase, set its status with
+`python "<skill>/go.py" "<your-folder>" --row "<the row's lead>" --to done`, then the next with `--to doing`,
+never by editing the status cell (a status set by hand reaches the run status page only as an "about" time);
+the files that prove it go in its *Proved by* cell. A phase that cannot be done is set to *blocked* the same way
+(`--to blocked`), with the reason (for example "python is not on
 the path") and what would unblock it, and the run says so in the chat. No phase is skipped silently, and the run
 never stops without saying where it stands. **If `RUN.md` already exists**, because the run is resuming or a new
-chat has started, read it first. If it waits on their review of the alerts, the re-entry brief carries the alerts
-as last put to them, so they have them in front of them. Your next message to the person is the **re-entry brief** (on a pickup, the start step's MESSAGE carries it after the launch):
+chat has started, read it first. If it waits on their review of the alerts, the re-entry brief
+carries the alerts as last put to them, so they have them in front of them. Your next message to the person is the **re-entry brief** (on a pickup, the start step's MESSAGE carries it after the launch):
 the text `python "<skill>/brief.py" reentry "<your-folder>"` prints, sent as it is. It says what the work is, what
 the capability is, what has been drafted and found, what was decided and by whom, where it stands, and what is next. Never ask
 "shall we pick up where we left off?". When it waits on nothing, it ends by asking whether to carry on with what
 is next, recommending yes; on their answer, your reply goes through `say`, and on their yes, continue from the
 first phase that is not done.
+<!-- /shared: run-md-is-kept-as-you-go -->
 
-**Waiting on the home screen**, at each stop where the run waits on the person's pick: the flow to map first, and
-the next flow once one is finished. Before you send that stop's message, run `python "<skill>/wait_on_page.py"
+<!-- shared: waiting-on-the-home-screen -->
+**Waiting on the home screen**, at each stop where the run waits on the person's pick: the flow to map first, and the next flow once one is finished. Before you send that stop's message, run `python "<skill>/wait_on_page.py"
 "<your-folder>"`. It writes `depth.json`, draws the home screen (`index.html`, by `home.py`) and writes `resume.md`,
 and brings up the page itself: it starts the listener when none is serving (it outlives the call) and opens the
 person's browser on this run's home screen unless the page is already open there. If it prints `OPEN FAILED`, open
@@ -315,9 +358,10 @@ wait ends (the watch expires, or a poll exits), start it again the same way. Aft
 picks the run up at a stop, run `wait_on_page.py` again first: it brings the page back if its listener has gone, and opens it; in a new chat whose start step sent its MESSAGE, that already gave the person the address, so give no second one; after any other restart, give the address with what `python "<skill>/brief.py" page "<your-folder>"` prints. When you start the wait, keep its task
 id (for a poll, the newest run's). A stop is answered only when `go.py` records a pick; a post of topics alone, words with no tick
 at the pick, and a refusal are not answers, so the run still waits there. Keep the wait running between stops, and
-through the offer of the next flow; once the map stop's message is sent at its end and no flow is left to offer, or
-the person says stop at that offer, stop the wait by its task id, with the tool that stops a background task, and
+through the offer of the next flow; once the map stop's message is sent at its end and no flow is left to offer, or the
+person says stop at that offer, stop the wait by its task id, with the tool that stops a background task, and
 the listener with the stop command it printed.
+<!-- /shared: waiting-on-the-home-screen -->
 
 0. **Frame, gather, survey and plan** (MAPPING-STEPS "Before you start").
    In: whatever the person points at in their request (repositories, pages, diagrams, process descriptions,
@@ -335,11 +379,11 @@ the listener with the stop command it printed.
    *blocked* with the error and stop there: every later phase ends in a script, so nothing is drafted that cannot be
    generated.
    **Get every source with your own tools**, whatever its form: you already know how to clone a repository and how
-   to read a page, a diagram or a PDF. Put each repository you fetch at the workspace root, as its own folder, because
-   every citation starts with that folder. **Every repository the run uses is a folder of the open workspace** (a
-   multi-root workspace when there are several), never a temporary folder: the environment's code tools reach only the
-   open workspace. If you cannot add folders to the workspace yourself, set Phase 0 *blocked*, name the repositories,
-   and tell the person, through `say`, to open them as one multi-root workspace and start again; write the same in `RUN.md`. A source you cannot reach (no access, a dead link) is listed under
+   to read a page, a diagram or a PDF. Put each repository you fetch beside the others, as its own folder (at the
+   workspace root, or in the folder the code already sits in, such as a `repos/` folder beside the workspace), never in
+   a temporary folder, because every citation starts with that folder's name. Record each repository's folder in
+   `sources.csv` (`location`); the survey run with the repository folders named does it for you, and every reader and
+   judge is told where the code is. No multi-root workspace is needed. A source you cannot reach (no access, a dead link) is listed under
    *still missing* in `RUN.md` with what you tried, and the run goes on: a missing source changes what the map is
    worth, never whether the run continues.
    **Check the repository set is complete.** The first look resolves references only against the workspace and what
@@ -363,10 +407,12 @@ the listener with the stop command it printed.
    access to a code host, or the person has said nothing is to be fetched): list each one, with why it was not searched.
    **This phase lists and places; it does not read everything.** Read each source only far enough to say what it
    is and which step uses it. From Phase 1 on, the lead reads what its own rows need, and the services of the
-   stages the person takes past mapped only are read in full, as the rules for the whole run below say.
+   stages the person takes past mapped only are read along each stage's path (every line with `reading` `full`), as the rules for the whole run below say.
    Keep the documents identifiable as a set: Step 8 hands them, without the walk, to a separate pass.
    **Then survey and plan** (MAPPING-STEPS "Before you start", items 6 and 7): `python "<skill>/survey.py"
-   "<your-folder>"` writes `survey.csv`, each service's place, size, entry points and calls, counted by script;
+   "<your-folder>" "<each repository's folder>"` (named when the code sits outside the work folder, as in a `repos/`
+   folder beside it: the survey records each folder in `sources.csv` and the folder that holds them in `code-root.txt`,
+   and refuses repositories spread over different folders; with none named it reads `sources.csv`) writes `survey.csv`, each service's place, size, entry points and calls, counted by script;
    then the code reader, `python "<skill>/fact-extractor/run.py"`, writes `fact-base.json` in the register folder:
    routes, calls, messages and writes with file and line, found by rule. It is a module: any tool whose output
    `fact-extractor/contract.py` accepts can take its place. Its findings are leads to read, each later cited by a
@@ -374,7 +420,10 @@ the listener with the stop command it printed.
    ends.
    **Then the first look, and the capability brief.** Read, shallowly, only what names the business flows: each
    service's entry points and routes (the storefront's pages and its API), its interface definitions, the deployment
-   files and the documents. Read no service in depth: that waits for the person's picks. From what you read and the
+   files and the documents. Read no service in depth: that waits for the person's picks. Every source that is not code
+   is read by the first look's source readers (`first_look.py fetch`, then one `bfo-source-reader` per pointer line
+   `first_look.py prompts` prints, or the helper itself below the size where one pass is enough), and the brief is
+   written from what they recorded; the helper reads the documents itself only in that single pass. From what you read and the
    survey, write `orientation.json` in the register folder, in the person's words, as MAPPING-STEPS item 7 sets out:
    what the work is for and what this run will produce, in your own words (it is how the person judges that the run
    understood its job); the capability (what it does, for whom); every service the survey lists,
@@ -389,7 +438,7 @@ the listener with the stop command it printed.
    for the detail (each flow's stages, each service and why, what is still open), show them `PLAN.md`.
    **When the person's request already asked for every flow** (for example "map every business flow", or "the
    whole capability's map first"), and nothing else waits on their word (no code still to point at, no earlier
-   work to choose between), do not stop for the first flow: run it as
+   work to choose between, no search the brief asks about), do not stop for the first flow: run it as
    `python "<skill>/brief.py" capability "<your-folder>" --from-request`, which reads the request the run record
    keeps (the start step recorded it, word for word). It records the recommended flow as their go, with the request's words, and prints the brief
    led by the line that says so, ending with what they can stop or change. Send it as printed, start the wait on
@@ -405,7 +454,17 @@ the listener with the stop command it printed.
    recommendation is their pick. The services read are those the brief marked include, and the checks per finding
    three, as the brief showed them; only when they say otherwise add `--in <service,...> --out <service,...>` (every
    service named once) or `--judges <n>`. Every finding that cites code is checked by that many readers who wrote
-   none of it, as the brief said (phases 1 to 3). `go.py` refuses `--stages`: the stages are picked after mapping, with
+   none of it, as the brief said (phases 1 to 3). **When their answer asks for the fast map** (only when the stage kit runs this skill: run alone, `go.py` refuses `--fast`) ("fast", in any
+   wording), add `--fast`: run control (`next.py`) then takes the fast order. After the lead's steps, Business Impact and
+   the pick, it prints one action of kind `agent` listing one mapping agent per service (or share of one) under
+   `agents`: launch every one with the Agent tool, all in one message, `subagent_type` as it names
+   (`bfo-flow-mapper`), each with its own `prompt` as the whole prompt, wait for every reply, and call `next.py` again.
+   Each agent reads its own units' code, within its own token budget, and writes each unit's rows as soon as it has
+   read that unit, so a stop keeps every unit written; when the model's context window is larger than 200,000 tokens,
+   record it at the go with `--context-tokens <n>`. Run control then
+   merges, checks every citation by script (`fast_map.py check`), and draws `fast-map.html`, with no readers, re-reads
+   or judges; its map stop says what was not read or checked. Do not run those steps by hand: call `next.py` and do
+   what it prints. `go.py` refuses `--stages`: the stages are picked after mapping, with
    `--depth`. It writes `scope.json` (with what remains after this run) and `run-settings.json`, and the go and scope
    lines of `RUN.md`; it refuses a flow or service the brief did not name. Map their words to the brief's names
    yourself where the match is plain (a spelling, a shortened name); ask only when their answer matches nothing in the
@@ -436,7 +495,8 @@ the listener with the stop command it printed.
 **Phases 1 to 3: run control decides each next step.** Once the go is recorded, call
 `python "<skill>/next.py" "<your-folder>" <flow id>`, with `--by-kit` added on every call when the stage kit runs this
 skill (it then never ends the flow, and its `stop` named `pick`, which comes before any service is read in depth, and
-its map stop each say to go back to the kit's `SKILL.md`, and you do), and
+its map stop each say to go back to the kit's `SKILL.md`, and you do; the go records which skill took it, so a call
+that leaves the flag off is still run as the kit's), and
 do what the one action it prints says, then call it again; a `stop` carries its message already rendered, status line
 and all, which you send as it is, except the `pick` stop, whose message the kit renders:
 `judgment` is a task for you, with the tables you may write and the checks it must pass (the findings say what the
@@ -454,9 +514,12 @@ each step is; `next.py` says when.
 1. **The case and its lifecycle** (Steps 1 and 2).
    In: the sources. Out: `flows.csv` (the case, whose expectation, start and end), `lifecycle.csv`. The flow is the one the person chose at the go, from the plan's
    decision (their own, or the recommendation they accepted); write it into `RUN.md`.
-   **Phases 1 to 3 run one path, every time** (MAPPING-STEPS "Reading in units, and every finding checked" gives the
+   **Phases 1 to 3 run one path in the full reading, every time** (a fast map, chosen at the go with `--fast`, runs
+   its own: after the pick, one mapping agent per service, all at once, the merge, the checks by script and the drawing, with no readers,
+   re-reads or judges; what follows is the full reading) (MAPPING-STEPS "Reading in units, and every finding checked" gives the
    commands). The lead is the run's own session, the one that talks to the person: it writes the flow-level rows,
-   launches every other agent and decides each next step. The first-look helper launches none. The parts are read in
+   launches every other agent and decides each next step. The first-look helper launches only the first look's
+   source readers. The parts are read in
    reading units, one reader per unit of a service the go took in, and every row that cites code is then checked by
    as many readers as the go recorded, each a fresh agent that wrote none of it. Launch one launcher per pointer line
    the script prints, each a `general-purpose` agent and never a fork, given that line alone: for judging, one
@@ -495,7 +558,8 @@ each step is; `next.py` says when.
    `case-attributes.csv`, written right after the lead's Steps 1 to 4 and before the pick; `capabilities.csv`, after
    the merge. Then the judging rounds and their fixes, as above, over every row of
    this flow that cites code.
-   **Mapping ends here, at the map stop.** Draw the map: `python "<skill>/capability_views.py" "<your-folder>"
+   **Mapping ends here, at the map stop.** Run control issues each command below as its own step (`draw`, `check`,
+   `mapping ends`): run what `next.py` prints, never these by hand; what follows says what each is for. Draw the map: `python "<skill>/capability_views.py" "<your-folder>"
    --check`, then `python "<skill>/one_canvas.py" "<your-folder>" "<your-folder>/views.html"`, and run the map's
    inspection, `python "<skill>/check_map.py" "<your-folder>" <flow id>` (rules that hold whatever the map says; it
    reports and never blocks; when any file of the code could not be read, it ends with one line saying how many, and
@@ -534,7 +598,7 @@ each step is; `next.py` says when.
    **Run alone only.** When the map stop goes out with a reason of the map's inspection still open, phase 3 stays
    not done and the ending is skipped: no re-read is drawn and no `go.py --mapping-ends` is run, so the flow is not
    ended and no next flow is offered; once the reason clears, draw and inspect the map again and end here. Otherwise
-   end the flow with
+   run control ends the flow with its `mapping ends` step,
    `python "<skill>/go.py" "<your-folder>" --mapping-ends <flow id>` (the id the inspection was run on), once the
    last `collect` has run. It binds the
    flow's id, sets the phases after mapping *not picked*, so the flow counts finished, and is the done check of a run
@@ -556,9 +620,13 @@ each step is; `next.py` says when.
    *not picked* and count the flow finished before the kit measures it), no offer of the next flow. The kit's own done
    check holds the judging, and the kit offers the next flow itself. With a reason of the map's inspection still
    open, go back all the same, with phase 3 not done, and name that reason to the person in the kit's next message.
+   That is the full reading. A fast map goes back to the kit the same way when a stage was taken past mapped only;
+   with every stage mapped only, run control ends it under the kit (its `mapping ends` step, with the fast map's own
+   checks), and its map stop is the flow's report: the kit's SKILL.md says what follows either.
 
 ## Rules for the whole run
 
+<!-- shared: read-mapping-steps-md-then-register-temp -->
 - Read `MAPPING-STEPS.md`, then `register-template/REGISTER.md` and the reference files `MAPPING-STEPS.md` cites in
   `reference/`, before Phase 1.
 - **Follow the code past the workspace.** When a move calls a deployable whose code is not here, identify it from
@@ -585,8 +653,9 @@ each step is; `next.py` says when.
   was read from Claude Code's own record of the session, not from anything the run writes: every location a row
   cites must have been opened with Read, its lines inside the part read, or be a fact the code reader produced. A
   file shown by a shell command does not count. Every row of this flow that cites code is also checked by readers
-  that wrote none of it (phases 1 to 3), so no sample is drawn. A row of a finished flow found wrong is never edited
-  by hand: it is filed in `corrections.csv` and applied with `go.py --apply-correction`, which records it. Your own
+  that wrote none of it (phases 1 to 3), so no sample is drawn. A row of a
+  finished flow found wrong is never edited by hand: it is filed in `corrections.csv` and applied with `go.py
+  --apply-correction`, which records it. Your own
   tables (the flow-level rows) stay yours, as the steps say: a row of them the person states, you write into its
   table, file it in `corrections.csv` and record it with `--apply-correction <id> --added --words "<their words,
   verbatim>"`. A row of a reading unit (`units/`) is
@@ -598,7 +667,8 @@ each step is; `next.py` says when.
   for takes `--words` the same way. go.py writes the row and records their words, and refuses the change without
   words or with words they did not type into a session after the go; the row is still judged and read-checked. A unit row you
   find missing or wrong yourself goes to that unit's fixer, as a reason only a unit's row can clear does at the map
-  stop (phase 3 above: `readers.py prompt ... <unit> --mode stop --reason "<what is missing or wrong>"`).
+  stop (phase 3 above: `readers.py prompt ... <unit> --mode
+  stop --reason "<what is missing or wrong>"`).
 - **Talk to the person in names, not ids**, as "Talking to the person" above says: name parts, process steps and
   stages by their names ("the Ordering API", "Accept the order"), never by id, in every message and report.
 - Never stop to ask the person a fact you can infer: where the sources do not say something, infer it and label it
@@ -606,4 +676,5 @@ each step is; `next.py` says when.
   sources are enough, whether to keep going) is brought to them with your proposal, through `say`, when it arises. The plan is the
   first such point.
 - Never edit a generated file: fix the register and generate again.
+<!-- /shared: read-mapping-steps-md-then-register-temp -->
 

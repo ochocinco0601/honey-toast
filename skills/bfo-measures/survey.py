@@ -4,6 +4,8 @@ Usage: python survey.py <register folder> [repository folder ...]
 
 With no repository folders, the code rows of sources.csv name them (`repository`, from the workspace root, which is
 two folders above the register folder). Writes survey.csv in the register folder and prints a summary for the plan.
+When the repositories are not inside the workspace, the folder that holds them is the one every path is written from,
+and it is recorded in code-root.txt (relative to the workspace) so every reader and judge is told that folder.
 
 A service is a folder holding a build manifest (pom.xml, build.gradle, package.json, go.mod, glide.yaml, Gopkg.toml, a
 .csproj, pyproject.toml, setup.py, requirements.txt, Pipfile, Gemfile, Cargo.toml) with no build manifest below it and
@@ -174,6 +176,33 @@ def describe(folder, root, others_of):
     return files, lines, tests, langs, entries, skipped
 
 
+def record_locations(reg, repos):
+    """Write each repository folder the survey was given into sources.csv's `location`, on the code row naming that
+    repository whose location is blank, so every later script finds the code where it is. A register whose
+    sources.csv has no location column (an earlier kit) is left as it is: code-root.txt still records the folder."""
+    import tables
+    p = pathlib.Path(reg) / "sources.csv"
+    if not p.is_file():
+        return
+    rows, whole = tables.read_rows(p)
+    with p.open(encoding="utf-8-sig", errors="replace", newline="") as f:
+        header = next(csv.reader(f), [])
+    if not whole or "location" not in header or "repository" not in header:
+        return
+    by_name = {r.name.lower(): r.as_posix() for r in repos}
+    changed = False
+    for r in rows:
+        name = pathlib.PurePath((r.get("repository") or "").strip().replace("\\", "/")).name.lower()
+        if (r.get("kind") or "").strip() == "code" and name in by_name and not (r.get("location") or "").strip():
+            r["location"] = by_name[name]
+            changed = True
+    if changed:
+        with p.open("w", encoding="utf-8", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=header, extrasaction="ignore")
+            w.writeheader()
+            w.writerows(rows)
+
+
 def main(argv):
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
@@ -197,13 +226,29 @@ def main(argv):
         if bad:
             sys.exit(f"sources.csv rows {', '.join(map(str, bad))}: a code row with no repository, or more fields than "
                      "the header (quote any field holding a comma). Fix them and run the survey again.")
-        names = [r.get("repository", "").strip() for r in rows if r.get("kind", "").strip() == "code"]
+        # a code row's folder: its `location` (absolute, or from the workspace) where recorded, else its name there
+        names = [(r.get("location") or "").strip() or r.get("repository", "").strip()
+                 for r in rows if r.get("kind", "").strip() == "code"]
         repos = [(root / n).resolve() for n in dict.fromkeys(n for n in names if n)]
     missing = [r for r in repos if not r.is_dir()]
     if missing:
-        sys.exit("not a folder: " + ", ".join(map(str, missing)))
-    common = pathlib.Path(*min((r.parts for r in repos), key=len)[:-1]) if len(repos) > 1 else repos[0].parent
-    root = root if all(root in r.parents for r in repos) else common
+        sys.exit("not a folder: " + ", ".join(r.as_posix() for r in missing) + ". Record where each code repository "
+                 "is: its folder in sources.csv's location column (a full path, or from the workspace "
+                 f"{root.as_posix()}), or run the survey with the repository folders named.")
+    import register_layout as layout
+    found = layout.holding_folder(root, repos)
+    if found is None:
+        sys.exit("the repositories are not in one folder (" + ", ".join(r.as_posix() for r in repos) + "): every "
+                 "citation starts with its repository's folder name, so put the repositories side by side in one "
+                 "folder (or all under the workspace) and run the survey again.")
+    if len(argv) > 1:
+        record_locations(reg, repos)
+    mark = reg / layout.CODE_ROOT
+    if found != root:  # every later agent is told this folder: the code the survey read is where they read it
+        mark.write_text(pathlib.Path(os.path.relpath(found, root)).as_posix() + "\n", encoding="utf-8")
+    elif mark.is_file():
+        mark.unlink()
+    root = found
 
     units = []
     for repo in repos:

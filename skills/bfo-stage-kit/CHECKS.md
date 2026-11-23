@@ -137,7 +137,7 @@ the run's process).
 | fo-29 | flow_outputs.py | check | 855 | error | c | lifecycle {mv} leaves {state(moves[mv]['from_state'])}, | Every move from a stage state is placed |
 | fo-30 | flow_outputs.py | check | 859 | error | a | travels_by hop {h[1:]} is | Enum (method/hop-failures.csv) |
 | fo-31 | flow_outputs.py | check | 863 | warning | b | performs {sorted(perf)}; the lifecycle's | participation equals lifecycle.carried_by |
-| fo-32 | flow_outputs.py | check | 874 | warning | b | step_hint {h} names a | Interaction within lifecycle.needs |
+| fo-32 | flow_outputs.py | needs_from_calls_failures | 1105 | warning | b | step_hint {h} names a | Interaction within lifecycle.needs |
 | fo-33 | flow_outputs.py | check | 881 | warning | b | its lifecycle needs {d} | lifecycle.needs within interactions |
 | fo-34 | flow_outputs.py | check | 887 | warning | b | a do not remedy | Orphan |
 | fo-35 | flow_outputs.py | check | 893 | error | a | hop {r['hop']} is not | failure-modes.hop is a hop kind in method/hop-failures.csv |
@@ -188,6 +188,7 @@ the run's process).
 | rs-05 | run_status.py | split_checks | 91 | not done | d (process) | calls between units not re-read | in a split run, every call between units the merge leaves unmatched is re-read on both sides and resolved: corrected so the merge matches it, or labelled `disputed:` by a re-read the transcripts show (merge.rereads) |
 | rs-06 | run_status.py | split_checks | 95 | not done | d (process) | calls between units unmatched, more than | more unresolved unmatched calls than `merge_rereads` (run-settings.json, default 50): the reason says to read again the units they call, not to re-read each call |
 | rs-07 | run_status.py | split_checks | 92 | not done | d (process) | units not read in full by their own reader | in a split run, every reading unit the go took in with rows of the flow worked now (and every unit of a service surveyed after the go that the go did not leave out) passes the unit reading check: read in full by its own reader, a `general-purpose` subagent, and every cell of its tables accounted for by its typed writers' replayed Writes and Edits, each writer launched on a prompt a kit script wrote (reading_check.py --unit, provenance.py); any other unit with a folder and rows of that flow has every cell accounted for (provenance.py) |
+| rs-09 | run_status.py | split_checks | 128 | not done | d (process) | could not be read by any Read (read blocked) | in a split run, no owed file of a unit has only failed Reads (the Read tool refused it, or a hook blocked it): such a file is named with the tool's own message and the person decides, because a reader launched again meets the same (reading_check.blocked) |
 | rs-08 | run_status.py | split_checks | 106 | not done | d (process) | is not what units.py derives for the go's | in a split run, `units/units.csv` is exactly the list units.py derives for the services the go took in, so no service of the go's scope goes without its reading unit and reader (units.py differences) |
 
 ## The view questions that gate

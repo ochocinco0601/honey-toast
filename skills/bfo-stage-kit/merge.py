@@ -311,6 +311,25 @@ def finished_placeholders(reg, lead_s, flow_now):
     return out
 
 
+def fill_repository(r, unit, unit_rows):
+    """A unit's row for its own service with `repository` blank takes the unit's (units.csv `repository: path`),
+    as the parts rule asks of every component. Any other row, or one that has a repository, is left as it is."""
+    if (r.get("repository") or "").strip() or not is_service_row(r):
+        return
+    u = next((x for x in unit_rows if (x.get("unit") or "").strip() == unit), None)
+    if not u:
+        return
+    dep = ((u.get("deployable") or "").strip() or unit).lower()
+    if (r.get("name") or "").strip().lower() != dep:
+        return
+    repo = (u.get("repository") or "").strip()
+    path = ((u.get("paths") or "").split(";")[0]).strip()
+    if repo and path.startswith(repo + "/"):
+        path = path[len(repo) + 1:]
+    if repo:
+        r["repository"] = f"{repo}: {path}" if path and path != repo else repo
+
+
 def is_service_row(r):
     """A unit's element that is the service itself: application band, and not recorded as a store or a platform."""
     return (r.get("band") or "").strip() == "application" and not go.recorded_not_a_service(r, go.part_families())
@@ -428,6 +447,7 @@ def build(reg, write=False, out=None):
             if r.get("kind", "").strip() == "relationship":
                 problems.append(f"units/{u}/subjects.csv {r.get('row_id')}: a relationship row; calls go in calls.csv")
                 continue
+            fill_repository(r, u, unit_rows)
             local = r.get("subject_id", "").strip()
             if (u, local) in ids:
                 problems.append(f"units/{u}/subjects.csv {r.get('row_id')}: subject_id {local} used twice")
@@ -1087,6 +1107,11 @@ def main(argv):
     if not is_check:
         import run_lock  # the register is written by one run at a time
         run_lock.guard(args[0])
+        import guard  # the order of mapping: every reader back before the merge (guard.py)
+        problem = guard.require(args[0], "merge")
+        if problem:
+            print(f"REFUSED: {problem}. Nothing was merged.", file=sys.stderr)
+            return 2
     summary, problems = (check if is_check else merge)(args[0])
     print(json.dumps(summary))
     for p in problems:

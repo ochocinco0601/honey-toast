@@ -169,6 +169,35 @@ def run_leads(site, bare):
     return "/" + reg.name + "/operator.html"
 
 
+def check_page(site, path):
+    """/.check?page=<address>: whether the address answers, following the same redirects the page itself would, as
+    JSON {"page", "status", "badge"}. Never counted as the person's tab (no note_seen, no /.tabs)."""
+    from urllib.parse import parse_qs, urlsplit
+    page = (parse_qs(urlsplit(path).query).get("page") or ["/"])[0]
+    page = "/" + page.lstrip("/")
+    bare = page.split("?")[0].split("#")[0]
+    for _ in range(3):
+        to = home_of(site) if bare == "/" else status_of(site) if bare == "/operator.html" else run_leads(
+            site, unquote(bare))
+        if not to:
+            break
+        bare = to.split("?")[0]
+    badge = ""
+    if bare in ("/page-kit.js", "/.alive"):
+        status = 200
+    else:
+        try:
+            body = live(site, bare)
+        except Exception as e:  # noqa: BLE001
+            return json.dumps({"page": bare, "status": 500, "badge": "", "error": str(e)[:200]})
+        status = 200 if body is not None or own_page(site, bare) is not None else 404
+        if body is not None:
+            import re
+            m = re.search(rb'<span class="badge [^"]*">.*?</svg>([^<]*)</span>', body)
+            badge = m.group(1).decode("utf-8", "replace") if m else ""
+    return json.dumps({"page": bare, "status": status, "badge": badge})
+
+
 def home_of(site):
     """The newest run's home screen under the folder, once drawn, else None."""
     try:
@@ -184,6 +213,15 @@ def live(site, path):
     <run>/operator.html; else None."""
     bare = unquote(path.split("?")[0].split("#")[0])
     segs = bare[1:].split("/")
+    if segs[-1] == "map-so-far.html" and len(segs) == 2 and "\\" not in bare and ":" not in bare and \
+            segs[0] not in (".", "..", "answers"):
+        run = pathlib.Path(site).resolve() / segs[0]
+        if run.is_dir() and (run / "RUN.md").is_file():
+            try:
+                import partial_map
+            except ImportError:
+                return None
+            return partial_map.render(run).encode("utf-8")  # drawn now, never a file: never the checked map
     if segs[-1] in ("sources.html", "operator.html") and len(segs) <= 2 and "\\" not in bare and ":" not in bare:
         root = pathlib.Path(site).resolve()
         name = segs[0] if len(segs) == 2 else ""
@@ -262,6 +300,15 @@ def serve(site):
             # Only the page step's script and the folder's own pages are served: nothing outside the folder,
             # nothing under answers/, and nothing but pages. The file checked is the file served.
             body, bare = None, self.path.split("?")[0].split("#")[0]
+            if bare == "/.check":  # a script asking whether a page answers: never counted as the person's tab
+                said = check_page(site, self.path).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(said)))
+                self.end_headers()
+                if body_too:
+                    self.wfile.write(said)
+                return
             if bare == "/" or bare.endswith(".html"):
                 note_seen(site, bare)
             to = home_of(site) if bare == "/" else status_of(site) if bare == "/operator.html" else run_leads(

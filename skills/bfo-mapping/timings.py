@@ -115,10 +115,21 @@ def pointed_prompt(f, prompts):
     return None
 
 
+FAST_PROMPT = "fast/mapper-prompt.md"  # the fast map's one mapping agent (fast_map.FOLDER / fast_map.PROMPT)
+FAST_ROW = "fast mapper"  # its step, and the prompt column's value for it
+LEAD_ROW = "lead"  # the run's own session: its row runs from its first line to its last
+
+
 def step_of(rel):
     """(unit, step) from a prompt file's path relative to prompts/."""
+    if rel == FAST_ROW:
+        return "", FAST_ROW
     parts = rel.split("/")
     stem = parts[-1][:-3] if parts[-1].endswith(".md") else parts[-1]
+    if rel == "first-look-lead.md":  # the first-look helper's own prompt (first_look.LEAD_PROMPT)
+        return "", "first-look helper"
+    if parts[0] == "first-look" and len(parts) > 1:  # a source reader of the first look, never a code unit's reader
+        return stem[len("read-"):] if stem.startswith("read-") else stem, "source reader"
     if parts[0] == "launch":
         m = re.match(r"judges-(.+?)-r(\d+)(?:-|$)", stem)
         if m:
@@ -136,8 +147,25 @@ def step_of(rel):
     return unit, stem
 
 
-def measure(f):
-    """The counted columns of one transcript (module docstring)."""
+def run_started(reg):
+    """When this run started (_run-state/run-started.json, else the register's or its work folder's), in UTC, or None."""
+    reg = pathlib.Path(reg)
+    for p in (reg / "_run-state" / "run-started.json", reg / "run-started.json", reg.parent / "run-started.json"):
+        try:
+            got = json.loads(p.read_text(encoding="utf-8")).get("started")
+        except (OSError, ValueError, AttributeError):
+            continue
+        if got:
+            try:
+                return datetime.datetime.fromisoformat(got).astimezone(datetime.timezone.utc)
+            except ValueError:
+                continue
+    return None
+
+
+def measure(f, since=None):
+    """The counted columns of one transcript (module docstring); with `since`, only its lines at or after that time
+    (the lead's session may have run an earlier run before this one)."""
     agent = model = None
     first = last = prev = None
     gap, gap_err, errors = 0.0, False, 0
@@ -150,11 +178,13 @@ def measure(f):
                 continue
             if not isinstance(d, dict):
                 continue
-            agent = agent or d.get("agentId") or None
             is_err = (d.get("type") == "system" and d.get("subtype") == "api_error") or bool(
                 d.get("type") == "assistant" and d.get("isApiErrorMessage"))
-            errors += is_err
             t = _when(d["timestamp"]) if d.get("timestamp") else None
+            if since is not None and (t is None or t < since):
+                continue
+            errors += is_err
+            agent = agent or d.get("agentId") or None
             if t is not None:
                 first = first or t
                 if prev is not None and (t - prev).total_seconds() > gap:
@@ -194,14 +224,25 @@ def rows(reg, transcripts=None):
     """One dict per agent attempt (module docstring), ordered by start."""
     reg = pathlib.Path(reg).resolve()
     prompts = paths.norm((reg / layout.PROMPTS).as_posix())
-    found, others, leads = [], [], set()
+    fast = paths.norm(reg.as_posix())  # the fast map's prompt is fast/mapper-prompt.md, beside prompts/ (fast_map.py)
+    try:
+        import agents_now
+        ids = set(agents_now.session_ids(reg)[0])
+    except Exception:  # noqa: BLE001  (the record is for evaluation; an unreadable id list loses no attempt)
+        ids = set()
+    found, others, leads, mains = [], [], set(), []
     for folder in judges._folders(reg, transcripts):
         for f in sorted(pathlib.Path(folder).rglob("*.jsonl")):
             try:
                 target = pointed_prompt(f, prompts)
+                rel = pointed_prompt(f, fast) if target is None else None
+                if rel and rel.startswith("fast/") and rel.endswith("/mapper-prompt.md") or rel == FAST_PROMPT:
+                    target = FAST_ROW  # one mapping agent per service: fast/mappers/<group>/mapper-prompt.md
                 if target is None:
                     if f.parent.name == "subagents":
                         others.append(f)
+                    elif f.stem in ids:  # the lead: a main session the run has had (its lock, its start marks)
+                        mains.append(f)
                     continue
                 _, _, done, shell, last, _ = judges.session_of(f)
                 found.append((target, measure(f), done, shell, last or "", False))
@@ -209,9 +250,19 @@ def rows(reg, transcripts=None):
                     leads.add(f.parent)
             except OSError:
                 continue
-    # the lead's own agents: the other subagents of a main session that launched one of this register's attempts
+    if transcripts is None:  # a session started in another folder keeps its main transcript there (judges._folders)
+        seen_main = {m.resolve() for m in mains}
+        mains += [f for f in judges.run_session_files(reg) if f.resolve() not in seen_main]
+    # the lead's own agents: the other subagents of a main session that launched one of this register's attempts, or
+    # of any session the run has had (a first-look helper runs before any kit prompt exists)
+    began = run_started(reg)
+    for f in mains:
+        try:
+            found.append((LEAD_ROW, measure(f, since=began), False, False, "", True))
+        except OSError:
+            continue
     for f in others:
-        if f.parent not in leads:
+        if f.parent not in leads and f.parent.parent.name not in ids:
             continue
         try:
             first, _, done, _, last, _ = judges.session_of(f)
@@ -240,10 +291,13 @@ def rows(reg, transcripts=None):
             outcome = "finished"
         else:
             outcome = "still running"
-        unit, step = ("", "lead's own agent") if own else step_of(target)
+        if target == LEAD_ROW:
+            unit, step, outcome = "", LEAD_ROW, "the run's own session"
+        else:
+            unit, step = ("", "lead's own agent") if own else step_of(target)
         out.append({**m, "unit": unit, "step": step, "attempt": seen[target], "start": _utc(m["start"]),
                     "end": _utc(m["end"]), "outcome": outcome,
-                    "prompt": target if own else f"{layout.PROMPTS}/{target}"})
+                    "prompt": target if own else FAST_PROMPT if target == FAST_ROW else f"{layout.PROMPTS}/{target}"})
     return out
 
 

@@ -100,6 +100,20 @@ def ids(v):
     return [x.strip() for x in re.split(r"[;,]", v or "") if x.strip()]
 
 
+def done_by_values(v):
+    """how-made.csv done_by as its accepted values: "a tool" and "a model drafting" (the steps file once worded it so)
+    read as `tool` and `model drafting`."""
+    return [re.sub(r"^(?:an?|the)\s+", "", x, flags=re.I).lower() for x in ids(v)]
+
+
+def step_key(v):
+    """Sort key for a process step id, which the register allows as "a number or short id" (REGISTER.md, steps.csv):
+    numbers by value, a short id by its letters then its number (P2 before P10), never raising."""
+    s = str(v or "").strip()
+    m = re.fullmatch(r"(\D*)(\d+)(.*)", s)
+    return (m.group(1), int(m.group(2)), m.group(3)) if m else (s, -1, "")
+
+
 def next_moves(v):
     """agent-system.csv `next`: [(action id or "end", guard or "")], `;` separated, each with an optional guard in
     square brackets (`AS3 [a tool call]`)."""
@@ -547,7 +561,7 @@ def check(R):
     for r in R["how-made"]:
         if R["sources"] and (r.get("pass") or "1") not in passes:
             err.append(f"how-made.csv step {r.get('step')}: pass {r.get('pass')} is not a pass in sources.csv")
-        for x in ids(r.get("done_by")):
+        for x in done_by_values(r.get("done_by")):
             if x not in DONE_BY:
                 err.append(f"how-made.csv step {r.get('step')}: done_by {x!r} is not one of {', '.join(DONE_BY)}")
     for t in TABLES:
@@ -595,7 +609,7 @@ def bound_failures(R):
 def model(R):
     kinds = {r["part_kind"]: r for r in R["method"]["part-kinds"]}
     M = dict(R=R, kinds=kinds)
-    M["system"] = R["about"][0].get("system", R["_name"])
+    M["system"] = (R["about"] or [{}])[0].get("system") or R["_name"]  # the first look may leave about.csv empty
     M["subj"] = {s["subject_id"]: s for s in R["subjects"]}
     fam = lambda s: kinds.get(s.get("part_kind", ""), {}).get("family", "")
     M["family"] = fam
@@ -2046,7 +2060,7 @@ def figure_how_made(M, mid, checked, reg_label):
         b = Box(SXc, 330, name_lines(label, 310, max_lines=2))
         b.y = y
         cells = [wrap(r.get("went_in", ""), 430, 12, 4), wrap(r.get("came_out", ""), 370, 12, 4)]
-        by = ids(r.get("done_by"))
+        by = done_by_values(r.get("done_by"))
         note = wrap(r.get("note", ""), 490, 12, 40)
         h = max(b.h, LH * max(len(cells[0]), len(cells[1])) + 12, 30 + LH * len(note))
         b.h = max(b.h, h - 8)
@@ -2497,7 +2511,7 @@ def page(M, opened, reg_label, build_cmd, checked=(0, 0)):
                     '<p class="ask">Optional. The map with every stage opened into its steps, and every part that carries one.</p>' + HINT_NUM +
                     f'<figure><div class="fig">{ZOOM}{overview}</div><figcaption>From the register: every stage opened into its '
                     'steps, every part that carries a step, and every call between parts.</figcaption></figure></section>')
-    about = M["R"]["about"][0]
+    about = (M["R"]["about"] or [{}])[0]
     head = ("<!-- THIS FILE IS GENERATED. DO NOT EDIT DIRECTLY.\n"
             f"     Source: {reg_label}\n"
             "     Builder: capability_views.py\n"

@@ -166,7 +166,7 @@ def measures_table(M, f, stages, fm):
     stages' order."""
     order = {st["stage"]: k for k, st in enumerate(stages)}
     by_id = {st["stage"]: st for st in stages}
-    rank = lambda m: (order.get(where(M, stages, m)[0], -1), int(m["step"]) if m.get("step", "").isdigit() else 0)  # noqa: E731
+    rank = lambda m: (order.get(where(M, stages, m)[0], -1), cv.step_key(m.get("step", "")))  # noqa: E731
     return sfv.measures_table(M, fm, lambda m: where(M, stages, m), rank,
                               lambda m: stage_href(where(M, stages, m)[0]) if where(M, stages, m)[0] in by_id else "")
 

@@ -92,6 +92,19 @@ def split_checks(reg):
     and nothing of it is judged: that is the reason, and no other check runs."""
     if not (pathlib.Path(reg) / layout.UNITS_CSV).is_file():
         return [f"Units: NOT DONE: no {layout.UNITS_CSV}"], [UNITS_MISSING]
+    if is_fast(reg):  # one mapping agent, checks by script, and one checker per row a proposal rests on
+        import fast_map
+        import selective
+        s = go_record.load(reg) or {}
+        found, _ = fast_map.check(reg, go_record.flow_id_of(reg, s) or "")
+        _, problems = merge.check(reg)
+        held = selective.review_problem(reg) if (pathlib.Path(reg) / "measures.csv").is_file() and \
+            selective.references(reg)["by_measure"] else ""
+        lines = (["Fast map: " + ("ok" if not found else f"NOT DONE: {len(found)} problem(s)")] +
+                 [f"  {f}" for f in found] + ["Merge: ok" if not problems else f"Merge: NOT DONE: {'; '.join(problems)}"]
+                 + ["Selective checking: " + ("ok" if not held else f"NOT DONE: {held}")])
+        return lines, (list(found) + [f"the map is not the merge of the units: {p}" for p in problems]
+                       + ([f"selective checking: {held}"] if held else []))
     outside = merge.out_of_scope_units(reg)
     units = [r["unit"].strip() for r in tables.dicts(reg / layout.UNITS_CSV) if (r.get("unit") or "").strip()
              and r["unit"].strip() not in outside]
@@ -123,6 +136,10 @@ def split_checks(reg):
         lines += r.lines()
         if not r.passed:
             unread.append(u)
+        stuck = [p for p in getattr(r, "problems", []) if p.startswith(reading_check.READ_BLOCKED)]
+        if stuck:
+            why.append(f"unit {u}: {len(stuck)} file(s) could not be read by any Read (read blocked): a reader "
+                       "launched again meets the same, so the person decides what to do; " + stuck[0])
     for u in cells_only:
         import provenance
         got = provenance.unit(reg, u).problems
@@ -214,7 +231,14 @@ def depth_of(reg):
     """{stage: none | measure | alerting | runbooks}, how far the person chose to take each stage (scope.json `depth`,
     written by go.py --depth), or None for a run whose person made no such choice."""
     got = go_record.depth_all(reg)  # every flow picked in this register, each stage at its own flow's pick
-    return dict(got) if isinstance(got, dict) else None
+    if not isinstance(got, dict):
+        return None
+    return dict(got)
+
+
+def is_fast(reg):
+    """Whether the flow worked now is a fast map (go.py --fast): one mapping agent and checks by script, no judges."""
+    return (go_record.load(reg) or {}).get("mapping") == "fast"
 
 
 def open_items_now(reg):
@@ -269,7 +293,13 @@ def expected(reg, named, scope=None, depth=None):
     for it; measured, its structure and measures; alerting, those and the alert pages; runbooks, all six. Otherwise
     `scope` None: every stage owes its six files (a run record from an earlier kit, or one whose scope is not
     recorded); else the stages in `scope` and on the command line owe the six, and every other stage only the page the
-    map draws for it."""
+    map draws for it. A fast map owes its own page and the map's drawings, and each stage taken further owes what
+    its depth does, as in a full map; no readers or judges are part of it."""
+    if is_fast(reg):
+        import fast_map
+        every = sorted(set(stages(reg, named)) | {r.get("stage", "").strip() for r in table(reg, "stages")} - {""})
+        return with_drawings(reg, [fast_map.PAGE] + [f"stage-{s}/{f}" for s in every
+                                                     for f in DEPTH_FILES.get((depth or {}).get(s, "none"), ())])
     if depth is not None:
         every = sorted(set(stages(reg, named)) | {r.get("stage", "").strip() for r in table(reg, "stages")} - {""})
         out = []
@@ -671,6 +701,24 @@ def parts_of_unpicked_stages(reg, measured):
     return excused - read_somewhere
 
 
+def fast_unread_allowed(reg, measured):
+    """{subject id}: in a fast map (run-settings `mapping` fast), the parts whose operations and what they depend on
+    may be gapped `not read` on a first run: a part no step of a stage taken past mapped only (`measured`) involves,
+    and an external dependency, whose code no mapping agent has. Empty in any other run."""
+    if (settings.load(reg) or {}).get("mapping") != "fast":
+        return set()
+    picked = set(measured or ())
+    stage_of = {(r.get("step") or "").strip(): (r.get("stage") or "").strip() for r in table(reg, "steps")}
+    involved = {(p.get("subject_id") or "").strip() for p in table(reg, "participation")
+                if stage_of.get((p.get("step") or "").strip(), "") in picked}
+    out = set()
+    for r in table(reg, "subjects"):
+        sid = (r.get("subject_id") or "").strip()
+        if sid and (sid not in involved or (r.get("level") or "").strip() == "external dependency"):
+            out.add(sid)
+    return out
+
+
 def view_questions(reg, owed, measured=None, alerting=None, runbooks=None):
     """(Fullness lines, the reasons DONE fails) for the view questions. A register with no steps or subjects has
     none to ask. `measured` and `alerting` (view_questions.count) limit the questions only measuring or alerting
@@ -685,7 +733,7 @@ def view_questions(reg, owed, measured=None, alerting=None, runbooks=None):
         return ([f"view questions: not counted ({type(e).__name__}: {e})"],
                 [f"view questions not counted ({type(e).__name__})"])
     first = first_run(reg)
-    unpicked = parts_of_unpicked_stages(reg, measured)
+    unpicked = parts_of_unpicked_stages(reg, measured) | fast_unread_allowed(reg, measured)
     why = []
     for q in vq.QUESTIONS:
         if vq.CONTRACT[q] == vq.COUNT:
@@ -1170,7 +1218,15 @@ MAPPING_CHECK = "mapping-check.json"  # the split checks' verdict at the end of 
 
 
 def split_reasons(reg):
-    """split_checks' reasons, the units not judged named: [] when the split checks pass."""
+    """split_checks' reasons, the units not judged named: [] when the split checks pass. A fast map has no readers or
+    judges: its checks are fast_map.py's (every unit written by the mapping agent, every cited range real, the
+    mapper's provenance) and the merge."""
+    if is_fast(reg):
+        import fast_map
+        s = go_record.load(reg) or {}
+        found, _ = fast_map.check(reg, go_record.flow_id_of(reg, s) or "")
+        _, problems = merge.check(reg)
+        return list(found) + [f"the map is not the merge of the units: {p}" for p in problems]
     lines, why = split_checks(reg)
     bad = sorted({m.group(1) for ln in lines for m in [re.match(r"(?:Judging|Fixing) of unit (\S+), round \d+: .*NOT "
                                                                 r"DONE", ln)] if m})
