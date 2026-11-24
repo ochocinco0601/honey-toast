@@ -196,11 +196,31 @@ def page(reg):
     return [_check("run status page", PASS if code == 0 else WARN, said)]
 
 
+def agents(reg):
+    """The stage kit maps fast: its mapping agent, and the agent that checks the rows the measures rest on, must be
+    installed as the kit's copies before the session that runs it starts, or the run would stop at the go."""
+    import go
+    if not go.stage_kit_run(reg):
+        return []
+    import fast_map
+    import judges
+    out = []
+    for name, problem in ((fast_map.AGENT, go.fast_agent_problem(reg)), (judges.JUDGE_AGENT,
+                                                                         judges.judge_agent_problem(reg))):
+        if problem:
+            said, _, fix = problem.partition(": ")
+            out.append(_check(f"agent {name}", FAIL, said, fix))
+        else:
+            out.append(_check(f"agent {name}", PASS, f"the agent {name} is installed as this kit's copy"))
+    return out
+
+
 def run(reg):
     """Every check, in order, kept in preflight.json; returns its record."""
     reg = pathlib.Path(reg).resolve()
     t0 = time.monotonic()
     out, env = tools(reg)
+    out += agents(reg)
     lines, named, _, have = sources(reg)
     out += lines
     if not any(c["state"] == FAIL and c["check"] == "scan target" for c in out):

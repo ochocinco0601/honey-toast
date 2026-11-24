@@ -60,16 +60,18 @@ flow (each further flow is added beside the finished ones and changes none of th
 outputs, each claim cited to its source or marked proposed. The person oversees the work but is not an expert in this system or this kit. So, like any
 team taking on work for an overseer, the run first introduces itself and how the two will work together; then, after
 a first look, it briefs them in plain words on the capability, every flow found so far with its stages, and where it
-recommends starting, and it waits for their picks before reading in depth; once the flow is mapped it stops again
-for their pick of how far each stage goes (where their request already answered either, it records that from the
-request, says so in a line and goes on), so a flow can be mapped and left there, or measured stage by stage, and a
+recommends starting, and it waits for their picks before reading in depth. In this release that is
+one question with its answer filled in (the recommended flow, mapped fast, every stage taken to measures, then a stop
+after the measures review), answered by a yes or a change; the pick of how far each stage goes is then recorded from
+that answer once the stages are mapped, and asked again only when they said they want to pick stage by stage (where
+their request already answered either, it records that from the request, says so in a line and goes on), so a flow can be mapped and left there, or measured stage by stage, and a
 map-only run hands on the map and each stage's page with no measure; before any runbook it shows the proposed
 alerts, chosen from the health signals, and what each rests on, and waits for their go, because which signals
 deserve an alert is a different question from the ways the work can fail; every message says where things stand, and
 a run picked up again starts by saying, in full, where the work is. Done, for the whole job: the person can judge from
 the first messages that the run understood its job and the system, can see what is covered and what remains, and can
-trust what comes out, because every service a stage they took further runs through was read (along the stage's
-path by default, every line with `reading` `full`, or in one pass by one agent in a fast map, which its page says), or is named as
+trust what comes out, because every service a stage they took further runs through was read (in one pass by one
+agent per service in the fast map every run takes in this release, which its page says), or is named as
 still missing with why, what was not read is said so, and every claim can be traced; one flow is mapped to their pick
 in minutes, not hours, because no service is read in depth for a stage they leave mapped only; and the outputs
 are complete enough for the next step (measures built, alerts wired, runbooks used). They are a draft that the team carries forward through its own delivery lifecycle, never a sign-off: the person's go at a review is input that shapes the draft, not an approval, and a go on a draft with open items is recorded with them, which the run puts right and tells the person, never hides. The person is never held by open items: they can go on to the next flow with them still open, and the items stay listed for that flow until put right.
@@ -78,7 +80,9 @@ are complete enough for the next step (measures built, alerts wired, runbooks us
 **Before a run,** the agent types it launches are installed in the project's `.claude/agents/` (copied from this
 skill's `agents/` folder) before the session starts: `bfo-source-reader` (the first look's source readers),
 `bfo-flow-mapper` (the fast map), `bfo-unit-reader` and `bfo-row-judge` (the full reading's readers and judges).
-Each step that launches one refuses, naming the copy step, while it is missing.
+Each step that launches one refuses, naming the copy step, while it is missing. The stage kit maps fast, so the
+checks before the first look hold the run, in plain words with the copy step, while `bfo-flow-mapper` or
+`bfo-row-judge` is missing.
 <!-- /shared: agent-types-before-a-run -->
 
 ## Your first message: the say-back
@@ -183,10 +187,14 @@ under way.
 <!-- shared: when-the-person-answers-the-brief -->
 **When the person answers the brief**, record their picks with `go.py` (phase 0, "Their answer is recorded as data"),
 unless they agreed to a search: then search first and brief again, as phase 0 says there. The brief numbers what
-it needs under *What I need from you*: item 1 the flow, then one item per search it proposes. When their answer to
-item 1 asks for the fast map ("fast", in any wording), add `--fast` to `go.py --flow`; run control then maps the flow
-fast (mapping skill, phase 0) and, for the stages taken further, the run goes on from the map stop to their
-measures, alerts and runbooks as in a full map, with selective checking before the measures review (phase 4). Record the searches
+it needs under *What I need from you*: item 1 the flow, then one item per search it proposes. Item 1 comes
+with its answer filled in: the recommended flow, mapped fast, every stage taken to its measures, then a stop after
+the measures review. In this release, that is every run's path: `go.py --flow` records the fast map
+and every stage to measures with no further flag, and at the pick run control records it and goes on without asking
+again. A plain yes is `go.py --flow "<the recommended flow>"`. When their answer changes how far the stages go, add
+`--how-far none` (mapped only), `--how-far alerting` (alerts too), `--how-far runbooks` (alerts and runbooks), or
+`--how-far ask` when they want to pick stage by stage once the stages are mapped. No mode, flag or the word fast
+is ever theirs to know. Record the searches
 by number with `--searches 2=yes,3=no`, beside `--flow` when the same answer picked the flow, or alone with
 `--words` when it answers only the searches. An item they leave unanswered is never taken as a yes or a no: when
 `go.py` prints `STILL TO ANSWER`, send what follows it exactly as printed, wait, and record their answer
@@ -434,9 +442,12 @@ the listener with the stop command it printed.
 0. to 3. **Mapping, by the mapping skill.** `<mapping>` is the mapping skill's folder, `bfo-mapping`, installed beside
    this skill folder. Load `<mapping>/SKILL.md` and follow its section "The run" from phase 0 to the map stop, in
    this run's register folder, with `<mapping>/MAPPING-STEPS.md` as the steps; skip its launch, since this kit's
-   launch has been sent and its start step run. Its phases 0 to 3 are this run's phases 0 to 3. Run control
-   (`next.py --by-kit`) stops once for the pick, with a `stop` named `pick`: come back here for it, record it, then
-   call run control again and go on with mapping to the map stop, and from there to phase 4.
+   launch has been sent and its start step run. Its phases 0 to 3 are this run's phases 0 to 3. Record the go with
+   this skill's own `go.py` (`python "<skill>/go.py"`, as "When the person answers the brief" says), never the mapping
+   skill's: the go of a stage kit run maps fast and says how far every stage goes. Run control (`next.py --by-kit`)
+   then records the pick from the go at its `pick` step and goes on; it stops there (a `stop` named `pick`) only when
+   the go said `--how-far ask`: come back here for it, record it, then call run control again and go on with mapping
+   to the map stop, and from there to phase 4.
    **A fast map goes on to phases 4 to 7 like a full one** for the stages taken past mapped only: its map stop
    sends you here for the measures, drafted from the fast map's rows. **Before the measures review, the rows the
    proposals rest on are checked, and only those** (selective checking): run `python "<skill>/selective.py" select
@@ -448,7 +459,10 @@ the listener with the stop command it printed.
    checked, flagged or not checked, naming each flagged one. A map row no proposal rests on is never checked in this
    run. With every stage left mapped only, run control ends the flow itself and its map stop is the flow's report:
    run the done check, offer the next flow as in phase 7, record `go.py --report-sent <flow id>`, and wait.
-   **The pick of how far each stage goes, before any service is read in depth.** The stages, their process steps and
+   **The pick of how far each stage goes, before any service is read in depth.** In this release, the go
+   already answered it (every stage to measures, unless they changed it): run control records it at the `pick` step
+   and goes on, with no stop and nothing for you to send, unless the go said `--how-far ask`. What follows is the
+   stop when they asked to pick stage by stage. The stages, their process steps and
    what is at stake in each (Business Impact) are written by then, from the lead's own reading; measuring is chosen per
    stage, and the readers then read only the services of the stages taken past mapped only, along each stage's path.
    In a fast map the same pick also decides which stages get a step-level map: their services are the code the one

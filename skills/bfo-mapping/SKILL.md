@@ -56,7 +56,7 @@ runbooks are later steps, done by other skills on what this one hands on (the me
 stage kit, which takes the stages the person picks on to measures, alerts and runbooks). **Done:** the next step can
 work from the map alone, the map is faithful to its sources, and its inspection says what is missing. How faithful
 depends on the mode chosen at the go. In the full reading, every finding that cites code is checked against it by
-readers who wrote none of it, and one still in doubt is shown as not confirmed. In a fast map (`go.py --fast`, offered and accepted only when the stage kit runs this skill), one
+readers who wrote none of it, and one still in doubt is shown as not confirmed. Run alone, this skill always takes the full reading, for now: it has no pick of how far each stage goes, which the fast map needs. In a fast map (every run of the stage kit in this release; run alone, `go.py` refuses `--fast`), one
 agent reads the picked stages' code and maps them in one pass; a script checks that every cited range exists and
 lists what was not read and the gaps, and no second agent checks any row; the map's page says so, so the person
 knows what they are trusting.
@@ -474,12 +474,15 @@ the listener with the stop command it printed.
    they answer.
    **Their answer is recorded as data, by script, never by hand:** `python "<skill>/go.py" "<your-folder>" --flow
    "<flow, as named in the brief>" --words "<their answer, word for word>"`, with `--test` when the answer is a test
-   standing in for the person. The go asks only which flow comes first; where they accepted the recommendation, the
-   recommendation is their pick. The services read are those the brief marked include, and the checks per finding
-   three, as the brief showed them; only when they say otherwise add `--in <service,...> --out <service,...>` (every
+   standing in for the person. The go asks which flow comes first (and, run by the stage kit, says how far its
+   stages go); where they accepted the recommendation, the recommendation is their pick. The services read are those
+   the brief marked include, and, in the full reading, the checks per finding three, as the brief showed them; only
+   when they say otherwise add `--in <service,...> --out <service,...>` (every
    service named once) or `--judges <n>`. Every finding that cites code is checked by that many readers who wrote
-   none of it, as the brief said (phases 1 to 3). **When their answer asks for the fast map** (only when the stage kit runs this skill: run alone, `go.py` refuses `--fast`) ("fast", in any
-   wording), add `--fast`: run control (`next.py`) then takes the fast order. After the lead's steps, Business Impact and
+   none of it, as the brief said (phases 1 to 3). **When the stage kit runs this skill, the go always maps fast**,
+   with no flag and nothing asked of the person (the stage kit's SKILL.md, "When the person answers the brief", says
+   how a change of how far the stages go is recorded); run alone, this skill keeps the full reading and `go.py`
+   refuses `--fast`. In a fast map run control (`next.py`) takes the fast order. After the lead's steps, Business Impact and
    the pick, it prints one action of kind `agent` listing one mapping agent per service (or share of one) under
    `agents`: launch every one with the Agent tool, all in one message, `subagent_type` as it names
    (`bfo-flow-mapper`), each with its own `prompt` as the whole prompt, wait for every reply, and call `next.py` again.
@@ -538,7 +541,7 @@ each step is; `next.py` says when.
 1. **The case and its lifecycle** (Steps 1 and 2).
    In: the sources. Out: `flows.csv` (the case, whose expectation, start and end), `lifecycle.csv`. The flow is the one the person chose at the go, from the plan's
    decision (their own, or the recommendation they accepted); write it into `RUN.md`.
-   **Phases 1 to 3 run one path in the full reading, every time** (a fast map, chosen at the go with `--fast`, runs
+   **Phases 1 to 3 run one path in the full reading, every time** (a fast map, every stage kit run's, runs
    its own: after the pick, one mapping agent per service, all at once, the merge, the checks by script and the drawing, with no readers,
    re-reads or judges; what follows is the full reading) (MAPPING-STEPS "Reading in units, and every finding checked" gives the
    commands). The lead is the run's own session, the one that talks to the person: it writes the flow-level rows,

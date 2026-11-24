@@ -1,16 +1,16 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9.9.2 2026-11-23
+Build: release-9.10 2026-11-24
 00da391340bd  CHECKS.md
 14d5b1174b1f  LAUNCH.md
-453adb8f8d0e  MAPPING-STEPS.md
-3ee500cf6654  SKILL.md
-b0df79b9a504  agents/bfo-flow-mapper.md
+bb2385674945  MAPPING-STEPS.md
+631382f94cf1  SKILL.md
+b1f236c3c3c1  agents/bfo-flow-mapper.md
 f83fdaee4b25  agents/bfo-row-judge.md
 69030be15dd7  agents/bfo-source-reader.md
 dc0f0f8f2918  agents/bfo-unit-reader.md
 5f204fdb5659  agents_now.py
 b0aedc6bd9a8  all_systems.py
-780da7fcc574  brief.py
+d5db0eb13da4  brief.py
 c7906f7edb50  capability_views.py
 7fd0f62b0c36  case.py
 4c1f02c37ccb  check_map.py
@@ -46,11 +46,11 @@ b8e4326e26ee  fact-extractor/precision.py
 414706db9e8a  fact-extractor/run.py
 85512e80010c  fact-extractor/selftest.py
 af655dd697d2  fact-extractor/semgrep_bin.py
-b3ae2f53e496  fast_map.py
+44a5f12b42d5  fast_map.py
 549434000ca7  first_look.py
 717dadc3a91c  flow_outputs.py
 1f8e660a1efd  flow_page.py
-b87555d4071f  go.py
+6df3a426488b  go.py
 dcb057726451  guard.py
 b92392eedd81  home.py
 08b7d63dabe4  home.template.html
@@ -68,7 +68,7 @@ e4270c8420b7  method/hop-failures.csv
 26b056624634  method/layers.csv
 8691712fae7c  method/measure-forms.csv
 6eb53baafd1f  method/part-kinds.csv
-8c8aef000901  next.py
+0a70c62aeb96  next.py
 fd994ca9c88a  one_canvas.py
 a71adffd68bf  open_items.py
 f0327a9f87cb  operator_page.py
@@ -80,7 +80,7 @@ b158f43d8cc2  page/page_ask.py
 2704a43cf3c5  partial_map.py
 ee1b7a93fe7d  path_reading.py
 b3da928d90e1  paths.py
-b8663f68a93e  preflight.py
+21550b3c376a  preflight.py
 dbe370e4de04  progress.py
 b8de54301dee  provenance.py
 98585a45a20f  readers.py
@@ -115,7 +115,7 @@ c2ae3dc631c5  register-template/stages.csv
 947d49c44c87  register-template/step-impact.csv
 86b2e4b0309f  register-template/steps.csv
 7c0afa3affdd  register-template/subjects.csv
-6d3fbc34528d  register_layout.py
+7e0e44323602  register_layout.py
 923816867f91  reread.py
 e03690773abf  run_lock.py
 700122e6ef27  run_md.py

@@ -1302,6 +1302,17 @@ def _decide(reg, flow, event, by_kit, test):
         if _skip(reg, flow, s, by_kit):
             continue
         if s == "pick" and _pick_owed(reg, by_kit):
+            import go
+            if (_by_stage(reg) or {}).get(go.HOW_FAR):  # answered at the go: recorded, not asked again
+                import brief
+                got = brief.depth_from_go(reg, flow)
+                if isinstance(got, str):
+                    return {"kind": "stop", "stop": "pick", "sub": "pick", "refused": got,
+                            "then": f"the pick the go answered was refused ({got}): put it to the person as the stage "
+                                    "kit's SKILL.md says (brief.py depth; recorded with go.py --depth), then call "
+                                    "this again", "records_with": "go.py --depth"}
+                case.draw_run_md(reg)
+                continue
             case.draw_run_md(reg)
             return _pick_stop(reg, flow)
         if s == "sweep" and _sweep(reg):

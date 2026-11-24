@@ -106,6 +106,27 @@ def code_folders(reg):
     return out
 
 
+def document_folders(reg):
+    """[folder (absolute, existing)]: the documents roots, one per document row of sources.csv whose `location`
+    (absolute, or relative to the workspace) is a folder; a page citation `<document>#<heading>` is a path under one
+    of them. A document row naming a single file is a source, not a root. None recorded: the workspace."""
+    reg = pathlib.Path(reg).resolve()
+    base = reg.parent.parent
+    src = reg / "sources.csv"
+    out = []
+    if src.is_file():
+        import csv
+        with src.open(encoding="utf-8-sig", errors="replace", newline="") as f:
+            for r in csv.DictReader(f):
+                where = (r.get("location") or "").strip()
+                if (r.get("kind") or "").strip() != "document" or not where:
+                    continue
+                p = (base / where).resolve()
+                if p.is_dir() and p not in out:
+                    out.append(p)
+    return out or [base]
+
+
 def code_root(reg):
     """The folder the run's code is read from, which every reader's and judge's prompt names: the one the survey
     recorded (CODE_ROOT), else the folder holding the repositories sources.csv records (code_folders), else the

@@ -98,14 +98,17 @@ anything you could not do, and what the done check found, in plain words.
 To point it at sources, add one line at the end (optional): *These are the sources: …*, naming the repositories,
 pages, diagrams and process descriptions.
 
-**How far each stage goes is your pick, before any service is read in depth.** The run first writes the flow's
-stages, the process steps in each, which services carry each step, and what is at stake if each step fails, in
-minutes. Then it shows you the stages and asks how far each one goes: mapped only, measured, measured with alerts,
-or on to runbooks. Only then does it read the code of the services the stages you take further reach, along their
-path: from where the stage's steps start, every function a case passes through and what those call, the stores they
-open, and each service's monitoring hooks; every other file is listed as not read. To read every line instead, set
-`"reading": "full"` in the run's `run-settings.json`; a stage you leave mapped only keeps its steps and which services carry each, and what is inside those
-services is marked not read. Taking a stage further later reads its services then, before its measures. You can take any number of stages to any depth, with the run's recommendation in front of you; a
+**In this release every run takes one short path.** After its first look, the run asks one
+question, with its answer filled in: the flow it recommends first, mapped in one quick pass, every stage taken to
+proposed measures. Say yes, or change it (another flow, how far the stages go, which services are read). The run
+then writes the flow's stages, the process steps in each, which services carry each step, and what is at stake if
+each step fails; one mapping agent per service reads the code the stages reach and maps their steps; the run
+proposes each stage's measures, has each map row a measure rests on checked once by an agent that wrote none of it,
+and stops for your review of the measures. Alerts and runbooks come only if you ask for them. If you would rather
+pick how far each stage goes once you have seen the stages, say so in your answer. The fuller reading (many readers,
+then three checks of every row before anything is shown) stays in the kit's code but is not offered in this
+release; the mapping skill run alone still uses it. A stage you leave mapped only keeps its steps and which services
+carry each, and what is inside those services is marked not read. Taking a stage further later reads its services then, before its measures. You can take any number of stages to any depth, with the run's recommendation in front of you; a
 flow can be mapped and left there. The checks follow each stage's depth: a stage you left mapped only is held to its
 map and nothing more, and the run is done when every stage you took further passes at the depth you picked. Decide
 how far each stage goes before the run moves on: you can take a stage further while the run is still under way, but

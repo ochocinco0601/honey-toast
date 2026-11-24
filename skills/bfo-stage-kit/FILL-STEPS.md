@@ -248,8 +248,10 @@ page on an error. A script handed a folder that is not a register refuses it and
      again and wait again, with any flow they picked in the same answer as the recommendation (SKILL.md phase 0
      says how a yes sent from the home screen is taken).
    - **Record their answer by script:** `python "<skill>/go.py" "<your-folder>" --flow "<flow>" --words "<their
-     answer, word for word>"` (add `--test` when a test stands in for the person). The go asks only which flow comes
-     first; where they accepted the recommendation, it is their pick. The services read are those the brief marked
+     answer, word for word>"` (add `--test` when a test stands in for the person). The go asks which flow comes first
+     and, in a stage kit run, how far its stages go (every stage to measures unless they say otherwise; the kit's
+     SKILL.md says how a change is recorded); where they accepted the recommendation, it is their pick. A stage kit
+     run maps fast; in the full reading of the mapping skill run alone, the services read are those the brief marked
      include, and the checks per finding three, as the brief said; add `--in <service,...> --out <service,...>` or
      `--judges <n>` only when they say otherwise. Every finding that cites code is checked by that many readers who
      wrote none of it ("Reading in units, and every finding checked", below).

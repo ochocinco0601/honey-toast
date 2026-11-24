@@ -85,9 +85,31 @@ def kit_running():
 
 
 def fast_offered():
-    """True when this copy of the kit can run the fast map: the stage kit, or the source folder it is built from. The
-    mapping skill alone never asks how far each stage goes, and the fast map reads only the stages so picked."""
+    """True when this copy of the kit maps fast: the stage kit, or the source folder it is built from. The mapping
+    skill alone never asks how far each stage goes, and the fast map reads only the stages so picked, so it keeps the
+    full reading."""
     return kit_running() != "bfo-mapping"
+
+
+def source_folder():
+    """True in the folder the kit is built from, where its tests run; never in a built or installed copy."""
+    return (pathlib.Path(__file__).resolve().parent / "build_kit.py").is_file()
+
+
+def stage_kit_run(reg):
+    """True when this run maps fast: run from the stage kit's copy (or the source folder), or from the mapping skill's
+    copy within a run the stage kit started (its start step recorded skill `kit`), since the stage kit hands its
+    mapping to the mapping skill and that skill's commands name its own folder."""
+    if fast_offered():
+        return True
+    import brief
+    return brief.started_skill(reg) == "kit"
+
+
+HOW_FAR = "depth_at_go"  # in a flow's record: how far every stage goes, answered with the go, applied at the pick
+HOW_FAR_DEFAULT = "measure"  # the stage kit's filled-in answer in this release: every stage to its measures
+FULL_REFUSED = ("the stage kit maps fast in this release; the full reading (several checks of every "
+                "row before anything is shown) is not offered from it")
 
 
 EARLIER = "earlier-flows"  # earlier-flows/<flow id>/<table>.csv: a finished flow's rows as they were when the next began
@@ -1236,6 +1258,14 @@ def fast_agent_problem(reg):
                                       "mapping")
 
 
+def maps_fast_at_go(reg, a):
+    """Whether this go maps fast: always in a stage kit run (and from the source folder, unless a test of the full
+    reading passes --full); from the mapping skill alone only with --fast, which it then refuses."""
+    if stage_kit_run(reg):
+        return not (getattr(a, "full", False) and source_folder())
+    return bool(getattr(a, "fast", False))
+
+
 def record_go(reg, a):
     """The go after the first look: which flow comes first, and the person's words. Which services are read is the
     kit's to decide: the first look's recommendation, shown to the person and overridden only when the person says so
@@ -1259,7 +1289,15 @@ def record_go(reg, a):
         problems = ([f"not a service in survey.csv: {', '.join(unknown)}"] if unknown else []) + \
                    ([f"named both in and out: {', '.join(both)}"] if both else []) + \
                    ([f"named neither in nor out: {', '.join(unnamed)}"] if unnamed else [])
-    if getattr(a, "fast", False):  # the mapping agent is launched by its type: refused now, not after the pick
+    fast = maps_fast_at_go(reg, a)
+    kit_run = stage_kit_run(reg)
+    if getattr(a, "full", False) and not source_folder() and kit_run:
+        problems.append(FULL_REFUSED)
+    how_far = getattr(a, "how_far", None)
+    if how_far is not None and not kit_run:
+        problems.append("--how-far is the stage kit's: the mapping skill run alone has no pick of how far each "
+                        "stage goes")
+    if fast:  # the mapping agent is launched by its type: refused now, not after the pick
         missing = fast_agent_problem(reg)
         if missing:
             problems.append(missing)
@@ -1279,7 +1317,7 @@ def record_go(reg, a):
             problems.append(f"not a flow found: {a.flow.strip()} (found: {', '.join(f.get('name', '') for f in found)})")
         else:
             remains = {"flows": [f.get("name") for f in found if f is not flow], "services_left_out": out}
-    if getattr(a, "fast", False) and not fast_offered():
+    if fast and not kit_run:
         problems.append("the fast map reads the stages the person picks to take further, and the mapping skill run "
                         "alone has no such pick: record the go without --fast, or run the stage kit")
     if problems:
@@ -1305,9 +1343,13 @@ def record_go(reg, a):
          "stage_ids": [], "words": a.words.strip(),
          "given": a.given or datetime.datetime.now().astimezone().isoformat(timespec="seconds"), "test": a.test,
          "remains": remains or {"services_left_out": out}, IN_UNITS: True, BY_STAGE: True,
-         "mapping": "fast" if getattr(a, "fast", False) else "full"}
+         "mapping": "fast" if fast else "full"}
+    if fast and kit_run and getattr(a, "source", None) != "request":  # the go says how far every stage goes
+        how_far = how_far or HOW_FAR_DEFAULT
+        if how_far != "ask":
+            s[HOW_FAR] = how_far
     if kit_running():
-        s[KIT] = kit_running()
+        s[KIT] = "bfo-stage-kit" if kit_run else kit_running()
     items = search_items(reg, asks_flow=getattr(a, "source", None) != "request",
                          before=(cur or {}).get("searches") or [])
     if getattr(a, "searches", None):
@@ -2176,7 +2218,7 @@ def record_depth(reg, text, a=None):
     if not [r for r in rows(reg / "stages.csv") if (r.get("stage") or "").strip()]:
         return "stages.csv has no stage: the stages are cut in mapping, before this choice"
     named = {pair.partition("=")[0].strip() for pair in names(text)}
-    if a is not None and not getattr(a, "from_request", False):
+    if a is not None and not getattr(a, "from_request", False) and not getattr(a, "from_go", False):
         import guard  # a pick is recorded only once Business Impact is written and the pick was put to the person
         by_stage = {(r.get("stage") or "").strip(): (r.get("flow") or "").strip() for r in rows(reg / "stages.csv")}
         flow = next((by_stage[x] for x in sorted(named) if by_stage.get(x)), "") or flow_id_of(reg, s)
@@ -2221,10 +2263,14 @@ def record_depth(reg, text, a=None):
         given = a.given or datetime.datetime.now().astimezone().isoformat(timespec="minutes")
         s["depth_picked"] = {"words": a.words.strip(), "given": given, "test": a.test}
         asked = getattr(a, "from_request", False)  # their request said it before mapping: recorded, not asked again
+        at_go = getattr(a, "from_go", False)  # their answer at the go said it: recorded, not asked again
         if asked:
             s["depth_picked"]["from_request"] = True
+        if at_go:
+            s["depth_picked"]["from_go"] = True
+        said = "from their request: " if asked else "from their answer at the go: " if at_go else ""
         who = "a test pick, given by a test standing in for the person" if a.test else "the person"
-        mark_the_pick(reg, depth, f"- **Depth picked:** {'from their request: ' if asked else ''}{a.words.strip()} "
+        mark_the_pick(reg, depth, f"- **Depth picked:** {said}{a.words.strip()} "
                       f"({who}, {given})", before, s["depth_picked"], reopen)
     save(reg, s)
     return s
@@ -2535,7 +2581,9 @@ def _main(argv):
     ap.add_argument("--out")
     ap.add_argument("--stages")
     ap.add_argument("--judges", type=int)
-    ap.add_argument("--fast", action="store_true")  # with --flow: map from the code scanner's facts (fast_map.py)
+    ap.add_argument("--fast", action="store_true")  # with --flow: the stage kit maps fast always; kept so it is no error
+    ap.add_argument("--full", action="store_true", help=argparse.SUPPRESS)  # source folder only: tests of the full reading
+    ap.add_argument("--how-far", dest="how_far", choices=("none", "measure", "alerting", "runbooks", "ask"))
     ap.add_argument(CONTEXT_FLAG, dest="context_tokens", type=int)  # with --fast: the mapping agents' context window
     ap.add_argument("--words")
     ap.add_argument("--given")

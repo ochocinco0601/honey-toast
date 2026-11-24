@@ -570,6 +570,83 @@ def lead_problems(reg, flow, ws):
                 last = name.split(".")[-1]
                 if last in whole and last not in near:
                     out.append(f"{where} cites {f}:{lo}-{hi} for {name}, which is elsewhere in the file")
+    return out + page_problems(reg, fields)
+
+
+# A page citation: `<document>#<heading>`, the document a path under a documents root (register_layout.
+# document_folders) ending in a document extension, the heading running to `;`, `]`, ` — <note>` or the field's end.
+# A key-only citation (a Confluence page id, a Jira key, a URL) is not checked here; the lookbehind keeps a URL out.
+PAGE_CITE = re.compile(r"(?<![\w:/.\\-])([\w./-]+\.(?:mdx|md|rst|txt|adoc|html?))#([^;\]\n]*?)(?=\s\u2014\s|[;\]\n]|$)")
+HEADING_MD = re.compile(r"^\s{0,3}#{1,6}\s+(.*?)\s*$")
+HEADING_ADOC = re.compile(r"^={1,6}\s+(.*?)\s*$")
+HEADING_HTML = re.compile(r"<h[1-6][^>]*>(.*?)</h[1-6]>", re.I | re.S)
+RST_RULE = re.compile(r"^([=\-~^\"'`#*+:.])\1+\s*$")
+
+
+def _plain(s):
+    """A heading as compared: case folded, punctuation and spacing dropped, so `Completing Checkout`,
+    `completing-checkout` and `Completing checkout:` are one heading."""
+    return " ".join(re.sub(r"[^\w]+|_", " ", s.casefold()).split())
+
+
+def headings(p):
+    """{plain heading} of a document: its markdown `#` headings (outside fenced code), an AsciiDoc `=` heading, an
+    underlined reStructuredText title, an HTML <h1>-<h6>, and a front-matter `title`."""
+    text = p.read_text(encoding="utf-8", errors="replace")
+    lines = text.splitlines()
+    out = set()
+    if lines and lines[0].strip() == "---":
+        for i, ln in enumerate(lines[1:], 1):
+            if ln.strip() == "---":
+                break
+            k, sep, v = ln.partition(":")
+            if sep and k.strip() == "title":
+                out.add(v.strip().strip("\"'"))
+    fence = None
+    for i, ln in enumerate(lines):
+        s = ln.strip()
+        if s.startswith(("```", "~~~")):
+            fence = None if fence and s.startswith(fence) else (fence or s[:3])
+            continue
+        if fence:
+            continue
+        for rx in (HEADING_MD, HEADING_ADOC):
+            m = rx.match(ln)
+            if m:
+                out.add(re.sub(r"\s*\{#[^}]*\}\s*$|\s+#+\s*$", "", m.group(1)))
+        if i and RST_RULE.match(ln) and lines[i - 1].strip() and len(s) >= len(lines[i - 1].strip()):
+            out.add(lines[i - 1].strip())
+    out.update(re.sub(r"<[^>]+>", "", h) for h in HEADING_HTML.findall(text))
+    return {_plain(h) for h in out if _plain(h)}
+
+
+def page_citations(text):
+    """[(document, heading)] for every page citation in a field, the note after ` — ` left out."""
+    out = []
+    for m in PAGE_CITE.finditer(text or ""):
+        head = m.group(2).strip()
+        if head.endswith(")") and head.count(")") > head.count("("):
+            head = head[:-1].rstrip()  # the citation closes a parenthesis of the prose around it
+        out.append((m.group(1), head))
+    return out
+
+
+def page_problems(reg, fields):
+    """Every page citation in the lead's fields names a file under a documents root and a heading in that file. The
+    path is taken as written: a file of the same name elsewhere does not count."""
+    import register_layout as layout
+    roots = layout.document_folders(reg)
+    out, seen = [], {}
+    for where, text in fields:
+        for doc, head in page_citations(text):
+            p = next((r / doc for r in roots if (r / doc).is_file()), None)
+            if p is None:
+                out.append(f"{where} cites {doc}#{head}: no file {doc} under the documents folder")
+                continue
+            if p not in seen:
+                seen[p] = headings(p)
+            if _plain(head) not in seen[p]:
+                out.append(f'{where} cites {doc}#{head}: no heading "{head}" in the file')
     return out
 
 

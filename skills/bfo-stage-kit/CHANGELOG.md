@@ -8,6 +8,35 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.10 — 2026-11-24
+
+In this release every run takes one short path: the first look, one question with its answer filled
+in, a fast map of that flow, its measures, and a stop for your review of them.
+
+- **One question, its answer filled in.** After the first look, the run asks "Shall I go ahead?" with its
+  recommendation: the flow it would map first, every stage taken to proposed measures. A yes is the whole answer.
+  To change it, say another flow, how far the stages go (mapped only, or on to alerts and runbooks), which services
+  are read, or that you want to pick stage by stage once the stages are mapped. Nothing asks you to name a mode.
+  Effect: none.
+- **The map is always the fast one.** One mapping agent per service reads the code the stages reach and maps their
+  steps in one pass; each map row a proposed measure rests on is then checked once by an agent that wrote none of
+  it. The fuller reading (several readers, then three checks of every row before anything is shown) takes much longer
+  and is no longer offered by the stage kit; its code stays, and the mapping skill run alone still uses it.
+  Effect: none.
+- **No second stop for how far each stage goes.** Your answer at the start already said it, so the run records it
+  once the stages are mapped and goes on, without asking again. It stops after the measures review; alerts and
+  runbooks come only if you ask for them.
+  Effect: none.
+- **A missing agent is caught before the first look.** The checks of this computer now include the mapping agent
+  (`bfo-flow-mapper`) and the agent that checks map rows (`bfo-row-judge`): when either is missing or is not this
+  kit's copy, the run holds before its costly work, saying what to copy where, instead of refusing at the go.
+  This release rewords `bfo-flow-mapper.md`, so a copy installed from an earlier release no longer matches: after
+  installing it, copy both files from the kit's `agents/` folder into `.claude/agents/` again, then start a new
+  session, or the first run holds before its first look asking for exactly that.
+  Effect: none.
+
+A run already under way keeps the reading its go recorded.
+
 ## Release 9.9.2 — 2026-11-23
 
 A fix for runs that stopped in the first minutes: the code reader reads only your repositories; the first look checks this computer and your sources before it starts; clock times are in your own time zone.

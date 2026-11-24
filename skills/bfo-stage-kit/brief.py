@@ -552,6 +552,21 @@ def done_check_holds(reg):
 MAPPING_ACTIVITIES = 3  # the mapping skill run alone: the first look, describing the flow, the capability and its impact
 
 
+def started_skill(reg):
+    """"kit" or "mapping": which skill's start step began this run, as start.py records it in the work folder; None
+    when no record is found. `reg` is a register folder, or the workspace root before a register exists."""
+    reg = pathlib.Path(reg)
+    import start
+    work = reg / "bfo-work"
+    tries = ([start.start_file(work, start.STARTED)] if work.is_dir() else []) + [
+        reg / "_run-state" / start.STARTED, reg.parent / start.STARTED]
+    record = next((p for p in tries if p.is_file()), None)
+    try:
+        return json.loads(record.read_text(encoding="utf-8")).get("skill") if record else None
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
 def activity_count(reg):
     """How many activities the person was told there are: three when the mapping skill started the run on its own,
     six when the stage kit did (start.py records which, in the work folder). `reg` is a register folder, or the
@@ -979,7 +994,8 @@ def checks_said(reg):
     """What this run does to check its findings against the code, as the person reads it: every run reads in units
     and has every finding that cites code checked by independent readers, at the count the go records."""
     got = load(reg, layout.SETTINGS) or {}
-    if got.get("mapping") == "fast":  # judges.settings: one check per row, one round, whatever `judges` says
+    import go  # before the go, the stage kit's own: it always maps fast
+    if got.get("mapping") == "fast" or ("judges" not in got and go.stage_kit_run(reg)):
         return ("I will have one check read each finding a proposed measure, alert or failure mode rests on against "
                 "the code, by a reader who wrote none of it; every other finding is shown as not checked.")
     n = got.get("judges", 3)
@@ -1134,13 +1150,19 @@ def capability(reg, o, request=None):
         lead = (needs(asks) + "\n\n" + lead) if asks else lead
     else:
         import go
-        fast = "; say \"fast\" for one quick pass no second agent checks" if go.fast_offered() else ""
-        pick = (f"**Which flow should I map first?** I recommend *{r['flow']}*: {cont(r['why'])}. Or name another flow "
-                f"below, or which services to read{fast}.")
+        if go.stage_kit_run(reg):  # one question, its answer filled in: the first flow, every stage to its measures
+            pick = (f"**Shall I go ahead?** I recommend *{r['flow']}* first, every stage taken to proposed measures: "
+                    f"{cont(r['why'])}. Say yes, or change it: another flow (below), how far the stages go (mapped "
+                    "only, or on to alerts and runbooks), or which services are read.")
+            after_map = ("I map it in one quick pass, propose measures for each stage, and stop for your review of "
+                         "them. Alerts and runbooks come only if you ask.")
+        else:
+            pick = (f"**Which flow should I map first?** I recommend *{r['flow']}*: {cont(r['why'])}. Or name another "
+                    "flow below, or which services to read.")
+            after_map = ("Once the flow is mapped, I show you its stages. How far each goes is yours to say: mapped "
+                         "only, or on to measures, alerts and runbooks.")
         lead = needs([pick] + asks)
         doing, also_head, also = "If you say yes to item 1:", "", ""
-        after_map = ("Once the flow is mapped, I show you its stages. How far each goes is yours to say: mapped only, "
-                     "or on to measures, alerts and runbooks.")
     also = f"\n{also_head}\n{also}\n" if also else ""
     return f"""{status(reg)}
 
@@ -1162,7 +1184,17 @@ Each flow's stages, each service and why it is read or left out, and the open qu
 
 def capability_full(reg, o):
     """The first-look brief in full, for PLAN.md: the plan the person oversees, shown when they ask for it."""
+    import go
     c, a, r = o["capability"], o["activity"], o["recommendation"]
+    if go.stage_kit_run(reg):  # the stage kit: the go's answer is filled in, the first flow with every stage measured
+        then = ("Once the flow is mapped, I propose what to measure for each of its stages, then stop for you to "
+                "review the measures. Alerts and runbooks come only if you ask for them.")
+        ask = (f"**Shall I go ahead?** I recommend *{r['flow']}* first, mapped in one quick pass, with each of its "
+               "stages taken on to proposed measures. Say yes, or tell me what to change.")
+    else:
+        then = ("Once the flow is mapped, I will show you its stages, and you pick how far each one goes: mapped only, "
+                "measured, measured with alerts, or measured with alerts and then runbooks.")
+        ask = f"**Which flow should I map first?** I recommend *{r['flow']}*."
     flows = []
     for i, f in enumerate(o["flows"], 1):
         stages = "\n".join(f"   - *{s['name']}*: {cont(s['what'])}." for s in f["stages"])
@@ -1196,11 +1228,11 @@ def capability_full(reg, o):
 
 **Where to start.** Start with *{r['flow']}*: {cont(r['why'])}. What remains of the job after this run: {cont(r['remains'])}.
 
-**What I will do unless you say otherwise.** I will read the services marked include above and leave out the others. {checks_said(reg)} Once the flow is mapped, I will show you its stages, and you pick how far each one goes: mapped only, measured, measured with alerts, or measured with alerts and then runbooks.
+**What I will do unless you say otherwise.** I will read the services marked include above and leave out the others. {checks_said(reg)} {then}
 
 Nothing is read in depth until you answer.
 
-{needs([f"**Which flow should I map first?** I recommend *{r['flow']}*."] + search_asks(o))}
+{needs([ask] + search_asks(o))}
 """
 
 
@@ -1282,6 +1314,10 @@ def reentry(reg, o):
             if p.get("from_request"):
                 decided += (" Then, because your request said how far each stage goes, that was recorded from it, "
                             f"on {p.get('given', 'an earlier day')}, and it decides: "
+                            f"{depth_said(reg, scope['depth'], '*')}.")
+            elif p.get("from_go"):
+                decided += (" Your answer at the start also said how far each stage goes; it was recorded once the "
+                            f"stages were mapped, on {p.get('given', 'an earlier day')}, and it decides: "
                             f"{depth_said(reg, scope['depth'], '*')}.")
             else:
                 decided += (f" After the flow was mapped, {'a test standing in for you' if p.get('test') else 'you'} "
@@ -2119,6 +2155,34 @@ def depth_review(reg, flow_id, recommend):
                 + ("At stake if it fails:" if items else "No Business Impact is recorded for its steps.")]
         out += [stake_lines(items)] if items else []
     return "\n".join(out) + "\n", names
+
+
+def depth_from_go(reg, flow_id):
+    """The pick of how far each stage goes, when the person's answer at the go already said it (go.HOW_FAR): every
+    stage of the flow taken that far, recorded with the go's words, and the run goes on without stopping. Returns the
+    flow's record or a refusal."""
+    import argparse
+    import go
+    s = go.load(reg) or {}
+    how_far = s.get(go.HOW_FAR)
+    if not how_far:
+        return "the go said nothing of how far the stages go: the pick is put to the person"
+    mark_the_pick_stop(reg, flow_id)
+    refused = go.record_flow_id(reg, flow_id)
+    if refused:
+        return refused
+    s = go.load(reg) or s
+    spec = "" if how_far == "none" else ",".join(f"{sid}={how_far}" for sid in go.stages_of(reg, s))
+    words = (s.get("words") or "").strip() or "yes"
+    a = argparse.Namespace(words=words, given=None, test=bool(s.get("test")), page=False, from_go=True)
+    got = go.record_depth(reg, spec, a)
+    if isinstance(got, str):
+        return got
+    go.record_decision(reg, "depth", words, "go", test=bool(s.get("test")),
+                       shown=f"(answered at the go: every stage {DEPTH_WORDS.get(how_far, how_far)}) {words}")
+    import depth
+    depth.write_quietly(reg)
+    return got
 
 
 def depth_from_request(reg, flow_id, words, spec, given=None):
