@@ -8,6 +8,35 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.9.2 — 2026-11-23
+
+A fix for runs that stopped in the first minutes: the code reader reads only your repositories; the first look checks this computer and your sources before it starts; clock times are in your own time zone.
+
+- **The code reader reads only the repositories you gave it.** When the repository you name sits inside a larger
+  folder holding other repositories, the first look's code reader now reads that repository alone, as the survey
+  already did, instead of every repository in the folder around it. A run on one small repository no longer stops
+  for more time because the code around it is large, and its findings and its list of files not read speak only of
+  your code. Citations still start with the repository's folder name. Run by hand, the code reader takes the same
+  limit as `--targets <repository folder> ...`.
+  Effect: none.
+- **Clock times on the run status page are in your browser's time zone, with the zone named.** In "Who is working
+  now" (Now, Last action, Last sign and State) and in each step's time, a time such as "waiting on the model since
+  3:05 PM GMT" or "2:02-2:31 PM GMT · 29 min" is shown on a 12-hour clock in the zone of the browser you watch from,
+  the zone's short name on the last time of each cell, and stays so as the page refreshes. The run's start and last
+  work under the title read the same way ("Tue 3 Mar, 3:05 PM GMT"). Without script the page shows the time as the
+  machine running the kit gives it.
+  Effect: none.
+- **A run that cannot work stops in seconds, with the fix.** Before the code reader starts, the first look checks
+  this computer and the sources you gave: Python and semgrep answer here; every repository you named is a folder that
+  is there and can be read; what the code reader will read holds roughly what you named, not a whole workspace beside
+  it; a timed sample of the code reader says whether the full scan fits its time; the run's folders take a
+  write; and the run status page answers. Each check reads pass, warning or failure, and each failure says how to
+  fix it. A failure holds the run before anything costly starts, and you choose: fix it and try again, or stop (for
+  a failure of the code reader itself, also go on without it). A scan the sample says will not fit is a warning, not
+  a stop. The run status page lists every warning and failure under Issues. The same checks
+  run on their own with `python preflight.py <register>`.
+  Effect: none.
+
 ## Release 9.9.1 — 2026-11-23
 
 A hotfix: a run that stops now says so; the code reader finds its own helper; the running step shows its parts; the kit version is on every page.

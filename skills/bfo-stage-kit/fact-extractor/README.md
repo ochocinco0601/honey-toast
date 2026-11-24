@@ -28,7 +28,7 @@ procurement to start.
 ```
 pip install semgrep
 
-python run.py      <repo-root> --service-map src/a=a src/b=b ... > fact-base.json
+python run.py      <repo-root> --service-map src/a=a src/b=b ... [--targets <folder> ...] > fact-base.json
 python coverage.py <repo-root> fact-base.json                    > coverage.json
 python join.py     <repo-root> fact-base.json                    > join.json
 python contract.py <repo-root> fact-base.json                    # conformance, exit 0/1
@@ -40,6 +40,11 @@ miss without an error. And a service map is required, one `<source-path>=<deploy
 per deployable; without it the join returns nothing, and an empty result reads like a finding
 rather than a mistake. A load generator or a test harness is not a deployable and does not belong
 in the map.
+
+**`--targets` limits what is read, not how it is cited.** When the root is a workspace holding
+other repositories besides the ones being mapped, name each repository folder after `--targets`:
+the analyser and the reach walk then read only those folders, and every path is still written
+relative to the root. Without it the whole root is read.
 
 **A fact with `service: null` is not a defect.** It is a file outside the service map, reported so
 the map's coverage is visible rather than assumed. A fact with `in_test: true` came from test

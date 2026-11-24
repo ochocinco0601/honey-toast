@@ -1,12 +1,12 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9.9.1 2026-11-23
+Build: release-9.9.2 2026-11-23
 7fe59977e7f1  MEASURES-STEPS.md
 102a325bfbc6  SKILL.md
 b0df79b9a504  agents/bfo-flow-mapper.md
 f83fdaee4b25  agents/bfo-row-judge.md
 69030be15dd7  agents/bfo-source-reader.md
 dc0f0f8f2918  agents/bfo-unit-reader.md
-3c2b299ef493  agents_now.py
+5f204fdb5659  agents_now.py
 b0aedc6bd9a8  all_systems.py
 780da7fcc574  brief.py
 c7906f7edb50  capability_views.py
@@ -15,7 +15,7 @@ c7906f7edb50  capability_views.py
 254016b0eddc  check_measures.py
 7b2856ae076b  depth.py
 b3ae2f53e496  fast_map.py
-8e02c032de9a  first_look.py
+549434000ca7  first_look.py
 717dadc3a91c  flow_outputs.py
 1f8e660a1efd  flow_page.py
 b87555d4071f  go.py
@@ -37,7 +37,7 @@ e4270c8420b7  method/hop-failures.csv
 6eb53baafd1f  method/part-kinds.csv
 fd994ca9c88a  one_canvas.py
 a71adffd68bf  open_items.py
-ec9564c5c822  operator_page.py
+f0327a9f87cb  operator_page.py
 62505e86aebd  page/page-kit.js
 b158f43d8cc2  page/page_ask.py
 67bcb9e9cd63  page_style.py
@@ -46,6 +46,7 @@ b158f43d8cc2  page/page_ask.py
 2704a43cf3c5  partial_map.py
 ee1b7a93fe7d  path_reading.py
 b3da928d90e1  paths.py
+b8663f68a93e  preflight.py
 dbe370e4de04  progress.py
 b8de54301dee  provenance.py
 98585a45a20f  readers.py

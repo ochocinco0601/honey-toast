@@ -462,7 +462,8 @@ def _gather_agents(reg, now, transcripts, look):
                 fx = facts(main)
                 st, words = state_of(fx, {}, now, lead=True)
                 lead = {"who": "the lead", "on": "the run itself", "now": now_line(fx, now),
-                        "last_action": last_action(fx, now), "last": fx["last"], "started": fx["first"],
+                        "last_action": last_action(fx, now), "last": fx["last"], "tool_at": fx["tool_at"],
+                        "started": fx["first"],
                         "state": st, "words": words, "kind": "lead", "replied": fx["kind"] == "writing",
                         "idle_turn": turn_ended(fx, now)}
             sub = folder / sid / "subagents"
@@ -488,7 +489,8 @@ def _gather_agents(reg, now, transcripts, look):
                 if kind == "kit" and fx["shell"] and st != FINISHED and shell_breaks(who):
                     st, words = RED, "discarded: it ran a shell"
                 agents.append({"who": who, "on": on, "now": "" if st == FINISHED else now_line(fx, now),
-                               "last_action": last_action(fx, now), "last": fx["last"], "started": fx["first"],
+                               "last_action": last_action(fx, now), "last": fx["last"], "tool_at": fx["tool_at"],
+                               "started": fx["first"],
                                "state": st, "words": words, "kind": kind, "prompt": rel})
     single = bool(look) and look[0] != "split"
     import timings

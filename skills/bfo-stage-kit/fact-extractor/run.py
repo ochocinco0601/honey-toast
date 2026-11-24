@@ -1,7 +1,10 @@
 """Fact extractor — runs the rule set and emits a fact base.
 
-Usage:  python run.py <source-root> [--service-map src/frontend=frontend ...]
+Usage:  python run.py <source-root> [--service-map src/frontend=frontend ...] [--targets <folder> ...]
 Output: JSON on stdout.
+
+Paths in the output are relative to <source-root>. With --targets, only those folders under it are read; without,
+the whole root is.
 
 This is the thin glue around Semgrep, which does the parsing. It does three things
 Semgrep does not: attributes each fact to a deployable via the service map, normalises
@@ -31,13 +34,22 @@ def parse_args(argv):
         sys.exit(__doc__)
     root = argv[0]
     service_map = {}
-    if "--service-map" in argv:
-        for pair in argv[argv.index("--service-map") + 1:]:
-            if pair.startswith("--"):
-                break
-            path, _, name = pair.partition("=")
-            service_map[path.replace("\\", "/")] = name
-    return root, service_map
+    for pair in values(argv, "--service-map"):
+        path, _, name = pair.partition("=")
+        service_map[path.replace("\\", "/")] = name
+    return root, service_map, values(argv, "--targets")
+
+
+def values(argv, option):
+    """The arguments after `option`, up to the next option."""
+    if option not in argv:
+        return []
+    out = []
+    for value in argv[argv.index(option) + 1:]:
+        if value.startswith("--"):
+            break
+        out.append(value)
+    return out
 
 
 def attribute(rel_path, service_map):
@@ -435,7 +447,7 @@ PROGRAM_SUFFIXES = {
 UNREAD_LANGUAGE_LINES = 200
 
 
-def reach(facts, service_map, root, partial_parse_files=0):
+def reach(facts, service_map, root, partial_parse_files=0, targets=()):
     """What the run was pointed at versus what any rule actually read.
 
     **This is the control that catches a confidently empty result.** On a polyglot estate,
@@ -486,7 +498,8 @@ def reach(facts, service_map, root, partial_parse_files=0):
     # beside `.json: 6`, and by file count the two look alike. In lines they do not.
     present, present_lines = {}, {}
     read = {"." + f["file"].rsplit(".", 1)[-1].lower() for f in facts if "." in f["file"]}
-    for dirpath, dirnames, filenames in os.walk(extended(root), onerror=unlisted):
+    walks = (os.walk(extended(top), onerror=unlisted) for top in (targets or [root]))
+    for dirpath, dirnames, filenames in (step for walk in walks for step in walk):
         dirnames[:] = [d for d in dirnames
                        if d not in {".git", "node_modules", "target", "build", "obj", "bin",
                                     "__pycache__", ".venv", "vendor", "dist", "out"}]
@@ -634,7 +647,7 @@ def coverage_warnings(facts, reach_block=None, partial_parse_files=0):
 
 
 def main():
-    root, service_map = parse_args(sys.argv[1:])
+    root, service_map, targets = parse_args(sys.argv[1:])
     # **The reader never reads itself.** Installed in the workspace it reads (a kit installed per project sits in the
     # workspace's skills folder), the package it ships in, its test fixtures among it, lies under the root, and its fixtures
     # would be counted as the application's code, often outnumbering the application's own facts. The package folder,
@@ -650,7 +663,7 @@ def main():
     # failure is total rather than partial.
     proc = subprocess.run(
         [SEMGREP, "--config", RULES, "--json", "--quiet", "--metrics=off", "--disable-version-check",
-         "--exclude", ".claude", *(["--exclude", own] if own else []), extended(root)],
+         "--exclude", ".claude", *(["--exclude", own] if own else []), *(extended(t) for t in targets or [root])],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     if proc.returncode != 0 and not proc.stdout:
@@ -759,10 +772,11 @@ def main():
         for loc in (err.get("type") or [None, []])[1] or []
         if isinstance(loc, dict)
     })
-    reach_block = reach(facts, service_map, root, partial_parse_files)
+    reach_block = reach(facts, service_map, root, partial_parse_files, targets)
 
     json.dump({
         "root": root,
+        "targets": targets,
         "tool": tool_identity(RULES),
         "rules": os.path.basename(RULES),
         "counts": counts,

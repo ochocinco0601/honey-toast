@@ -250,6 +250,23 @@ def stamp(t, at="weekday"):
     return f'<time datetime="{u:%Y-%m-%dT%H:%M:%SZ}" data-at="{at}">{E(text)}</time>'
 
 
+CLOCK = re.compile(r"(?<![\d:])\d\d:\d\d(?![\d:])")
+
+
+def timed(text, ats):
+    """`text` escaped, its last clock times (HH:MM, one per moment in `ats`, in order) each made a <time> the page's
+    script shows in the browser's zone; the zone is named once, on the last. A time with no moment stays as it is."""
+    out = E(text or "")
+    ats = [t for t in ats or () if t is not None and t.tzinfo]
+    found = list(CLOCK.finditer(out))[-len(ats):] if ats else []
+    pairs = list(zip(found, ats[-len(found):])) if found else []
+    for i, (m, t) in reversed(list(enumerate(pairs))):
+        u = t.astimezone(dt.timezone.utc)
+        at = "clock" if i == len(pairs) - 1 else "hm"
+        out = out[:m.start()] + f'<time datetime="{u:%Y-%m-%dT%H:%M:%SZ}" data-at="{at}">{m.group()}</time>' + out[m.end():]
+    return out
+
+
 def newest_write(reg):
     """The newest file the run's own steps write as they work (first-look records, the survey, each unit's files,
     the checks' verdicts), as UTC, or None. Never the lock, a page or a redraw."""
@@ -527,6 +544,7 @@ def step_clock(reg, scope, steps, now, starting):
             if s["decision"]:
                 answered = decision_time(s["rows"][0], scope) if s["rows"] else None
                 asked = plan if n == 2 else pick_at if n == 4 else stt.row_span(changes, leads)[0]
+                s.setdefault("at", [answered])
                 if s["time"] and answered and asked and answered >= asked:
                     s["time"] += f" · answered after {stt._mins(asked, answered)} min"
                 later(answered)
@@ -536,12 +554,14 @@ def step_clock(reg, scope, steps, now, starting):
                 if not begun and started_at(reg):  # said under the title, so the time column stays short
                     s["note"] = "from the start step, includes the wait at the say-back"
                 begun = begun or started_at(reg)
+                s.setdefault("at", [begun, plan if st == DONE else None])
                 s["time"] = s["time"] or (stt.span_text(begun, plan if st == DONE else None, now) if begun
                                           else "time not recorded")
                 later(plan if st == DONE else None)
             elif n == 3 and spans:
                 text, _, aside = stt.spans_text(spans, now).partition(" (")
                 s["time"] = s["time"] or text
+                s.setdefault("at", [spans[-1][0]] if spans[-1][1] is None else [spans[0][0], spans[-1][1]])
                 if aside:  # "2 spans, the wait at the pick left out": under the title, not in the time column
                     s["note"] = aside.rstrip(")")
                 later(spans[-1][1])
@@ -551,6 +571,7 @@ def step_clock(reg, scope, steps, now, starting):
                     a = floor  # the pick): the step began when the work it waits on was done
                 s["time"] = s["time"] or (stt.span_text(a, b if st == DONE else None, now, about) if a or b
                                           else "time not recorded")
+                s.setdefault("at", [a, b if st == DONE else None])
                 later(b if st == DONE else None)
     except Exception:  # noqa: BLE001  (a time is never worth losing the page for)
         pass
@@ -618,7 +639,7 @@ def read(reg, now=None, starting=False, transcripts=None):
             s["said"] = f"{len(off)} of {len(rr)} failed" if off else f"{len(rr)} of {len(rr)} passed"
             s["bad"] = bool(off)
         elif n == 11 and reported:  # the report is out: the step is done, whatever the row still says
-            s["state"], s["said"], s["time"] = DONE, "Sent", clock(local(reported))
+            s["state"], s["said"], s["time"], s["at"] = DONE, "Sent", clock(local(reported)), [reported]
         elif n == 12 and left:
             s["said"] = f"{len(left)} {'flow' if len(left) == 1 else 'flows'} not mapped"
             rec = recommended_next(reg, depth, left)
@@ -732,7 +753,8 @@ def read(reg, now=None, starting=False, transcripts=None):
     jobs = job_counts(reg) if status in ("running", "quiet") else None
     if cur is not None and cur["state"] == DOING and jobs:
         cur["said"] = f'{jobs["done"]} of {jobs["all"]} done' + (f' · {jobs["blocked"]} blocked' if jobs["blocked"] else "")
-    issues = []
+    import preflight
+    issues = preflight.issues(reg)
     for s in blocked:
         issues.append({"what": f"Step {s_no(steps, s['numbers'][0])}, {s['title']}, is blocked: "
                                f"{s['why'] or 'the record gives no reason'}",
@@ -827,7 +849,7 @@ def step_html(s, status, waiting):
         said = f'<a href="{E(s["link"])}">Open</a>'
     time = s["time"] or ""
     # a time too long for the narrow column goes first on the line under the title, which keeps its width
-    desc = ([E(time)] if len(time) > TIME_COLUMN else []) + ([said] if said else [])
+    desc = ([timed(time, s.get("at"))] if len(time) > TIME_COLUMN else []) + ([said] if said else [])
     time = "" if len(time) > TIME_COLUMN else time
     if s.get("note"):
         desc.append(E(s["note"]))
@@ -841,7 +863,7 @@ def step_html(s, status, waiting):
         import step_parts
         d += step_parts.html_list(s["parts"], E)
     return (f'<li class="{cls}"><svg class="ic{spin}"><use href="#{ic}"/></svg>{title}{num}. {E(s["title"])}{tag}'
-            f'</span>{d}<span class="t">{E(time)}</span></li>')
+            f'</span>{d}<span class="t">{timed(time, s.get("at"))}</span></li>')
 
 
 TIME_COLUMN = 28  # characters: "since 09:40 · 44 min so far" fits beside a title; "done by 08:09 · start not recorded" does not
@@ -1008,12 +1030,14 @@ def working_html(m):
     now = dt.datetime.now(dt.timezone.utc).astimezone()
 
     def since(t):
-        return f'{t.astimezone(now.tzinfo).strftime("%H:%M")}' if t else "-"
+        return timed(t.astimezone(now.tzinfo).strftime("%H:%M"), [t]) if t else "-"
 
     body = "".join(
         f'<tr class="ag{STATE_CLASS.get(r["state"], "")}"><td>{E(r["on"] if r["kind"] != "lead" else "The lead")}'
-        f'<span class="who">{E(r["who"]) if r["kind"] != "lead" else ""}</span></td><td>{E(r["now"])}</td>'
-        f'<td>{E(r["last_action"] or "-")}</td><td>{since(r["last"])}</td><td>{E(r["words"])}</td></tr>'
+        f'<span class="who">{E(r["who"]) if r["kind"] != "lead" else ""}</span></td>'
+        f'<td>{timed(r["now"], [r["last"]] if " since " in r["now"] else [])}</td>'
+        f'<td>{timed(r["last_action"] or "-", [r.get("tool_at")])}</td><td>{since(r["last"])}</td>'
+        f'<td>{timed(r["words"], [r["last"]] if " at " in r["words"] else [])}</td></tr>'
         for r in rows)
     tally = (f'<p class="note">Finished: {g["finished"]}.</p>' if g["finished"] else "")
     if queued:  # one line for the launches not yet taken, by what they are on: rows only for work under way
@@ -1222,10 +1246,14 @@ a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
 <symbol id="i-pause" viewBox="0 0 18 18"><circle cx="9" cy="9" r="8" fill="var(--you)"/><rect x="6" y="5.4" width="2.1" height="7.2" rx=".6" fill="#fff"/><rect x="9.9" y="5.4" width="2.1" height="7.2" rx=".6" fill="#fff"/></symbol>
 </defs></svg>
 <!--BODY-->
-<script>(function(){var W={weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23",timeZoneName:"short"};
-document.querySelectorAll("time[datetime]").forEach(function(el){var d=new Date(el.getAttribute("datetime"));if(isNaN(d))return;
-try{var p={};new Intl.DateTimeFormat("en-US",W).formatToParts(d).forEach(function(x){p[x.type]=x.value});
-el.textContent=(el.dataset.at==="weekday"?p.weekday+" ":"")+p.day+" "+p.month+", "+p.hour+":"+p.minute+" "+p.timeZoneName}catch(e){}})})();
+<script>(function(){var W={weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit",hour12:true,timeZoneName:"short"};
+function parts(el){var d=new Date(el.getAttribute("datetime"));if(isNaN(d))return null;var p={};
+new Intl.DateTimeFormat("en-US",W).formatToParts(d).forEach(function(x){p[x.type]=x.value});return p}
+document.querySelectorAll("time[datetime]").forEach(function(el){try{var p=parts(el);if(!p)return;
+var at=el.dataset.at,hm=p.hour+":"+p.minute,ap=" "+p.dayPeriod,n=el.nextElementSibling,
+q=at==="hm"&&n&&n.matches("time[datetime]")?parts(n):null;
+el.textContent=at==="clock"?hm+ap+" "+p.timeZoneName:at==="hm"?hm+(q&&q.dayPeriod===p.dayPeriod?"":ap):
+(at==="weekday"?p.weekday+" ":"")+p.day+" "+p.month+", "+hm+ap+" "+p.timeZoneName}catch(e){}})})();
 document.addEventListener("click",function(e){var b=e.target.closest("[data-copy]");if(b&&navigator.clipboard)navigator.clipboard.writeText(b.dataset.copy)});
 (function(){var f=document.querySelector("form.sb");if(!f)return;var fp=f.dataset.fp,k="sb-sent-"+fp,st=f.querySelector(".sbs");
 function lock(t){st.textContent=t;f.querySelectorAll("button,input").forEach(function(x){x.disabled=true})}

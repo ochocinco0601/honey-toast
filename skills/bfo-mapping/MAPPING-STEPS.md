@@ -185,8 +185,8 @@ page on an error. A script handed a folder that is not a register refuses it and
    points and routes to say what it does in one line. Nothing else is read in depth yet. Add the survey to
    `sources.csv` as `tool output` and to `how-made.csv`.
    Then run the code reader over the same repositories, from the workspace root:
-   `python "<skill>/fact-extractor/run.py" . --service-map <folder>=<service> ... > "<your-folder>/fact-base.json" 2> "<your-folder>/fact-extractor.log"` (its messages go to the register, never to the folder you run it from),
-   one `--service-map` pair per service folder (`fact-extractor/README.md` says how to run it and what it cannot
+   `python "<skill>/fact-extractor/run.py" . --service-map <folder>=<service> ... --targets <repository folder> ... > "<your-folder>/fact-base.json" 2> "<your-folder>/fact-extractor.log"` (its messages go to the register, never to the folder you run it from),
+   one `--service-map` pair per service folder and one `--targets` folder per repository, so that only the code you were given is read (`fact-extractor/README.md` says how to run it and what it cannot
    reach). It finds each service's routes, calls, messages and database writes, each with file and line, by rule and
    never by a model. Check what it produced with `python "<skill>/fact-extractor/contract.py" . "<your-folder>/fact-base.json"`
    and record its `reach` block in `how-made.csv`; a kind its contract does not know is reported, not a reason to

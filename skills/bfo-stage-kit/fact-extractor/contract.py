@@ -281,7 +281,8 @@ def c12_unread_files(base):
         return ok("C12 unread files", "the fact base does not say which files it could not read; "
                                       "a reader that does not list them cannot show they were all read")
     if not unread:
-        result = ok("C12 unread files", "every file under the root was read")
+        result = ok("C12 unread files", "every file under " + (", ".join(base["targets"]) if base.get("targets")
+                                                               else "the root") + " was read")
         result["reported"] = []
         return result
     reach = base.get("reach") or {}

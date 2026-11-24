@@ -153,7 +153,14 @@ person hears from the run within the first minute whether Claude Code runs the h
 it. The helper's reply reaches you later as a completion notification, in a turn of its own, and that turn sends the
 brief. A reply that begins "The first look is held" is the person's choice, not a brief: send it as it is, start
 nothing, and record their answer with `python "<skill>/first_look.py" answer <your-folder> <1, 2 or 3> --words "<their
-words>"`; on 1 or 2, start the helper again as that command says. A later turn that starts the helper again (after a search) sends one line through `say` that the first look
+words>"`; on 1 or 2, start the helper again as that command says. Before the code reader, the first look checks
+this computer and the sources it was given, within a minute, so a run set up wrong stops before its costly work (a
+scan the timed sample says will not fit the code reader's time is a warning on the run status page, not a stop): a
+reply that begins "The run is held before the first look" lists what failed in the sources, the folders or this
+computer, each with its fix, and is the person's choice too: send it as it is, start nothing, and record their
+answer with `python "<skill>/preflight.py" answer <your-folder> <1 or 2> --words "<their words>"`; on 1, start the
+helper again as that command says, and it checks again; on 2 the run stops there, as they chose, and nothing
+starts. A failure of the code reader itself comes as "The first look is held", above. A later turn that starts the helper again (after a search) sends one line through `say` that the first look
 is under way again, before it starts the helper. If the person writes while the first-look helper is still running, answer in one line
 through `say` that the first look is still under way and its brief follows when it is done, and start nothing: no
 second helper, no start step. The register folder you named with `--register` is `<your-folder>` from then on. When it returns

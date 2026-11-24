@@ -1,17 +1,17 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9.9.1 2026-11-23
-e45d2883f866  CHANGELOG.md
+Build: release-9.9.2 2026-11-23
+596d9a73ec33  CHANGELOG.md
 8b5cf2100c84  CHECKS.md
-7aafdf39a80e  FILL-STEPS.md
+6e232d50840f  FILL-STEPS.md
 5b50348c8de1  KNOWN-GAPS.md
 255978c2faa1  LAUNCH.md
-cf37588bc066  SKILL.md
+cb302b0b116f  SKILL.md
 82ff91b92e4d  USE.md
 b0df79b9a504  agents/bfo-flow-mapper.md
 f83fdaee4b25  agents/bfo-row-judge.md
 69030be15dd7  agents/bfo-source-reader.md
 dc0f0f8f2918  agents/bfo-unit-reader.md
-3c2b299ef493  agents_now.py
+5f204fdb5659  agents_now.py
 b0aedc6bd9a8  all_systems.py
 780da7fcc574  brief.py
 c7906f7edb50  capability_views.py
@@ -99,8 +99,8 @@ beafacefea5a  example-eshop/step-impact.csv
 46afe0d3123c  example-eshop/steps.csv
 34fc4ddb87e9  example-eshop/subjects.csv
 d8cbd1cff51b  example-eshop/views.html
-f807270de177  fact-extractor/README.md
-45f487499efc  fact-extractor/contract.py
+fce4ee31b548  fact-extractor/README.md
+ba41c825f1d4  fact-extractor/contract.py
 1bd1d2fe69fd  fact-extractor/coverage.py
 8f841ac63a4a  fact-extractor/fixtures/estate-languages.json
 c20f33169aaa  fact-extractor/fixtures/negative/NotDatabase.cs
@@ -126,11 +126,11 @@ f9b4c7705ab7  fact-extractor/join.py
 b8e4326e26ee  fact-extractor/precision.py
 594402b2bcd0  fact-extractor/probe.py
 4657659952fc  fact-extractor/rules.yaml
-6cdefeacd275  fact-extractor/run.py
+414706db9e8a  fact-extractor/run.py
 85512e80010c  fact-extractor/selftest.py
 af655dd697d2  fact-extractor/semgrep_bin.py
 b3ae2f53e496  fast_map.py
-8e02c032de9a  first_look.py
+549434000ca7  first_look.py
 717dadc3a91c  flow_outputs.py
 1f8e660a1efd  flow_page.py
 b87555d4071f  go.py
@@ -154,7 +154,7 @@ e4270c8420b7  method/hop-failures.csv
 8c8aef000901  next.py
 fd994ca9c88a  one_canvas.py
 a71adffd68bf  open_items.py
-ec9564c5c822  operator_page.py
+f0327a9f87cb  operator_page.py
 62505e86aebd  page/page-kit.js
 b158f43d8cc2  page/page_ask.py
 67bcb9e9cd63  page_style.py
@@ -163,6 +163,7 @@ b158f43d8cc2  page/page_ask.py
 2704a43cf3c5  partial_map.py
 ee1b7a93fe7d  path_reading.py
 b3da928d90e1  paths.py
+b8663f68a93e  preflight.py
 dbe370e4de04  progress.py
 b8de54301dee  provenance.py
 98585a45a20f  readers.py

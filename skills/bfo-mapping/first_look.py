@@ -1171,7 +1171,8 @@ def answer(reg, choice, words, test=False):
 
 
 def _facts(reg):
-    """Run the code reader over the surveyed services, its service map from survey.csv, in the foreground within
+    """Run the code reader over the surveyed services, its service map from survey.csv, reading only the repository
+    folders of sources.csv's code rows (citations stay relative to the code root), in the foreground within
     `code_reader_seconds`, with semgrep's own folder first on its PATH; write fact-base.json (only when it finished),
     its errors to fact-extractor.log; return a one-line summary. When it cannot run or does not finish, the first look
     is held for the person (_hold); once they chose to go on without it, it is not run and the note says so."""
@@ -1215,8 +1216,9 @@ def _facts(reg):
     limit = int(settings.load(reg).get("code_reader_seconds") or CODE_READER_SECONDS)
     part = reg / "fact-base.json.part"
     with open(part, "w", encoding="utf-8") as out, open(log, "w", encoding="utf-8") as err:
-        code = _run_bounded([sys.executable, str(run), str(root), "--service-map", *pairs], out, err, str(root), env,
-                            limit)
+        targets = [str(p) for p in layout.code_folders(reg).values()]
+        code = _run_bounded([sys.executable, str(run), str(root), "--service-map", *pairs,
+                             *(["--targets", *targets] if targets else [])], out, err, str(root), env, limit)
     if code is None:
         part.unlink(missing_ok=True)
         return _hold(reg, f"it was stopped after {limit} seconds, before it finished",
@@ -1244,12 +1246,17 @@ def _facts(reg):
 
 
 def prepare(reg):
-    """The first look's bookkeeping in one command: survey, code reader, fetch, reader prompts. Return what to print:
+    """The first look's bookkeeping in one command: survey, the checks before the code reader (preflight.py), code
+    reader, fetch, reader prompts. Return what to print:
     the summary and, in split mode, every reader's pointer line, all to be launched in one message. A code reader
     that cannot run holds the first look here, for the person (STOP and the message)."""
     reg = pathlib.Path(reg).resolve()
-    out = [_survey(reg), _facts(reg)]
-    held = reader_held(reg)
+    import preflight
+    out = [_survey(reg), preflight.before_code_reader(reg)]
+    held = preflight.held(reg) or reader_held(reg)
+    if held is None:
+        out.append(_facts(reg))
+        held = reader_held(reg)
     if held is not None:
         out.append("STOP: the first look is held for the person. End here: your final reply is exactly the text after "
                    "MESSAGE:, and nothing else; the session that started you puts it to the person and records their "
