@@ -1,0 +1,63 @@
+---
+name: end-round
+description: End a round of continuous work so the person can type /clear and carry on in the same tab with a fresh, small session that resumes the work where it stands. Goes through every message the person sent this session, brings the work's record current where the project already keeps the work's state, has a fresh agent that knows nothing else read it back, fixes what the reader got wrong or what the record left out, and hands the person the exact line to paste after /clear. Use only when the person types "/end-round" or says "end the round" / "end round". Not for handing a long-lived role to a successor in a new tab, and not for ending a session whose work is finished (that closes with its commit and its record).
+---
+
+# End round
+
+## The job this serves
+
+**One level up:** the person works on one subject round after round in one tab. A session that carries every round's history re-reads all of it at every step, so a long session grows slow and costly, and compaction alone does not reliably pass clear instructions to what follows. Ending the round and continuing after `/clear` keeps each session small, but only if the next session can pick the work up from what is written down. This skill is the hand-over that makes that true. **Two levels up:** the person keeps working at full speed without carrying the continuity, the whole picture or the threads themselves: it is the session's job, not theirs, to write up what the next session needs.
+
+**Its step:** the hand-over at the end of a round, ending in the next session placing the work and resuming it. **It receives** this session's transcript, the work's record, and git. **It hands on** to the next session a record it can act on with nothing else; and to the person, what was fixed, any open question that is theirs, and one line to paste after `/clear`. **Done for the whole job** is the record current, a cold reader's say-back matching it, and then the fresh session's playback being accepted by the person without correction, recorded in `RUNS.md` by that session.
+
+**Grounds:** Anthropic's "Effective harnesses for long-running agents" (state kept outside the conversation in a progress file and git; a fresh session reads it first and checks the existing work still runs before adding to it; compaction alone "doesn't always pass perfectly clear instructions to the next agent"); synthesis by receiver from the I-PASS handover (Starmer et al., NEJM 2014).
+
+## Why it is built this way
+
+**One record, where the project already keeps the work's state.** Projects differ: one has its own hand-over form (a process model, a work list, a handover file), another has only a notes file, another nothing yet. Use what this project uses, in its form, read from its own instructions (its CLAUDE.md, the notes shown at session start, the work's own record) rather than from memory. Where it has nothing, keep the work's own notes file (one kept for the work, not a README written for the product's users), creating `NOTES.md` in the work's folder if needed; if the branch goes to code review and the project would not want work notes in it, ask the person once where they live. No second record of the work, and one current status, so nothing contradicts it.
+
+**Two checks, neither resting on the writer's memory.** An **inventory** of every message the person sent, from the transcript, each accounted for in the record, because a cold reader cannot miss a ruling it never heard of; and a **cold read-back**, which catches what the record says wrongly or stale (a folder behind its remote, a status line left over from an earlier round).
+
+## The procedure
+
+Work the way this project already works: commit to the branch the work is on, push only where the project already pushes this work, and follow its worktree practice if it has one. If a push is rejected, fetch and rebase keeping both sides' changes; never force.
+
+1. **Land the round's work.** Commit what is finished. Unfinished work that must not reach that branch goes on its own branch, named in the record (what it is, the branch, what done means). Below, `<branch>` is the branch the record is committed on.
+2. **Inventory what the person said.** Run `python -I "<this skill's base directory>/scripts/person_messages.py" "<a distinctive phrase from one of their messages>"` (`py` or `python3` where `python` is not found), copying a few words exactly as they typed them in a message earlier in the round (not the end-round request itself, whose words appear in other sessions). Check that what it prints includes the request this round worked on; if it prints another session's messages, run it again with a more unusual phrase; if it finds nothing, the words were not copied exactly, so take a shorter exact piece. It prints every message they typed this session, from the transcript (so it works after a compaction too). Mark each one: **quoted** in the record, **pointed to** (where it is recorded), or **not lasting** (a few words why: a go, an answer, a passing remark).
+3. **Bring the record current.** If the project keeps a work list or other state the record depends on, fetch first and bring it current too, so another session's change is not overwritten, and release any claim this session holds on the work (a lease, a "held by" field, an assignee), so the next session can take it. In the record, one section `## Where it stands` (or the name the project's own form gives it), dated, near the top. Replace any earlier one and correct any other line stating the current status; leave dated log entries alone; earlier versions stay in git. It holds, in this order (an item with nothing to say gets "none", never padding):
+   - **The essential statement:** the need, the problem underneath it, and what good enough looks like (the end state, as something observable). The next session's playback leads with it.
+   - **Where this sits:** the purpose one and two levels up, in the person's words where they exist; how this piece nests (piece, thread, initiative) in two or three lines; and the file and section that hold the larger picture, by path, if there is one. If that file does not mention this work or is out of date, say so under open.
+   - **How the work runs with the person:** the source that defines how it runs (the skill, code or method it steers), by path; the review points they have set, verbatim; what the next session owns, what stays theirs to decide, and what it is not to drive; and how it will know it is going wrong (the corrections listed below are the first signs).
+   - **What the person has said and decided,** quoted, with time and place; rulings from earlier rounds that still hold, or the one place they are kept; what was tried and set aside, and why.
+   - **What is built and working,** with paths, commits and how it was checked. Done needs proof: a file that exists, a commit, test or command output, or the person's own confirmation. Anything without one goes under open.
+   - **How to check it still works:** the command (tests, a build, a page to open) the next session runs before saying where things stand.
+   - **What waits on the person,** each with your recommendation, and work in flight. A record with owners, never a numbered queue.
+   - **What lived only in this session:** corrections still in force, background jobs or agents still running, the page on the person's screen. "None" if none.
+   - **The first action:** what to do, concretely. If the project's own form records the piece's step elsewhere (a work list), name the piece and leave the step there, so the two cannot disagree.
+   - Fixed lines: *"This work is a conversation with the person, not a task queue."* and *"After the person accepts or corrects your playback, fill the last column of this run's row in `RUNS.md` in the end-round skill's folder."*
+4. **Record the run and land it.** Add a row to `RUNS.md` in this skill's base directory, wherever the skill is installed (create it with the header below if it is not there): date, the work, the record's path. Commit the record, and push it if the project pushes this work, so the reader and the successor read what is committed. If the skill is installed outside the project's repository, `RUNS.md` is not committed with it; it just stays there. If that folder cannot be written, skip the row and say so in step 6.
+   ```
+   | Date | Work | Record | Read-back rounds | Defects fixed | Person corrected the successor's playback? |
+   |---|---|---|---|---|---|
+   ```
+5. **Read back cold, compare, fix.** Launch a fresh agent (general-purpose, never a fork: a fork carries this session's history and passes by remembering) with only this prompt, filled in with the real record, branch and files:
+   > You are a brand-new session. The person has said: "Continue <the work> from where it stands." Read the "Where it stands" section of `<record>`, and the files it points to, as committed on `<branch>` (if it is pushed, `git fetch` first and read the remote's copy with `git show <remote>/<branch>:<file>`; otherwise `git show <branch>:<file>`; under Git Bash set `MSYS_NO_PATHCONV=1`). Change nothing in the folder. Report under 350 words: (1) the essential statement, and how this piece nests in the larger work; (2) how the work runs, from its primary source, not only from the record; (3) where it stands; (4) the first action, and whether it is already done (check git log); (5) what you would have to ask the person; (6) anything stale, contradictory or pointing nowhere, including a larger-picture file that does not mention this work, a source path that does not resolve, or a check command that names nothing runnable.
+
+   Hold the say-back against the transcript and the step 2 inventory, not against memory. Every difference, and every inventory item the reader did not pick up where it mattered, is a defect: fix it, and fill the RUNS row's read-back rounds and defects fixed; commit the fixes (and push them, as in step 4) before any second read-back, which reads what is committed. If a fix changed (1) to (4), read back once more. At most two read-backs; what still differs goes in the message below.
+6. **Hand over to the person.** If the session is in a worktree, leave it and keep it (`ExitWorktree` `keep`), since everything is committed. Then one short message:
+   - what you fixed after the read-back, one line each;
+   - anything that waits on them, with your recommendation;
+   - the line to paste, in a code block, written for this project in plain words: where to read (the record's section and anything the project's own form adds, such as a work list), from which branch and how (as the reader's prompt says), to run its "How to check it still works" step, where the project's instructions say how to take up a piece of work, to do that before working on it, and then: "Tell me briefly, one short labelled section per concern, in this order: the essential statement and how this fits the larger work; how the work runs (from its source), quoting my rulings; where it stands (including whether that check passed); your first action (checked against git log that it is not already done). Then wait for me."
+   - "Type /clear, then paste that line. This tab carries the work on. If the fresh session goes wrong, `/resume` brings this one back."
+
+   Their one judgment is the fresh session's playback; do not ask them to judge the reader's as well.
+
+## Gotchas
+
+- **Never a fork for the reader.** It would pass the test by remembering, not by reading.
+- **The reader and the successor read what is committed, never by pulling.** A pull or rebase changes a folder other sessions may share, and a folder behind its remote shows an old record. `git fetch` plus `git show <remote>/<branch>:<path>` does neither.
+- **One current status, near the top.** A stale status line anywhere in the record is read as current by a fresh session.
+- **Quote the person; do not summarise them.** A paraphrase of a ruling is the defect a fresh session cannot detect.
+- **The record's dated log grows; the current section does not.** Replace the section each round rather than appending to it. Not yet settled: when the log should move to an archive file the next session reads only on request.
+- **The person correcting the successor's playback means this skill missed something.** Record it in `RUNS.md` and fix the procedure here, not the one record.
