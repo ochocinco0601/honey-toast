@@ -426,5 +426,8 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
     sys.exit(main(sys.argv[1:]))

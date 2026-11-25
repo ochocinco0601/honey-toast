@@ -9,29 +9,21 @@
   first look writes the system's names down, the check on the session's own words knows only the kit's words: a
   system called "Unit Manager" or "Receipts" is named in quotes, and one whose name looks like an id ("S3 uploader")
   may have to be described rather than named in that first message.
-- **A unit of stock, a receipt, a cash register or a merge of baskets in the session's own sentences** is refused
-  unless the register itself uses those words, so the session says them another way.
 
 ## The home screen
 
-- **A topic tick that could not be put back is counted, not named.** Words are quoted on the line at the top; a
-  tick is only counted ("1 tick"), and the line says what it was about is gone even where that place now asks for
-  your choice.
-- **Clear in one drop-down can leave a later milestone without its earlier ones.** For example: tick Alerts, then
-  Runbooks in its own drop-down, then Clear in the Alerts drop-down. Runbooks stays ticked alone. A Done is then
-  refused with the reason and nothing is recorded; tick the earlier milestones and send again.
-- **Two answers on their way at once, the first refused:** a change made after the second press can be taken as
-  sent. It needs a refused answer, which the page does not cause on its own.
-- **A browser set to send no page address with its requests files every answer under the work folder, not the
-  run's own folder,** so the session is not told of it; the page still says it was saved. Say "read it" in the chat
-  and the session reads it from there.
 - **If your browser unloads the page's tab to save memory, or closes without warning, a tab you close later may not
   be opened again.** Open the address the session gives you in the chat to bring it back.
 - **Stopping the page's listener at a run's end stops the page of any other run in the same work folder.** Run
   `wait_on_page.py` for that run again to bring its page back.
-- **The kit's instructions do not yet describe Clear, the line about ticks and words put back, or the quoted
-  words,** so a session asked why words did not come back answers from the page's own line, not from the
-  instructions.
+- **A search's question says which flow it affects only where the first look's note names a service of that flow by
+  name;** "the basket database" is not tied to the basket service's flows. Such a card says "not tied to a flow in
+  what I found", and its Why says only that the code does not show it.
+- **An alert's card says when it fires as "a level not set yet"**: the register holds no threshold, and whom it wakes
+  is the proposed owner of the part its measure is taken from.
+- **A hold met mid-run by another chat holding the work, and the refusal that offers to put open items right after a
+  go, still tell the session to ask in its own words;** the session asks in a question card, and `say` checks the
+  card.
 
 ## Picking how far each stage goes
 

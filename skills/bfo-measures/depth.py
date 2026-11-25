@@ -43,8 +43,8 @@ NOT_STARTED, DRAFT, REVIEWED = "not started", "draft", "reviewed"
 REVIEWED_OPEN = "reviewed, with open items"  # the go is recorded on a draft its own check still fails
 PICKED, NOT_PICKED, NO_PICK = "picked", "not picked", "no pick recorded"
 MILESTONES = ("Identified", "Mapped", "Measures defined", "Alerts defined", "Runbooks written")
-# The ticks offered at the pick of how far each stage goes, in order, and the depth the furthest one ticked records
-# (go.py --depth); no tick is mapped only. One place: depth.json offers them and go.py --answers reads them back.
+# The levels of the pick of how far each stage goes, in order, and the depth each records (go.py --depth); none of
+# them is mapped only. One place: depth.json names them for the home screen; the person picks in the chat.
 DEPTH_OPTS = {"Measures defined": "measure", "Alerts defined": "alerting", "Runbooks written": "runbooks"}
 REVIEW_OPTS = ("Keep", "Drop")  # each proposed alert, kept in the draft or dropped from it: never approved
 FLOW_OPT = "Mapped"  # the one tick per flow at the go: this flow is mapped first
@@ -159,7 +159,7 @@ def stage_record(reg, R, fid, st, depth, scope, rec, gapped, vm, opened=None):
     pick = depth.get(sid, "none") if depth is not None else None
     reaches = REACHES.get(pick, ()) if pick is not None else None
     out = {"stage": sid, "name": st.get("name"),
-           "order": int(st["order"]) if str(st.get("order", "")).isdigit() else None,
+           "order": int(st["order"]) if str(st.get("order", "")).isdecimal() else None,
            "pick": pick if pick is not None else NO_PICK,
            "recorded_depth": pick,  # the depth go.py recorded (scope.json), or None: never read from the outputs
            "entry": st.get("entry"), "exit": st.get("exit"),
@@ -222,7 +222,7 @@ def stage_record(reg, R, fid, st, depth, scope, rec, gapped, vm, opened=None):
 def flow_record(reg, R, f, o_flow, scope, scoped, VM):
     fid = f.get("flow_id")
     stages = sorted([s for s in R["stages"] if s.get("flow") == fid],
-                    key=lambda s: int(s.get("order") or 0)) if fid else []
+                    key=layout.stage_order) if fid else []
     depth = scope.get("depth") if scoped and isinstance((scope or {}).get("depth"), dict) else None
     aside = next((a.get("why") for a in table(reg, "set-aside") if (a.get("kind") or "").strip() == "other flow"
                   and (a.get("attaches_to") or "").strip() == fid), None) if fid else None
@@ -301,7 +301,7 @@ def scoped_flow_id(R, scope):
 
 
 def flow_stages(R, fid):
-    return sorted((s for s in R["stages"] if s.get("flow") == fid), key=lambda s: int(s.get("order") or 0))
+    return sorted((s for s in R["stages"] if s.get("flow") == fid), key=layout.stage_order)
 
 
 def open_choice(reg, R, o, scope, current, stop):
@@ -429,7 +429,7 @@ def main(argv):
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
     run_lock.refuse_unless_register(argv)
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     args, recommend = list(argv), None
     if "--recommend" in args:
         i = args.index("--recommend")
@@ -453,4 +453,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

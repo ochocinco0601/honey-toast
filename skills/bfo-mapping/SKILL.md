@@ -14,30 +14,34 @@ inside this folder too.
 <!-- shared: start-here-before-you-write-anything-to -->
 **Start here, before you write anything to the person.** Your first action is a tool call, the start step:
 `python "<skill>/start.py" "<workspace root>" --request "<their request, word for word>" --gave <code, name or
-nothing>` ("The start step", below, says which). **Nothing is read before the person's Start.** On a fresh start, or a
-case picked up, it prints a `SAYBACK:` line instead of a message: draft what you understood (the lines it names, each
-short, in their words, from their request and the folders' names alone) and run `say_back.py draft` as it says.
-That script puts the lines on the run page as a review step, with one Start and one box for a correction, and prints the
-chat's one line after `MESSAGE:` and the wait after `WAIT:`. Start that wait, and send the text after `MESSAGE:`,
-exactly as printed, as your whole reply this turn, with no text before it, not even a line that you are starting
-something; then end your turn. Start no helper and open no code until their Start. A script's output left inside its
-tool call never reaches the person. On a case picked up, no page asks it: `MESSAGE:` holds the lines themselves and asks,
-with numbered choices, whether to carry on or change a line, in the chat, and no `WAIT:` is printed; send it and end your turn.
+nothing>` ("The start step", below, says which). **Nothing is read before the person answers the say-back.** On a
+fresh start, or a case picked up, it prints a `SAYBACK:` line instead of a message: draft what you understood (the
+lines it names, each short, in their words, from their request and the folders' names alone) and run
+`say_back.py draft` as it says. That script prints the say-back after `MESSAGE:` as a question card: the lines in a
+table, then the choices (start, fix a line, or not sure: start and check the lines they cannot against the code; on a
+case picked up, carry on, fix a line or new work); send the text after `MESSAGE:`, exactly as printed, as your whole reply this turn, with no
+text before it, not even a line that you are starting something; then end your turn. Start no helper and open no code
+until they answer in the chat. A script's output left inside its tool call never reaches the person.
 <!-- /shared: start-here-before-you-write-anything-to -->
 
 <!-- shared: their-answer-to-the-say-back -->
-**Their answer to the say-back** comes from the page (an `ANSWERS` line whose file holds `say_back`) or typed in the
-chat. Record it with `python "<skill>/say_back.py" answer "<the folder you drafted in>" --answers "<file>"` or
-`--words "<their words, word for word>" --as <your reading>`, and on a fresh start with `--register
-"bfo-work/<the system's name>"` at the workspace root, the register folder you name for the first look (it refuses a
-folder that already holds a register, and names the `-<date>` rule). The reading is yours, from what they meant, never
-from a list of words: `start` for a go in any wording ("continue", "looks good", "1"), `correct` for a line to
-change, and while the search is asked `search-yes` or `search-no`. If you cannot tell what they meant, ask them in
-one line, through `say`, and record nothing. On `STARTED`, do what it says: on a fresh start, start the first-look
-helper ("The first look runs in one helper", below) with their request and the lines they started, and send one line,
-through `say`, that the first look is under way; on a case picked up, carry on with what the last line proposed.
-On `CORRECTED`, redraft the lines with their correction, run `say_back.py draft` again, send what it prints, and wait
-again. When the code is not open in this window, give the lines a `search` too (where you propose to look, from the environment): the page then asks that one question, with Yes and No and no Start, and their answer is recorded the same way. On `SEARCH AGREED`, search there and draft the lines again with what was found, so Start appears; on `SEARCH DECLINED`, search nothing and ask them to point at the code. Start never stands for a yes to a search. `go.py --answers` refuses a say-back answer and names this command.
+**Their answer to the say-back** is typed in the chat. Record it with `python "<skill>/say_back.py" answer "<the
+folder you drafted in>" --words "<their words, word for word>" --as <your reading>`, and on a fresh start with
+`--register "bfo-work/<the system's name>"` at the workspace root, the register folder you name for the first look
+(it refuses a folder that already holds a register, and names the `-<date>` rule). The reading is yours, from what
+they meant, never from a list of words: `start` for a go in any wording ("continue", "looks good", "1") and for "not
+sure" (choice 3: start, and check those lines against the code in the first look), `correct` for a line to change,
+and while the search is asked `search-yes` or `search-no`. If you cannot tell what they meant, ask them again in a
+question card, through `say`, and record nothing. On `STARTED`, do what it says: on a fresh start, start the
+first-look helper ("The first look runs in one helper", below) with their request and the lines they started, and
+send one line, through `say`, that the first look is under way; on a case picked up, carry on with what the last line
+proposed. On `CORRECTED`, redraft the lines with their correction, run `say_back.py draft` again, send what it prints,
+and wait again. When the code is not open in this window, give the lines a `search` too (where you propose to look,
+from the environment): the card then asks that one question, yes or no, and offers no start until it is answered;
+their answer is recorded the same way. On `SEARCH AGREED`, search there and draft the lines again with what was found;
+on `SEARCH DECLINED`, search nothing and ask them, in a card, to point at the code. A start never stands for a yes to a
+search. Everything after the start runs as below: the capability brief, the pick of how far each stage goes, and the
+reviews.
 <!-- /shared: their-answer-to-the-say-back -->
 
 ## The job this serves
@@ -54,7 +58,10 @@ drawn as the map's page, with the map's own inspection. The register is the capa
 flow: a further flow is added beside the finished ones, and changes none of their rows. It stops there: deciding what to count, alerts and
 runbooks are later steps, done by other skills on what this one hands on (the measures skill, `bfo-measures`, or the
 stage kit, which takes the stages the person picks on to measures, alerts and runbooks). **Done:** the next step can
-work from the map alone, the map is faithful to its sources, and its inspection says what is missing. How faithful
+work from the map alone, the map is faithful to its sources, and its inspection says what is missing. One part that
+does not fit never stops the whole run: a check that cannot confirm something in a source's own words (a quote, a
+name, a field's wording) never refuses the run; it goes to a judgment, and the person is shown what was not
+confirmed. How faithful
 depends on the mode chosen at the go. In the full reading, every finding that cites code is checked against it by
 readers who wrote none of it, and one still in doubt is shown as not confirmed. Run alone, this skill always takes the full reading, for now: it has no pick of how far each stage goes, which the fast map needs. In a fast map (every run of the stage kit in this release; run alone, `go.py` refuses `--fast`), one
 agent reads the picked stages' code and maps them in one pass; a script checks that every cited range exists and
@@ -64,8 +71,9 @@ knows what they are trusting.
 <!-- shared: agent-types-before-a-run -->
 **Before a run,** the agent types it launches are installed in the project's `.claude/agents/` (copied from this
 skill's `agents/` folder) before the session starts: `bfo-source-reader` (the first look's source readers),
-`bfo-flow-mapper` (the fast map), `bfo-unit-reader` and `bfo-row-judge` (the full reading's readers and judges).
-Each step that launches one refuses, naming the copy step, while it is missing.
+`bfo-flow-mapper` (the fast map), `bfo-unit-reader` (the full reading's readers) and `bfo-row-judge` (the full
+reading's judges, and the first look's judges of the quotes the helper copied itself). Each step that launches one
+refuses, naming the copy step, while it is missing.
 <!-- /shared: agent-types-before-a-run -->
 
 ## Run alone, or from the stage kit
@@ -78,11 +86,10 @@ names, and at the map stop go back to the kit's `SKILL.md` for the pick of how f
 ## Your first message: the say-back
 
 <!-- shared: the-first-message-is-the-say-back-s -->
-The first message is the say-back's one line, printed by `say_back.py draft` ("Start here", above); the lines
-themselves are on the run page, never in the chat. `--gave` is `code` when the request pointed at the system's code
+The first message is the say-back's card, printed by `say_back.py draft` ("Start here", above), in the chat. `--gave` is `code` when the request pointed at the system's code
 (its repositories, a link to its code, or "this application" with its code open here); `name` when it named only
 the system, with `--system "<the system's name, as the person said it>"`; `nothing` otherwise. With `nothing`, the
-start step's MESSAGE asks which system, in one line: send it as printed, end the turn, and when they answer, draft
+start step's MESSAGE asks which system, in a card: send it as printed, end the turn, and when they answer, draft
 the say-back from their answer (`say_back.py draft` on the work folder) without running the start step again.
 Where and how to search is taken from the environment the run is in (its own instructions, tools and sources),
 never from a fixed place, and the run searches only where the person agrees.
@@ -91,8 +98,8 @@ never from a fixed place, and the run searches only where the person agrees.
 <!-- shared: when-only-a-name-was-given -->
 When only a name was given, look, without reading any file, at whether the folders open here hold that system's
 code (their names alone). If they do not, the code line says so and where you propose to look ("When the system's
-code is not here", below), and give the lines that place as their `search`: the page asks them Yes or No to that
-search before Start appears, and a correction of that line is where they would rather you looked. Once a helper is started, write nothing more until its reply, except as below when the
+code is not here", below), and give the lines that place as their `search`: the card asks them yes or no to that
+search before it offers the start, and a correction of that line is where they would rather you looked. Once a helper is started, write nothing more until its reply, except as below when the
 person writes.
 <!-- /shared: when-only-a-name-was-given -->
 
@@ -126,8 +133,7 @@ up, `say_back.py draft` puts the lines in the chat instead. When it prints a `SA
 and a case picked up on DECISION resume), draft the say-back as "Start here" says. On DECISION choose or held, and on
 resume of a register that keeps no case record, your message is exactly the text it printed after MESSAGE (the
 re-entry brief or the question, and the page's address at its end), and nothing else, and
-you end your turn: no helper starts. When it printed a `WAIT:` line (on resume at a stop where the page takes a
-pick: the go, the next flow), start that wait before you end your turn, as at every stop. Send it even when the person's request names other work: the message offers to start new work instead, and their answer decides. On finish-first-look or fresh, the helper below starts on their Start, and writes into the
+you end your turn: no helper starts. Send it even when the person's request names other work: the message offers to start new work instead, and their answer decides. On finish-first-look or fresh, the helper below starts on their start, and writes into the
 folder the page is already serving; `start_register.py` refuses a new register until the start step has run for this
 run.
 From then until the first look's brief, a second start step on
@@ -137,12 +143,20 @@ returns blocked and the run starts over, end that mark first with `python "<skil
 <!-- /shared: the-start-step-comes-first-in-this-sessi -->
 
 <!-- shared: the-first-look-runs-in-one-helper-so-not -->
-**The first look runs in one helper, so nothing of the setup reaches the person.** On their Start (`STARTED` from
+**The first look runs in one helper, so nothing of the setup reaches the person.** On their start (`STARTED` from
 `say_back.py answer`), start one subagent with the Agent tool (general-purpose), with the pointer line `say_back.py`
 printed after `STARTED` as its whole prompt and nothing else: the script wrote the helper's task, with the person's
 request, the say-back's lines and the start step's lines, into the register's `prompts/`, so the run's checks know the helper by it. The helper starts the first
 look's source readers itself (one `bfo-source-reader` per source that is not code, or one part of one, when
-`first_look.py fetch` says split); it launches nothing else before the go. Claude Code
+`first_look.py fetch` says split); it launches nothing else before the go except, below that size where it reads the
+sources itself, one fresh `bfo-row-judge` per quote the exact search missed (`first_look.py quote-judges`), since it
+copied those quotes. Before its brief each miss (`first-look/quote-check.csv`) is settled as the mapping skill's
+phase 0 says, by a party that copied none of them (the helper, for the readers' quotes; a fresh judge, for its own).
+Only when three judge prompts for a row gave no verdict, or the judge agent is not installed, does the helper settle
+its own quote, with a note saying why, and the brief shows that row to the person as settled by it. A miss is
+judged and, when not in the source, dropped and listed in the brief, never a stop. A line a script prints that
+begins ADVICE is for you, never part of a message: a word the person may not know is advice, and only this run's
+own ids and file names are refused; words inside double quotes, a source's own, are never judged. Claude Code
 runs it in the background: in an interactive session (terminal, VS Code, desktop app) a session cannot wait for a
 subagent while fork mode is on, as it is by default (Claude Code's documentation,
 code.claude.com/docs/en/sub-agents: "Which subagents run in the background", "Let Claude wait for a subagent",
@@ -151,16 +165,16 @@ that starts it sends one line that the first look is under way before you start 
 `say_back.py` printed after `MESSAGE:`, exactly as printed, then start the helper in the same response, so the
 person hears from the run within the first minute whether Claude Code runs the helper in the background or waits on
 it. The helper's reply reaches you later as a completion notification, in a turn of its own, and that turn sends the
-brief. A reply that begins "The first look is held" is the person's choice, not a brief: send it as it is, start
-nothing, and record their answer with `python "<skill>/first_look.py" answer <your-folder> <1, 2 or 3> --words "<their
+brief. A reply that is a card about the tool that lists where the code calls out is the person's choice, not a brief: send it
+as it is, start nothing, and record their answer with `python "<skill>/first_look.py" answer <your-folder> <1, 2 or 3> --words "<their
 words>"`; on 1 or 2, start the helper again as that command says. Before the code reader, the first look checks
 this computer and the sources it was given, within a minute, so a run set up wrong stops before its costly work (a
 scan the timed sample says will not fit the code reader's time is a warning on the run status page, not a stop): a
-reply that begins "The run is held before the first look" lists what failed in the sources, the folders or this
-computer, each with its fix, and is the person's choice too: send it as it is, start nothing, and record their
+reply that is a card about the setup check lists what failed in the sources, the folders or this computer, each with
+its fix and who can fix it, and is the person's choice too: send it as it is, start nothing, and record their
 answer with `python "<skill>/preflight.py" answer <your-folder> <1 or 2> --words "<their words>"`; on 1, start the
 helper again as that command says, and it checks again; on 2 the run stops there, as they chose, and nothing
-starts. A failure of the code reader itself comes as "The first look is held", above. A later turn that starts the helper again (after a search) sends one line through `say` that the first look
+starts. A failure of the code reader itself comes as the card about that tool, above. A later turn that starts the helper again (after a search) sends one line through `say` that the first look
 is under way again, before it starts the helper. If the person writes while the first-look helper is still running, answer in one line
 through `say` that the first look is still under way and its brief follows when it is done, and start nothing: no
 second helper, no start step. The register folder you named with `--register` is `<your-folder>` from then on. When it returns
@@ -172,14 +186,16 @@ under way.
 
 <!-- shared: when-the-person-answers-the-brief -->
 **When the person answers the brief**, record their picks with `go.py` (phase 0, "Their answer is recorded as data"),
-unless they agreed to a search: then search first and brief again, as phase 0 says there. The brief numbers what
-it needs under *What I need from you*: item 1 the flow, then one item per search it proposes. Record the searches
+unless they agreed to a search: then search first and brief again, as phase 0 says there. The brief asks what it needs in question cards, numbered "1 of N": card 1 the flow, then one card per search it
+proposes; a card about who owns the system's parts, or about what only the person can say ("Do you know ...?"), asks them
+first. On either, "Tell me", "Not known" and "Skip" are each `--searches <n>=no --words "<their words>"`, never a
+yes; only the owners card's "Search" is `<n>=yes`. Record the searches
 by number with `--searches 2=yes,3=no`, beside `--flow` when the same answer picked the flow, or alone with
-`--words` when it answers only the searches. An item they leave unanswered is never taken as a yes or a no: when
+`--words` when it answers only the searches. A card they leave unanswered is never taken as a yes or a no: when
 `go.py` prints `STILL TO ANSWER`, send what follows it exactly as printed, wait, and record their answer
 with `--searches`; no reader is launched while a search is unanswered, and on `SEARCH AGREED` search as phase 0
-says. At every stop the same holds: an answer that leaves a numbered item unanswered is never taken as a yes;
-record what was answered and ask only the open items again, numbered as before. `go.py` prints a status line;
+says. At every stop the same holds: an answer that leaves a card unanswered is never taken as a yes; record what was
+answered and ask only the open cards again. `go.py` prints a status line;
 then write a sentence or two saying what was recorded and what happens next, through `say`, and send what
 `say` printed, whose status line takes the place of the one `go.py` printed. When they answer which earlier work to carry on (DECISION choose), run `python "<skill>/start.py"
 "<workspace root>" --resume "<that folder>"`, the FOLDER lines being in the order the list numbers them, and follow
@@ -200,14 +216,31 @@ follow its DECISION the same way; never release it without their say-so. A test 
 - **Every later message opens with the status line**, copied exactly from `python "<skill>/brief.py" status
   "<your-folder>"` run just before you write it, or as `say` or a script prints it. Never type the line yourself,
   and never send two.
-- **Write to the person only at the points this file names:** the say-back's one line (or the start step's
+- **Every question is a card, asked and answered in the chat.** A question to the person is a Markdown
+  blockquote card, as the scripts print them: a one-line title (`> **❓ ...**`, "1 of N ·" when a message holds
+  several), `> **Label:** value` fields one line each (What, Look where, Affects, Why, Cost, Who can fix, Fires when,
+  Wakes, Terms as fits), a table for a list of like things, numbered choices `> 1. **Verb**: what happens` that name
+  who acts, `> **Recommended: N** · reason`, and how to answer. No paragraph inside a card. Write each for someone
+  who knows nothing of the system, its flows or the kit; the kit's own words are defined in a Terms field the first
+  time a run uses them. A card you write yourself goes through `say`, which refuses one without its Why, its
+  choices or its recommendation, or with a stray line of prose in it. A long field or cell, or a question mark
+  outside a card (a step's name, a web address), is advice, never a refusal; refused three times running, the fourth
+  try is sent with a line saying which check it did not meet. The capability brief's refusal of this run's own ids or
+  file names in what you wrote is not capped, because you can always clear it by saying the thing in the person's
+  terms. The pages are
+  displays only: never send the person to a page for an answer; while the run waits, the pages show "Waiting on you:
+  answer in the chat".
+- **Write to the person only at the points this file names:** the say-back's card (or the start step's
   MESSAGE, where it prints one), the line that the first look is under way, the capability brief or the re-entry brief,
   the map stop (phase 3) and the offer of the next flow there, a question that
   needs their judgement, a plain message that the run
-  is blocked and why. Between
-  tool calls, write nothing to them: no narration of what you are about to do.
-- **Bookkeeping is never said to the person:** the run record and its phases, the wait on the page and starting it
-  again, the listener, the lock and the kit's files are kept silently. A line such as "the page's watch for your
+  is blocked and why. Any text
+  you write between tool calls reaches the person, so it is empty: no narration of what you are doing or about to do
+  ("I'm reading the checkout code now"). When an agent returns, its reply ends "send nothing to the person": write
+  nothing, not even a count of agents back ("three of eight are back"). When run control or a launch prints
+  SEND NOTHING, that holds when an agent is launched, when one returns and while others run: no line such as "the
+  payment service is mapped; five agents are still running"; the run status page shows progress.
+- **Bookkeeping is never said to the person:** the run record and its phases, the listener, the lock and the kit's files are kept silently. A line such as "the page's watch for your
   answers is running again" or "phase 6 isn't marked done yet; I'll set it" is never sent. Any text you do send goes
   through `say`, which refuses those words.
 - **Plain words.** They know the business but not this kit and not this system. Name flows, stages, steps and
@@ -260,8 +293,8 @@ the first folder), never in the skill folder;
 it is `<your-folder>` in `MAPPING-STEPS.md`. Take `<your-folder>` from the `FOLDER:` line `start.py` printed for the
 run picked up (on choose, the one the person picked), or on fresh the folder you named for the first-look helper,
 which `start_register.py` prints back on its own `FOLDER:` line; never from a listing of the work folder. `bfo-work/`
-also holds `answers/`, where the page saves what the person sends, and a listing can put it first: the home screen is
-then drawn in the wrong folder and the person's page shows an error instead of it. A script handed a folder that is
+can hold other folders that are not registers, and a listing can put one first: the home screen is then drawn in the
+wrong folder and the person's page shows an error instead of it. A script handed a folder that is
 not a register refuses it and names the register folders it found; run the command again with the one it names. Run the kit's scripts from the skill folder, exactly as `MAPPING-STEPS.md`
 writes them, with `<skill>` replaced by the skill folder's path.
 <!-- /shared: a-run-is-four-phases-0 -->
@@ -343,48 +376,24 @@ first phase that is not done.
 <!-- /shared: run-md-is-kept-as-you-go -->
 
 <!-- shared: waiting-on-the-home-screen -->
-**Waiting on the home screen**, at each stop where the run waits on the person's pick: the flow to map first, and the next flow once one is finished. Before you send that stop's message, run `python "<skill>/wait_on_page.py"
-"<your-folder>"`. It writes `depth.json`, draws the home screen (`index.html`, by `home.py`) and writes `resume.md`,
-and brings up the page itself: it starts the listener when none is serving (it outlives the call) and opens the
-person's browser on this run's home screen unless the page is already open there. If it prints `OPEN FAILED`, open
-the address in the person's browser yourself, as that line says, before you write to them. Your message is what
-`brief.py` printed, exactly as printed (it ends with the page's address), then one line, through `say --after`,
-saying the run is waiting on them
-there. If it refuses (the
-page could not be started), say in one plain sentence, through `say`, that the page could not be opened, and take their answer in
-the chat. Then start the wait it printed. The wait is the watch, started with the Monitor tool (timeout_ms
-1800000), when the Monitor tool is in your tool list or ToolSearch finds it (`select:Monitor`). Without it, the wait
-is `page_ask.py poll` (the command is printed), run as a background task and run again each time it exits, with
-answers or with TIMEOUT after 30 minutes. When a poll exits, handle every `ANSWERS` line in its output (as below)
-before running it again, because a file announced once is never announced again; each run is a new task, so the task
-id to keep is the poll running now's. Keep a wait running from the first stop to the run's end, as the person can send
-topics at any time. Check for Monitor each time you start a wait, and never run two at once. One listener serves the whole run, so the page stays in its one tab: at a
-later stop it says the listener is already serving, and the open page, which checks for changes by itself, shows the
-new choice within about 15 seconds (unless ticks or words on it are not yet sent: it then says so at its top and
-waits for them to be sent or cleared); then start the wait only if none is running (a poll has exited once it
-announced the last stop's answers). **On a `PROGRESS` line** (a watch event, or a line in a finished poll's output,
-printed while a flow is mapped, each time a part of the map is written), send nothing to the chat and end your
-turn: the run page, the work page and the home screen show the same line, and the chat carries nothing while
-mapping runs unless the person is needed. Between stops write no line of your own about the work's progress either. **On an `ANSWERS <path>` line** (a watch event, or a line in a finished poll's output), read that file, record it with
-`python "<skill>/go.py" "<your-folder>" --answers "<path>"`, and say back in a line or two what was recorded, then
-"you asked to talk about: ..." with the topics `go.py` printed after that phrase, and talk with the person about
-them, through `say`. A tick at any other milestone (talk:) and the words typed in any drop-down are those topics: recorded in
-`RUN.md`, never a pick. A post of topics alone records no pick; at the pick, words with no tick record no pick either,
-so ask in the chat, through `say`, how far each stage goes. On a refusal, say why in plain words, through `say`, and how to answer
-again (a
-refused answer whose words agree to a search is that yes: phase 0, "A yes to a search"); still talk
-about any topics in the file. Every record draws the home screen again, and the open page shows it within about 15 seconds; it never reloads over
-ticks or words not yet sent, and says at its top to send or clear them first. Opening or closing a drop-down
-changes nothing. If the
-person says "read it", read the newest file that `go.py` has not recorded already in `<your-folder>/answers/`, or else in the `answers/` of the folder above it when that is the work folder, and record it the same way; if there is none,
-ask the question in the chat, through `say`. An answer typed in the chat is recorded with `--flow` or `--depth`, as below. When the
-wait ends (the watch expires, or a poll exits), start it again the same way. After a restart, or in a new chat that
-picks the run up at a stop, run `wait_on_page.py` again first: it brings the page back if its listener has gone, and opens it; in a new chat whose start step sent its MESSAGE, that already gave the person the address, so give no second one; after any other restart, give the address with what `python "<skill>/brief.py" page "<your-folder>"` prints. When you start the wait, keep its task
-id (for a poll, the newest run's). A stop is answered only when `go.py` records a pick; a post of topics alone, words with no tick
-at the pick, and a refusal are not answers, so the run still waits there. Keep the wait running between stops, and
-through the offer of the next flow; once the map stop's message is sent at its end and no flow is left to offer, or the
-person says stop at that offer, stop the wait by its task id, with the tool that stops a background task, and
-the listener with the stop command it printed.
+**The page while the run waits**, at each stop where the run waits on the person: the flow to map first, and the next flow once one is finished. Before you send that stop's message, run
+`python "<skill>/wait_on_page.py" "<your-folder>"`. It writes `depth.json`, draws the home screen (`index.html`, by
+`home.py`), which then says "Waiting on you: answer in the chat", and brings up the page itself: it starts the
+listener when none is serving (it outlives the call) and opens the person's browser on this run's home screen unless
+the page is already open there. If it prints `OPEN FAILED`, open the address in the person's browser yourself, as
+that line says, before you write to them. Your message is what `brief.py` printed, exactly as printed: its question
+cards, and the page's address at its end. The question is asked and answered in the chat; nothing is answered on the
+page, and you start no wait on it: their answer arrives as their next chat message. On a refusal, say why in plain
+words, through `say`, and ask again in a card. If it refuses (the page could not
+be started), send the stop's message all the same. One listener serves the whole run, so the page stays in its one
+tab: the open page checks for changes by itself and shows each redraw within about 15 seconds, and while a flow is
+mapped the listener draws the home screen again as each part of the map is written. The chat carries nothing while
+mapping runs unless the person is needed; between stops write no line of your own about the work's progress. After a
+restart, or in a new chat that picks the run up at a stop, run `wait_on_page.py` again first: it brings the page back
+if its listener has gone, and opens it; in a new chat whose start step sent its MESSAGE, that already gave the person
+the address, so give no second one; after any other restart, give the address with what `python "<skill>/brief.py"
+page "<your-folder>"` prints. Once the map stop's message is sent at its end and no flow
+is left to offer, or the person says stop at that offer, stop the listener with the stop command it printed.
 <!-- /shared: waiting-on-the-home-screen -->
 
 0. **Frame, gather, survey and plan** (MAPPING-STEPS "Before you start").
@@ -447,7 +456,25 @@ the listener with the stop command it printed.
    files and the documents. Read no service in depth: that waits for the person's picks. Every source that is not code
    is read by the first look's source readers (`first_look.py fetch`, then one `bfo-source-reader` per pointer line
    `first_look.py prompts` prints, or the helper itself below the size where one pass is enough), and the brief is
-   written from what they recorded; the helper reads the documents itself only in that single pass. From what you read and the
+   written from what they recorded; the helper reads the documents itself only in that single pass.
+   **Settle the quotes the exact search missed.** `first_look.py check` writes each quote or name a reader copied that
+   it did not find word for word to `first-look/quote-check.csv`, with where it looked, why (`no exact match`,
+   `source not readable as text`, `connector copy differs`) and the nearest passage, when one shares words with it.
+   The quotes are judged by an independent party, one that copied none of them. In the split pass the source readers
+   copied them, so you judge them: for each row, open the cited place in the source (an image or a PDF, look at it)
+   and set `verdict` to `found` (the wording differs only in form), `paraphrase` (the meaning is there, the words are
+   not), `not in source`, or `unchecked` (you cannot open it or cannot tell: the lead is kept, never called absent,
+   and the person is shown it), with a one-line `note`. In the single pass you copied them yourself, so you do not judge them:
+   run `python "<skill>/first_look.py" quote-judges "<your-folder>"` and start every line it prints in one message,
+   each as its whole prompt, as a `bfo-row-judge` subagent, in the foreground; `first_look.py check` takes each
+   judge's verdict from its file (a verdict you set yourself does not count). Only two cases make a quote you copied
+   yours to settle: `quote-judges` has written three prompts for the row with no verdict back (it then prints no line
+   for it), or the judge agent is not installed (the check says so). Then set it yourself, with a note saying why; the
+   check marks the note as settled by you, and the brief shows the person that row as not independently checked. A row with no verdict is the only thing this holds the
+   brief for. A lead
+   whose quote is `not in source` is left out of the merge and the brief, and the brief lists each such quote, and each name taken out of a
+   lead as not in its source, with the nearest passage, so the person sees it; it lists too, each labelled, every row left `unchecked` and every row you
+   settled yourself, so nothing not independently confirmed is hidden from them. From what you read and the
    survey, write `orientation.json` in the register folder, in the person's words, as MAPPING-STEPS item 7 sets out:
    what the work is for and what this run will produce, in your own words (it is how the person judges that the run
    understood its job); the capability (what it does, for whom); every service the survey lists,
@@ -456,8 +483,8 @@ the listener with the stop command it printed.
    map found and what it changes for this run; and your recommendation (which flow to start with and why, and which
    flows remain after this run). Say nothing here about which stages get measures, alerts or runbooks: the person
    picks that once the flow is mapped. Then run `python "<skill>/brief.py" capability
-   "<your-folder>"`. It refuses an incomplete or jargon-bearing `orientation.json` and says why: fix it and run it
-   again. When it passes it writes the full brief to `PLAN.md` and prints the **capability brief** for the chat:
+   "<your-folder>"`. It refuses an incomplete `orientation.json` and says why: fix it and run it again. Words a
+   reader may not know are advice it prints for you, never a refusal: rewrite them if a plainer word says the same. When it passes it writes the full brief to `PLAN.md` and prints the **capability brief** for the chat:
    the question and your recommendation first, then what a yes does and what was found, as lists. When they ask
    for the detail (each flow's stages, each service and why, what is still open), show them `PLAN.md`.
    **When the person's request already asked for every flow** (for example "map every business flow", or "the
@@ -465,7 +492,7 @@ the listener with the stop command it printed.
    work to choose between, no search the brief asks about), do not stop for the first flow: run it as
    `python "<skill>/brief.py" capability "<your-folder>" --from-request`, which reads the request the run record
    keeps (the start step recorded it, word for word). It records the recommended flow as their go, with the request's words, and prints the brief
-   led by the line that says so, ending with what they can stop or change. Send it as printed, start the wait on
+   led by the line that says so, ending with what they can stop or change. Send it as printed, ready the page on
    the home screen (below) so a stop or a change reaches you, and go on in the same turn to phase 1. A search
    proposed under what is still open is never run without their yes, and a change they ask for (another flow
    first, other services read) is recorded as phase 0 says for their answer.
@@ -499,14 +526,12 @@ the listener with the stop command it printed.
    wait again. A yes to a search the brief proposed is such a change, and records no go: search there, add each
    repository found as above, run `survey.py` and the code reader again, update `orientation.json` (its services,
    flows and what is still open), run `brief.py capability` again and wait again. If the same answer also picked a
-   flow, make that flow the recommendation, so the next stop asks them only to confirm it. From the home screen the
-   yes comes in the words: with a flow ticked, `go.py --answers` records the go at once, so search and survey as
-   above, update `orientation.json` with each service found and whether you recommend including it, then record the
-   go again with `python "<skill>/go.py" "<your-folder>" --flow "<the flow they ticked>" --words "<their words>"`,
-   which replaces it and takes its services from the new survey and those recommendations, and tell them in a short message, through `say`, which services were added, your recommendation for each, and any flow or open question the search
-   turned up, so they can change it; with no flow ticked, `go.py` refuses the answer, and its words, where they agree to a
-   search, are that yes all the same: search, survey and brief again. A topic sent from the home screen that agrees
-   to a search is that yes too. A run's done is not the capability's done: the done check owes what their pick of how far each stage
+   flow, make that flow the recommendation, so the next stop asks them only to confirm it. When a go was recorded
+   already and they then agree to a search, search and survey as above, update `orientation.json` with each service
+   found and whether you recommend including it, then record the go again with `python "<skill>/go.py"
+   "<your-folder>" --flow "<the flow they picked>" --words "<their words>"`, which replaces it and takes its services
+   from the new survey and those recommendations, and tell them in a short message, through `say`, which services were
+   added, your recommendation for each, and any flow or open question the search turned up, so they can change it. A run's done is not the capability's done: the done check owes what their pick of how far each stage
    goes asks for, and reports every other stage as not yet covered; until that pick it says NOT DONE. With no pick of
    how far each stage goes (an earlier run, whose go named stages), record the ids of exactly the stages they named
    with `python "<skill>/go.py" "<your-folder>" --stage-ids <id>,<id>` once Phase 2 cuts them, and the done check owes
@@ -515,8 +540,8 @@ the listener with the stop command it printed.
    records it with `go.py`. `run_status.py` names any work written before the go.
    **The next flow, once one is finished,** goes into the same register. It is offered at the end of the run that
    finished a flow (run alone: the map stop, below; run by the stage kit: its report), and by the re-entry brief to a
-   chat that picks the register up later; their pick is recorded with `go.py --flow` (or `--answers`). `go.py`
-   refuses another flow while the flow worked now is under way, and a flow already mapped. If they name a flow the first look missed, it is a flow of this capability, never new work: record it with `go.py --add-flow "<its name>" --words "<their words, word for word>"`, which adds it to the flows found, then record their pick of it with `--flow`; the page's field for a flow the first look missed does both. Phase 0 is not done again. Phases 1 to 3 map the new flow as MAPPING-STEPS "The next flow, in a map that holds a finished one" says:
+   chat that picks the register up later; their pick is recorded with `go.py --flow`. `go.py`
+   refuses another flow while the flow worked now is under way, and a flow already mapped. If they name a flow the first look missed, it is a flow of this capability, never new work: record it with `go.py --add-flow "<its name>" --words "<their words, word for word>"`, which adds it to the flows found, then record their pick of it with `--flow`. Phase 0 is not done again. Phases 1 to 3 map the new flow as MAPPING-STEPS "The next flow, in a map that holds a finished one" says:
    rows are added and none is changed, and ids continue after the highest the map holds. The map inspection reports
    an id used twice or a changed row of a finished flow, and the done check says NOT DONE on either.
 **Phases 1 to 3: run control decides each next step.** Once the go is recorded, call
@@ -636,7 +661,7 @@ each step is; `next.py` says when.
    next one in the same message: `python "<skill>/brief.py" next "<your-folder>" --flow "<the flow you recommend
    next>" --recommend "<why that one>" --after` (`--after`: no second status line), wait on the home screen, send it
    as printed after your `say` text, and end your turn; on their pick (their "carry on" picks the flow you
-   recommended), record it with `go.py --flow` (or `--answers`) and map that flow from phase 1. **When the person's request already asked for every flow** (for example "map every business flow", or "the whole capability's map first"), do not stop to ask which flow comes next: add `--from-request` to the same command, which reads the request the run record keeps. It records your recommended flow as their pick, with the request's words, and prints one line saying which flow comes next and why, what is still to add, and that they can say stop or name another. Send it as printed, do not wait, and carry on with that flow from phase 1 in the same turn; keep the wait on the home screen running, so a stop or another pick reaches you. It reads the request the start step kept, word for word, in the run record; when the record keeps none (a register from before this release), it refuses, and you ask instead.
+   recommended), record it with `go.py --flow` and map that flow from phase 1. **When the person's request already asked for every flow** (for example "map every business flow", or "the whole capability's map first"), do not stop to ask which flow comes next: add `--from-request` to the same command, which reads the request the run record keeps. It records your recommended flow as their pick, with the request's words, and prints one line saying which flow comes next and why, what is still to add, and that they can say stop or name another. Send it as printed, do not wait, and carry on with that flow from phase 1 in the same turn; keep the wait on the home screen running, so a stop or another pick reaches you. It reads the request the start step kept, word for word, in the run record; when the record keeps none (a register from before this release), it refuses, and you ask instead.
    When no flow is left, or they say stop, end the run. A stop is not
    recorded: the register stays open with those flows still to add, and a chat that picks it up later offers them
    again. When a chat picks the register up at this stop and the re-entry brief asks for the next flow with no

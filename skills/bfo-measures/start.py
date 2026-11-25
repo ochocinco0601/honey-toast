@@ -412,21 +412,29 @@ def resume(reg):
     o = brief.load(reg, layout.ORIENTATION)
     if brief.problems(reg, o):
         return "finish-first-look", ""  # marked done without what the brief is drawn from: the first look is owed
-    return "resume", brief.reentry(reg, o).rstrip("\n") + (
+    said = brief.reentry(reg, o).rstrip("\n")
+    if "**New work**" in said:  # its closing card offers new work already
+        return "resume", said + "\n"
+    return "resume", said + (
         "\n\nIf you want new work started instead, say so, and I will start it beside this and leave this as it is.\n")
 
 
 def choose_message(found):
-    lines = [f"{brief.STATUS_LEAD} Starting · Found work started before · Next: your pick of which work to carry on "
-             "· Waiting on you: your pick", "",
-             "**This work was started before, more than once.** Each of these was begun and is not finished:", ""]
+    import question_card as qc
+    rows, choices = [], []
     for i, reg in enumerate(found, 1):
-        nxt = brief.status(reg).split("Next: ", 1)[-1].split(" · ")[0]
-        lines.append(f"{i}. *{what_it_is(reg)}*: next comes {brief.cont(nxt)}."
-                     + (" Another chat is working on it now." if held_by_another(reg) else ""))
-    lines += ["", "Which should I carry on with? Say its number or its name. If you want new work started instead, "
-              "say so, and I will start it beside these and leave them as they are."]
-    return "\n".join(lines)
+        nxt = brief.cont(brief.status(reg).split("Next: ", 1)[-1].split(" · ")[0])
+        what = what_it_is(reg)
+        rows.append((i, what, nxt, "another chat is working on it now" if held_by_another(reg) else "-"))
+        choices.append((f"Carry on {what}", f"I pick it up; next comes {nxt}"))
+    choices.append(("New work", "I start new work beside these, which stay as they are"))
+    card = qc.card(
+        title="This work was started before, more than once: which shall I carry on?",
+        table=(("#", "Work", "Next", "Note"), rows),
+        why="each was begun and is not finished; I carry on one at a time",
+        choices=choices, recommended=(None, "only you know which you meant"))
+    return "\n".join([f"{brief.STATUS_LEAD} Starting · Found work started before · Next: your pick of which work to "
+                      "carry on · Waiting on you: your pick", "", card])
 
 
 def held_by_another(reg):
@@ -444,14 +452,18 @@ def record_release(reg, words, test=False):
 def held_message(reg):
     d = run_lock.read(reg) or {}
     ago = run_lock.minutes_since(d) if d else 0
+    import question_card as qc
+    card = qc.card(
+        title=f"Another chat is working on {what_it_is(reg)}: has it stopped?",
+        fields=[("Last change", f"{ago} minute{'s' if ago != 1 else ''} ago, from another chat")],
+        why="two chats working on it at once would overwrite each other's work, so I have not touched it",
+        choices=[("It has stopped", "I carry on here, from where the work stands"),
+                 ("Leave it", "nothing changes here; you carry on in that chat")],
+        recommended=(1, "nothing has changed there for a while") if ago >= 30 else
+        (2, "it changed there only minutes ago"))
     return "\n".join([
         f"{brief.STATUS_LEAD} Starting · Found work started before, open in another chat · Next: carrying on with it "
-        "once that chat has stopped · Waiting on you: whether that chat has stopped", "",
-        f"**This work was started before, and another chat is working on it.** *{what_it_is(reg)}* was last worked on "
-        f"{ago} minute{'s' if ago != 1 else ''} ago, from another chat. Two chats working on it at once would overwrite "
-        "each other's work, so I have not touched it.", "",
-        "If that chat is closed or has stopped, say so, and I will carry on here from where the work stands. Otherwise, "
-        "carry on in that chat."])
+        "once that chat has stopped · Waiting on you: whether that chat has stopped", "", card])
 
 
 def open_the_page(root):
@@ -488,7 +500,13 @@ def says_back(folder=None):
     return not ((folder / "MEASURES-STEPS.md").is_file() and not (folder / "FILL-STEPS.md").is_file())
 
 
-ASK_SYSTEM = "Which system should I look at? Name it, or point me at its code."
+def ask_system():
+    """The question when the request named no system, as a card."""
+    import question_card as qc
+    return qc.card(title="Which system should I look at?", why="I need the system before I can look at anything",
+                   choices=[("Name it", "you give the system's name; I look for its code in this window"),
+                            ("Point at its code", "you give the folder or address of its code; I read it there")],
+                   recommended=(None, "only you know which system you mean"))
 
 
 def say_back_task(folder, kind, register=None):
@@ -496,11 +514,11 @@ def say_back_task(folder, kind, register=None):
     keys = ("application (the system, as they named it or as the folders show it); code (what code is open here, "
             "from the folders' names only: read no file; when only a name was given and its code is not here, say so); "
             "search (only when the code is not here: where you propose to look, taken from the environment, in "
-            "plain words; the page then asks whether to look there, with Yes and No and no Start, and nothing is "
+            "plain words; the card then asks whether to look there, yes or no, before any start, and nothing is "
             "searched before their yes); wants (what they want, from their request); "
             "answered (a statement, never a question, of what their request already settles: which flow first, or "
             "map only or further, as in 'map every flow, from your words'; when it settles neither, 'Nothing yet: "
-            "after the first look I ask which flow to start with')") if kind == "fresh" else (
+            "I ask which flow first after the first look')") if kind == "fresh" else (
             "application; proposal (what this session proposes to work on now, from where each flow stands); wants "
             "only if their words say something new")
     reg = f' --register "{register}"' if register else ""
@@ -508,7 +526,7 @@ def say_back_task(folder, kind, register=None):
             f"JSON file outside the system's code with the keys {keys}; then run python \"{HERE / 'say_back.py'}\" "
             f"draft \"{folder}\" --lines \"<that file>\"{reg}. What it prints after MESSAGE is your whole reply this "
             "turn. Start no helper and read no code until the person "
-            + ("says carry on." if kind == "resume" else "presses Start or says start."))
+            + ("says carry on." if kind == "resume" else "says start in the chat."))
 
 
 REQUEST = "- **Request:**"  # RUN.md's line under Plan and go: the person's request, word for word, as data
@@ -582,19 +600,6 @@ def record_start(site, request=None, reg=None, fresh=False):
 def run_page(site):
     """This run's own run status address under the work folder's listener, never the window-wide one."""
     return run_dir(site).name + "/operator.html"
-
-
-def wait_line(reg):
-    """At a stop where the page takes a pick (the go, the pick, the next flow), the page made ready for it and the
-    wait the session starts before it ends its turn, as at every stop; else ''."""
-    import depth
-    import wait_on_page
-    c = depth.build(reg)["open_choice"]
-    if not c or c["task"] not in wait_on_page.ON_PAGE:
-        return ""
-    depth.write_quietly(reg)
-    return ("Start the wait on the page before you end your turn, as at every stop. "
-            + wait_on_page.how_to_wait(wait_on_page.commands(reg)))
 
 
 LAUNCH = "LAUNCH.md"  # in each skill folder that starts a run: the launch, the first message of every run
@@ -678,7 +683,7 @@ START_LINES = "start-lines.json"  # in this run's own folder: the start step's D
 _SITE = None  # the work folder of this start step, set by main once the page is up
 
 
-def emit(decision, folders=(), earlier=(), message="", wait="", extra=()):
+def emit(decision, folders=(), earlier=(), message="", extra=()):
     out = [f"DECISION: {decision}"] + [f"FOLDER: {f}" for f in folders] + [f"EARLIER: {e}" for e in earlier]
     if _SITE is not None:  # kept on disk, so the say-back's Start writes the helper's prompt from them, not the chat
         p = run_dir(_SITE) / START_LINES
@@ -688,8 +693,6 @@ def emit(decision, folders=(), earlier=(), message="", wait="", extra=()):
                                  "at": datetime.datetime.now().astimezone().isoformat(timespec="seconds")}),
                      encoding="utf-8")
     out += list(extra)
-    if wait:
-        out.append(f"WAIT: {wait}")
     if message:
         out += [SEND, "MESSAGE:", message.rstrip("\n")]
     print("\n".join(out))
@@ -697,7 +700,7 @@ def emit(decision, folders=(), earlier=(), message="", wait="", extra=()):
 
 def main(argv):
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     args = list(argv)
     new = "--new" in args
     ended = "--first-look-ended" in args
@@ -766,7 +769,7 @@ def main(argv):
         if decision in ("fresh", "finish-first-look"):
             if saying_back:  # the say-back's own message, printed by say_back.py; with nothing given, which system
                 if gave == "nothing" and decision == "fresh":
-                    return first_message("", ASK_SYSTEM, address_line(site, reg))
+                    return first_message("", ask_system(), address_line(site, reg))
                 return ""
             if not launch_text:
                 return ""
@@ -862,7 +865,7 @@ def main(argv):
         import run_state
         run_state.resumed(reg)
     if decision == "resume" and coming_back and (reg / "case.json").is_file():
-        # coming back to a case: what exists and what this session proposes, said back on the page, never a brief
+        # coming back to a case: what exists and what this session proposes, said back in a card, never a brief
         emit("resume", folders=[reg], earlier=earlier, extra=sayback("resume", reg))
         return 0
     if upgraded and message:
@@ -878,10 +881,12 @@ def main(argv):
         record_request(reg, request)  # its first look is this run's own: the request is the one it starts with
     message = said(decision, message, reg) if message or decision == "finish-first-look" else message
     emit(decision, folders=[reg], earlier=earlier, message=message,
-         wait=wait_line(reg) if decision == "resume" else "",
          extra=sayback(decision, reg) if decision == "finish-first-look" else ())
     return 0
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

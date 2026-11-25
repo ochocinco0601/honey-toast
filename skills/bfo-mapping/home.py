@@ -10,16 +10,9 @@ drop-down under its flow with what is there to review at that milestone and link
 each in the same tab. Reasons stay in depth.json and are never drawn; the one recommendation drawn is the
 recommended flow at the go, marked. Nothing is ticked for the person, except a stage's depth already recorded.
 
-While a choice waits on the person at the go or at the pick (depth.json's open choice), the page carries the form
-for it, as a listener serving the page reads it: a hidden `choice_id`, one free-text `words`, and per item a
-checkbox group named by the item's key whose values are the milestones ticked. At the go, which flow is mapped
-first, those ticks, the words and Done sit at the top of the page, one row per flow found, seen without opening a
-dot; while any choice is open, the line under the flows says the run is waiting on it. The review of the alerts is not
-taken from a page, so it has no form. Every other tick is a topic to talk about with Claude, named
-`talk:<milestone>:<item key>` with its label as the value, and each drop-down's words `talk-words:<milestone>`; any
-Done sends them all, and the page reloads once the run has redrawn it. The page opens with "What do you want to
-do?", always there whatever is open: the person's words to Claude (`talk-words:Home`), a topic like the others, kept for the tab by
-its empty `data-flow`, as each drop-down's words box is kept by its flow.
+The page is a display only: it has no form, no ticks and nothing to send, since every question is asked and answered
+in the chat. While a choice waits on the person (depth.json's open choice), the line under the flows says "Waiting on
+you: answer in the chat". The page reloads once the run has redrawn it.
 
 Exit 0 written, 2 refused. Python standard library only."""
 import hashlib
@@ -65,14 +58,7 @@ FILLED_WHEN = {IDENT: ("draft", "reviewed"), MAPPED: ("draft", "reviewed"),
                MEAS: ("draft", "reviewed", depth.REVIEWED_OPEN),
                ALERTS: ("reviewed", depth.REVIEWED_OPEN), RUNBOOKS: ("draft", "reviewed")}
 
-TALK = "Tick what you want to talk about with Claude · say what in your words"
-WORDS_ONLY = "Your words go to Claude"
-AT_THE_GO = "Tick the flow to map in the next run · one flow per run"
-FIRST_TASK = "Choose the flow to map first"  # depth.py's open choice at the go: picked at the top of the page
 NEXT_TASK = "Choose the next flow to map"  # depth.py's (go.NEXT_TASK) once a flow is finished: offered, never awaited
-AT_THE_FIRST = "Tick the flow to map first · one flow per run · anything else, in your words"
-AT_THE_PICK = ("Tick what gets more work · say what in your words · ticking a milestone brings the ones "
-               "before it")
 
 KIND = {"does not apply": "does not apply here", "counted by": "counted by another measure",
         "no record": "the application keeps no record to count it", "not read": "not looked at yet"}
@@ -825,103 +811,19 @@ class Flow:
         return ""
 
 
-# ---------------------------------------------------------------- the open choice
+# ---------------------------------------------------------------- what waits on the person
 
-def form_of(d):
-    """(milestone, {item key}) of the open choice the page takes, or None: the go and the pick only."""
-    c = d.get("open_choice")
-    if not c or c.get("milestone") not in ("Mapped", "Measures defined"):
-        return None
-    return c["milestone"], [i["key"] for i in c.get("items") or []]
+WAITING = "Waiting on you: answer in the chat"
 
 
-def recorded(d, keys):
-    """{stage id: the milestones its recorded depth already holds}: shown ticked, never locked."""
-    got = {}
-    for f in d.get("flows") or []:
-        for s in f.get("stages") or []:
-            if s.get("stage") in keys:
-                reach = depth.REACHES.get(s.get("recorded_depth") or "none", ())
-                got[s["stage"]] = [o for o, v in depth.DEPTH_OPTS.items() if v in reach]
-    return got
-
-
-CLEAR = ('<button type="button" class="ab2" data-clear="" title="Undo what you changed in this drop-down">'
-         'Clear</button>')  # puts its own drop-down back as it loaded and sends nothing
-CLEAR_PAGE = ('<button type="button" class="ab2" data-clear="page" title="Undo everything you changed on this page">'
-              'Clear</button>')  # the top line's: the whole page
-
-
-def at_the_first(d):
-    """Whether the open choice is the go's, which flow is mapped first: then it is picked at the top of the page."""
-    return bool(form_of(d)) and d["open_choice"].get("task") == FIRST_TASK
-
-
-def form_html(d):
-    """The form beside its ticks: the choice it answers, the person's words, Done, and what happened. The ticks are
-    the named checkboxes in the drop-downs; a tick the choice does not take has no name. At the go the pick at the
-    top of the page carries it instead."""
-    c = d.get("open_choice")
-    if not form_of(d) or at_the_first(d):
+def waiting_html(d):
+    """The page's first section while the run waits on the person: what it waits on, and that the answer is given in
+    the chat, where the question is asked. Every question is asked and answered in the chat; the page only shows."""
+    task = (d.get("open_choice") or {}).get("task")
+    if not task or task == NEXT_TASK:  # the next flow is offered, never awaited: the status line says so too
         return ""
-    add = ""
-    if c.get("task") == NEXT_TASK:  # a flow the first look missed: added, and mapped next
-        add = (f'<span class="mute">{E(c.get("add") or "")}</span><input type="text" class="wi" name="add" '
-               f'aria-label="{E(c.get("add") or "")}" placeholder="Its name" autocomplete="off">')
-    return (f'<div id="answers" hidden><input type="hidden" name="choice_id" value="{E(c["choice_id"])}" '
-            'autocomplete="off"><div class="tdone" id="ask"><span class="mute"></span>'
-            '<input type="text" class="wi" name="words" aria-label="Your words" placeholder="Your words" '
-            'autocomplete="off">' + add +
-            '<button type="button" class="ab2 dn" data-done>Done</button>' + CLEAR +
-            '<span class="mute" data-status></span></div></div>')
-
-
-# ---------------------------------------------------------------- the page
-
-def tick(attrs, label):
-    # autocomplete off on every input: after a reload a browser would otherwise put the last load's ticks back
-    return f'<input type="checkbox" class="tk" aria-label="{E(label)}"{attrs} autocomplete="off">'
-
-
-TALK_KEY, TALK_WORDS = "talk:", "talk-words:"  # topics to talk about with Claude, never recorded as a pick
-
-
-def pick_html(d):
-    """At the go: every flow found, one row each with its tick to map it first (the go's own tick, named by the flow,
-    so go.py --answers records it as the flow), the recommended one marked, then the words and Done. Drawn at the top
-    of the page, so the pick is seen without opening anything; the drop-downs carry no second tick for it. Its own
-    `data-dd` scopes its Clear to it."""
-    if not at_the_first(d):
-        return ""
-    c = d["open_choice"]
-    rows = []
-    for i in c.get("items") or []:
-        box = tick(f' name="{E(i["key"])}" value="{E(depth.FLOW_OPT)}" data-flowtick', f"Map {i.get('name')} first")
-        mark = '<span class="recm">Recommended</span>' if i.get("recommended") else ""
-        rows.append(f'<div class="it"><label class="trow">{box}<span class="pnm">{E(i.get("name") or "")}</span>'
-                    f'{mark}</label></div>')
-    return (f'<div class="card pick" id="pick" data-dd="pick"><div class="dh"><b>{E(c["task"])}</b>'
-            '<span class="mute">The run waits on this pick. One flow per run; the others follow into the same map.'
-            f'</span></div>{"".join(rows)}<div id="answers"><input type="hidden" name="choice_id" '
-            f'value="{E(c["choice_id"])}" autocomplete="off"><div class="tdone" id="ask"><span class="mute">'
-            f'{E(AT_THE_FIRST)}</span><input type="text" class="wi" name="words" aria-label="Your words" '
-            'placeholder="Your words" autocomplete="off"><button type="button" class="ab2 dn" data-done>Done</button>'
-            + CLEAR + '<span class="mute" data-status></span></div></div></div>')
-
-
-TODO_TITLE = "What do you want to do?"
-TODO_KEY = TALK_WORDS + "Home"  # a topic like any drop-down's words: go.py --answers records it in RUN.md
-
-
-def todo_html():
-    """The page's first section, always there: the person's words to Claude, sent with Done by the page's one route
-    (page-kit.js posts every named input to the listener, which saves it in answers/ for the session waiting on the
-    page; go.py --answers records the words as a topic to talk about). Its own `data-dd` scopes its Clear to it."""
-    return (f'<div class="card" id="todo" data-dd="todo"><div class="dh"><b>{E(TODO_TITLE)}</b></div>'
-            f'<div class="tdone todo"><span class="mute">{E(WORDS_ONLY)}</span><input type="text" class="wi" '
-            f'name="{E(TODO_KEY)}" data-flow="" aria-label="Your words" placeholder="Your words" autocomplete="off">'
-            '<button type="button" class="ab2 dn" data-done>Done</button>' + CLEAR +
-            '<span class="mute" data-status></span></div></div>')
+    return (f'<div class="card" id="todo" role="status" style="border-color: #1F4E8C; color: #1F4E8C; font-weight: '
+            f'600">{E(WAITING)} · {E(task[:1].lower() + task[1:])}</div>')
 
 
 def where_it_stands(d):
@@ -931,16 +833,9 @@ def where_it_stands(d):
     return f"waiting on you to {task[:1].lower() + task[1:]}" if task and task != NEXT_TASK else d.get("stop")
 
 
-def talk_tick(milestone, key, label):
-    """A tick outside the open choice: a topic to talk about, sent with every Done. The value is the item's own label;
-    go.py names the milestone before it."""
-    return tick(f' name="{E(TALK_KEY + milestone + ":" + key)}" value="{E(label)}"', f"{milestone}: {label}")
-
-
-def measures_split(fl, d, name, panes, first, stage_choice, stage_keys, held):
+def measures_split(fl, d, name, panes, first):
     """Measures defined: the flow on the left, its whole and its stages, the selected one a tab joined to the strip
-    over the table; while the person's pick of how far each stage goes is open, each stage carries its ticks beside
-    its tab (picking is not selecting). On the right the title, the meanings, one words box, and the selection's pane."""
+    over the table. On the right the title, the meanings and the selection's pane."""
     f = fl.f
     first = first if first in panes else "all"
     cur = lambda k: f' aria-current="{"true" if k == first else "false"}"'
@@ -953,37 +848,19 @@ def measures_split(fl, d, name, panes, first, stage_choice, stage_keys, held):
             '<div class="fhead"><span class="flab">Stages</span></div><div class="ents">']
     for k, s in enumerate(fl.stages):
         picks = ""
-        if stage_choice and s["stage"] in stage_keys:
-            on = " checked" if name in held.get(s["stage"], ()) else ""
-            picks = ('<span class="epick">' + tick(f' name="{E(s["stage"])}" value="{E(name)}" data-stagetick{on}',
-                                                   f"{name}: {s.get('name')}") + "</span>")
         side.append(f'<div class="erow">{picks}<button type="button" class="ent" data-sel="{k}"{cur(str(k))}>'
                     f'<span class="n">{E(str(s.get("order")))}</span><span>{E(s.get("name") or "")}</span>'
                     f'<span class="c">{len({m["handle"] for m in fl.stage_measures(s)} - own)}</span></button></div>')
     side.append("</div></nav>")
-    if stage_choice:
-        talk = (f'<div class="tslot" data-ask data-flow="{E(f.get("name") or "")}" data-milestone="{E(name)}" '
-                f'data-note="{E(AT_THE_PICK)}"></div>')
-    else:
-        talk = (f'<div class="tslot talk"><input type="text" class="wi" name="{E(TALK_WORDS + name)}" '
-                f'data-flow="{E(f.get("name") or "")}" aria-label="Ask about this stage" placeholder="Ask about this '
-                'stage" autocomplete="off"><button type="button" class="ab2 dn" data-done>Done</button>' + CLEAR +
-                '<span class="mute" data-status></span></div>')
     head = ('<div class="mhead"><h3 class="mtitle">Measures</h3><button class="tbtn" type="button" data-defs '
             'aria-expanded="false">Meanings</button></div>')
     pane = "".join(f'<div class="pane" data-pane="{k}"{"" if k == first else " hidden"}>{v}</div>' for k, v in panes.items())
-    return f'<div class="msplit">{"".join(side)}<div class="m2 mmain">{head}{talk}{MEASURE_DEFS}{pane}</div></div>'
+    return f'<div class="msplit">{"".join(side)}<div class="m2 mmain">{head}{MEASURE_DEFS}{pane}</div></div>'
 
 
 def dropdown(fl, p, d):
     f, i = fl.f, fl.i
     name, q, _ = COLS[p]
-    choice = form_of(d)
-    flow_choice = bool(choice and choice[0] == "Mapped" and p == MAPPED and f.get("name") in choice[1]
-                       and not at_the_first(d))  # at the go the pick sits at the top of the page
-    stage_keys = set(choice[1]) if choice and choice[0] == "Measures defined" else set()
-    stage_choice = p in KEY and fl.mapped and any(s["stage"] in stage_keys for s in fl.stages)
-    held = recorded(d, stage_keys) if stage_choice else {}
     pages = fl.pages(p)
     out = [f'<div class="inl" hidden data-dd="{i}-{p}"><div class="dh"><b>{E(name)}</b><span class="mute">{E(q)}</span></div>']
     if pages:
@@ -992,20 +869,14 @@ def dropdown(fl, p, d):
     panes = fl.panes(p)
     first = "0" if "0" in panes else "-1"
     if p == MEAS and fl.mapped and len(panes) > 1:
-        out.append(measures_split(fl, d, name, panes, first, stage_choice, stage_keys, held))
+        out.append(measures_split(fl, d, name, panes, first))
         out.append("</div>")
         return "".join(out)
     picker = False
     tree = [f'<div class="tree" role="tree" aria-label="Where this is"{" data-picker" if picker else ""}>'
             + ('<div class="tlab"><span>Flow</span><span>Measures</span></div>' if picker else
                f'<div class="tn d0"><span class="tl">{E(d["_title"])}</span></div>')]
-    ticked = False
     flow_tick = ""
-    if p == MAPPED:
-        ticked = True
-        flow_tick = (tick(f' name="{E(f.get("name") or "")}" value="{E(depth.FLOW_OPT)}" data-flowtick',
-                          "Map this flow in the next run") if flow_choice
-                     else talk_tick(name, f.get("name") or "", f.get("name") or ""))
     flow_label = (f'<span class="tl">{E(f.get("name") or "")}</span><span class="tc">{len(fl.flow_measures())}</span>'
                   if picker else
                   f'<span class="tg">└─</span><span class="tl"><span class="lvl">Flow {i + 1}</span> '
@@ -1022,12 +893,6 @@ def dropdown(fl, p, d):
         for k, s in enumerate(fl.stages):
             glyph = "└─" if k == n - 1 else "├─"
             t = ""
-            if p != MAPPED:
-                ticked = True
-                on = " checked" if name in held.get(s["stage"], ()) else ""
-                t = (tick(f' name="{E(s["stage"])}" value="{E(name)}" data-stagetick{on}', f"{name}: {s.get('name')}")
-                     if stage_choice and s["stage"] in stage_keys
-                     else talk_tick(name, s["stage"], s.get("name") or ""))
             body = (f'<span class="sno">{E(str(s.get("order")))}</span><span class="tl">{E(s.get("name") or "")}</span>'
                     f'<span class="tc">{len(fl.stage_measures(s))}</span>' if picker else
                     f'<span class="tg">{glyph}</span><span class="tl"><span class="lvl">Stage {E(str(s.get("order")))}</span> '
@@ -1048,18 +913,6 @@ def dropdown(fl, p, d):
                  INSTR: "A part shared by several stages counts in each."}.get(p) if fl.mapped else None
     if tree_note:
         tree.append(f'<div class="mute" style="padding: 6px 4px 0">{E(tree_note)}</div>')
-    if flow_choice or stage_choice:
-        said = AT_THE_GO if flow_choice else AT_THE_PICK
-        tree.append(f'<div class="tslot" data-ask data-flow="{E(f.get("name") or "")}" data-milestone="{E(name)}" '
-                    f'data-note="{E(said)}"></div>')
-    else:
-        said = TALK if ticked else WORDS_ONLY
-        tree.append(f'<div class="tslot"><div class="tdone"><span class="mute">{E(said)}</span><input type="text" '
-                    f'class="wi" name="{E(TALK_WORDS + name)}" data-flow="{E(f.get("name") or "")}" aria-label="Your words" '
-                    'placeholder="Your words" '
-                    'autocomplete="off">'
-                    '<button type="button" class="ab2 dn" data-done>Done</button>' + CLEAR +
-                    '<span class="mute" data-status></span></div></div>')
     tree.append("</div>")
     pane = "".join(f'<div class="pane" data-pane="{k}"{"" if k == first else " hidden"}>{v}</div>' for k, v in panes.items())
     out.append(f'<div class="split">{"".join(tree)}{pane}</div></div>')
@@ -1138,8 +991,8 @@ def render(reg, d):
                  "home.template.html\n     Builder: home.py\n     Build: python home.py <register folder>\n-->")
     page = TEMPLATE.read_text(encoding="utf-8")
     for k, v in (("<!--GENERATED-->", generated), ("<!--TITLE-->", E("Home · " + d["_title"])), ("<!--NAV-->", nav),
-                 ("<!--TODO-->", todo_html()), ("<!--IDENTITY-->", identity_html(reg, flows)), ("<!--HEAD-->", head),("<!--ROWS-->", rows), ("<!--BLIND-->", E(blind)),
-                 ("<!--SOURCE-->", E(source)), ("<!--FORM-->", form_html(d)), ("<!--PICK-->", pick_html(d)), ("<!--CLEAR-->", CLEAR_PAGE)):
+                 ("<!--TODO-->", waiting_html(d)), ("<!--IDENTITY-->", identity_html(reg, flows)), ("<!--HEAD-->", head),("<!--ROWS-->", rows), ("<!--BLIND-->", E(blind)),
+                 ("<!--SOURCE-->", E(source))):
         page = page.replace(k, v, 1)
     # the watch compares this stamp, not the first page it fetches, so a redraw before its first check is still seen
     stamp = hashlib.sha256(page.encode("utf-8")).hexdigest()[:16]
@@ -1181,7 +1034,7 @@ def main(argv):
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
     run_lock.refuse_unless_register(argv)
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     if len(argv) != 1 or not pathlib.Path(argv[0]).is_dir():
         print(__doc__.split("\n\n")[1], file=sys.stderr)
         return 2
@@ -1195,4 +1048,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

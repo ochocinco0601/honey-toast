@@ -39,7 +39,11 @@ MANIFESTS = ("pom.xml", "build.gradle", "build.gradle.kts", "package.json", "go.
              "pyproject.toml", "setup.py", "requirements.txt", "Pipfile", "Gemfile", "Cargo.toml")
 SOURCE = {".java": "Java", ".kt": "Kotlin", ".groovy": "Groovy", ".scala": "Scala", ".go": "Go", ".js": "JavaScript",
           ".jsx": "JavaScript", ".ts": "TypeScript", ".tsx": "TypeScript", ".py": "Python", ".cs": "C#", ".rb": "Ruby",
-          ".rs": "Rust", ".php": "PHP", ".c": "C", ".cpp": "C++", ".swift": "Swift"}
+          ".rs": "Rust", ".php": "PHP", ".c": "C", ".cpp": "C++", ".swift": "Swift",
+          ".cbl": "COBOL", ".cob": "COBOL", ".cobol": "COBOL", ".cpy": "COBOL", ".jcl": "JCL", ".pli": "PL/I",
+          ".pl1": "PL/I", ".pls": "PL/SQL", ".pks": "PL/SQL", ".pkb": "PL/SQL", ".pck": "PL/SQL", ".plsql": "PL/SQL",
+          ".asm": "Assembler", ".rexx": "REXX", ".rex": "REXX", ".jsp": "JSP", ".gvy": "Groovy", ".vb": "Visual Basic",
+          ".vbs": "VBScript", ".bas": "Visual Basic", ".pl": "Perl", ".pm": "Perl"}
 CONFIG = (".yml", ".yaml", ".properties", ".json", ".env", ".conf", ".toml", ".xml", ".tf", ".ini")
 SKIP = {".git", "node_modules", "vendor", "build", "dist", "target", "bin", "obj", "out", ".gradle", ".idea",
         "__pycache__", ".venv", "venv", "bower_components", "coverage"}
@@ -47,6 +51,9 @@ TEST = re.compile(r"(^|/)(tests?|__tests__|spec|testdata|src/test)(/|$)|(_test\.
                   r"\.test\.[jt]sx?|\.spec\.[jt]sx?|_test\.py|^test_.*\.py|Tests\.cs)$")
 ENTRY = re.compile(r"public\s+static\s+void\s+main\s*\(|^func\s+main\s*\(\s*\)|if\s+__name__\s*==\s*['\"]__main__|"
                    r"static\s+(async\s+)?(void|int|Task)\s+Main\s*\(|^\s*(ENTRYPOINT|CMD)\s")
+# what runs on a mainframe or in a database: a COBOL program, a PL/I main procedure, a JCL job card, a stored procedure
+MAINFRAME_ENTRY = re.compile(r"^.{0,7}\s*PROCEDURE\s+DIVISION\b|\bPROC\s+OPTIONS\s*\(\s*MAIN\b|^//\S+\s+JOB\b|"
+                             r"^\s*CREATE\s+(OR\s+REPLACE\s+)?(PROCEDURE|PACKAGE\s+BODY|FUNCTION|TRIGGER)\b", re.I)
 GENERIC = {"src", "source", "sources", "app", "main", "server", "code"}  # whole folder names, never part of one
 FIELDS = ("service", "repository", "path", "kind", "files", "lines", "test_lines", "languages", "entry_points",
           "calls", "called_by", "call_evidence", "unread_files")
@@ -161,8 +168,8 @@ def describe(folder, root, others_of):
                 lines += n
                 langs[lang] = langs.get(lang, 0) + n
         if lang or p.name == "Dockerfile":
-            for i, line in enumerate((read(p, skipped) or "").splitlines(), 1):
-                if ENTRY.search(line):
+            for i, line in enumerate((read(p, skipped) or "").split("\n"), 1):  # numbered as the Read tool numbers them
+                if ENTRY.search(line) or MAINFRAME_ENTRY.search(line):
                     entries.append(f"{p.relative_to(root).as_posix()}:{i}")
                     break
         if p.name == "package.json":
@@ -282,7 +289,7 @@ def main(argv):
                 text = read(p, skipped)
                 if text is None:
                     continue
-                for i, line in enumerate(text.splitlines(), 1):
+                for i, line in enumerate(text.split("\n"), 1):
                     for m in pat.finditer(line):
                         callee = m.group(1) or m.group(2) or m.group(3)
                         if callee not in calls:
@@ -320,4 +327,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

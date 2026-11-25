@@ -53,8 +53,14 @@ import tables  # noqa: E402
 import register_layout as layout  # noqa: E402
 
 EXT =("java|go|cs|js|jsx|ts|tsx|py|kt|kts|clj|cljs|scala|rb|php|rs|c|cc|cpp|h|hpp|swift|ya?ml|xml|properties|sql|"
-       "proto|razor|cshtml|json|gradle|toml|conf|ini|sh|ps1|tf|html|vue")
-CITE = re.compile(r"(?<![\w./-])((?:[\w.@-]+/)+[\w.@-]+\.(?:" + EXT + r"))(?![\w-])(?::(\d+)(?:-(\d+))?)?")
+       "proto|razor|cshtml|json|gradle|toml|conf|ini|sh|ps1|tf|html|vue|"
+       # enterprise business code (COBOL, JCL, PL/I, PL/SQL, assembler, REXX, CICS/IMS maps, JSP, Groovy, VB, Perl);
+       # schemas and build scripts stay out: they only add reading cost
+       "cbl|cob|cobol|cpy|jcl|proc|pli|pl1|pls|pks|pkb|pck|plsql|prc|fnc|trg|ddl|asm|mac|rexx|rex|clist|bms|mfs|"
+       "jsp|jspx|jspf|groovy|gvy|vb|vbs|bas|cls|frm|asp|aspx|ascx|asmx|pl|pm")
+NAMES = "Jenkinsfile"  # a pipeline file with no extension
+CITE = re.compile(r"(?<![\w./\\-])((?:[\w.@-]+[/\\])+(?:[\w.@-]+\.(?:" + EXT + r")|" + NAMES + r"))(?![\w-])"
+                  r"(?::(\d+)(?:-(\d+))?)?", re.I)
 # A further range of the same file: after `path:range`, each directly following ", n" or ", n-m" (a number
 # that is not part of a word or a decimal). "; " separates citations, so it never starts a range.
 MORE = re.compile(r", (\d+)(?:-(\d+))?(?![\w-])(?!\.\d)")
@@ -415,7 +421,7 @@ SKIP_DIRS = {"node_modules", "bower_components", "jspm_packages", "vendor", "thi
              ".gradle", ".mvn", ".idea", ".vscode", ".venv", "venv", ".tox", ".next", ".nuxt", "coverage",
              ".terraform"}
 SKIP_FILES = re.compile(r"(\.min\.[a-z]+|^package-lock\.json|^npm-shrinkwrap\.json)$", re.I)
-SOURCE = re.compile(r"\.(?:" + EXT + r")$", re.I)
+SOURCE = re.compile(r"\.(?:" + EXT + r")$|^(?:" + NAMES + r")$", re.I)
 WRITERS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
 
 
@@ -684,4 +690,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

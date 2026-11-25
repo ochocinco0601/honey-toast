@@ -20,3 +20,13 @@ def covered(first, last, spans):
             return False
         line = nxt + 1
     return True
+
+
+def lines(text):
+    """A text's lines as the Read tool numbers them: split at each newline only (a form feed, a lone carriage return or
+    U+2028 ends no line), a final newline ending the last line rather than starting another, the `\\r` of `\\r\\n`
+    dropped."""
+    out = (text or "").split("\n")
+    if out[-1] == "":
+        out.pop()
+    return [x[:-1] if x.endswith("\r") else x for x in out]

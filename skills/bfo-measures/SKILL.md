@@ -70,7 +70,7 @@ and stops. Read the folders this file and `MEASURES-STEPS.md` name (`register-te
 rest: no first message; no step 1 (the kit has found the register and holds it, and its run being
 under way is why you are here); no step 2 (the pick is recorded); no step 4 (the kit renders the review of the
 measures itself, naming every measured stage, and records the person's answer); no step 5 (no closing message, and
-never stop the page's listener: the kit's page and its wait stay up). When step 3 is done (every failure it can put right
+never stop the page's listener: the kit's page stays up). When step 3 is done (every failure it can put right
 put right, the rest open items on the pages), go back to the stage kit's `SKILL.md`, phase 4, for the review. A `changes` at that review, or a correction a later
 step files, brings the kit back here, to step 3 again.
 
@@ -157,8 +157,7 @@ The work is in the **register folder**, `<your-folder>` below: the folder mappin
    line) in your next message, saying it is the page for this work, and if it prints `OPEN FAILED`, first open the
    address in their browser as that line says. On `PAGE: not brought up`, say nothing of a page: the work goes on
    in the chat. Send nothing else it prints
-   (its wait and its message are the stage kit's), and start no wait: this skill takes the person's answers in the
-   chat. What else it can print:
+   (its message is the stage kit's): this skill takes the person's answers in the chat. What else it can print:
    - `REFUSED`, the folder not being a run this kit can pick up. Where `RUN.md` shows mapping finished (above), it
      is a run an older version wrote: follow `UPGRADE: not done` below. Otherwise the register is another tool's
      output: tell the person, through `say`, that the flow has to be mapped first (the mapping skill does that),
@@ -232,18 +231,18 @@ The work is in the **register folder**, `<your-folder>` below: the folder mappin
 4. **Stop for the person's review of the measures.**
    `python "<skill>/brief.py" measures "<your-folder>" <flow id> <stage id>... --recommend "<your recommendation
    and its reason>"`, naming every stage of this flow picked to measure and no stage taken further (to alerts or
-   runbooks), whose review is the stage kit's. It gives, per stage, what each party counts on, a short list of the
-   stage's measures (what each shows, whether the system produces it today, whether anything collects it), what a
-   measure produced today gets wrong, and each part with no measure and why; then the measures several stages
-   share and the flow's own, the coverage list and the inspection as counts with anything that fails, the draft's
-   open items, your recommendation, and their options. **Open items** are what a stage's own check (the one
+   runbooks), whose review is the stage kit's. It gives one summary table, a row per stage (and the measures several
+   stages share, and the flow's own): how many measures, produced today, proposed, not collected or not known, and
+   getting something wrong; then the coverage list and the inspection as counts with anything that fails, the
+   draft's open items, your recommendation, and their options. Each stage's tables (what each party counts on, its
+   measures, what a measure gets wrong, each part with no measure and why) are one level down, below. **Open items** are what a stage's own check (the one
    `flow_outputs.py --measures` runs) still finds failing: a part, step or stage with neither a measure nor a reason
    for having none, or a row the check names. The message names each once, in plain words; each stage's measures page
    lists its own at the top. Your recommendation is the only text you write, and the script refuses the
    message while it, or register text it shows, carries an id, a file name or a kit term: fix the recommendation,
    or the row the text comes from, and run it again. Send what it printed, exactly, and end your turn.
-   The detail one level down (where each measure is produced and of what kind, and every item of the coverage list
-   with the measure that answers it) is written beside the message, as `measures-review-detail.md` in the register
+   The detail one level down (each stage's tables, where each measure is produced and of what kind, and every item of
+   the coverage list with the measure that answers it) is written beside the message, as `measures-review-detail.md` in the register
    folder, checked by the same script. When the person asks for it, whole or for one stage, send them that text,
    or its section for the stage, as it is: the whole text opens with its own status line; a stage's section goes
    through `say`, which puts the status line before it.

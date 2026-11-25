@@ -60,6 +60,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import paths  # noqa: E402
 import tables  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -607,7 +608,7 @@ def resolve(path, ws, reads):
 def excerpt(f, spans):
     """(lines shown, problem or "") for the cited spans of a file. Only the first line cited decides: a later span
     past the end (it may be a line of another file, after a comma) is shown as a note."""
-    text = f.read_text(encoding="utf-8", errors="replace").splitlines()
+    text = paths.lines(f.read_bytes().decode("utf-8", errors="replace"))
     shown, problems = [], []
     for n, (a, b) in enumerate(spans):
         if a > len(text) or a < 1:
@@ -628,7 +629,7 @@ def excerpt(f, spans):
 
 def section(f, text):
     """The lines of a document under the heading the citation names, or its first lines."""
-    lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+    lines = paths.lines(f.read_bytes().decode("utf-8", errors="replace"))
     named = [norm(s) for s in re.split(r"[,;]", text) if norm(s)]
     for i, line in enumerate(lines):
         h = re.match(r"^(#+)\s*(.*)", line)
@@ -894,4 +895,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

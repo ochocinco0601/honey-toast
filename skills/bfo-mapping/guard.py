@@ -18,6 +18,12 @@ with --by-kit records it too, so a later call that leaves the flag off still sto
 Python standard library only."""
 import pathlib
 
+# Between stops nothing goes to the person; the run status page shows progress. Printed with every launch and wait the
+# session acts on (next.py's actions, selective.py's checkers), at the moment an agent returns: without it, a session
+# reports each agent's return in the chat although SKILL.md says to write nothing.
+SILENT = ("SEND NOTHING to the person: no line on what was launched, what returned or what is still running, unless "
+          "they wrote to you; the run status page shows progress.")
+
 ORDER = ["lead steps", "impact", "pick", "units", "readers", "merge", "re-reads", "sweep", "lead rows",
          "judge round 1", "fixers", "judge round 2", "draw", "check", "mapping ends"]
 # The fast map (go.py --fast, fast_map.py): one mapping agent reads the code and writes every unit's rows, then the

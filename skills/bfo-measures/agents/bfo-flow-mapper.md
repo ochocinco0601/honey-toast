@@ -62,10 +62,13 @@ tools: Read, Grep, Glob, Write
    when its code can be had, `external dependency` when it cannot. Its `part_kind` is exactly one of the kit's part
    kinds (`method/part-kinds.csv`, listed in your prompt): an HTTP or gRPC server is `API service`, a browser-facing
    one `web front end`. A component's `repository` is the repository folder its code or its definition sits in, or,
-   for a store or platform no repository defines, blank with `no repository defines it` in its source. Leave
+   for a store or platform no repository defines, `none: ` and where it was looked for. Leave
    `sequence` blank: one service's code cannot show the order of calls made from other services. `carries_case_id`
    is `yes` where this part's own code handles the case's id, cited. Your prompt states these rules in full; a unit
-   that breaks them, or whose rows the map's check refuses, is set aside as you return and written again.
+   that breaks them, or whose rows the map's check refuses, is set aside as you return and written again. A
+   repository note never sets a unit aside: the check reads `none: ` by its prefix, and what follows it (where it
+   was looked for, which can only be the files you were given) is a note even when it is missing, so say it plainly,
+   without hedging.
    `carries_case_id` is read from the code of that part, not from one message: `yes:` where it receives, logs or
    passes on the case's id anywhere on the flow (cite the line), `no:` only when none of its code does.
 4. **Cite as you read:** every row `path:line` or `path:first-last`, relative to the workspace. Never re-read a file to

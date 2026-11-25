@@ -82,6 +82,10 @@ DISPUTED = "disputed: "
 NAME_KEY_MAX = 40  # a longer key is named by its own hash, so the verdict path stays under Windows' 260 characters
 LAUNCHER_MAX = 150  # agents one launcher holds: its context grows with each agent it holds
 POINTER = "Read {} and do exactly what it says. Reply with one line."
+# The fixed end of every helper agent's one-line reply: the run's lead reads it the moment the agent returns, and
+# writes nothing to the person then (the run status page shows the progress).
+LEAD_TAIL = "(for the run's lead: send nothing to the person; the run status page shows this)"
+REPLY_TAIL = f"End that line with `{LEAD_TAIL}`."
 NO_SHELL = "Use no shell (no Bash, no PowerShell). Write only with the Write and Edit tools, and only {where}."
 
 
@@ -648,7 +652,8 @@ Claude Code refuses that type (no such agent), launch nothing and reply with its
 {parallel}, then launch the next each time one finishes. If a launch is refused with "Concurrent subagent limit
 reached", launch nothing more until one finishes. Launch each line once. Do no other work: read no other file, write
 no file, run no shell. When every agent has finished, and only then, reply with one line:
-`launched <n>, finished <n>`.
+`launched <n>, finished <n>`, ending it with `(for the run's lead: send nothing to the person; the run status page
+shows this)`.
 
 ## Agents
 
@@ -1084,7 +1089,8 @@ def prompt(body, row, rnd, j, path, ws=None, flow=""):
             f"Cited locations: {row['citations']}\n\n"
             f"Verdict file: {path}\n"
             f"Header line: {HEADER}\n"
-            f"Data line: {buf.getvalue()}<verdict>,\"<reason>\"\n")
+            f"Data line: {buf.getvalue()}<verdict>,\"<reason>\"\n\n"
+            f"Reply with one line: done. {REPLY_TAIL}\n")
 
 
 def command(text, model=None):
@@ -1105,6 +1111,21 @@ def _launch(cmd, cwd):
 SET_ASIDE_DIR = "set-aside"  # judging/<unit>/set-aside/<when>/: verdict files moved aside on the person's word
 
 
+def foreign_card(n):
+    """The question when results of the check of the map against the code came from a session not on this
+    computer: what happened, what each choice costs, and who acts."""
+    import question_card as qc
+    return qc.card(
+        title=f"{n} result{'' if n == 1 else 's'} of the check of the map against the code came from elsewhere: "
+              "set them aside?",
+        fields=[("What", "they failed, and no session on this computer ran them, so I cannot tell what went wrong"),
+                ("Affects", "the part of the map they checked, which waits until this is settled")],
+        why="a result I cannot trace is never counted",
+        choices=[("Set aside", "you give your reason in your answer; I keep them uncounted and check again"),
+                 ("Wait", "nothing changes; mapping waits until that computer's record is brought here")],
+        recommended=(1, "the findings are checked again here, so nothing is lost"))
+
+
 def unknown_choices(reg, ws, unit, rnd, mode, files):
     """The refusal of `run --again` over failing verdict files no transcript here wrote: what happened, and
     the person's choices in plain words for the session to put to them, each naming what the session then runs."""
@@ -1114,13 +1135,9 @@ def unknown_choices(reg, ws, unit, rnd, mode, files):
         f"judges.py run --again: no transcript wrote {len(files)} failing verdict file(s) of unit {unit}, round {rnd} "
         "(transcripts not found here: another PC, another project folder, or cleaned up?); nothing removed: "
         + ", ".join(p.name for p in files[:10]),
-        "Put these choices to the person as written; take their answer by its number or its words:",
+        "Put this question to the person as written; take their answer by its number or its words:",
         "---",
-        f"Some checks of the map against the code failed, and no session on this computer ran them, so the kit "
-        "cannot tell what went wrong in them. What would you like to do?",
-        "1. Set those results aside, kept but not counted, and check those findings again. I'll ask for your reason "
-        "and keep it, word for word, with the record.",
-        "2. Leave them as they are: mapping waits here until the record of the computer that ran them is brought here.",
+        foreign_card(len(files)),
         "---",
         f'On 1: ask for their reason in one plain question, then run {again} --set-aside "<their reason, word for '
         'word>". On 2: tell them mapping waits here, and run nothing.'])
@@ -1830,4 +1847,7 @@ def _main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

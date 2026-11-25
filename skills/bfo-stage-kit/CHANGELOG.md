@@ -8,6 +8,145 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.12.1 — 2026-11-24
+
+A fix to Release 9.11.1.
+
+- **No line to the person when a helper agent returns.** The run's lead could still write a line at each mapping
+  agent's return ("Three of eight are back"), and narrate its work between steps. Every helper agent's one-line reply (mapping
+  agents, checkers, their launchers, readers and the first look's source readers) now ends "(for the run's lead:
+  send nothing to the person; the run status page shows this)", which the lead reads at the moment the agent
+  returns; the skill says plainly that any text between tool calls reaches the person and is empty.
+  Effect: none.
+- **Terms in the card, and short lines in the report.** After the first card a run could send "Finding: ..."
+  and a long sentence on how the map is checked as loose lines. *finding* and *checked finding* are now defined in the
+  card's Terms, and how the check runs is said in the full plan and where the check runs. The report's checked and
+  code-read lines are one clause each ("74 rows against the code, one check each · 73 confirmed · 1 flagged"), and
+  the report names no file or folder.
+  Effect: none.
+
+## Release 9.12 — 2026-11-24
+
+One part that does not fit never stops the whole run. A check that cannot confirm something in a source's own words
+sends it to a judgment and goes on, and you are shown what was not confirmed. A run stops only for something the
+session can always put right, and never more than three times for the same message.
+
+- **A "<" in a page's text no longer erases the lines after it.** Before searching a source for a reader's quote,
+  the check strips the page's HTML tags. It took any "<" as the start of a tag and any later ">" as its end, so a
+  page with "latency < 5 seconds" and an arrow "->" many lines on lost every line between them, and the run stopped
+  on quotes it reported as not found. Only a real tag is stripped now. Code blocks, table cells, curly quotes,
+  dashes, hidden characters and escaped markup are read the same way on the page and in the quote.
+  Effect: none.
+- **A quote the search cannot find no longer stops the run.** It is listed with the passage nearest to it, and an
+  independent judge (the row-checking agent) opens the source and says found, paraphrase, not in the source, or
+  cannot tell. A quote not in its source is left out of what was found. The brief lists it, with every quote no
+  judge could settle, for you to see.
+  Effect: none. A first look that stopped on "not found in the source" can be run again.
+- **Pictures and PDFs are judged, not refused.** A diagram, a screenshot, or a PDF this computer cannot turn into
+  text has its quotes judged from the source itself. The check of this computer says when the PDF tool (pdftoppm) is
+  missing, and goes on. PDF page counts are now right for PDFs saved in compressed form, so a long PDF is read in
+  full.
+  Effect: none.
+- **Sources are read as they are.** Text files in any common encoding (Excel and Notepad exports, UTF-16) are read,
+  not refused. Spreadsheet cells and Word tabs stay apart. A connector's result is compared as decoded text. A
+  host and port (`payments.internal:8443`) or a database address is never read as a code citation.
+  Effect: none.
+- **Mainframe and database code is mapped.** COBOL, JCL, PL/I, PL/SQL and similar code are read and checked, and a
+  repository of only such code, with no build file, is a service.
+  Effect: none. A run whose survey left out such a repository can be run again.
+- **The business's words are never refused.** Words like receipt, merger, participation, P1, or a name with a full stop in
+  it (a company's or a city's) in a message, a reason or a card are advice to the session, never a refusal, and real topic, queue and table
+  names are kept. A message is refused only for a missing part (a question with no choices or recommendation) or
+  for this run's own ids. After three refusals of one message, it is sent to you with a line saying which check it
+  did not meet. The run's refusal of its own ids in the first brief is not capped, as the session can always
+  clear it. This replaces Release 9.11's refusals of a paragraph, a cell over 20 words and a question outside a card,
+  which are now advice; a card is built to its form instead.
+  Effect: none.
+- **A part with no repository says so in its own field.** A mapping row writes `none: <where looked>`. An old row
+  that says it in words is shown as a part to look at, and no unit's work is set aside over a phrase.
+  Effect: none. Old rows are read as before, with a note.
+- **No crash on an arrow or an odd stage number.** Scripts print "→" and other characters on a Windows console,
+  and a stage numbered "2a" is reported, not a traceback.
+  Effect: none.
+
+This release rewords three agents (`bfo-row-judge.md`, `bfo-source-reader.md`, `bfo-flow-mapper.md`): after
+installing it, copy the kit's `agents/` folder into `.claude/agents/` again, then start a new session.
+
+## Release 9.11.1 — 2026-11-24
+
+A fix to Release 9.11.
+
+- **The report counts a checked row as confirmed.** The checkers write "says" when a row matches its code; the
+  report compared their verdicts with another word, so a run whose checked rows all matched reported none
+  confirmed and every one flagged. It now counts "says" as confirmed and "does not say" or "unclear" as flagged. A run can also record
+  a report line the run's own records contradict as a problem in the kit (`report-wrong`).
+  Effect: none. The verdicts already written are read again; a report drawn again counts them right.
+- **With BFO_NO_BROWSER set, no browser is opened.** The start step told the session "OPEN FAILED: open it in the
+  person's browser yourself now", so the session opened one. Under BFO_NO_BROWSER it now says no browser was opened; the
+  address still goes to the person in the message.
+  Effect: none.
+- **What the application does is never cut inside a list.** A cut at the first comma dropped the rest of a list,
+  as in "Online shopping, lets a shopper browse a catalogue of products". The application's name now has its own
+  line, and what it does a line of its own, cut only at a sentence, semicolon, colon or dash; a long one ends in "…".
+  Effect: none.
+- **The status line stays above the card.** The first look's helper could relay the first brief under a label of
+  its own, with the status line quoted on top of the card. The helper is now told to
+  reply with the brief exactly as printed, with no label, quote mark or shorter copy, and the word check refuses a
+  status line inside a quote, or a card that does not open with its question.
+  Effect: none.
+- **The report is fields and tables, never paragraphs.** The report could reach the person as paragraphs ("Three
+  things to know. ...", "What would make this map fuller: ..."). The session now sends its part through `brief.py say
+  --report`, which puts the kit's own **Done** and **Checked** fields under the status line, then the session's
+  tables: **Not read, and why**, **Still not known** and **What would make it fuller**. `say` advises, and never
+  refuses, on a message of the session's holding a paragraph: prose over two sentences or 40 words, or a field over
+  two sentences.
+  Effect: none.
+- **Nothing is sent between stops.** A session could send a line at every mapping agent's return ("Payment service
+  is mapped. Five mapping agents are still running.") and before each launch. Every launch and wait run control prints,
+  and the checkers' launch and hold, now carry "SEND NOTHING to the person" at the moment the session acts on them;
+  the run status page shows progress. A reply to something the person wrote is still allowed.
+  Effect: none.
+- **The review of the measures is one table by default.** It sent every measure in full, in one long message. It now shows one
+  row per stage: how many measures, how many produced today, proposed, not collected or not known, and how many get
+  something wrong. Each stage's own tables are one level down: ask for them, whole or for one stage. A reason in a
+  table cell is one clause, never a chain of colons, and the steps ask for what the shopper or the business sees,
+  never the code's names; the review advises when it finds one.
+  Effect: none. A review rendered again shows the new form.
+
+## Release 9.11 — 2026-11-24
+
+Every question is asked and answered in the chat, in one form a newcomer can answer.
+
+- **Questions are asked only in the chat.** The say-back, the first flow, each search, how far each stage goes, the
+  reviews of the measures and the alerts, the next flow, open items, and every hold come as a highlighted card in the
+  chat. The pages are displays: the Start button, the correction box and Send, Yes and No, the pickers, the ticks,
+  Keep and Drop, the "talk about" boxes, the box for a flow the first look missed and Done are gone from them. While
+  the run waits on you, the run status page and the home screen say "Waiting on you: answer in the chat". To raise
+  anything else, type it in the chat.
+  Effect: none. A run under way picks up with the new questions; answers already recorded stand.
+- **Every question has the same parts.** A one-line question; short fields (what it is about, where the run would
+  look, which flow it affects, why it is asked, what it costs, who can fix it, when an alert fires and whom it wakes);
+  a table for a list of like things; numbered choices that each say what happens and who does it; a recommendation
+  with its reason; and how to answer. A message holding several questions numbers them "1 of N" and says once, after
+  the last, how to answer them all. Table cells are short fragments. The run refuses to send a question missing its
+  why, its choices or its recommendation, written as a paragraph, with a table cell over 20 words, or asked outside a
+  card.
+  Effect: none.
+- **Written for someone who knows nothing of the system or the kit.** The kit's own words (flow, first look, stage, map, service, finding, measure,
+  alert, runbook) are defined in a few words the first time a run uses them, in a Term and Meaning table when there
+  are more than two. A search says which flow it affects; a
+  question about who owns the system's parts asks you first, and a public search is offered only as a fallback that
+  finds the code's authors, not your teams. A hold that needs an engineer says who can fix it and what going on
+  without costs. The pick of how far each stage goes gives the reason for each stage. Each alert says when it fires
+  and whom it wakes. The say-back offers "Not sure: start, and check the lines I cannot against the code". The
+  measures and alerts a review card asks about are set out below it the same way: tables and labelled one-line
+  fields, each kind of measure headed by the question it answers ("Is the software working"), each check named by
+  what it checks.
+  Effect: none. A run under way defines each word the first time it uses it from now on.
+- **Stages reworded are no longer asked about.** The question whether the stages match how the business sees the
+  work comes only when mapping changed the stages, not when it reworded them ("Taking the order", "Take the order").
+  Effect: none.
+
 ## Release 9.10 — 2026-11-24
 
 In this release every run takes one short path: the first look, one question with its answer filled

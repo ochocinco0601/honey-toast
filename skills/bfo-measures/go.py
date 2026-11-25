@@ -30,13 +30,6 @@ Usage: python go.py <register folder> --flow "<the flow to start with>" --words 
        python go.py <register folder> --alerts-reviewed --decision go|changes --words "<their answer, verbatim>"
                     [--given] [--test]                            their review of the proposed alerts (phase 5):
                                                                   only `go` closes the review
-       python go.py <register folder> --answers <answers file> [--test]   the person's picks from the page, as
-                                                                  ask-on-a-page saves them: refused unless their
-                                                                  choice_id is the open choice's in depth.json now;
-                                                                  recorded as --flow or --depth, words verbatim;
-                                                                  its topics (talk:* and talk-words:*) go into
-                                                                  RUN.md verbatim, never into the pick, and a post
-                                                                  of topics alone records them alone
 
 The go asks only which flow comes first. The services read are the first look's recommendation (orientation.json),
 else every surveyed service, and the checks per finding the kit's default of three: shown, never asked. Given, `--in` and
@@ -780,7 +773,7 @@ def write(reg, name, text):
     (reg / name).write_text(text, encoding="utf-8")
 
 
-DEFAULT_JUDGES = 3  # the kit's default checks per finding, the count run_status.MEASURED_JUDGES is built for
+DEFAULT_JUDGES = 3  # the kit's default checks per finding, the count run_status.JUDGES_BUILT_FOR names
 
 
 def surveyed_services(reg):
@@ -1020,7 +1013,8 @@ def service_of(reg, row):
     hit = by_key.get(_name_key((row or {}).get("name") or ""), set())
     if len(hit) == 1:
         return next(iter(hit))
-    repo = ((row or {}).get("repository") or "").replace("\\", "/")
+    import capability_views as cv  # `none: <where looked>` is no repository, never a path to match
+    repo = cv.repository_of((row or {}).get("repository")).replace("\\", "/")
     paths = re.findall(r"[\w.\-/]+", repo)
     best = None
     for r in survey:
@@ -1188,7 +1182,7 @@ def search_items(reg, asks_flow=True, before=()):
     p = reg / layout.ORIENTATION
     o = json.loads(p.read_text(encoding="utf-8-sig")) if p.is_file() else {}
     kept = {x.get("item"): x.get("answer") for x in before}
-    return [{"n": n, "item": item, "answer": kept.get(item, "open")}
+    return [{"n": n, "item": brief.search_text(item), "answer": kept.get(brief.search_text(item), "open")}
             for (n, _), item in zip(brief.search_asks(o, asks_flow), o.get("unresolved") or [])]
 
 
@@ -1233,11 +1227,15 @@ def searches_said(reg, items):
                    "update orientation.json and brief again.")
     still = [x for x in items if x["answer"] == "open"]
     if still:
-        asks = dict(brief.search_asks({"unresolved": [x["item"] for x in still]}, asks_flow=False))
-        ask_text = [asks[i + 1] for i in range(len(still))]
-        out += [brief.STILL_TO_ANSWER, brief.status(reg), "",
-                brief.needs([(x["n"], t) for x, t in zip(still, ask_text)]),
-                "", "Nothing goes on until each is answered: record the answer with go.py --searches."]
+        import question_card as qc
+        p = pathlib.Path(reg) / layout.ORIENTATION
+        o = json.loads(p.read_text(encoding="utf-8-sig")) if p.is_file() else {}
+        whole = {brief.search_text(x): x for x in o.get("unresolved") or []}  # each item as the first look wrote it
+        cards = [brief.search_card(o, whole.get(x["item"], x["item"])) for x in still]
+        out += [brief.STILL_TO_ANSWER, brief.status(reg), "", qc.cards(cards),
+                "", "Nothing goes on until each is answered: record each answer with go.py --searches, by the "
+                "search's own number: " + ", ".join(f"card {i} is search {x['n']}" for i, x in enumerate(still, 1))
+                + "."]
     elif not agreed and items:
         out.append("Every search the first look proposed is answered; the run goes on.")
     return out
@@ -2328,176 +2326,7 @@ def add_flow(reg, name, words, given=None, test=False):
     return {"flow": name}
 
 
-def ticked(value):
-    """The ticks a page sent for one item: a checkbox group's list, or one value (a radio, a select), as a list."""
-    if value is None or value == "":
-        return []
-    return [str(v) for v in value if str(v)] if isinstance(value, list) else [str(value)]
-
-
-PICK_MILESTONES = ("Mapped", "Measures defined", "Alerts defined")
-NEXT_TASK = "Choose the next flow to map"  # depth.py's open choice once a flow is finished  # the milestones whose choice the kit records
-TALK_KEY, TALK_WORDS = "talk:", "talk-words:"  # the page's topics to talk about (home.py names them so)
-
-
-def topics_of(got):
-    """The page's topics to talk about, in the order sent: (milestone, what), each ticked label and each drop-down's
-    words, verbatim; nothing for an unticked box or empty words."""
-    out = []
-    for k, v in got.items():
-        if k.startswith(TALK_WORDS):
-            out += [(k[len(TALK_WORDS):], f'"{w.strip()}"') for w in ticked(v) if w.strip()]
-        elif k.startswith(TALK_KEY):
-            out += [(k[len(TALK_KEY):].split(":", 1)[0], label) for label in ticked(v)]
-    return out
-
-
-def topics_line(topics):
-    return "; ".join(f"{m}: {what}" for m, what in topics)
-
-
-def record_topics(reg, topics, given, test):
-    """The topics, verbatim with the time, in the run record, RUN.md: for the session to talk about, never a pick."""
-    given = given or datetime.datetime.now().astimezone().isoformat(timespec="minutes")
-    p = reg / "RUN.md"
-    if p.is_file():
-        who = "a test, given by a test standing in for the person" if test else "the person"
-        line = f"- **Topics to talk about:** {topics_line(topics)} ({who}, {given})"
-        p.write_text(p.read_text(encoding="utf-8").rstrip("\n") + "\n" + line + "\n", encoding="utf-8", newline="\n")
-
-
-def record_note(reg, milestone, got, given, test):
-    """Their words, and any ticks, on a milestone with no pick open (one other teams do, such as Instrumented):
-    recorded verbatim with the milestone and the time in the run record, RUN.md, and in scope.json once the go has
-    made it. No pick is made and no depth changes: the session reads them and replies."""
-    given = given or datetime.datetime.now().astimezone().isoformat(timespec="minutes")
-    words = got.get("words") if isinstance(got.get("words"), str) else ""
-    ticks = {k: v for k, v in got.items() if k not in ("milestone", "words", "choice_id")}
-    note = {"milestone": milestone, "words": words, "ticks": ticks, "given": given, "test": test}
-    s = load(reg)
-    if s is not None:  # before the go there is no scope.json, and none is made here: the go makes it
-        s.setdefault("notes", []).append(note)
-        save(reg, s)
-    p = reg / "RUN.md"
-    if p.is_file():
-        who = "a test, given by a test standing in for the person" if test else "the person"
-        asked = "; ".join(f"{k}: {', '.join(ticked(v)) or 'nothing ticked'}" for k, v in ticks.items())
-        line = (f"- **Note on {milestone}:** \"{words}\" ({who}, {given})" + (f". Ticked: {asked}" if asked else ""))
-        p.write_text(p.read_text(encoding="utf-8").rstrip("\n") + "\n" + line + "\n", encoding="utf-8", newline="\n")
-    return argparse.Namespace(milestone=milestone, words=words, given=given, scoped=s is not None)
-
-
-def from_answers(reg, path, test=False):
-    """The person's picks from the page (ask-on-a-page's answers file: page, submittedAt, answers), checked against
-    the open choice in depth.json now, and recorded exactly as --flow or --depth records them, their words verbatim.
-    Returns the Namespace to record with and which, or the refusal."""
-    import depth
-    try:
-        body = json.loads(pathlib.Path(path).read_text(encoding="utf-8-sig"))
-        got = body["answers"]
-        if not isinstance(got, dict):
-            raise ValueError
-    except (OSError, ValueError, KeyError, TypeError):
-        return f"{path} is not an answers file: it needs an `answers` object, as the page sends it"
-    topics = topics_of(got)
-    got = {k: v for k, v in got.items() if not k.startswith((TALK_KEY, TALK_WORDS))}
-    said = (got.get("words") or "").strip() if isinstance(got.get("words"), str) else ""
-    if not said and not any(ticked(v) for k, v in got.items() if k not in ("choice_id", "words", "milestone")):
-        # nothing for the open choice: a Done in another drop-down, or a page with no choice open
-        if not topics:
-            return "nothing ticked and no words, so these answers say nothing"
-        return "topics", argparse.Namespace(topics=topics, given=body.get("submittedAt"))
-    c = depth.build(reg)["open_choice"]
-    named = got.get("milestone")
-    if named and (c is None or named != c["milestone"]):
-        if named in PICK_MILESTONES and got.get("choice_id"):
-            return (f"these answers pick at {named}, which is not waiting on a pick now (the page was drawn before "
-                    "the run moved on). Draw the page again from depth.json")
-        return "note", record_note(reg, named, got, body.get("submittedAt"), test)
-    if c is None:
-        return "nothing is waiting on a pick from the page now, so these answers cover nothing"
-    if not c["items"]:  # never record a pick from a choice that showed the person nothing
-        return "the open choice offers nothing to pick, so these answers cover nothing"
-    if got.get("choice_id") != c["choice_id"]:
-        return ("the choice has changed since the page was drawn, so these answers do not cover it (page "
-                f"{got.get('choice_id') or 'none'}, now {c['choice_id']}). Draw the page again from depth.json and "
-                "ask again")
-    words = got.get("words")
-    words = words if isinstance(words, str) else ""
-    a = argparse.Namespace(flow=None, inn=None, out=None, stages=None, judges=None, words=words,
-                           given=body.get("submittedAt"), test=test, depth=None, topics=topics)
-    offered = {i["key"]: i for i in c["items"]}
-    unknown = [k for k in got if k not in ("choice_id", "words", "milestone", "add") and k not in offered]
-    if c["milestone"] == "Mapped":
-        if unknown:
-            return f"not a flow on the page: {', '.join(unknown)}"
-        bad = [f"{k}: {v}" for k in offered for v in ticked(got.get(k)) if v != depth.FLOW_OPT]
-        if bad:
-            return f"not a tick the page offers: {'; '.join(bad)}"
-        picked = [k for k in offered if ticked(got.get(k))]
-        add = got.get("add").strip() if isinstance(got.get("add"), str) else ""
-        if add and c["task"] == NEXT_TASK:  # a flow the first look missed: added, then picked unless another is ticked
-            if len(picked) > 1:
-                return f"tick at most one flow to map next ({len(picked)} ticked)"
-            a.add, a.flow = add, picked[0] if picked else add
-            return "add", a
-        if len(picked) != 1:
-            return f"tick exactly one flow to map first ({len(picked)} ticked)"
-        a.flow = picked[0]
-        return "flow", a
-    if c["milestone"] == "Measures defined":
-        order = list(depth.DEPTH_OPTS)
-        problems = [f"not a stage on the page: {k}" for k in unknown]
-        pairs = []
-        for k in offered:
-            value = got.get(k)
-            ticks = ticked(value)
-            bad = [t for t in ticks if t not in order]
-            if bad:
-                problems.append(f"{k}: not a tick the page offers: {', '.join(bad)}")
-                continue
-            if not ticks:
-                continue  # no tick: mapped only
-            furthest = max(order.index(t) for t in ticks)
-            if isinstance(value, list):  # the ticked values: every one up to the furthest, as ticking a later
-                # milestone includes the earlier ones; a single value (not a list) is the furthest alone
-                missing = [order[i] for i in range(furthest) if order[i] not in ticks]
-                if missing:
-                    problems.append(f"{k}: {order[furthest]} without {missing[-1]}; each milestone includes the "
-                                    "ones before it")
-            pairs.append(f"{k}={depth.DEPTH_OPTS[order[furthest]]}")
-        if problems:
-            return "; ".join(problems)
-        if not pairs:  # words and no tick: no pick is recorded from the page; the words are a topic
-            return "topics", argparse.Namespace(topics=topics + [(c["milestone"], f'"{words.strip()}"')],
-                                                given=body.get("submittedAt"), ask=True)
-        a.depth = ",".join(pairs)
-        return "depth", a
-    return ("the reviews of the measures and of the alerts are not taken from a page: record their answer with "
-            "go.py --measures-reviewed or --alerts-reviewed --decision go|changes --words")
-
-
-RECORDED = pathlib.Path("answers") / ".recorded"  # one line per answers file taken: its content's sha256
-
-
-def answers_key(path):
-    try:
-        return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
-    except OSError:
-        return None
-
-
-def taken_before(reg, key):
-    try:
-        return key in (reg / RECORDED).read_text(encoding="utf-8").split()
-    except OSError:
-        return False
-
-
-def mark_taken(reg, key):
-    (reg / RECORDED).parent.mkdir(exist_ok=True)
-    with open(reg / RECORDED, "a", encoding="utf-8", newline="\n") as f:
-        f.write(key + "\n")
+NEXT_TASK = "Choose the next flow to map"  # depth.py's open choice once a flow is finished
 
 
 def main(argv):
@@ -2513,67 +2342,6 @@ def _main(argv):
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
     run_lock.refuse_unless_register(argv)
-    if "--answers" in argv:  # the person's picks from the page, recorded as --flow or --depth records them
-        i = argv.index("--answers")
-        rest = argv[:i] + argv[i + 2:]
-        test = "--test" in rest
-        rest = [x for x in rest if x != "--test"]
-        if len(rest) != 1 or i + 1 >= len(argv) or not pathlib.Path(rest[0]).is_dir():
-            print("Usage: python go.py <register folder> --answers <answers file> [--test]", file=sys.stderr)
-            return 2
-        reg = pathlib.Path(rest[0])
-        run_lock.guard(reg)
-        key = answers_key(argv[i + 1])
-        if key and taken_before(reg, key):
-            print("REFUSED: these answers were recorded already, so they are not the person's latest. If nothing "
-                  "newer has arrived, ask the question in the chat. Nothing written.", file=sys.stderr)
-            return 2
-        try:  # the say-back's Start or correction is not a pick: its own script records it
-            said_back = "say_back" in json.loads(pathlib.Path(argv[i + 1]).read_text(encoding="utf-8"))
-        except (OSError, ValueError, TypeError):
-            said_back = False
-        if said_back:
-            print("REFUSED: these are the person's answer to what the run said back, not a pick: record them with "
-                  f'python say_back.py answer "{reg}" --answers "{argv[i + 1]}". Nothing written.', file=sys.stderr)
-            return 2
-        got = from_answers(reg, argv[i + 1], test)
-        if isinstance(got, str):
-            print(f"REFUSED: {got}. Nothing written.", file=sys.stderr)
-            return 2
-        how, a = got
-        if how == "topics":
-            record_topics(reg, a.topics, a.given, test)
-            mark_taken(reg, key)
-            import depth
-            depth.write_quietly(reg)
-            print("Written: topics to talk about, in RUN.md; no pick recorded.")
-            print(f"You asked to talk about: {topics_line(a.topics)}")
-            if getattr(a, "ask", False):
-                print("Nothing was ticked, so no pick was recorded: ask the person in the chat how far each stage "
-                      "goes, and record their answer with --depth.")
-            return 0
-        args = [str(reg), "--words", a.words] + (["--given", a.given] if a.given else []) + (["--test"] if test else [])
-        if how == "add":
-            added = add_flow(reg, a.add, a.words or "added on the page", a.given, test)
-            if isinstance(added, str):
-                print(f"REFUSED: {added}. Nothing written.", file=sys.stderr)
-                return 2
-            record_decision(reg, "add flow", a.words or "added on the page", "page", test)
-            how = "flow"
-        if how == "note":
-            mark_taken(reg, key)
-            print(f"Written: their words on {a.milestone}, in RUN.md" + (f" and {layout.SCOPE}" if a.scoped else "")
-                  + "; no pick recorded. Read them and reply.")
-            import depth
-            depth.write_quietly(reg)
-            return 0
-        rc = main(args + ["--page"] + (["--flow", a.flow] if how == "flow" else ["--depth", a.depth]))
-        if rc == 0:
-            mark_taken(reg, key)
-        if rc == 0 and a.topics:
-            record_topics(reg, a.topics, a.given, test)
-            print(f"You asked to talk about: {topics_line(a.topics)}")
-        return rc
     ap = argparse.ArgumentParser(prog="go.py", description=__doc__.split("\n")[0])
     ap.add_argument("reg")
     ap.add_argument("--flow")
@@ -2607,10 +2375,9 @@ def _main(argv):
     ap.add_argument("--searches", metavar="N=yes|no,...")  # the person's answer on each search the brief proposed
     ap.add_argument("--row", metavar="LEAD")  # a RUN.md row set by the session, logged so its step is timed
     ap.add_argument("--to", choices=run_md.STATUSES)
-    ap.add_argument("--page", action="store_true", help=argparse.SUPPRESS)  # from the page: ticks alone answer
     ap.add_argument("--source", choices=("chat", "page", "request"), help=argparse.SUPPRESS)
     a = ap.parse_args(argv)
-    source = a.source or ("page" if a.page else "chat")
+    source = a.source or "chat"
     reg = pathlib.Path(a.reg)
     if not reg.is_dir():
         print(f"not a folder: {reg}", file=sys.stderr)
@@ -2676,7 +2443,7 @@ def _main(argv):
         import depth
         depth.write_quietly(reg)
         if hasattr(sys.stdout, "reconfigure"):
-            sys.stdout.reconfigure(encoding="utf-8")
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         print(f"Written: the answer on the first look's searches, in {layout.SCOPE}")
         print("\n".join(searches_said(reg, items)))
         return 0
@@ -2731,7 +2498,7 @@ def _main(argv):
     import depth  # the page's next state: depth.json follows every record
     depth.write_quietly(reg)
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     if a.depth is not None:
         print(f"Written: how far each stage goes, in {layout.SCOPE}: " +
               ", ".join(f"{k} {v}" for k, v in got["depth"].items()))
@@ -2767,4 +2534,7 @@ def _main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

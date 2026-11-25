@@ -17,6 +17,7 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import map_record as mr  # noqa: E402
+import register_layout as layout  # noqa: E402
 import go  # noqa: E402
 import view_questions as vq  # noqa: E402
 
@@ -66,7 +67,7 @@ def inspect(reg, flow_id):
     flow = next((f for f in R["flows"] if f["flow_id"] == flow_id), None)
     if flow is None:
         raise ValueError(not_a_flow(flow_id, R["flows"]))
-    stages = sorted((s for s in R["stages"] if s["flow"] == flow_id), key=lambda s: int(s.get("order") or 0))
+    stages = sorted((s for s in R["stages"] if s["flow"] == flow_id), key=layout.stage_order)
     sids = {s["stage"] for s in stages}
     steps = [s for s in R["steps"] if s["stage"] in sids]
     moves = {m["move_id"]: m for m in R["lifecycle"] if m.get("flow", flow_id) in (flow_id, "")}
@@ -258,7 +259,7 @@ def main(argv):
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
     run_lock.refuse_unless_register(argv)
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     every = "--all" in argv
     argv = [a for a in argv if a != "--all"]
     if len(argv) != 2:
@@ -272,7 +273,7 @@ def main(argv):
     # stdout is what the person reads; stderr, for the session: what the done check would say NOT DONE on, with the
     # ids, to put right before phase 3 is set done
     if hasattr(sys.stderr, "reconfigure"):
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     if items:
         print("Done check, mapping's part: NOT DONE. Put each right and run this again before setting phase 3 done:\n"
               + "\n".join(f"- {reason}" for _, _, reason in items), file=sys.stderr)
@@ -284,4 +285,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

@@ -284,6 +284,8 @@ def say(address, started, opened):
     give = f"Give the person the address in your message: {address}"
     if opened:
         return f"PAGE: {address} (open in the person's browser). {give}"
+    if os.environ.get("BFO_NO_BROWSER"):  # the person asked that no browser be opened: never tell the session to
+        return f"PAGE: {address} (no browser opened: BFO_NO_BROWSER is set). {give}"
     return (f"OPEN FAILED: open {address} in the person's browser yourself now: in a shell, start \"\" \"{address}\"; "
             f"in PowerShell, Start-Process \"{address}\". {give}")
 
@@ -318,7 +320,7 @@ def check(site, page="/operator.html"):
 
 def main(argv):
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     if len(argv) in (2, 3) and argv[0] == "up":
         try:
             print(say(*up(argv[1], argv[2] if len(argv) == 3 else "")))
@@ -344,4 +346,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

@@ -32,6 +32,7 @@ import go  # noqa: E402
 import page_style as ps  # noqa: E402
 import view_questions as vq  # noqa: E402
 import run_lock  # noqa: E402
+import register_layout as layout  # noqa: E402
 from map_record import (TABLES, PRODUCT_NAMES, cell, norm, vouched_products, load,  # noqa: E402,F401
                         split_top, strip_parens, state, resolve, parts, listed, decision_class,
                         chain_failures, agent_rows, point_key, class_failures)
@@ -169,7 +170,7 @@ def step_labels(stages, steps, lifecycle):
     one of its endings, unnumbered, the main path's first ("Expected outcome", then "Other outcome")."""
     moves = {m.get("move_id"): m for m in lifecycle}
     out = {}
-    for st in sorted(stages, key=lambda s: (s.get("flow", ""), int(s["order"]) if s.get("order", "").isdigit() else 0)):
+    for st in sorted(stages, key=lambda s: (s.get("flow", ""), int(s["order"]) if s.get("order", "").isdecimal() else 0)):
         mine = [s for s in steps if s.get("stage") == st["stage"]]
         mv = {s["step"]: [moves[x] for x in dict.fromkeys(re.findall(r"\bL\d+\b", s.get("source", ""))) if x in moves]
               for s in mine}
@@ -220,7 +221,7 @@ def build(R, flow_id, stage_id):
     flow = next((f for f in R["flows"] if f["flow_id"] == flow_id), None)
     if flow is None:
         raise ValueError(f"{flow_id} is not a flow of this register; its flows: {', '.join(f['flow_id'] for f in R['flows'])}")
-    stages = sorted([s for s in R["stages"] if s["flow"] == flow_id], key=lambda s: int(s["order"]))
+    stages = sorted([s for s in R["stages"] if s["flow"] == flow_id], key=layout.stage_order)
     stage = next((s for s in stages if s["stage"] == stage_id), None)
     if stage is None:
         raise ValueError(f"{stage_id} is not a stage of flow {flow_id}; its stages: {', '.join(s['stage'] for s in stages) or 'none'}")
@@ -282,7 +283,7 @@ def reach(R, m):
     every stage of a flow; and for a part, each step its participation.csv rows put it on, narrowed to the operations
     its `operation` names where any row writes one of them (a part's measure is held once and reaches every stage
     it serves)."""
-    stages = sorted(R["stages"], key=lambda s: (s.get("flow", ""), int(s["order"]) if s.get("order", "").isdigit() else 0))
+    stages = sorted(R["stages"], key=lambda s: (s.get("flow", ""), int(s["order"]) if s.get("order", "").isdecimal() else 0))
     of = {s["step"]: s.get("stage", "") for s in R["steps"]}
     lv = level(m)
     if lv == "step":
@@ -383,6 +384,8 @@ def person_text_failures(M, drafted):
                 [(f"expectation {e}", expect[e].get("expectation")) for e in guards(m) if e in expect]
         for col, text in texts:
             hits = brief.review_terms(as_reviewed(M, text), names)
+            if hits and R.get("_path"):  # the review refuses only this run's own ids and files; the rest is advice
+                hits = brief.refused_terms(hits, R["_path"])
             if hits:
                 out.append(f"{'alerts.csv' if col == 'basis' else 'measures.csv'} {m['handle']}: the {col} a person reads when reviewing this alert carries "
                            f"{', '.join(dict.fromkeys(hits))}: write it in their words, naming no table, file, id or "
@@ -585,7 +588,7 @@ def receipt(R, flow_id):
     flow = next((f for f in R["flows"] if f["flow_id"] == flow_id), None)
     if flow is None:
         raise ValueError(f"{flow_id} is not a flow of this register; its flows: {', '.join(f['flow_id'] for f in R['flows'])}")
-    stages = sorted([s for s in R["stages"] if s["flow"] == flow_id], key=lambda s: int(s["order"]))
+    stages = sorted([s for s in R["stages"] if s["flow"] == flow_id], key=layout.stage_order)
     ms = R["measures"]
     case = {sid for sid, s in subj.items() if s.get("part_kind") == "case"}
     out = []
@@ -936,9 +939,9 @@ def same_place_failures(measures):
 
 def counted_at_failures(m, products=()):
     """`counted_at`: the plain name of the place a measure is counted at, read from its own counted_how and
-    citation. A row with a `source_ref` and no `counted_at` fails, and so does one naming a code identifier; a
-    register whose measures.csv has no such column (made with an earlier release) is warned once by the check
-    instead."""
+    citation. A row with a `source_ref` and no `counted_at` fails; a register whose measures.csv has no such column
+    (made with an earlier release) is warned once by the check instead. What the cell says is never judged here: a
+    name as the code spells it is a note (counted_at_name), never a failure."""
     if "counted_at" not in m or not norm(m.get("source_ref")):
         return []
     at = norm(m.get("counted_at"))
@@ -947,14 +950,18 @@ def counted_at_failures(m, products=()):
                 "screen cannot say where it is counted: write the plain name of the place that citation shows (the "
                 "table and the database it lives in, the log and the service that writes it, or the system whose own "
                 "status it is), or 'not in the code: ' and what it would take"]
-    hit = code_name(at, products)
-    if hit:
-        return [f"measures.csv {m['handle']}: counted_at names {hit}, a name only the code knows, so a "
-                "reader cannot find the place from it: write the plain name a reader knows without the code (the "
-                "table and the database it lives in, the log and the service that writes it, or the system whose "
-                f"own status it is). If {hit} is a product's own name, declare it in {PRODUCT_NAMES} with where "
-                "its vendor or the sources write it so"]
     return []
+
+
+def counted_at_name(m, products=()):
+    """The part of a cited measure's `counted_at` spelled as the code spells it (code_name), or None. Reported as a
+    note only: a topic, queue or table named exactly (`payment_authorized`, `PaymentHub`, `dbo.Payments`) is what an
+    operator types to find the place, so the kit never asks for it to be replaced: refusing it
+    would push exact names out."""
+    if "counted_at" not in m or not norm(m.get("source_ref")):
+        return None
+    at = norm(m.get("counted_at"))
+    return code_name(at, products) if at else None
 
 
 def alert_check(M):
@@ -1209,6 +1216,12 @@ def check(M, part="all"):
         err += defect_failures(m)
         err += watched_failures(m)
         err += counted_at_failures(m, R.get("products", ()))
+        hit = counted_at_name(m, R.get("products", ()))
+        if hit:
+            warn.append(f"note: measures.csv {m['handle']}: counted_at names {hit} as the code spells it; keep that "
+                        "exact name, which an operator searches by, and say beside it in plain words the place it is "
+                        "(the table and the database it lives in, the topic or queue and the broker that holds it, "
+                        "the log and the service that writes it)")
     err += same_place_failures(R["measures"])
     if R["measures"] and not any("counted_at" in m for m in R["measures"]):
         warn.append("measures.csv has no counted_at column (a register made with an earlier version of this kit), so "
@@ -3553,4 +3566,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())

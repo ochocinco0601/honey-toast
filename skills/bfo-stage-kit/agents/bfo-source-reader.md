@@ -29,8 +29,10 @@ disallowedTools: Bash, PowerShell
   service, a page's system name, a ticket's endpoint are how a flow seen in a document is matched to a part in the
   code, so `names_in_it` is the join, not decoration. Through the helper, the later phases find your holdings by
   command and open the source at the spot you cite. Every quote and name you copy is searched for in the source by the
-  kit's check, so a paraphrase, an invented spot or a name not in the source fails the first look until it is put
-  right.
+  kit's check. A quote or name it does not find word for word never stops the first look: it is judged by a party
+  that copied none of it, and one the source does not hold is dropped (a quote takes its lead with it; a name, only
+  itself) from everything the helper hands on, and listed in the brief for the person as not in its source. So a quote copied loosely costs the lead it
+  supports, and the person sees it; copy exactly, so every lead the source does hold reaches the brief.
 - **Done for the whole job:** every line (or page) of every part you were given was opened with the Read tool, which
   the check reads from Claude Code's own transcript, never from your word; every flow, stage, step, part or people
   step each part suggests is a lead, and every thing a later phase would want is a holding, not one example per

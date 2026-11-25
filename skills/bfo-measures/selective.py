@@ -262,38 +262,44 @@ def failure_claims(reg, ws=None):
             for fm in _rows(reg / "failure-modes.csv") if fm.get("mode_id")}
 
 
+# each signal state as the person reads it in a review
+SIGNAL_SAID = {SIGNAL_FOUND: "found in the code", SIGNAL_CITED: "cited in the code but not confirmed there",
+               SIGNAL_NOT_FOUND: "not found in the code", SIGNAL_PROPOSED: "proposed, not produced yet"}
+
+
 def said(reg):
-    """The review's paragraph on checking, in plain words: how many measures rest on rows a checker confirmed, flagged
-    or that nothing on the map matched, and each flagged measure by name."""
+    """The review's lines on checking, as labelled one-line fields in plain words: how many measures rest on map lines
+    a checker confirmed, flagged or that nothing on the map matched, each flagged measure by name, where each measure's
+    number was found in the code, and the measures an alert on which would never fire as drafted."""
     names = {r.get("handle", ""): (r.get("measure") or r.get("handle", "")) for r in _rows(pathlib.Path(reg) /
                                                                                           "measures.csv")}
     states = measure_states(reg)
     n = {k: sum(1 for v in states.values() if v == k) for k in (CHECKED, FLAGGED, WAITING, NOT_CHECKED)}
     sel = selected(reg) or {}
     rows = sum(len(v) for v in sel.values())
-    text = (f"**Checking.** One agent that wrote none of the map checked each of the {rows} map rows these measures "
-            f"rest on; the map's other rows are not checked in this run. Of the {len(states)} measures: "
-            f"{n[CHECKED]} checked, {n[FLAGGED]} flagged, {n[WAITING]} waiting for a checker, {n[NOT_CHECKED]} not "
-            "checked (no map row matched).")
+    lines = [f"**Check of the map against the code:** the {rows} lines of the map these measures rest on, each read "
+             "by a checker that wrote none of the map; the map's other lines are not checked in this run",
+             f"**What it found:** of {len(states)} measures, {n[CHECKED]} checked, {n[FLAGGED]} flagged, {n[WAITING]} "
+             f"waiting for a checker, {n[NOT_CHECKED]} not checked (no line of the map matched)"]
     flagged = [names.get(h, h) for h, v in sorted(states.items()) if v == FLAGGED]
     if flagged:
-        text += " Flagged, a row each rests on was judged wrong or unclear: " + "; ".join(f"*{x}*" for x in flagged) + "."
+        lines.append("**Flagged, a line each rests on judged wrong or unclear:** " + "; ".join(flagged))
     signals = signal_states(reg)
     if signals:
         s = {k: [names.get(h, h) for h, v in sorted(signals.items()) if v == k]
              for k in (SIGNAL_FOUND, SIGNAL_CITED, SIGNAL_NOT_FOUND, SIGNAL_PROPOSED)}
-        text += (f" **Signals, checked by script.** {len(s[SIGNAL_FOUND])} {SIGNAL_FOUND}, {len(s[SIGNAL_CITED])} "
-                 f"{SIGNAL_CITED}, {len(s[SIGNAL_NOT_FOUND])} {SIGNAL_NOT_FOUND}, {len(s[SIGNAL_PROPOSED])} "
-                 f"{SIGNAL_PROPOSED}.")
+        lines.append("**Where each number is produced, looked up by script:** "
+                     + ", ".join(f"{len(s[k])} {SIGNAL_SAID[k]}" for k in (SIGNAL_FOUND, SIGNAL_CITED, SIGNAL_NOT_FOUND,
+                                                                          SIGNAL_PROPOSED)))
         if s[SIGNAL_NOT_FOUND]:
-            text += (f" An alert on these would never fire as drafted ({SIGNAL_NOT_FOUND}): "
-                     + "; ".join(f"*{x}*" for x in s[SIGNAL_NOT_FOUND]) + ".")
+            lines.append("**An alert on these would never fire as drafted (not found in the code):** "
+                         + "; ".join(s[SIGNAL_NOT_FOUND]))
     claims = failure_claims(reg)
     bad = sorted(k for k, v in claims.items() if v == CLAIM_UNSUPPORTED)
     if claims:
-        text += (f" **What the runbooks will say the code does on failure:** {len(claims) - len(bad)} of "
-                 f"{len(claims)} failure modes cite code" + (f"; {CLAIM_UNSUPPORTED}: {', '.join(bad)}." if bad else "."))
-    return text
+        lines.append(f"**What the runbooks will say the code does on failure:** {len(claims) - len(bad)} of "
+                     f"{len(claims)} ways it can fail cite code" + (f"; none cited for {', '.join(bad)}" if bad else ""))
+    return "\n\n".join(lines)
 
 
 def review_problem(reg):
@@ -333,6 +339,8 @@ def _main(argv):
         for u in units or [""]:  # the same order check a judge emit makes (guard.py)
             if judges._guarded(reg, u, 1):
                 return 2
+        import guard
+        print(guard.SILENT)  # first, before the lines to launch: between stops nothing goes to the person
         print("\n".join(judges.emit_selected(reg, units, again=again)))
         return 0
     if argv[0] == "select":
@@ -349,10 +357,15 @@ def _main(argv):
     why = review_problem(reg)
     if why:
         print(f"HELD: {why}")
+        import guard
+        print(guard.SILENT)
         return 2
     print("READY: every selected row has its checker's verdict")
     return 0
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

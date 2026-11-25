@@ -59,6 +59,23 @@ SOURCE_COLS = ("source", "source_ref", "basis", "activity")
 
 # ---------------------------------------------------------------- reading
 
+NO_REPOSITORY = re.compile(r"\s*none\s*:(.*)", re.I | re.S)  # subjects.repository `none: <where it was looked for>`
+
+
+def repository_none(value):
+    """The words after `none:` in a subjects.csv `repository` cell (where it was looked for, '' when the cell says
+    none), or None when the cell is not that form: a component no repository defines says so in the cell, parsed
+    here, never by a phrase searched for in its prose."""
+    m = NO_REPOSITORY.fullmatch(value or "")
+    return m.group(1).strip() if m else None
+
+
+def repository_of(value):
+    """The repository a subjects.csv `repository` cell names: '' for a blank cell or one that says `none: ...`, so
+    nothing reads `none: ...` as a folder."""
+    return "" if repository_none(value) is not None else (value or "").strip()
+
+
 def read_csv(path, malformed=None):
     """Rows as dicts. A row with more fields than the header is kept without the extras and noted in `malformed`."""
     if not path.exists():
@@ -305,6 +322,9 @@ def short_layer(layer):
 
 # ---------------------------------------------------------------- the check
 
+LOOK_AT = "look whether it is separately built"  # the cv-26 warning's words; the fast map shows each such warning
+
+
 def check(R):
     """(errors, warnings): what points nowhere or sits outside the closed lists; rows with no citation."""
     err, warn = list(R.get("_malformed", [])), []
@@ -348,7 +368,7 @@ def check(R):
     for r in R["stages"]:
         if r.get("flow") not in flows:
             err.append(f"stages.csv {r['stage']}: flow {r.get('flow')!r} is not a flow")
-        if not (r.get("order") or "").isdigit():
+        if not (r.get("order") or "").isdecimal():
             err.append(f"stages.csv {r['stage']}: order {r.get('order')!r} is not a number")
     for r in R["steps"]:
         if r.get("stage") not in stages:
@@ -399,23 +419,40 @@ def check(R):
                    "(FILL-STEPS Step 5)")
     elif comps:
         for r in comps:
+            sid, src = r["subject_id"], r.get("source", "")
+            looked = repository_none(r.get("repository"))
+            if looked is not None:  # `none: <where looked>`: parsed, whatever the prose says
+                if not looked:
+                    warn.append(f"subjects.csv {sid}: repository says none and not where it was looked for: write "
+                                "`none: ` and where it was looked for (the repositories and deployment definitions "
+                                "read)")
+                if r.get("band") != "technology":
+                    warn.append(f"subjects.csv {sid}: repository says none on a component of band "
+                                f"{r.get('band') or 'blank'}; a service's code can be had, so its repository is the "
+                                "one it is built from, `not built here:` and its image, or the part is an external "
+                                "dependency (FILL-STEPS Step 5)")
+                continue
             if r.get("repository"):
                 continue
-            sid, src = r["subject_id"], r.get("source", "")
             said = " ".join(r.get(c) or "" for c in ("name", "purpose", "source")).lower()
             if r.get("band") == "technology" and re.search(r"\bno repository\b", src, re.I):
-                continue  # a system component no repository defines, as its source says
-            if re.search(r"not separately built|no (?:build|deployable) of its own|in[- ]process", said):
-                err.append(f"subjects.csv {sid}: a component with no repository that is not separately built; it is "
-                           "not a component, since a component is a deployable. Remove its subjects.csv row and "
-                           "describe it in agent-system.csv as an agent part inside its parent component's run "
-                           "(FILL-STEPS Steps 5 and 7)")
+                # the form of an earlier release, read as advice only: the cell now says it
+                warn.append(f"subjects.csv {sid}: repository is blank and source says no repository defines it, the "
+                            "form of an earlier release: write `none: ` and where it was looked for in repository")
+                continue
+            hint = re.search(r"not separately built|no (?:build|deployable) of its own|in[- ]process", said)
+            if hint:  # wording only ("settles payments in process" matches too): looked at, never a refusal
+                warn.append(f"subjects.csv {sid}: a component with no repository whose text says "
+                            f"{hint.group(0)!r}; {LOOK_AT}. If it is not, it is not a "
+                            "component (a component is a deployable): describe it in agent-system.csv as an agent part "
+                            "inside its parent component's run (FILL-STEPS Steps 5 and 7); if it is, write its "
+                            "repository")
             elif r.get("band") == "technology":
                 err.append(f"subjects.csv {sid}: a system component with no repository; shared infrastructure a parent "
                            "component's deployment provisions (a database, a cache, a broker) takes the repository "
                            "that defines it, with the path to the definition (`repo: path`); `not built here:` and "
                            "the image for one run from someone else's image; or, where no repository defines it, "
-                           "leave it blank and say so in source, with where it was looked for")
+                           "`none: ` and where it was looked for")
             else:
                 err.append(f"subjects.csv {sid}: a component with no repository; write the repository it is built "
                            "from, from its build or deployment definition, or `not built here:` and the image for one "
@@ -631,7 +668,7 @@ def model(R):
     M["flows"] = [dict(f, _stages=[]) for f in R["flows"]]
     fl = {f["flow_id"]: f for f in M["flows"]}
     M["stage"] = {}
-    for s in sorted(R["stages"], key=lambda s: int(s["order"]) if s.get("order", "").isdigit() else 0):
+    for s in sorted(R["stages"], key=lambda s: int(s["order"]) if s.get("order", "").isdecimal() else 0):
         s = dict(s, _steps=[])
         M["stage"][s["stage"]] = s
         if s.get("flow") in fl:
@@ -2569,4 +2606,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())

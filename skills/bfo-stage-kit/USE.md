@@ -28,6 +28,10 @@ Every claim cites the code as `file:line`. Anything the code does not state (own
 - Python 3.9 or later on the path, and Semgrep for the code reader (`pip install semgrep`;
   `fact-extractor/semgrep_bin.py` says how it is found). The reader runs it with the kit's own rules, metrics and version check off, so it sends
   nothing anywhere; Semgrep keeps its own settings and log under `~/.semgrep/`. Nothing else is installed.
+- Your answers go in the chat. Every question the run asks comes in the chat as a highlighted card: the question,
+  what it is about and why it is asked, numbered choices each saying what happens and who does it, a recommendation
+  with its reason, and how to answer. Reply with the number, or in your own words. The run's pages only show the
+  work: while the run waits on you they say "Waiting on you: answer in the chat".
 - A browser, for the run's page. To show it, the run starts a small web server on this machine only
   (`127.0.0.1`), with no window. It keeps running between the points where the run waits on you, and stops by
   itself shortly after the run's record shows the run has ended, even with the page still open; it also stops with
@@ -148,11 +152,11 @@ how far each stage goes leaves out: the run passes over it and does not wait on 
 The Fullness block it prints after that line counts how full the register is and judges nothing.
 
 **The next flow joins the same map.** A register is the capability's one map. When a flow is finished and the first
-look found more, the run offers the next flow, with the one it recommends and why, on the page and in the chat; the
+look found more, the run offers the next flow, with the one it recommends and why, in the chat; the
 flow you pick is added to the same register, beside the finished ones. A finished flow keeps everything: how far you
 picked to take each stage, your words, your review of its alerts, its rows in the map and its pages. The done check
 says NOT DONE if a row of a finished flow is changed or an id is used twice. A flow the first look missed can be
-added at the offer, in your words, on the page or in the chat, and then picked like the others. To take a stage of a
+added at the offer, in your words, in the chat, and then picked like the others. To take a stage of a
 finished flow further, say so between flows, at the offer of the next flow: that flow is taken up again, only the
 work its new pick needs is done, its pages are checked and reported again, and then the offer comes back. While a
 flow is under way, the run finishes it first. A finished flow is never mapped again. A register from Release 7

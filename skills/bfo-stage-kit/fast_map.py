@@ -28,6 +28,7 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+import paths  # noqa: E402
 
 FOLDER = "fast"
 PAGE = "fast-map.html"
@@ -58,6 +59,7 @@ NOT_DONE = ("Every row on this map was written in one pass by a mapping agent th
             "not finish; a gap is something the code scanner found that no row covers, a call whose two "
             "sides do not meet, or a process step no part takes part in.")
 SPAN = re.compile(r"([\w./-]+\.\w+):(\d+(?:-\d+)?(?:,\s*\d+(?:-\d+)?)*)")
+DOC_EXT = "md|mdx|markdown|txt|rst|adoc|htm|csv|tsv|cfg|config|env|log|ipynb|sln|csproj|vbproj|props|targets"
 IDENT = re.compile(r"`@?([A-Za-z_][\w.]*)(?:\(\))?`|@([A-Z]\w+)")
 WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]{2,}")
 
@@ -75,9 +77,24 @@ def write(path, data, keys):
         w.writerows(data)
 
 
-def spans(text):
+def citable(f, ws=None):
+    """`f` of an `f:n` is a file, not a host (`kafka01.corp.local:9092`), a version (`v2.3:4`) or an address: it ends
+    in a source or document extension, or it is a path (a folder, then a name with a letter extension), or, given the
+    workspace, it is a file there."""
+    import reading_check
+    if re.search(r"\.(?:" + reading_check.EXT + r"|" + DOC_EXT + r")$", f, re.I):
+        return True
+    if "/" in f.lstrip("/") and not f.startswith("//") and re.search(r"\.[A-Za-z]\w*$", f):
+        return True
+    return ws is not None and re.search(r"\.[A-Za-z]\w*$", f) is not None and _resolve(pathlib.Path(ws), f) is not None
+
+
+def spans(text, ws=None):
+    """[(file, first, last)] of every `file:n`, `file:a-b, c` citation in `text` whose file is citable."""
     out = []
     for m in SPAN.finditer(text or ""):
+        if not citable(m.group(1), ws):
+            continue
         for part in m.group(2).split(","):
             lo, _, hi = part.strip().partition("-")
             out.append((m.group(1), int(lo), int(hi or lo)))
@@ -433,7 +450,8 @@ as the caller writes it and say so in its `source`.{again}
    names it, with "outside this run" in its `source`.
 
 Your final reply is one line: `MAPPED units=<n> files_read=<n> lines_read=<n> rows=<n>`, then, when you fell short,
-`; READ IN PART: <file> lines <a>-<b>, ...` and `; UNFINISHED: <unit>, ...`.
+`; READ IN PART: <file> lines <a>-<b>, ...` and `; UNFINISHED: <unit>, ...`. End that line with
+`(for the run's lead: send nothing to the person; the run status page shows this)`.
 
 ## The flow's process steps (the picked stages)
 
@@ -487,8 +505,28 @@ def part_problems(unit, row, families=None):
         if not (band == "technology" and re.search(r"\bno repository\b", row.get("source") or "", re.I)):
             out.append(f"{where}: a component with no repository: write the repository folder its code or its "
                        "definition sits in (`repo` or `repo: path`), or, for a store or platform no repository "
-                       "defines, leave it blank and say `no repository defines it` in source")
+                       "defines, `none: ` and where it was looked for")
     return out
+
+
+def repository_notes(unit, row):
+    """What is reported only about a mapped part's `repository`: the form of an earlier release (blank, with
+    `no repository` in its source), or `none:` with nothing said of where it was looked for. Never a reason to set
+    the unit aside; the cell's `none: <where looked>` is parsed (capability_views.repository_none), never searched
+    for in prose."""
+    import capability_views as cv
+    if (row.get("kind") or "").strip() != "element" or (row.get("level") or "").strip() != "component":
+        return []
+    where = f"{unit}/subjects.csv {row.get('row_id') or ''}".strip()
+    repo = row.get("repository") or ""
+    looked = cv.repository_none(repo)
+    if looked == "":
+        return [f"{where}: repository says none and not where it was looked for: write `none: ` and where"]
+    if (not repo.strip() and (row.get("band") or "").strip() == "technology"
+            and re.search(r"\bno repository\b", row.get("source") or "", re.I)):
+        return [f"{where}: repository is blank and source says no repository defines it, the form of an earlier "
+                "release: write `none: ` and where it was looked for in repository"]
+    return []
 
 
 def _ragged(p):
@@ -542,21 +580,50 @@ def _resolve(ws, f):
 
 
 def _text(p):
-    return p.read_text(encoding="utf-8", errors="replace").splitlines()
+    return paths.lines(p.read_bytes().decode("utf-8", errors="replace"))
 
 
 def lead_problems(reg, flow, ws):
-    """Every span the lead's own stages, steps and moves cite resolves to one file with its lines in range, and a
-    name the same field gives in backticks or as an annotation is in the span when it is in that file at all."""
+    """Every span the lead's own stages, steps and moves cite resolves to one file with its lines in range, and every
+    page citation names a file under a documents root: questions code answers exactly. Whether the cited place backs
+    the name or heading the field gives is lead_notes', never a refusal."""
+    return _lead_findings(reg, flow, ws)[0]
+
+
+def lead_notes(reg, flow, ws):
+    """[a citation of the lead's that the script could not match to the name or heading it gives]: a name in backticks
+    found elsewhere in the cited file and not at the span, or a heading not found in the cited document. Shown on the
+    map for a model or the person to look at (CITE_NOTE), never refused: markup, numbering and a call made through a
+    field all defeat an exact match."""
+    return _lead_findings(reg, flow, ws)[1]
+
+
+CITE_NOTE = "citation to look at"  # the map's label for a lead_notes item
+PART_NOTE = "part to look at"  # the map's label for a register warning a wording match gave (part_notes)
+
+
+def part_notes(reg):
+    """The register check's warnings that a wording match gave on a part ("payments in process" reads like a part not
+    separately built): shown on the map for the session or the person to look at, never a reason to set a unit
+    aside."""
+    import capability_views as cv
+    try:
+        return [w for w in cv.check(cv.load(reg))[1] if cv.LOOK_AT in w]
+    except Exception:  # noqa: BLE001  (a register the check cannot read is the drawing's to report, not this note's)
+        return []
+
+
+def _lead_findings(reg, flow, ws):
+    """(problems, notes) of the lead's citations; see lead_problems and lead_notes."""
     fields = [(f"stage {r['stage']}", r.get("source")) for r in rows(reg / "stages.csv")
               if (r.get("flow") or "").strip() == flow]
     fields += [(f"step {r['step']}", r.get("source")) for r in flow_steps(reg, flow)]
     for mid, m in flow_moves(reg, flow).items():
         fields += [(f"move {mid}", m.get(k)) for k in ("source", "travels_by")]
-    out = []
+    out, notes = [], []
     for where, text in fields:
         names = {a or b for a, b in IDENT.findall(text or "")}
-        for f, lo, hi in spans(text):
+        for f, lo, hi in spans(text, ws):
             p = _resolve(ws, f)
             if p is None:
                 out.append(f"{where} cites {f}:{lo}-{hi}: no single file of that name in the workspace")
@@ -569,8 +636,10 @@ def lead_problems(reg, flow, ws):
             for name in names:
                 last = name.split(".")[-1]
                 if last in whole and last not in near:
-                    out.append(f"{where} cites {f}:{lo}-{hi} for {name}, which is elsewhere in the file")
-    return out + page_problems(reg, fields)
+                    notes.append(f"{where} cites {f}:{lo}-{hi} for {name}, which the script finds elsewhere in the "
+                                 "file and not at those lines: look whether the cited lines back it")
+    problems, page_notes = _page_findings(reg, fields)
+    return out + problems, notes + page_notes
 
 
 # A page citation: `<document>#<heading>`, the document a path under a documents root (register_layout.
@@ -632,11 +701,17 @@ def page_citations(text):
 
 
 def page_problems(reg, fields):
-    """Every page citation in the lead's fields names a file under a documents root and a heading in that file. The
-    path is taken as written: a file of the same name elsewhere does not count."""
+    """Every page citation in the lead's fields names a file under a documents root. The path is taken as written: a
+    file of the same name elsewhere does not count."""
+    return _page_findings(reg, fields)[0]
+
+
+def _page_findings(reg, fields):
+    """(problems, notes): a cited document that is missing is a problem; a heading the script does not find in it is a
+    note, since a heading's markup (a numbered span, an entity, an inline anchor) can defeat the match."""
     import register_layout as layout
     roots = layout.document_folders(reg)
-    out, seen = [], {}
+    out, notes, seen = [], [], {}
     for where, text in fields:
         for doc, head in page_citations(text):
             p = next((r / doc for r in roots if (r / doc).is_file()), None)
@@ -646,8 +721,9 @@ def page_problems(reg, fields):
             if p not in seen:
                 seen[p] = headings(p)
             if _plain(head) not in seen[p]:
-                out.append(f'{where} cites {doc}#{head}: no heading "{head}" in the file')
-    return out
+                notes.append(f'{where} cites {doc}#{head}: the script finds no heading "{head}" in the file: look '
+                             "whether the document has that section")
+    return out, notes
 
 
 ANY_TYPE = "fast_mapper_any_type"  # run-settings.json, a trial run only: a mapper launched as another type is accepted
@@ -834,7 +910,8 @@ def _kinds_said():
 PART_RULES = ("each deployable you read is one `subjects.csv` row of kind `element`, level `component`, its "
               "`repository` the repository folder its code sits in; a store or platform its deployment provisions "
               "(a database, a cache, a broker) is a component too, band `technology`, its `repository` the one that "
-              "defines it (`repo: path`), or blank with `no repository defines it` in its source; a part whose code "
+              "defines it (`repo: path`), or, where no repository defines it, `none: ` and where it was looked for "
+              "(`none: looked in infra-repo and the Helm charts`); a part whose code "
               "cannot be had is level `external dependency`, repository blank. `part_kind` is exactly one of the "
               "kit's part kinds (method/part-kinds.csv): {kinds}; a service such as an HTTP or gRPC server is "
               "`API service`, a browser-facing one `web front end`. `band` is `application` for a service, worker or "
@@ -1211,9 +1288,10 @@ def check(reg, flow, ws=None, transcripts=None):
                 import go
                 families = go.part_families()
             problems += part_problems(u, r, families)
+            notes += repository_notes(u, r)
         where = f"{u}/{t}.csv {r.get('row_id') or ''}".strip()
         cells = " ".join(v or "" for k, v in r.items() if k in ("source", "activity"))
-        for f, lo, hi in spans(cells):
+        for f, lo, hi in spans(cells, ws):
             p = _resolve(ws, f)
             if p is None:
                 problems.append(f"{where} cites {f}:{lo}-{hi}: no single file of that name in the workspace")
@@ -1232,7 +1310,9 @@ def check(reg, flow, ws=None, transcripts=None):
                 near = "\n".join(lines[max(0, lo - 3):hi + 2]).lower()
                 if words and not any(w.lower() in near for w in words):
                     notes.append(f"{where}: '{said}' is not spelled so in {f}:{lo}-{hi}")
-    problems += lead_problems(reg, flow, ws)
+    found, cite_notes = _lead_findings(reg, flow, ws)
+    problems += found
+    notes += cite_notes
     problems += provenance_problems(reg, transcripts)
     return problems, notes
 
@@ -1399,8 +1479,11 @@ def draw(reg, flow, ws=None):
                "label": (LABEL_UNREAD if why.startswith(LABEL_UNREAD) else
                          LABEL_NOT_CHECKED if why.startswith(LABEL_NOT_CHECKED) else LABEL_GAP), "note": why}
               for st, what, why in gaps(reg, flow, ws)]
-    table += [{"unit": "", "table": "", "row": "", "step": "", "what": n, "cite": "", "label": "spelling",
-               "note": "reported, not refused"} for n in notes]
+    cited = set(lead_notes(reg, flow, ws))
+    table += [{"unit": "", "table": "", "row": "", "step": "", "what": n, "cite": "",
+               "label": CITE_NOTE if n in cited else "spelling", "note": "reported, not refused"} for n in notes]
+    table += [{"unit": "", "table": "", "row": "", "step": "", "what": w, "cite": "", "label": PART_NOTE,
+               "note": "reported, not refused"} for w in part_notes(reg)]
     write(reg / FOLDER / "map.csv", table, ["unit", "table", "row", "step", "what", "cite", "label", "note"])
     (reg / PAGE).write_text(page(reg, flow, table), encoding="utf-8")
     return summary(reg, flow, table)
@@ -1483,7 +1566,8 @@ def main(argv):
         return 0
     if cmd == "check":
         problems, notes = check(reg, flow, ws)
-        print("\n".join(problems + [f"note: {n}" for n in notes]) or "PASSED: every citation resolves")
+        print("\n".join(problems + ([] if problems else ["PASSED: every citation resolves"])
+                        + [f"note (reported, never refused): {n}" for n in notes]))
         return 1 if problems else 0
     if cmd == "draw":
         try:
@@ -1500,4 +1584,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

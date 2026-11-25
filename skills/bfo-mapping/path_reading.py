@@ -114,7 +114,7 @@ def starting_points(reg, ws, stages=None):
             if not hits:
                 for u in [u for u, x in dep.items() if x == d]:
                     for x in _files(ws, upaths[u], CODE):
-                        for i, line in enumerate(x.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+                        for i, line in enumerate(x.read_text(encoding="utf-8", errors="ignore").split("\n"), 1):
                             if re.search(rf"\b{re.escape(op.split()[-1])}\s*\(", line) and re.search(
                                     r"\b(def|func|public|async|function|override|Task|static)\b", line):
                                 hits.append(f"{x.relative_to(ws).as_posix()}:{i}")
@@ -132,7 +132,7 @@ def starting_points(reg, ws, stages=None):
         pre = r.rsplit("/", 1)[0]
         for u in [u for u, d in dep.items() if d in named]:
             for x in _files(ws, upaths[u], TEXT):
-                for i, line in enumerate(x.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+                for i, line in enumerate(x.read_text(encoding="utf-8", errors="ignore").split("\n"), 1):
                     if r in line or pre + '"' in line or pre + "/**" in line:
                         add(u, f"route {r}", f"{x.relative_to(ws).as_posix()}:{i}")
     for page in sorted(set(PAGE.findall(text))):  # 4. the pages and screens the moves come through
@@ -192,4 +192,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

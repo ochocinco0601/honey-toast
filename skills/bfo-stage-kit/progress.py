@@ -4,9 +4,9 @@ Usage: python progress.py <register folder>    print the lines not yet announced
 
 While a flow is mapped (after the go, before its mapping is done), each part of the map the walk writes for the flow
 worked now gives one line, once: "Mapping Placing an order, 3 of 7: its stages are written: Pay, Ship and Confirm."
-The page's wait (page/page_ask.py watch or poll) prints each as a PROGRESS line, which wakes the session, and the
-session sends it to the person as it is; the work page and the home screen show the latest, so the person never waits
-through mapping on one line while the map's tables are written one by one. Announced lines are kept in progress.json in the register folder. Python standard library only.
+The page's listener (page/page_ask.py serve) draws the home screen again as each comes, so the work page and the
+home screen show the latest, and the person never waits through mapping on one line while the map's tables are
+written one by one; the chat carries nothing while mapping runs unless the person is needed. Announced lines are kept in progress.json in the register folder. Python standard library only.
 """
 import csv
 import json
@@ -61,7 +61,7 @@ def parts(reg, fid):
     flow = next((r for r in rows(reg, "flows") if v(r, "flow_id") == fid), None)
     moves = [r for r in rows(reg, "lifecycle") if v(r, "flow") == fid]
     stages = sorted((r for r in rows(reg, "stages") if v(r, "flow") == fid),
-                    key=lambda r: int(v(r, "order")) if v(r, "order").isdigit() else 0)
+                    key=lambda r: int(v(r, "order")) if v(r, "order").isdecimal() else 0)
     st_ids = {v(r, "stage") for r in stages}
     steps = [r for r in rows(reg, "steps") if v(r, "stage") in st_ids]
     step_ids = {v(r, "step") for r in steps}
@@ -134,7 +134,7 @@ def main(argv):
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
     run_lock.refuse_unless_register(argv)
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     if len(argv) != 1 or not pathlib.Path(argv[0]).is_dir():
         print(__doc__, file=sys.stderr)
         return 2
@@ -146,4 +146,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

@@ -57,8 +57,6 @@ NOUNS = {"flows.csv": ("flow", "flows"), "stages.csv": ("stage", "stages"), "ste
          "subjects.csv": ("service", "services"), "measures.csv": ("measure", "measures"),
          "alerts.csv": ("alert", "alerts"), "failure-modes.csv": ("failure mode", "failure modes")}
 PAGE_NAMES = {"views.html": "Map", "how-this-map-was-made.html": "How the map was made"}
-# The home page takes the answer to these choices; any other is given in the run's chat.
-ON_PAGE = ("Mapped", "Measures defined")
 
 
 def _text(p):
@@ -202,8 +200,7 @@ def produced(reg, cell):
 
 
 def workspace(reg):
-    m = re.search(r"\*\*Register:\*\*\s*`([^`]+)`", _text(reg / "resume.md"))
-    path = m.group(1) if m else str(reg)
+    path = str(pathlib.Path(reg).resolve())
     parts = re.split(r"[\\/]", path)
     if "bfo-work" in parts:
         sep = "\\" if "\\" in path else "/"
@@ -742,7 +739,6 @@ def read(reg, now=None, starting=False, transcripts=None):
         held = brief.WAITS.get(activity(cur["rows"][0])) if brief and cur and cur["decision"] and cur["rows"] else None
         what = held or (choice or {}).get("task") or ASKS.get(at) or cur["title"]
         action = {"kind": "decide", "step": s_no(steps, at), "what": what[:1].lower() + what[1:],
-                  "on_page": (choice or {}).get("milestone") in ON_PAGE if choice else False,
                   "resume": resume if age_min is None or age_min > STALE_MINUTES else None}
     elif status in ("paused", "blocked"):
         action = dict(resume, kind="resume")
@@ -823,7 +819,7 @@ def step_html(s, status, waiting):
     if s.get("say_back"):
         return (f'<li class="step cur"><svg class="ic"><use href="#i-you"/></svg><span class="n">{E(s["title"])}'
                 '<span class="dec">decision</span></span><span class="d">Waiting on you · nothing in the code is '
-                'read before Start</span><span class="t"></span></li>')
+                'read before you answer in the chat</span><span class="t"></span></li>')
     title = f'<span class="n" title="{E("; ".join(s["rows"]))}">' if s["rows"] else '<span class="n">'
     if s["state"] == NOT_PICKED:
         return (f'<li class="step off"><svg class="ic"><use href="#i-skip"/></svg>{title}{num}. {E(s["title"])}'
@@ -879,27 +875,18 @@ def resume_html(r):
             f'<li>In a Claude Code tab there, type {copy_cmd(r["phrase"])}</li></ol>')
 
 
+WAITING_HERE = "Waiting on you: answer in the chat"
+
+
 def say_back_html(a):
-    """The review step: the ask and Start first, then what the run understood, one line each, then one box for a
-    correction with its own Send. Start never sends a correction."""
+    """The say-back while it waits: what the run understood, one line each, under the line that the question is
+    asked and answered in the chat. Nothing on the page is sent."""
     rows = "".join(f'<tr><th scope="row">{E(x["label"])}</th><td><div class="v">{E(x["value"])}</div></td></tr>'
                    for x in a["lines"])
-    if a.get("search"):  # the code is not open: one question about the search, and no Start until it is answered
-        head = (f'<div class="sbh"><div><b>{E(a["search"]["question"])}</b>'
-                '<span class="note">Nothing is searched or read until you say yes.</span></div>'
-                '<span class="sbq"><button class="start" type="submit" name="act" value="search-yes">Yes</button>'
-                '<button class="sec" type="submit" name="act" value="search-no">No</button></span></div>')
-    else:
-        head = ('<div class="sbh"><div><b>Check what I understood, then press Start.</b>'
-                '<span class="note">Nothing in the code is read until you press Start.</span></div>'
-                '<button class="start" type="submit" name="act" value="start">Start</button></div>')
-    body = (f'<form class="sb" data-fp="{E(a["fingerprint"])}">{head}'
-            f'<table class="sbt"><tbody>{rows}</tbody></table>'
-            '<label class="sbl" for="sbc">Anything wrong? Say which line and what it should be</label>'
-            '<textarea class="sbc" id="sbc" name="correction" rows="2" autocomplete="off"></textarea>'
-            '<div class="sbb"><button class="sec" type="submit" name="act" value="correct">Send</button>'
-            '<span class="note sbw" hidden>Send your correction first, or clear the box.</span></div>'
-            '<p class="note sbs" role="status"></p></form>')
+    ask = ("May I look for the code where the chat says?" if a.get("search") else "Did I understand your request?")
+    body = (f'<div class="sb"><div class="sbh"><div><b>{E(WAITING_HERE)}</b><span class="note">{E(ask)} Nothing in '
+            'the code is read until you answer there.</span></div></div>'
+            f'<table class="sbt"><tbody>{rows}</tbody></table></div>')
     return f'<div class="panel act-you"><div class="panel-h"><h3>Required action</h3></div><div class="act">{body}</div></div>'
 
 
@@ -910,8 +897,7 @@ def action_html(m):
     if a["kind"] == "say_back":
         return say_back_html(a)
     if a["kind"] == "decide":
-        where = ('Give it on the <a href="index.html">home page</a>.' if a["on_page"]
-                 else "Give it in the chat of the run's Claude Code tab.")
+        where = f"{WAITING_HERE}: the question is in the run's Claude Code tab."
         body = f'<b>Needed now at step {a["step"]}, {E(a["what"])}.</b> <span>{where}</span>'
         if a.get("resume"):
             body += '<p class="note">If the run\'s Claude Code tab is closed:</p>' + resume_html(a["resume"])
@@ -953,7 +939,7 @@ def map_so_far(reg, scope):
     out = []
     stages = rows("stages.csv")
     mine = [r for r in stages or [] if not flow or (r.get("flow") or "").strip() in ("", flow)]
-    mine.sort(key=lambda r: int(r["order"]) if str(r.get("order") or "").isdigit() else 0)
+    mine.sort(key=lambda r: int(r["order"]) if str(r.get("order") or "").isdecimal() else 0)
     out.append(("Stages written", f"{len(mine)} · " + " · ".join(r.get("name") or r.get("stage") or "" for r in mine)
                 if mine else NOT_STARTED))
     ids = [(r.get("stage") or "").strip() for r in mine]
@@ -1255,26 +1241,12 @@ q=at==="hm"&&n&&n.matches("time[datetime]")?parts(n):null;
 el.textContent=at==="clock"?hm+ap+" "+p.timeZoneName:at==="hm"?hm+(q&&q.dayPeriod===p.dayPeriod?"":ap):
 (at==="weekday"?p.weekday+" ":"")+p.day+" "+p.month+", "+hm+ap+" "+p.timeZoneName}catch(e){}})})();
 document.addEventListener("click",function(e){var b=e.target.closest("[data-copy]");if(b&&navigator.clipboard)navigator.clipboard.writeText(b.dataset.copy)});
-(function(){var f=document.querySelector("form.sb");if(!f)return;var fp=f.dataset.fp,k="sb-sent-"+fp,st=f.querySelector(".sbs");
-function lock(t){st.textContent=t;f.querySelectorAll("button,input").forEach(function(x){x.disabled=true})}
-try{if(sessionStorage.getItem(k))lock("Sent. The run carries on in its chat; this page follows it.")}catch(e){}
-var box=f.querySelector(".sbc"),heads=f.querySelectorAll(".sbh button"),warn=f.querySelector(".sbw");
-function typed(){var t=!!box.value.trim();heads.forEach(function(b){b.disabled=t});warn.hidden=!t}
-box.addEventListener("input",typed);
-f.addEventListener("submit",function(e){e.preventDefault();var act=(e.submitter&&e.submitter.value)||"start",c=box.value.trim();
-if(act==="correct"&&!c){st.textContent="Say which line is wrong and what it should be first.";return}
-if(act!=="correct"&&c){typed();return}
-var said={start:"Sent. The run starts now; this page follows it.","search-yes":"Sent. The run looks for the code there, then shows these lines again with what it found.","search-no":"Sent. Nothing is searched; say in the run's chat where the code is.",correct:"Sent. The lines will be redrafted and shown here again."};
-fetch("/answers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({say_back:act==="correct"?{action:"correct",shown:fp,correction:c}:{action:act,shown:fp}})})
-.then(function(r){if(!r.ok)throw r.status;try{sessionStorage.setItem(k,"1")}catch(e){}lock(said[act]||said.correct)})
-.catch(function(){st.textContent="Could not send from this page. Say start, or your correction, in the run's chat instead."})})})();
-function busy(){var f=document.querySelectorAll(".sbc");for(var i=0;i<f.length;i++)if(!f[i].disabled&&(f[i].value||f[i]===document.activeElement))return true;return false}
 (function(){if(location.protocol==="file:")return;var failed=0,gone=false;
 function ended(){if(gone)return;gone=true;var s=document.querySelector('meta[name="saved"]'),b=document.createElement("p");
 b.className="ended";b.style.cssText="margin:12px auto 0;max-width:1400px;padding:10px 14px;border:1px solid #B4561F;border-radius:6px;background:#F7EBE3;font-size:14px";
 b.textContent="This run's page server has stopped (the run finished, or Claude Code was closed), so this page no longer updates"+(s?"; its pages are saved: open "+s.content+" in your browser.":".");
 document.body.insertBefore(b,document.body.firstChild)}
-setInterval(function(){if(gone||document.visibilityState!=="visible"||busy())return;
+setInterval(function(){if(gone||document.visibilityState!=="visible")return;
 fetch(location.href,{cache:"no-store"}).then(function(r){if(!r.ok)throw r.status;failed=0;location.reload()},function(){if(++failed>=2)ended()})},15000)})();</script>
 </body></html>
 """
@@ -1304,4 +1276,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

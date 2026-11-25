@@ -24,6 +24,7 @@ CODES = {
     "say-refused-mapping-held": "the held-mapping choices message the kit builds was refused by its own word check",
     "message-refused": "a message the kit builds was refused by its own word check",
     "script-failed": "a script of the kit stopped with an error on the kit's own output",
+    "report-wrong": "a line the kit builds for the person says something the run's own records contradict",
     "refusal-no-way-on": "a refusal of the kit named no step the session is allowed to take",
     "step-loops": "a step of the kit returned the same failure on every call",
     "instruction-missing": "the kit's instructions said nothing for the situation the run was in",
@@ -143,4 +144,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())

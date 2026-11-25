@@ -97,7 +97,7 @@ def _flagged(reg, unit):
 
 def _tail(where):
     return ["## Tools", "", judges.NO_SHELL.format(where=where) + " Read the code and the register with Read, Grep "
-            "and Glob.", "", "Reply with one line."]
+            "and Glob.", "", "Reply with one line. " + judges.REPLY_TAIL]
 
 
 def flow_fix_prompt(reg, table, rows, ws=None):
@@ -453,4 +453,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

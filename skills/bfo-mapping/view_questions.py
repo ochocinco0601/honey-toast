@@ -537,6 +537,9 @@ def lines(C):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     print("\n".join(lines(count(sys.argv[1], sys.argv[2:] or None))))

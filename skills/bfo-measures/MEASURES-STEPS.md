@@ -282,6 +282,13 @@ citation (a per-tool duration that is the batch's time split evenly; a label tha
 increments; a summary serving generated data while its source is off). `source_ref` keeps only the emitting line.
 `defect` is written only where `exists` is `yes`: a proposed measure is not yet counting anything.
 
+**What the person reads is in plain words.** `measure`, `question_it_answers`, `defect` and a gap's `why` are shown
+to someone who knows nothing of the code. Say what the shopper or the business sees, never the code's name for it:
+"orders the checkout service received", not "PlaceOrder requests"; "the card is charged for real", not "dummy
+mode off"; "no order is left waiting", not "no case waits"; "the line that says a quote is done", not "the completed
+line". One clause each, never a chain of colons; the code's own names stay in `counted_at`, `source_ref` and the
+citation. `brief.py measures` advises on code names (a joined-up or underscored word) it finds in the review.
+
 `exists` is `yes` only where the system already emits it: cite the emitting line, or the setting that switches on
 a framework's built-in metric, in `source_ref`, and write `declared` in `source`. A log line counts, if it is
 written once per case: read where it is written and what triggers it. Everything else is `exists` `no`, `source`
@@ -310,18 +317,19 @@ kind, `counted_at` says which one, so a reader can go and find it. It is a plain
 code: the table and the database it lives in (`order lines table, ordering database`, never `ordering.orderItems`),
 the log and the service that writes it (`Ordering API log, line 'CreateOrderCommand succeeded'`), a service's
 request metric or traces, or the system whose own status it is (a queue's depth is the message broker's own status,
-connections are the database server's own status, never a metric of the application that uses them). Never a code
-identifier: nothing dotted or backticked, nothing quoted unless it is a log line's own words (after `line`, or
-before `log line`), and no table, class or event name as the code spells it; say a state or an event in words.
-Product names, abbreviations such as e.g., and version numbers are plain names. A product whose own name has a
-capital inside a word (`SiteMinder`) and that the check refuses is declared in `product-names.csv` in the
-register: its name as one word, and in `source` where its vendor or the sources write it so. A declared name
-passes only as a whole word, and one holding a dot, underscore, backtick or slash is ignored; never declare a
-table, class or event name. A server's own status names the product where the code shows it:
+connections are the database server's own status, never a metric of the application that uses them). Where the
+place has an exact name an operator types to find it (a topic, a queue, a table as the database spells it), keep
+that exact name beside the plain words, never replace it: `payments table (dbo.Payments), payments database`,
+`payment_authorized topic, payments message broker`. Say a state or an event in words. The check reports, as a
+note and never an error, a name spelled as the code spells it: anything dotted or backticked, nothing quoted unless
+it is a log line's own words (after `line`, or before `log line`), snake_case, a capital inside a word; look that
+the plain place is said beside it. Product names, abbreviations such as e.g., and version numbers are plain names. A
+product whose own name has a capital inside a word (`SiteMinder`) may be declared in `product-names.csv` in the
+register, its name as one word and in `source` where its vendor or the sources write it so, and is then not noted.
+A declared name passes only as a whole word, and one holding a dot, underscore, backtick or slash is ignored. A server's own status names the product where the code shows it:
 `database server's own status (PostgreSQL)`, `message broker's queue status (RabbitMQ)`. A measure counted from
 two places names both, as `X, against Y`: `orders table, ordering database, against the Payment Processor log`.
-`flow_outputs.py --check` refuses a name only the code knows, and two measures with the same `counted_at` and a
-different `exists`. Fill it per row from that row's own `counted_how` and citation:
+`flow_outputs.py --check` refuses two measures with the same `counted_at` and a different `exists`. Fill it per row from that row's own `counted_how` and citation:
 this step has the code, so open the cited file at the cited line yourself, with the Read tool, and name the system
 that holds what it shows. It is never filled by walking the code again: only the cited line and what it names are
 opened. Where the cited code does not show the place (a proposed measure whose

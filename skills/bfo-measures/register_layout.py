@@ -139,3 +139,10 @@ def code_root(reg):
         if got.is_dir():
             return got
     return holding_folder(base, list(code_folders(reg).values()))
+
+
+def stage_order(row):
+    """A stage row's order as a number to sort by; 0 when the agent wrote no number (`2a`, `1.5`), which the register
+    check (capability_views) reports as "order ... is not a number" instead of a traceback here."""
+    o = str(row.get("order") or "").strip()
+    return int(o) if o.isdecimal() else 0

@@ -4,12 +4,18 @@ Usage: python brief.py status <register folder>       one line; every message to
        python brief.py capability <register folder>   the capability brief for the chat; in full, written to PLAN.md
        python brief.py reentry <register folder>      the re-entry brief, for a run picked up again
        python brief.py terms <file>                   ids and kit terms found in a text (exit 1 if any)
-       python brief.py say <register folder> <message file> [--after]
-                                                      a message for the person: refused (exit 1) if it uses ids,
-                                                      file names or kit terms; else printed after the status line
-                                                      and ending with the page's address (--after: a line added
-                                                      after a script's message, which has both: neither is added).
-                                                      Before a register exists, give the workspace root
+       python brief.py say <register folder> <message file> [--after | --report] [--kit]
+                                                      a message for the person: refused (exit 1) if it uses this
+                                                      run's ids or work-folder file names, or a card lacks its
+                                                      structure; any other word is advice; else printed after the
+                                                      status line and ending with the page's address (--after: a
+                                                      line added after a script's message, which has both: neither
+                                                      is added; --report: the report, the kit's Done and Checked
+                                                      fields put under the status line, before the message's own
+                                                      tables; --kit: a message the kit built, never refused). A
+                                                      paragraph outside the cards is advice.
+                                                      Refused three times running, the next try is sent with a line
+                                                      saying so. Before a register exists, give the workspace root
        python brief.py checked <register folder>      what was checked of the map, for the report, as the checks
                                                       established it
        python brief.py page <register folder>         the page's address, as a line (the workspace root before a
@@ -30,7 +36,7 @@ Reads `RUN.md` (its Status table), `orientation.json` (written by the run from i
 capability, the services, every flow found with its stages, what was searched and what is open, and a
 recommendation), `scope.json` (the person's picks, written by go.py) and `survey.csv`. The capability brief is
 refused, and nothing written, while orientation.json is incomplete, names services other than the survey's, recommends
-a flow it did not find, or carries an id, a file name or the kit's own vocabulary.
+a flow it did not find, or carries an id of this run or a file of its work folder (other words are advice).
 Exit 0 done; 1 refused by `say`, or terms found by `terms`; 2 refused otherwise, or wrong usage.
 Python standard library only."""
 import contextlib
@@ -38,6 +44,7 @@ import csv
 from collections import Counter
 import io
 import json
+import os
 import pathlib
 import re
 import sys
@@ -48,27 +55,101 @@ import run_lock  # noqa: E402
 import run_md  # noqa: E402
 
 STATUS_LEAD = "**Where things stand:**"
-# Every stop that needs the person's call opens with this block: one decision per numbered item, each standing alone
-# (what it is, the choices, the recommendation), and no question anywhere else in the message.
-NEEDS = "**What I need from you.**"
-ANSWER_EACH = 'Answer each one by its number, for example "1 yes, 2 no". I go on only once every one is answered.'
+# Every stop that needs the person's call asks it in question cards (question_card.py), one decision per card, each
+# standing alone (what it is, why, the choices, the recommendation), numbered "1 of N" when a message holds several.
 STILL_TO_ANSWER = "STILL TO ANSWER (send this as your message, as it is, and wait):"
 
 
-def needs(items):
-    """The numbered block. `items` are texts, numbered 1, 2, ..., or (number, text) pairs kept at their numbers."""
-    pairs = [x if isinstance(x, tuple) else (i, x) for i, x in enumerate(items, 1)]
-    out = [NEEDS] + [f"{n}. {t}" for n, t in pairs]
-    return "\n".join(out + ([ANSWER_EACH] if len(pairs) > 1 else []))
+def search_text(x):
+    """An open item of the first look as one line of text: a string as written, or a structured item's `what`."""
+    return x if isinstance(x, str) else (x or {}).get("what", "")
+
+
+# "<what is open>, so I propose to look in <where>" / "<what>, which I propose to look for on <where>"
+PROPOSE = re.compile(r",?\s*(?:so |which |and )?I (?:propose|would like|suggest) to (look|search|read|check|ask you)"
+                     r"(?: for(?: it| them)?)?(?: in| on| at| through)?(?:[\s,]+(.+))?$", re.I)
+NOT_TIED = "not tied to a flow in what I found"
+OWNERS = re.compile(r"(?i)\b(?:own(?:s|er|ers|ership)?|answers? for|responsib\w+|on-call)\b")
+
+
+def split_search(x):
+    """(what is open, where the run proposes to look, whether it proposes to ask the person instead) of one open
+    item; where is "" when the text does not say."""
+    if isinstance(x, dict):
+        return cont(x.get("what", "")), cont(x.get("look_where", "")), bool(x.get("ask_person"))
+    m = PROPOSE.search(x or "")
+    if not m:
+        return cont(x), "", False
+    asks = m.group(1).lower() == "ask you"
+    where = "" if asks else (m.group(2) or "")  # what follows "ask you" is the reason to ask, never a place
+    return cont(x[:m.start()]), cont(where), asks
+
+
+def affects_of(o, x):
+    """Which flows an open item bears on, from the record: a structured item's own `affects`, else every flow whose
+    services include one the item's text names (a service named in all flows, such as a front end, decides nothing);
+    "" when the record ties it to no flow."""
+    if isinstance(x, dict) and x.get("affects"):
+        return x["affects"]
+    flows = o.get("flows") or []
+    squashed = re.sub(r"[^a-z]", "", search_text(x).lower())
+    common = set.intersection(*(set(f.get("services") or []) for f in flows)) if flows else set()
+    hit = []
+    for f in flows:
+        for s in set(f.get("services") or []) - common:
+            core = re.sub(r"[^a-z]", "", s.lower().removesuffix("service"))
+            if len(core) > 3 and core in squashed:
+                hit.append(f["name"])
+                break
+    return ("only " if len(hit) == 1 else "") + and_list(hit) if hit else ""
+
+
+def search_card(o, x, first_flow=None):
+    """One open item of the first look as a question card's parts (question_card.card): what is open, where the run
+    would look, which flow it bears on, why it is asked, and the choices; owners are asked of the person first.
+
+    Its Why and its No say this item's own consequence from the record: the flows whose services the item names
+    (affects_of), or, when the record ties it to none, that it is tied to no flow in what was found. A search is
+    offered only with a place to look: an item that names none, or proposes to ask the person, is asked of them."""
+    what, where, ask = split_search(x)
+    ask = ask or not where  # a search with no Look where would search nowhere in particular
+    affects = affects_of(o, x)
+    flows = re.sub(r"^only ", "", affects)
+    relies = "rely" if " and " in flows else "relies"
+    fields = [("What", what), ("Look where", "" if ask else where + ", read-only"), ("Affects", affects or NOT_TIED)]
+    short = re.split(r",\s", what, maxsplit=1)[0]  # the title is one line: the item up to its first clause
+    owners = OWNERS.search(search_text(x))
+    why = (x.get("why") if isinstance(x, dict) else "") or (
+        "each alert's Wakes line names the owner of the part it watches; with none, it says not yet known" if owners
+        else f"{flows} {relies} on it, and the code I was given does not show it" if flows
+        else "the code I was given does not show it, and it is tied to no flow in what I found")
+    without = f"the work on {flows} goes on without it" if flows else "the work goes on without it"
+    if owners:
+        choices = [("Tell me", "you name who owns each part, or where your team records it; I write it down")]
+        if not ask:
+            choices.append(("Search", f"I search {where}, read-only; it finds the code's authors, not your teams"))
+        choices.append(("Skip", "nobody looks; every alert wakes someone not yet known"))
+        return dict(title="Who owns each part of the system?", fields=fields, why=why, choices=choices,
+                    recommended=(1, "you know your teams better than any public source"))
+    if ask:  # only the person can say, or there is nowhere to look: asked of them, never searched
+        return dict(title=f"Do you know {short}?", fields=fields, why=why,
+                    choices=[("Tell me", "you say what it is, or where your team records it; I write it down"),
+                             ("Not known", f"it stays listed as not known; {without}")],
+                    recommended=(1, "only your teams can say"))
+    elsewhere = bool(first_flow and flows and first_flow not in flows)
+    choices = [("Yes", "I search there, read-only, and add what I find"),
+               ("No", f"I search nothing; it stays listed as not looked up, and {without}")]
+    rec = ((2, f"it is not needed for {first_flow}") if elsewhere else
+           (1, f"{flows} {relies} on it; the search is read-only" if flows else "the search is read-only"))
+    return dict(title=f"May I search for {short}?", fields=fields, why=why, choices=choices, recommended=rec)
 
 
 def search_asks(o, asks_flow=True):
-    """The first look's proposed searches as numbered items: (number, text), numbered after the flow pick when the
-    brief asks it. Each is what is open and where the run proposes to look; a search runs only on a yes."""
+    """The first look's proposed searches, numbered after the flow pick when the brief asks it: [(number, the card's
+    parts)]. A search runs only on a yes."""
     first = 2 if asks_flow else 1
-    return [(first + i, f"**A search: {cont(x)}.** May I search there? I recommend yes: I search only there, "
-                        "read-only. On a no, it stays listed as missing.")
-            for i, x in enumerate(o.get("unresolved") or [])]
+    flow = (o.get("recommendation") or {}).get("flow") if asks_flow else None
+    return [(first + i, search_card(o, x, flow)) for i, x in enumerate(o.get("unresolved") or [])]
 NEW_RUN = (f"{STATUS_LEAD} not started · Drafted: nothing yet · Next: a first look over the system · "
            "Waiting on you: nothing")
 # The run record's phase rows, by their opening words, and the activity each belongs to as the person reads it.
@@ -185,6 +266,9 @@ def with_page(text, folder):
     if told:
         first, sep, rest = text.partition("\n\n")
         text = f"{first}\n\n" + "\n\n".join(told) + (f"\n\n{rest}" if sep else "")
+    notes = cap_notes()  # a message taken after CAP refusals says so, above the page's address
+    if notes:
+        text = text.rstrip() + "\n\n" + "\n".join(notes)
     line = page_line(folder)
     return f"{text.rstrip()}\n\n{line}" if line else text
 
@@ -262,6 +346,15 @@ def register_names(reg):
     return sorted((n for n in names if n), key=len, reverse=True)
 
 
+QUOTE = re.compile(r'"[^"\n]*"|“[^”\n]*”')
+
+
+def unquoted(text):
+    """The text with every double-quoted span (straight or curly) set aside: words quoted from a source or from the
+    person are theirs, never the session's, so no check judges them."""
+    return QUOTE.sub(" ", text or "")
+
+
 def say_terms(text, reg):
     """The terms check of a message the session wrote, outside what the person knows already: the register's own
     names, words quoted back in double quotes (theirs, as they said them) and a web address."""
@@ -270,11 +363,9 @@ def say_terms(text, reg):
     text = re.sub(r"\b(?:localhost|[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,})(?::\d+)?/[^\s,;)]*(?<![.,])", " ", text)
     for n in register_names(reg):  # as written, or with its first letter lower-cased mid-sentence
         text = re.sub("(?i:" + re.escape(n[:1]) + ")" + re.escape(n[1:]), " ", text)
-    quoted = re.findall(r'"[^"\n]*"|\u201c[^\u201d\n]*\u201d', text)
-    text = re.sub(r'"[^"\n]*"|\u201c[^\u201d\n]*\u201d', " ", text)
-    # quoted words are the person's own and pass, except an id, a file name or a path, which are never theirs
-    strict = [pat for pat, kind in KIT_TERMS if kind in ("an id", "a file name", "a path")]
-    hits = kit_terms(text) + [m.group(0) for q in quoted for pat in strict for m in re.finditer(pat, q)]
+    # quoted words are a source's or the person's own, as they said them, and are never judged
+    text = unquoted(text)
+    hits = kit_terms(text)
     hits += [m.group(0) for m in re.finditer(BOOKKEEPING, text)]
     hits += [m.group(0) + " (say what was checked as brief.py checked prints it)" for m in re.finditer(OVERCLAIM, text)]
     return list(dict.fromkeys(hits))
@@ -302,9 +393,21 @@ REASON_RULE = "the reason shown to the person must be one short plain sentence"
 ABBREVIATION = re.compile(r"(?i)\b(?:e\.g|i\.e|etc|vs|cf|incl|approx|a\.m|p\.m)\.$")
 
 
+def reason_refused(text, reg):
+    """What a recommendation's reason is refused for, each with what to change; [] when it is taken. Only what code
+    decides exactly: an empty reason, or an id of this run's register or a file of its work folder (refused_terms).
+    Everything else reason_faults names (sentences, a semicolon, its length, the code's terms) is advice."""
+    t = (text or "").strip()
+    if not t:
+        return ["it is empty: say in one short sentence why"]
+    hits = refused_terms(say_terms(t, reg), reg)
+    return [f"it uses words the person does not know ({', '.join(hits)}): say each in the person's terms"] if hits else []
+
+
 def reason_faults(text, reg):
     """What breaks the rule in a recommendation's reason, each with what to change; [] when it holds. The rule: one
-    sentence, no semicolon, at most REASON_WORDS words, and no id or kit term that `say` would refuse."""
+    sentence, no semicolon, at most REASON_WORDS words, and no id or kit term that `say` would refuse. Only those
+    reason_refused names refuse; the rest is advice for the writer."""
     t = (text or "").strip()
     out = []
     pieces = []
@@ -320,7 +423,7 @@ def reason_faults(text, reg):
     words = len(t.split())
     if words > REASON_WORDS:
         out.append(f"it is {words} words: cut it to {REASON_WORDS} or fewer")
-    hits = say_terms(t, reg)
+    hits = refused_terms(say_terms(t, reg), reg)
     if hits:
         out.append(f"it uses words the person does not know ({', '.join(hits)}): say each in the person's terms")
     plain = t
@@ -338,13 +441,166 @@ TECHNICAL = re.compile(r"(?i)\b(?:calls?|requests?|endpoints?|rpcs?|handlers?|(?
                        r"payloads?|schemas?|functions?|methods?|modules?)\b")
 
 
-def refuse_reason(text, reg):
-    """Print the refusal of a `--recommend` reason that breaks the rule, and say so; nothing is written before it."""
-    faults = reason_faults(text, reg)
-    if faults:
-        print(f"REFUSED: {REASON_RULE}; " + "; ".join(faults) + ". Rewrite --recommend and run this again. Nothing "
+def reason_advice(text, reg):
+    """The words of a reason that a person may not know and that are not refused: advice only."""
+    return split_terms(say_terms((text or "").strip(), reg), reg)[1]
+
+
+def refuse_reason(text, reg, kind="reason"):
+    """Print the refusal of a `--recommend` reason that reason_refused refuses, and say so; nothing is written before
+    it. What else breaks the rule, and words that are only advice, are printed as advice. A reason refused for its
+    words CAP times running is taken on the next try (still_refused); an empty one is always refused."""
+    refused = reason_refused(text, reg)
+    advise([f"the reason: {f}" for f in reason_faults(text, reg) if f not in refused] + reason_advice(text, reg),
+           lead="the reason shown to the person is best one short plain sentence in the business's terms;")
+    if refused and (text or "").strip() and not still_refused(reg, kind, True, "the person's terms in its reason"):
+        return False
+    if not refused:
+        still_refused(reg, kind, False)
+    if refused:
+        print(f"REFUSED: {REASON_RULE}; " + "; ".join(refused) + ". Rewrite --recommend and run this again. Nothing "
               "written.", file=sys.stderr)
-    return bool(faults)
+    return bool(refused)
+
+
+# What a message is refused for: only what code decides exactly over what the kit holds. An id that is an id of this
+# run's register, and a file name or path that is a file in the run's own work folder. Every other hit of KIT_TERMS,
+# of the prose checks and of the reason's technical words is advice for the session writing the message: whether a
+# word is one the person knows is a judgment, and a bank's own words ("the receipt for the loan participation", "a P1
+# incident", "the merge of two business units") must never stop a run.
+ID_TERM = KIT_TERMS[0][0]
+FILE_TERMS = (KIT_TERMS[1][0], KIT_TERMS[2][0])
+ADVICE = "ADVICE, for you and not the person (nothing was refused, and this line is not part of the message):"
+
+
+def register_ids(reg):
+    """Every id this run's register gives: each value of an id column (stage, step, flow, handle, id, or a column
+    ending in _id) of its tables and its reading units' tables, a cell listing several split."""
+    reg = pathlib.Path(reg)
+    out = set()
+    for f in list(reg.glob("*.csv")) + list(reg.glob("units/*/*.csv")) + list(reg.glob("units/*.csv")):
+        try:
+            with f.open(encoding="utf-8-sig", newline="") as fh:
+                for row in csv.DictReader(fh):
+                    for c, v in row.items():
+                        if c and v and (c in ("stage", "step", "flow", "handle", "id") or c.endswith("_id")):
+                            out |= {x for x in re.split(r"[;,\s]+", v.strip()) if x}
+        except (OSError, csv.Error, UnicodeDecodeError):
+            continue
+    return out
+
+
+def work_files(reg):
+    """(file names, posix paths relative to the work folder) of every file in the run's own work folder: the work
+    folder the register sits in (bfo-work), else the register folder."""
+    reg = pathlib.Path(reg).resolve()
+    site = reg.parent if reg.parent.name == "bfo-work" else reg
+    names, rels = set(), set()
+    for d, _, files in os.walk(site):
+        for n in files:
+            names.add(n)
+            rels.add((pathlib.Path(d) / n).relative_to(site).as_posix())
+    return names, rels
+
+
+def refused_terms(hits, reg):
+    """The hits a message is refused for: an id of this register, or a file name or path of a file in the run's own
+    work folder. A file name that is only the kit's (README.md, index.html, settings.py are names a business's own
+    files have too) is advice, as is every other hit."""
+    ids, files, out = None, None, []
+    for h in hits:
+        bare = h.split(" (")[0].strip()
+        if re.fullmatch(ID_TERM, bare):
+            ids = register_ids(reg) if ids is None else ids
+            if bare in ids:
+                out.append(h)
+        elif any(re.fullmatch(p, bare) for p in FILE_TERMS):
+            files = work_files(reg) if files is None else files
+            norm = bare.replace("\\", "/").strip("/")
+            if norm in files[0] or any(r == norm or r.endswith("/" + norm) for r in files[1]):
+                out.append(h)
+    return out
+
+
+def split_terms(hits, reg):
+    """(refused, advice) of a terms check's hits."""
+    refused = refused_terms(list(dict.fromkeys(hits)), reg)
+    return refused, [h for h in dict.fromkeys(hits) if h not in refused]
+
+
+def advise(items, lead="consider plainer words, or a rewrite, for:"):
+    """Print the advice on stderr, never on stdout, which is the message the person is sent."""
+    items = list(dict.fromkeys(i for i in items if i))
+    if items:
+        print(f"{ADVICE} {lead} " + "; ".join(items), file=sys.stderr)
+
+
+# A refusal of a message's own text (its words, its reason, its card form) asks the session to fix it and run the
+# command again. After CAP refusals running of one kind of message, the next try is taken and sent with CAP_LINE
+# naming the check it did not meet, so one bad message never stops the run. A pass of that kind starts the
+# count again. The count is the run's own bookkeeping, kept beside the register's tables, never in them.
+CAP = 3
+CAP_FILE = "refusal-count.json"
+CAP_LINE_LEAD = "Sent after three tries:"
+_CAP_NOTES = []  # the lines a capped refusal owes the message being rendered now; with_page adds them
+
+
+def _cap_file(folder):
+    """Where the refusal count is kept: in the register (run_lock.is_register, or a folder inside the work folder),
+    else in the work folder under the workspace root given before a register exists; None when there is neither, so
+    nothing is ever written beside the person's own files (and nothing is counted)."""
+    import run_lock
+    import start
+    folder = pathlib.Path(folder).resolve()
+    # in this run's own folder of the work folder (start.run_dir), so a count left by an earlier run never carries over
+    if folder.parent.name == "bfo-work":
+        return start.run_dir(folder.parent) / CAP_FILE
+    if run_lock.is_register(folder):  # a register outside a work folder is its own site (first_look.site_of)
+        return start.run_dir(folder) / CAP_FILE
+    if folder.name == "bfo-work":
+        return start.run_dir(folder) / CAP_FILE
+    return start.run_dir(folder / "bfo-work") / CAP_FILE if (folder / "bfo-work").is_dir() else None
+
+
+def still_refused(reg, kind, refused, check=""):
+    """Whether a refusal of `kind` stands: True while it has been refused CAP times running or fewer; False when it
+    is not refused (the count of `kind` starts again) or when this is the try after CAP refusals, which is taken, its
+    line naming `check` kept for the message (with_page). Once a cap is taken in a call, every later check of the same
+    call takes its text too (the reason taken is in the message rendered from it), uncounted."""
+    if _CAP_NOTES:
+        return False
+    f = _cap_file(reg)
+    if f is None:
+        return bool(refused)
+    try:
+        counts = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {}
+        counts = counts if isinstance(counts, dict) else {}
+    except (OSError, ValueError):
+        counts = {}
+    n = (int(counts.get(kind) or 0) + 1) if refused else 0
+    stands = bool(refused) and n <= CAP
+    if refused and not stands:
+        n = 0
+        _CAP_NOTES.append(f"{CAP_LINE_LEAD} this message did not meet the kit's check of {check or 'its form'}, "
+                          "and is sent as it is.")
+    if n:
+        counts[kind] = n
+    else:
+        counts.pop(kind, None)
+    try:
+        if counts or f.is_file():
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(json.dumps(counts) + "\n", encoding="utf-8", newline="\n")
+    except OSError:
+        pass
+    return stands
+
+
+def cap_notes():
+    """The lines capped refusals owe the message rendered now, taken once."""
+    got = list(dict.fromkeys(_CAP_NOTES))
+    _CAP_NOTES.clear()
+    return got
 
 
 def kit_terms(text):
@@ -620,21 +876,34 @@ def made(act, reg=None):
     return MADE.get(act) or short(act)
 
 
+WHAT_WORDS = 30  # the brief's "What it does" field: well inside a field's limit (question_card.FIELD_WORDS)
+
+
+def what_it_does(text, cap=WHAT_WORDS):
+    """The capability's what, for its own field of the first brief: its first sentence, cut at a semicolon, colon or
+    dash if it has one, never at a comma, since a comma in a what most often parts the items of a list ("browse a
+    catalogue, fill a cart, pay for it") and a cut there drops the meaning. Longer than `cap` words, its first `cap` words and "…", so a cut shows."""
+    what = re.split(r"(?<=[.!?])\s+(?=[A-Z])", (text or "").strip(), maxsplit=1)[0]
+    what = re.split(r"; |: | — ", what, maxsplit=1)[0].strip().rstrip(".")
+    words = what.split()
+    if len(words) > cap:
+        what = " ".join(words[:cap]).rstrip(",;:") + "…"
+    return what[:1].upper() + what[1:]
+
+
 def fast_checked_said(reg):
     """What was checked of a fast map, for the report: the rows the proposals rest on, one check each, and how many
-    were confirmed or flagged; every other row unchecked. Never "every finding" or a count of checks per row."""
+    were confirmed or flagged; every other row unchecked. Never "every finding" or a count of checks per row. One
+    clause: the long account of who checks and how is said where the check runs, not in the report."""
     import selective
     sel = selective.selected(reg) or {}
     n = sum(len(v) for v in sel.values())
     if not n:
-        return ["No row of the map was read against the code by a second reader: every row is unchecked; each cited "
-                "line was checked by script to exist."]
+        return ["no row read against the code by a second reader"]
     got = selective.verdicts(reg)
-    flagged = sum(1 for v in got.values() if v and v != "supported")
-    out = [f"{n} rows that the proposed measures, alerts and runbooks rest on were read against the code, one check "
-           f"each, by a reader who wrote none of them: {len(got) - flagged} confirmed, {flagged} flagged"
-           + (f", {n - len(got)} not yet read" if len(got) < n else "")
-           + ". Every other row of the map is unchecked; each cited line was checked by script to exist."]
+    flagged = sum(1 for v in got.values() if v and v != "says")  # judges.VERDICTS: says, does not say, unclear
+    out = [f"{n} rows against the code, one check each · {len(got) - flagged} confirmed · {flagged} flagged"
+           + (f" · {n - len(got)} not yet read" if len(got) < n else "")]
     return out
 
 
@@ -705,7 +974,7 @@ def mapped_stages(reg, flow_name):
         st = [r for r in st if (r.get("flow") or "").strip() in ids]
     elif len({(r.get("flow") or "").strip() for r in st}) > 1:
         return []
-    st.sort(key=lambda r: int(r.get("order") or 0) if str(r.get("order") or "").strip().isdigit() else 0)
+    st.sort(key=lambda r: int(r.get("order") or 0) if str(r.get("order") or "").strip().isdecimal() else 0)
     return [r["name"].strip() for r in st]
 
 
@@ -885,7 +1154,8 @@ def problems(reg, o, brief_now=False):
     if rec.get("flow") and rec["flow"] not in names:
         out.append(f"the recommended flow {rec['flow']!r} is not a flow found")
     if brief_now and rec.get("why"):
-        out += [f"recommendation.why: {REASON_RULE}; {f}" for f in reason_faults(rec["why"], reg)]
+        # only an id or a work file in it refuses; the rest of the rule is advice (why_advice)
+        out += [f"recommendation.why: {REASON_RULE}; {f}" for f in reason_refused(rec["why"], reg)]
     for k in ("stages_for_alerts", "stages_why"):
         if rec.get(k):
             out.append(f"recommendation.{k}: the first look recommends a flow, not stages for alerts; the person picks "
@@ -902,13 +1172,9 @@ def problems(reg, o, brief_now=False):
             out.append(f"service {s.get('name')}: needs what it does, recommend in or out, and why")
     if not o.get("searched"):
         out.append("searched is empty")
-    text = json.dumps({k: v for k, v in o.items() if k != "flows"}, ensure_ascii=False) + " ".join(
-        json.dumps({k: v for k, v in f.items() if k not in ("found_in", "seen_in")}, ensure_ascii=False)
-        + " " + seen_of(reg, f) for f in flows)
-    text = text.replace('"name"', "")
-    hits = [h for h in kit_terms(text) if h not in surveyed]
+    hits = refused_terms(orientation_terms(reg, o, surveyed), reg)
     if hits:
-        out.append(f"ids, file names or kit terms in the person's text: {', '.join(sorted(set(hits)))}")
+        out.append(f"ids or file names of this run in the person's text: {', '.join(sorted(set(hits)))}")
     if brief_now and (reg / "about.csv").is_file() and not any(
             (r.get("system") or "").strip() for r in rows(reg / "about.csv")):  # started by start_register, never filled
         out.append("about.csv has no row with the system: the first look writes it (the system, the configuration "
@@ -918,6 +1184,20 @@ def problems(reg, o, brief_now=False):
         out += first_look.brief_problems(reg, o)
         out += first_look_citation_problems(reg, o)
     return out
+
+
+def orientation_terms(reg, o, surveyed=None):
+    """Every hit of the terms check in the text of orientation.json the person reads (its flows' citations and
+    sources aside), the surveyed services' names let through."""
+    if surveyed is None:
+        surveyed = {r["service"].strip() for r in rows(pathlib.Path(reg) / "survey.csv")
+                    if (r.get("kind") or "").strip() == "service" and (r.get("service") or "").strip()}
+    flows = (o or {}).get("flows") or []
+    text = json.dumps({k: v for k, v in (o or {}).items() if k != "flows"}, ensure_ascii=False) + " ".join(
+        json.dumps({k: v for k, v in f.items() if k not in ("found_in", "seen_in")}, ensure_ascii=False)
+        + " " + seen_of(reg, f) for f in flows)
+    text = text.replace('"name"', "")
+    return [h for h in kit_terms(text) if h not in surveyed]
 
 
 def first_look_citation_problems(reg, o=None):
@@ -1055,8 +1335,20 @@ def checks_found(reg):
 
 
 def checked_said(reg):
-    """What was checked of the map, in the past tense, for the report: exactly what the checks established, never
-    more (never "mapped, checked and done" when only a sample was re-read).
+    """What was checked of the map, as lines of text: checked_fields without their labels."""
+    return "\n".join(text for _, text in checked_fields(reg))
+
+
+def report_fields(reg):
+    """The kit's own part of the report, as labelled one-line fields: Done (the done check's word) and what was
+    checked, one field a line, never a paragraph. `say --report` puts them under the status line."""
+    reg = pathlib.Path(reg)
+    return "\n".join(f"- **{label}:** {text}" for label, text in [("Done", end_said(reg))] + checked_fields(reg))
+
+
+def checked_fields(reg):
+    """What was checked of the map, in the past tense, for the report, as (label, one line) pairs: exactly what the
+    checks established, never more (never "mapped, checked and done" when only a sample was re-read).
     Each line is what a check of the kit verified: the sampled re-read (or, in a split run, every row judged) and the
     reading check against Claude Code's own record of the sessions."""
     import reading_check
@@ -1064,29 +1356,29 @@ def checked_said(reg):
     import run_status
     out = []
     if checks_stopped(reg):
-        out.append("You stopped the checks before they finished, so the map is not checked against the code: any "
-                   "finding not read through every round is not checked.")
+        out.append(("Checked", "You stopped the checks before they finished, so the map is not checked against the "
+                               "code: any finding not read through every round is not checked."))
     elif (reg / layout.UNITS_CSV).is_file() and run_status.is_fast(reg):
-        out += fast_checked_said(reg)
+        out += [("Checked", x) for x in fast_checked_said(reg)]
     elif (reg / layout.UNITS_CSV).is_file():
         n = (load(reg, layout.SETTINGS) or {}).get("judges", 3)
-        out.append(f"Each finding was read against the code by {n} independent checks.")
+        out.append(("Checked", f"Each finding was read against the code by {n} independent checks."))
     else:
         held = reread.check(reg).passed
-        out.append("A reader who wrote none of the findings re-read a sample of ten of them against the code, "
-                   + ("and every one of the ten held" if held else "and not every one of the ten holds yet")
-                   + "; the other findings were not checked one by one.")
+        out.append(("Checked", "A reader who wrote none of the findings re-read a sample of ten of them against the "
+                               "code, " + ("and every one of the ten held" if held else
+                                           "and not every one of the ten holds yet")
+                    + "; the other findings were not checked one by one."))
     reading = reading_check.check(reg)
     if reading.passed and reading.cited:
         by_run = reading.covered - reading.by_reader
-        out.append(f"Claude Code's own record of the work shows every place in the code the map cites was read: "
-                   f"{by_run} opened by the run" + (f", and {reading.by_reader} found by the code reader, which reads "
-                                                     "the code by rule" if reading.by_reader else "") + ".")
+        out.append(("Code read", f"every place the map cites · {by_run} opened by the run"
+                    + (f" · {reading.by_reader} found by the code reader" if reading.by_reader else "")))
     import kit_findings
     found = kit_findings.line(reg)
     if found:
-        out.append(found)
-    return "\n".join(out)
+        out.append(("Kit problems", found))
+    return out
 
 
 def unread(reg):
@@ -1096,6 +1388,41 @@ def unread(reg):
     lines = [x for x in (map_record.unread_line(reg), first_look.not_read_line(reg)) if x]
     reader = first_look.code_reader_line(reg)  # whole sentences of its own: never after "Not read:"
     return "".join(f"\n- Not read: {x}" for x in lines) + (f"\n- {reader}" if reader else "")
+
+
+def unfounded(reg):
+    """The capability brief's lines on every word a source reader copied that the first look's quote check could not
+    confirm independently (first_look.unfounded_said): quotes judged not in their source, each left out of what was
+    found; rows no one could check, kept unchecked; and rows the session that copied them settled itself because no
+    judge answered, each with its verdict. Each is said with the passage nearest to it, so the person can judge the
+    source and the reading; nothing when there are none."""
+    try:
+        import first_look
+        got = first_look.unfounded_said(reg)
+    except (ImportError, OSError, ValueError):
+        return ""
+    if not got:
+        return ""
+    what = {(r.get("source_id") or "").strip(): (r.get("what") or "").strip()
+            for r in rows(pathlib.Path(reg) / "sources.csv")}
+    settled = {"found": "kept as found", "paraphrase": "kept as a paraphrase",
+               "not in source": "left out as not in its source", "unchecked": "kept unchecked"}
+
+    def item(x, verdict=False):
+        return ((f"the name “{x['quote']}”" if x["what"] != "quote" else f"“{x['quote']}”")
+                + f" in {what.get(x['source']) or x['source']}"
+                + (f", {settled.get(x['verdict'], x['verdict'])}" if verdict else "")
+                + (f" (nearest there: “{x['nearest']}”)" if x["nearest"] else ""))
+    lead = {"not in source": "Quoted by a reader but not in its source, so left out of what was found",
+            "unchecked": "Copied by a reader and kept, but not checked in its source, since no one could open it or tell",
+            "self-settled": "Settled by the session that copied it, since no independent judge answered, so not "
+                            "independently checked"}
+    out = ""
+    for kind in first_look.NOT_CONFIRMED:
+        xs = [x for x in got if x["kind"] == kind]
+        if xs:
+            out += f"\n- {lead[kind]}: " + "; ".join(item(x, kind == "self-settled") for x in xs) + "."
+    return out
 
 
 def case_said(x):
@@ -1131,55 +1458,62 @@ def go_from_request(reg, flow, request):
 
 
 def capability(reg, o, request=None):
-    """The first-look brief as the person reads it in the chat: the one thing asked with the recommendation first,
-    then what a yes does, then what the first look found, as lists. The rest (every flow's stages, each service and
-    why it is read or left out, what was looked at and what is still open) is the full plan, `capability_full`,
-    written to PLAN.md and shown when the person asks."""
+    """The first-look brief as the person reads it in the chat: the status line, then one question card per decision
+    (the first flow, then each search the first look proposes), each standing alone for someone who knows nothing of
+    the system or the kit. The rest (every service and why it is read or left out, what was looked at) is the full
+    plan, `capability_full`, written to PLAN.md and shown when the person asks."""
+    import go
+    import question_card as qc
     c, r = o["capability"], o["recommendation"]
     services = o.get("services") or []
     n_in = sum(s.get("recommend") == "in" for s in services)
-    flows = bullets(flow_line(reg, f) for f in o["flows"])
-    asks = search_asks(o, asks_flow=not request)
+    kit = go.stage_kit_run(reg)
+    parts = []
+    lead = ""
     if request:
-        lead = (f"**Your request asked for every flow, so I'm starting with *{r['flow']}*, and I'll add the others "
-                f"one at a time after it.** {sentence(r['why'])}")
-        doing, also_head = "What I'm doing now:", "**You can stop me, or change this, at any time:**"
-        after_map = ("Once the flow is mapped, I show you its stages, each taken as far as your request said, or "
-                     "I ask you how far.")
-        also = bullets(["Start with another of these flows instead.", "Change which services are read."])
-        lead = (needs(asks) + "\n\n" + lead) if asks else lead
+        lead = (f"Your request asked for every flow, so I'm starting with *{r['flow']}*, and I'll add the others one "
+                f"at a time after it. {sentence(r['why'])} You can stop me, or change this, at any time: start with "
+                "another flow instead, or change which services are read.")
     else:
-        import go
-        if go.stage_kit_run(reg):  # one question, its answer filled in: the first flow, every stage to its measures
-            pick = (f"**Shall I go ahead?** I recommend *{r['flow']}* first, every stage taken to proposed measures: "
-                    f"{cont(r['why'])}. Say yes, or change it: another flow (below), how far the stages go (mapped "
-                    "only, or on to alerts and runbooks), or which services are read.")
-            after_map = ("I map it in one quick pass, propose measures for each stage, and stop for your review of "
-                         "them. Alerts and runbooks come only if you ask.")
+        table = (("#", "Flow", "What happens", "Its stages"),
+                 [(i, f["name"], cont(qc.fragment(f.get("what", ""))),
+                   " · ".join(s["name"] for s in f.get("stages") or []))
+                  for i, f in enumerate(o["flows"], 1)])
+        reads = (f"the code of {count_word(n_in)} of the system's {count_word(len(services))} services; the full plan "
+                 "says which and why")
+        fields = [("Terms", None), ("Application", c["name"])]
+        if what_it_does(c.get("what")):
+            fields.append(("What it does", what_it_does(c.get("what"))))
+        if kit:
+            plan = "I map it in one quick pass, propose measures for each stage, then stop for your review"
+            choices = [("Go ahead", f"I map {r['flow']} first and propose measures for every stage"),
+                       ("Another flow", "you name one from the table, or describe one I missed; I map that first"),
+                       ("Change how far", "you say which stages stop at the map, or go on to alerts and runbooks")]
+            rec, title = 1, f"Shall I start with {r['flow']}?"
         else:
-            pick = (f"**Which flow should I map first?** I recommend *{r['flow']}*: {cont(r['why'])}. Or name another "
-                    "flow below, or which services to read.")
-            after_map = ("Once the flow is mapped, I show you its stages. How far each goes is yours to say: mapped "
-                         "only, or on to measures, alerts and runbooks.")
-        lead = needs([pick] + asks)
-        doing, also_head, also = "If you say yes to item 1:", "", ""
-    also = f"\n{also_head}\n{also}\n" if also else ""
-    return f"""{status(reg)}
-
-{lead}
-
-{doing}
-- I read the code of {count_word(n_in)} of the system's {count_word(len(services))} services and leave the others out.
-- {checks_said(reg)}
-- {after_map}
-
-**What the first look found.** {sentence(c['what'])} The business flows found so far:
-{flows}
-
-A flow not found here may still exist.{unread(reg)}
-{also}
-Each flow's stages, each service and why it is read or left out, and the open questions are in the full plan: ask me for it.
-"""
+            plan = "I map it, show you its stages, and you say how far each goes"
+            choices = [(f"Map {f['name']}", "I map this flow first") for f in o["flows"]]
+            choices.append(("Another flow", "you describe one I missed; I add it and map it first"))
+            rec = next((i for i, f in enumerate(o["flows"], 1) if f["name"] == r["flow"]), 1)
+            title = "Which flow should I map first?"
+        parts.append(dict(title=title, fields=fields, table=table,
+                          after=[("Plan", plan), ("Reads", reads), ("Not found", "a flow missing here may still exist")],
+                          why="I map one flow at a time, and the first sets where the work starts",
+                          choices=choices, recommended=(rec, cont(r["why"]))))
+    parts += [p for _, p in search_asks(o, asks_flow=not request)]
+    # every kit word the first card uses is defined in it: its choices name alerts and runbooks on the stage kit
+    # and the words of the work to come (finding, checked finding) are defined in its Terms, never as loose lines after
+    # it; how the check runs is said where it runs
+    words = (["flow", "stage", "map", "service"] + (["measure", "alert", "runbook"] if kit else [])
+             + ["finding", "checked finding"])
+    told = qc.terms(reg, words) if parts else ""
+    if parts:
+        p0 = parts[0]
+        p0["fields"] = [("Terms", told)] + [f for f in p0.get("fields") or [] if f[0] != "Terms"]
+    cards = qc.cards(parts)
+    tail =("The full plan, with each service and why it is read or left out, is ready: ask me for it."
+            + unread(reg).replace("\n- ", "\n") + unfounded(reg))
+    return "\n\n".join(x for x in (status(reg), lead, cards, tail) if x) + "\n"
 
 
 def capability_full(reg, o):
@@ -1220,7 +1554,7 @@ def capability_full(reg, o):
 
 **What was looked at, and what is still open.**
 - Looked at: {'; '.join(cont(x) for x in o['searched'])}.
-- Still open: {'; '.join(cont(x) for x in o.get('unresolved') or ['nothing known'])}.{unread(reg)}{sources_read(reg)}
+- Still open: {'; '.join(cont(search_text(x)) for x in o.get('unresolved') or ['nothing known'])}.{unread(reg)}{unfounded(reg)}{sources_read(reg)}
 
 **The services, and which to include.** A service left out is not read; a call into it is noted as outside this run.
 
@@ -1232,7 +1566,7 @@ def capability_full(reg, o):
 
 Nothing is read in depth until you answer.
 
-{needs([ask] + search_asks(o))}
+The questions are put to you in the chat, one card each; nothing is read in depth until you answer them.
 """
 
 
@@ -1282,12 +1616,31 @@ def reentry_open_tail(reg, current=None, nxt=""):
     then = cont(short(current)) if current is not None and current not in HOLDS else nxt
     if not then or then.startswith("putting the open items right"):
         then = "the next flow" if flows_left(reg) else ""
-    past = ("or say next flow, and I go on with these still open: they stay listed until each is put right"
-            if flows_left(reg) else "or say stop, and the map stays as it is with these still open")
-    return (f"\n**Open items in this draft.** {said} The final check names them until each is put right. I put each "
-            "right and tell you what I changed; what you said stands, and nothing is reviewed again.\n\n"
-            "Shall I put them right" + (f", then carry on with {then}" if then else "") + f"? I recommend yes, {past}."
-            "\n")
+    import question_card as qc
+    failing, items = open_now(reg)
+    st = {(r.get("stage") or "").strip(): (r.get("name") or "").strip() for r in rows(pathlib.Path(reg) / "stages.csv")}
+    leave = (("Next flow", "I go on to the next flow; these stay listed until each is put right") if flows_left(reg)
+             else ("Stop", "the map stays as it is, with these still open and listed"))
+    n = len(items)
+    return "\n" + qc.card(
+        title=f"{count_word(n).capitalize()} open item{'' if n == 1 else 's'} still in this draft: shall I put them right?",
+        fields=[("Where", and_list([st.get(s) or s for s in failing]) if failing else "")],
+        table=(("#", "Open item"), [(i, x) for i, x in enumerate(items, 1)]),
+        after=[("Who can fix", "I can; what you said stands, and nothing is reviewed again"),
+               ("Cost", "left open, the final check of the map lists them, and the pages say so")],
+        why="the final check of the map names them until each is put right",
+        choices=[("Fix now", "I put each right and tell you what I changed"
+                  + (f", then carry on with {then}" if then else "")), leave],
+        recommended=(1, "it is my work, and nothing you decided changes")) + "\n"
+
+
+def carry_on_card(nxt):
+    """The re-entry brief's question when nothing waits on the person: carry on with what is next, or new work."""
+    import question_card as qc
+    return qc.card(title=f"Shall I carry on with {nxt}?", why="this work was started before and is not finished",
+                   choices=[("Carry on", f"I go on with {nxt}, from where the work stands"),
+                            ("New work", "I start new work beside this one, which stays as it is")],
+                   recommended=(1, "the work stands where it was left"))
 
 
 def reentry(reg, o):
@@ -1360,21 +1713,10 @@ def reentry(reg, o):
     nxt = cont(line.split("Next: ", 1)[1].split(" · ")[0])
     waits = line.split("Waiting on you: ", 1)[1]
     open_case = next_ready(reg)  # coming back to a finished flow with flows still to map: an open case, not a wait
-    import go
-    on_page = open_case and ((load(reg, "depth.json") or {}).get("open_choice") or {}).get("task") == go.NEXT_TASK
     if open_case:
-        # the next flow is what is next, offered with the recommendation the record holds, never a wait on the person; the
-        # page is named as one place to choose it only where Home draws the pick
-        tail = "\n**The flows still to add to this map.** " + "; ".join(f"*{n}*" for n in flows_left(reg)) + ".\n"
+        # the next flow is what is next, offered with the recommendation the record holds, never a wait on the person
         rec = next_flow_recommended(reg) or (o.get("recommendation") or {})
-        pick_at = "on the page or here in the chat" if on_page else "here in the chat"
-        if rec.get("flow") in flows_left(reg):
-            why = (rec.get("why") or "").strip()
-            tail += f"\n**My recommendation.** Next: *{rec['flow']}*." + (f" {sentence(why)}" if why else "") + "\n"
-            tail += f"\nSay carry on and I will map *{rec['flow']}*, or name another flow {pick_at}."
-        else:
-            tail += f"\nName the flow to map next {pick_at}."
-        tail += " Or say stop, and this map stays as it is, with those flows still to add.\n"
+        tail = "\n" + next_flow_card(reg, rec.get("flow"), (rec.get("why") or "").strip(), flows_left(reg)) + "\n"
         if open_record(reg)["left_open"]:  # open items left open at the person's word stay listed
             tail += reentry_open_tail(reg)
     elif state(reg) and state(reg)[0] == DEPTH_PICK and (reg / PICK_FILE).is_file():
@@ -1392,9 +1734,9 @@ def reentry(reg, o):
     elif waits == "nothing" and still_open(reg):
         tail = reentry_open_tail(reg, current, nxt)
         if open_record(reg)["left_open"]:  # their word stands: the run carries on to the end of this flow
-            tail += f"\nShall I carry on with {nxt}? I recommend yes.\n"
+            tail += "\n" + carry_on_card(nxt) + "\n"
     elif waits == "nothing":
-        tail = f"\nShall I carry on with {nxt}? I recommend yes.\n"
+        tail = "\n" + carry_on_card(nxt) + "\n"
     else:
         tail = ""
     after_run = (' What remains after this run: ' + remains + '.') if remains else ''
@@ -1518,16 +1860,22 @@ def next_flow_message(reg, flow, why, left):
     """The message at the end of a flow, when the first look found more: the flows still to add, the recommendation,
     and the recommended flow offered as what is next, never as a wait on the person."""
     done = (scope_now(reg) or {}).get("flow", "")
-    return f"""{status(reg)}
+    return f"{status(reg)}\n\n{next_flow_card(reg, flow, why, left, done)}\n"
 
-**{done} is drafted to the end.** It stays in this map as it is: your picks, your words and its pages.
 
-**The flows still to add to this map.** {'; '.join(f'*{n}*' for n in left)}.
-
-**My recommendation.** Next: *{flow}*. {sentence(why)}
-
-**What is next.** *{flow}*, as I recommend. Say carry on and I will map it, or name another flow on the page or here in the chat. Or say stop, and this map stays as it is, with those flows still to add.
-"""
+def next_flow_card(reg, flow, why, left, done=""):
+    """The question card for the next flow: one choice per flow still to add, the recommended one first, a flow the
+    first look missed, and stop."""
+    import question_card as qc
+    order = [flow] + [n for n in left if n != flow] if flow in left else list(left)
+    choices = [(f"Map {n}", "I map it next and add it to the same map") for n in order]
+    choices += [("Another flow", "you describe one I missed; I add it and map it next"),
+                ("Stop", "the map stays as it is, with those flows still to add; nothing drafted is lost")]
+    return qc.card(
+        title=(f"{done} is drafted to the end. Which flow next?" if done else "Which flow should I map next?"),
+        fields=[("Done", f"{done}: its map, your picks and its pages stay as they are" if done else "")],
+        why="I map one flow at a time; each is added to the same map",
+        choices=choices, recommended=(1, cont(why)) if flow in left else (None, "no flow is recommended yet"))
 SIGNAL = {"business health": "business", "business impact": "business", "application": "application",
           "system": "technology", "technology": "technology"}
 
@@ -1592,12 +1940,10 @@ def alerts_review(reg, flow_id, stage_ids, recommend):
     picked = go.depth_all(reg) or {}
     runbooks = any(picked.get(sid) == "runbooks" for sid in stage_ids)  # else the alerts are as far as these stages go
     opened = open_items_said(reg, R, flow_id, stage_ids, "alerts")
-    ask = (f"**Do these alerts stand, or what should change?** I recommend: {cont(recommend)}. Say go"
-           + (", and I go on to the runbooks" if runbooks else ", and I go on")
-           + "; or tell me what to drop, change or add.")
-    out = [status(reg), "", needs([ask]), "", "**Here is the draft of the alerts.** " + (
-        "Nothing about how each could fail, and no runbook, has been written yet: those come after these alerts."
-        if runbooks else "They are as far as the stages you picked go, and they stay a draft."),
+    table, stage_names = [], []
+    out = [status(reg), "", "", "", "**Draft of the alerts:** " + (
+        "no runbook, and nothing on how each could fail, is written yet: those come after these alerts"
+        if runbooks else "as far as the stages you picked go, kept as a draft"),
         *(["", *opened] if opened else [])]
     for sid in stage_ids:
         M = fo.build(R, flow_id, sid)
@@ -1605,19 +1951,24 @@ def alerts_review(reg, flow_id, stage_ids, recommend):
                                            for k in ("from_state", "to_state")}
         measure_names |= {cont(plain(M, x["measure"])) for x in M["measures"].values()}
         expect = {e.get("expectation_id"): e for e in R.get("expectations", [])}
-        out += ["", f"### {M['stage']['name']}, in the flow {cont(M['flow']['name'])}"]
+        out += ["", f"### {M['stage']['name']}", "", f"**Flow:** {M['flow']['name']}"]
         alerts = fo.stage_alerts(M)
+        stage_names.append(M["stage"]["name"])
+        import question_card as qc
+        table += [(len(table) + 1, m["measure"], cont(qc.fragment(plain(M, lost_of(fo.basis(m))))),
+                   fires_when(m), wakes(R, m)) for m in alerts if m["measure"] not in {r[1] for r in table}]
         if not alerts:
-            out += ["", "No alert is proposed for this stage."]
+            out += ["", "**Alerts proposed:** none for this stage"]
         for m in alerts:
-            guards = "; ".join(cont(re.sub(r"^proposed:\s*", "", expect[e]["expectation"]))
+            guards = "; ".join("“" + quoted(re.sub(r"^proposed:\s*", "", expect[e]["expectation"])) + "”"
                                for e in fo.guards(m) if e in expect)
-            out += ["", f"**{m['measure']}**", "",
-                    f"- What it watches: {cont(plain(M, m.get('question_it_answers')))}",
-                    f"- It guards: {guards or 'no expectation named'}.",
-                    f"- Health signal: {signal_kind(m.get('layer'))}.",
-                    f"- Exists today: {'yes' if m.get('exists') == 'yes' else 'no, proposed'}.",
-                    f"- Why I propose it: {cont(plain(M, fo.basis(m)))}."]
+            kind = signal_kind(m.get("layer"))
+            out += ["", f"**Alert:** {m['measure']}",
+                    "", f"**Watches:** “{cont(plain(M, m.get('question_it_answers')))}”",
+                    "", f"**Protects what someone counts on:** {guards or 'no one named'}",
+                    "", f"**Kind:** {KIND_WORDS.get(kind, kind)}",
+                    "", f"**Produced today:** {'yes' if m.get('exists') == 'yes' else 'no, proposed'}",
+                    "", f"**Why I propose it:** {cont(plain(M, fo.basis(m)))}"]
         steps = {s["step"] for s in M["steps"]}
         alerting = {m["handle"] for m in alerts}
         proposed |= {m["handle"] for m in M["alerts"]}
@@ -1627,26 +1978,81 @@ def alerts_review(reg, flow_id, stage_ids, recommend):
         # the parts' own measures are the application and technology health signals of this stage
         of_parts = [x["measure"] for x in M["measures"].values() if x["handle"] not in alerting and
                     x.get("subject_id") in parts and not any((x.get(c) or "").strip() for c in ("step", "stage", "flow"))]
-        out += ["", "Considered for the stage and its steps, and not proposed as alerts:",
-                bullets(cont(plain(M, x)) for x in dict.fromkeys(own)) or "- none",
-                "", "Considered for the services and stores it uses, and not proposed as alerts:",
-                bullets(cont(plain(M, x)) for x in dict.fromkeys(of_parts)) or "- none"]
+        out += [""] + not_alerts([(cont(plain(M, x)), "the stage and its steps") for x in dict.fromkeys(own)]
+                                 + [(cont(plain(M, x)), "the services and stores it uses")
+                                    for x in dict.fromkeys(of_parts)])
         flow_measures = [x for x in M["measures"].values() if (x.get("flow") or "").strip() == flow_id and
                          not (x.get("stage") or "").strip() and not (x.get("step") or "").strip()]
         flow_name, flow_M = M["flow"]["name"], M
     if stage_ids:  # the flow's own measures belong to the flow: listed once, not under every stage
         flow_other = [x["measure"] for x in flow_measures if x["handle"] not in proposed]
-        out += ["", f"### The flow as a whole: {cont(flow_name)}", "",
-                "Considered for the flow, and not proposed as alerts:",
-                bullets(cont(plain(flow_M, x)) for x in dict.fromkeys(flow_other)) or "- none"]
+        out += ["", f"### The flow as a whole: {cont(flow_name)}", ""]
+        out += not_alerts([(cont(plain(flow_M, x)), "the flow") for x in dict.fromkeys(flow_other)])
     if runbooks:  # verification is the build's to report, never the runbook's: said here, owed before hand-over
-        out += ["", "**Before hand-over, each test its runbook holds is tried once on a known case** (a seeded row "
-                "or a reproduced failure), by someone who can run it: this work reads the code and runs nothing. The "
-                "done check counts the tests still owed that try."]
+        out += ["", "**Before hand-over:** each test a runbook holds is tried once on a known example (a test record "
+                "or a reproduced failure) by someone who can run it; this work reads the code and runs nothing",
+                "", "**Tests still owed that try:** counted by the final check"]
     if (scope_now(reg) or {}).get("mapping") == "fast":  # each alert rests on a measure: its checking is said again
         import selective
         out += ["", selective.said(reg)]
+    import question_card as qc
+    n = len(table)
+    out[2] = qc.card(
+        title=f"Which of these {count_word(n).lower()} alert{'' if n == 1 else 's'} should wake someone?" if n else
+        "No alert is proposed: is that right?",
+        fields=[("Terms", qc.terms(reg, ["alert"] + (["runbook"] if runbooks else [])))],
+        table=(("#", "Alert", "What is lost when it fires", "Fires when", "Wakes"), table),
+        why=("each alert you keep gets a runbook next" if runbooks else
+             "the alerts you keep are as far as these stages go"),
+        choices=[("Keep", "I keep them" + (" and write a runbook for each" if runbooks else " as the draft")),
+                 ("Change", "you say which to drop, change or add (any measure can become one); I redraft them")],
+        recommended=(review_pick(recommend), cont(recommend)))
+    if opened:
+        out[2] = out[2].replace("\n> **Why:**", f"\n> **Open items:** {count_word(len(opened) - 1)} still open, "
+                                               "listed below\n>\n> **Why:**", 1)
     return "\n".join(out) + "\n", names, measure_names
+
+
+def not_alerts(rows_):
+    """The measures considered and not proposed as alerts, as a table: each with what it is for."""
+    if not rows_:
+        return ["**Considered, not proposed as alerts:** none"]
+    return ["| Considered, not proposed as an alert | Of |", "|---|---|"] + [f"| {a} | {b} |" for a, b in rows_]
+
+
+def lost_of(basis):
+    """What is lost when an alert fires, from its reason as the register words it: the clause after "means", else a
+    clause that names a loss, else its first clause; of its first sentence only, as fits a table cell."""
+    basis = re.split(r"(?<=[.!?])\s+(?=[A-Z])", (basis or "").strip(), maxsplit=1)[0].rstrip(".")
+    if " means " in basis:
+        return re.split(r";", basis.split(" means ", 1)[1])[0].strip()
+    parts = [x.strip() for x in re.split(r";", basis) if x.strip()]
+    return next((x for x in parts if re.search(r"(?i)\blos[est]\b|\blost\b|\bloses\b", x)), parts[0] if parts else "")
+
+
+def review_pick(recommend):
+    """The choice a review's recommendation points at: 2 (change) when it opens with a change, else 1 (keep)."""
+    return 2 if re.match(r"(?i)\s*(?:change|drop|add|remove|replace|rewrite)\b", recommend or "") else 1
+
+
+def fires_when(m):
+    """When an alert fires, as the register holds it: the form of its measure rising, with no level set yet (the
+    register keeps no threshold)."""
+    form = cont((m.get("form") or "").strip())
+    return f"its {form} rises above a level not set yet" if form else "a level not set yet"
+
+
+def wakes(R, m):
+    """Whom an alert wakes: the responder, else the owner, of the part its measure is taken from, as the register
+    proposes it; "not yet known" when it names none."""
+    subj = next((s for s in R.get("subjects") or [] if s.get("subject_id") == m.get("subject_id")), {})
+    for col in ("responder", "owner"):
+        v = (subj.get(col) or "").strip()
+        if v and not re.match(r"(?i)(?:proposed:\s*)?that\b", v):
+            proposed = v.lower().startswith("proposed:")
+            v = re.split(r"[;,]", re.sub(r"(?i)^proposed:\s*", "", v))[0].strip()
+            return f"{v} (proposed)" if proposed else v
+    return "not yet known"
 
 
 WATCHED_WORDS = {"yes": "yes", "in the app only": "only inside the application", "no": "no",
@@ -1667,10 +2073,65 @@ def mark_the_measures_review(reg):
     run_md.write(p, text)
 
 
-# The heading each kind of health signal has in the review, from the names method/layers.csv also writes it by
-LAYER_HEADS = {"business health": "Business Health", "business impact": "Business Impact", "application": "Application",
-               "technology": "System", "agentic": "Agentic"}
+# The heading each kind of health signal has in the review, in plain words, keyed by the names method/layers.csv
+# writes it by; the method's own names stay in the method and on the pages that teach it
+LAYER_HEADS = {"business health": "Does the work get done", "business impact": "How much work is lost",
+               "application": "Is the software working", "technology": "Are the machines up",
+               "agentic": "Does the AI agent decide right"}
+# a kind of health signal as an alert's Kind field says it
+KIND_WORDS = {"business": "the business's own work", "application": "the software", "technology": "the machines"}
+
+
+def quoted(s):
+    """Words someone counts on, as a quote: first letter upper-cased, "i" as "I", no closing stop."""
+    s = re.sub(r"\bi\b", "I", (s or "").strip().rstrip("."))
+    return s[:1].upper() + s[1:]
+
+
+def case_noun(R, flow_id):
+    """What one case of the flow is, in the register's own word ("One order: ..." gives order); "item of work" when
+    the register does not say."""
+    f = next((x for x in R.get("flows") or [] if x.get("flow_id") == flow_id), {})
+    m = re.match(r"(?i)\s*one (\w+)", f.get("case") or "")
+    return m.group(1).lower() if m else "item of work"
+
+
+def cased(text, noun):
+    """The kit's word "case" in a question, said as the flow's own case noun."""
+    plural = noun if noun.endswith("work") else noun + "s"
+    return re.sub(r"\bcase\b", noun, re.sub(r"\bcases\b", plural, text))
+
+
+def where_said(what):
+    """Where a thing with no measure sits, from check_measures.said_what, in plain words."""
+    for lead, words in (("the process step ", "step "), ("the stage ", "stage "), ("the flow ", "the flow ")):
+        if what.startswith(lead):
+            return words + what[len(lead):]
+    return what
 MEASURES_DETAIL_FILE = "measures-review-detail.md"  # the review's detail, one level down: the session shows it on request
+
+
+CODE_NAME = re.compile(r"\b(?:[A-Z][a-z]+[A-Z][A-Za-z]*|[a-z]+[A-Z][A-Za-z]*|[A-Za-z]+_[A-Za-z_]+)\b")
+
+
+def code_names(text):
+    """Advice only, never a refusal: the code's own names (a joined-up word such as PlaceOrder, or an underscored
+    one) in what the person reads, outside the status line and web addresses: each is said as what the shopper or
+    the business sees, in the register's rows (MEASURES-STEPS, "What the person reads is in plain words"). Where a
+    measure is produced ("Produced today: yes, at ...") is the code's own place and keeps its names."""
+    said = "\n".join(x for x in (text or "").splitlines()
+                     if "**Where things stand:**" not in x and "Produced today: yes, at" not in x)
+    said = re.sub(r"https?://\S+", " ", said)
+    found = list(dict.fromkeys(CODE_NAME.findall(said)))
+    return [f"code names in the review ({', '.join(found[:8])}): say what the shopper or the business sees, in the "
+            "register's rows, and render it again"] if found else []
+
+
+def one_clause(text):
+    """A table cell's reason as one clause: its first sentence, up to its first semicolon or colon, so a cell never
+    chains "a: b: c"."""
+    first = re.split(r"(?<=[.!?])\s+(?=[A-Z])", (text or "").strip(), maxsplit=1)[0]
+    return re.split(r"; |: ", first, maxsplit=1)[0].strip().rstrip(".")
 
 
 def measures_placed(M_of, flow_id, stage_ids, rec):
@@ -1736,9 +2197,9 @@ def measures_review(reg, flow_id, stage_ids, recommend):
         said = re.sub(r"\s*\([^()]*\b(?:at|in|see|by|from|of|on)\s*\)", "", said)
         return cont(plain(M, said)).rstrip(". ")
 
-    def asks(M, x):
+    def asks(M, x):  # the register's question, as a quote: a bare word list ("errors; duration") keeps no stop
         q = cont(plain(M, x.get("question_it_answers")))
-        return q + ("" if q.endswith("?") else ".")
+        return f"“{q}”" if q else "not said"
 
     def collected(x):
         if (x.get("exists") or "").strip() != "yes":
@@ -1792,34 +2253,38 @@ def measures_review(reg, flow_id, stage_ids, recommend):
     def what_of(r):
         return cont(plain(flow_M, check_measures.said_what(r["what"]))) if flow_M else r["what"]
 
+    noun = case_noun(R, flow_id)
+
     def no_measure(key):
+        """A table row per thing with no measure: where it is, the question, and why none, the reason's first sentence
+        only."""
         lines = []
         for r in (r for r in owed if not r["covered"] and where_owed(r) == key):
-            q = f"{what_of(r)}, “{check_measures.question(r['question'])}”"
             k = (r["element"], r["question"])
             if k in gapped and gapped[k] == "counted by":  # the measure it is folded into is the reason
                 into = [by_name[h] for h in dict.fromkeys(re.findall(r"\bM\d+\b", why.get(k, ""))) if by_name.get(h)]
-                lines.append(f"- {q}: {GAP_WORDS['counted by']}"
-                             + (f": {and_list([f'*{n}*' for n in into])}." if into else "."))
+                said = GAP_WORDS["counted by"] + (f": {and_list(into)}" if into else "")
             elif k in gapped:
-                reason = prose(flow_M, why.get(k, ""))
-                lines.append(f"- {q}: {GAP_WORDS.get(gapped[k], 'a reason is recorded')}"
-                             + (f". {sentence(reason)}" if reason else "."))
+                reason = one_clause(prose(flow_M, why.get(k, "")))
+                said = GAP_WORDS.get(gapped[k], "a reason is recorded") + (f": {cont(reason)}" if reason else "")
             else:
-                lines.append(f"- {q}: no measure, and no reason why none.")
-        return lines
+                said = "no measure, and no reason why none"
+            lines.append(f"| {where_said(what_of(r))} | “{cased(check_measures.question(r['question']), noun)}” | "
+                         f"{said} |")
+        return ["| Not measured | Question | Why none |", "|---|---|---|"] + lines if lines else []
 
     def counted_on(M, scope):
+        """A table: who counts on what, and whether anyone has said it yet."""
         out = []
         for e in R["expectations"]:
             if (e.get("flow") or "").strip() != flow_id or (e.get("stage") or "").strip() != scope:
                 continue
             proposed = (e.get("expectation") or "").strip().lower().startswith("proposed:")
             bound = (e.get("objective") or "").strip()
-            out.append(f"- {cont(plain(M, e.get('party'))) or 'someone not named'}: “{prose(M, e.get('expectation'))}”"
-                       + (" (proposed, not yet stated by anyone)" if proposed else "")
-                       + (f"; the bound stated: {plain(M, bound)}" if bound else "") + ".")
-        return out
+            out.append(f"| {cont(plain(M, e.get('party'))) or 'someone not named'} | "
+                       f"“{quoted(prose(M, e.get('expectation')))}”" + (f"; limit: {plain(M, bound)}" if bound else "")
+                       + " | " + ("no one yet: proposed" if proposed else "yes") + " |")
+        return ["| Who | Counts on | Said by anyone |", "|---|---|---|"] + out if out else []
 
     import capability_views as cv
     layers = cv.read_csv(cv.METHOD / "layers.csv")  # in outside-in order: health, impact, application, system, agentic
@@ -1839,67 +2304,94 @@ def measures_review(reg, flow_id, stage_ids, recommend):
                             groups.pop(r["layer"])))
         return out + [(k[:1].upper() + k[1:], "not one the method names.", v) for k, v in groups.items()]
 
-    def section(M, title, measures, key):
-        out = ["", f"### {title}", ""]
+    def section(M, title, measures, key, flow=""):
+        out = ["", f"### {title}", ""] + ([f"**Flow:** {flow}", ""] if flow else [])
         exp = counted_on(M, "" if key == "flow" else key) if key else []
         if exp:
-            out += ["What each party counts on:"] + exp + [""]
+            out += exp + [""]
         if measures:
-            for head, asks_, group in by_layer(measures):
-                out += [f"**{head}**, {asks_[:1].lower() + asks_[1:]} {len(group)} "
-                        f"measure{'' if len(group) == 1 else 's'}.", "",
+            for head, _, group in by_layer(measures):
+                out += [f"**{head}:** {len(group)} measure{'' if len(group) == 1 else 's'}", "",
                         "| Measure | What it shows | Produced today | Collected |", "|---|---|---|---|"]
                 out += [row(M, x) for x in group] + [""]
             out.pop()
         else:
-            out.append("No measure of its own here.")
+            out.append("**Measures:** none of its own here")
         wrong = [x for x in measures if (x.get("exists") or "").strip() == "yes" and (x.get("defect") or "").strip()]
         if wrong:
-            out += ["", "What a measure produced today gets wrong:"]
-            out += [f"- *{x['measure']}*: {prose(M, x['defect'])}." for x in wrong]
+            out += ["", "| Measure | What it gets wrong today |", "|---|---|"]
+            out += [f"| {x['measure']} | {one_clause(prose(M, x['defect']))} |" for x in wrong]
         gaps = no_measure(key)
         if gaps:
-            out += ["", "No measure, and why:"] + gaps
+            out += [""] + gaps
         return out
 
     produced = [x for xs in placed.values() for x in xs if (x.get("exists") or "").strip() == "yes"]
     total = sum(len(xs) for xs in placed.values())
     opened = open_items_said(reg, R, flow_id, stage_ids, "measures")
-    ask = (f"**Do these measures stand, or what should change?** I recommend: {cont(recommend)}. Say go"
-           + (", and I go on to the alerts" if alerts else ", and I go on")
-           + "; or tell me what to drop, change or add.")
-    out = [status(reg), "", needs([ask]), "", "**Here is the draft of the measures.** " + (
-        "No alert has been chosen yet: alerts are chosen from these measures next." if alerts else
-        "These are as far as the stages you picked go, and they stay a draft.")
-        + f" There are {total}: {len(produced)} the system produces today and {total - len(produced)} proposed. "
-        "For each, what it shows, whether the system produces it today, and whether anything collects it.",
-        *(["", *opened] if opened else [])]
+    import question_card as qc
+    staged = and_list([M_of[s]["stage"]["name"] for s in stage_ids]) if stage_ids else "this flow"
+    card = qc.card(
+        title=f"Do the measures for {staged} stand?",
+        fields=[("Terms", qc.terms(reg, ["measure"] + (["alert"] if alerts else []))),
+                ("What", f"{total} measures: {len(produced)} the system records today, {total - len(produced)} "
+                         "proposed, below"),
+                ("Open items", f"{count_word(len(opened) - 1)} still open, listed below" if opened else ""),
+                ("Cost", "a proposed measure needs a developer to add it; keeping it here commits no one yet")],
+        why=("the alerts are chosen from these measures next" if alerts else
+             "these measures are as far as the stages you picked go"),
+        choices=[("Keep", "I keep them" + (" and go on to the alerts" if alerts else " as the draft")),
+                 ("Change", "you say what to drop, change or add; I redraft them and show you again")],
+        recommended=(review_pick(recommend), cont(recommend)))
+    out = [status(reg), "", card, "", f"**Draft of the measures:** {total}: {len(produced)} the system produces "
+           f"today, {total - len(produced)} proposed; " + ("alerts are chosen from them next" if alerts else
+                                                          "as far as the stages you picked go, kept as a draft"),
+           *(["", *opened] if opened else [])]
+    # By default the review is one summary table, a row per stage; each measure in full is one level down, shown when
+    # the person asks, since every measure in full is too long to read in the chat.
+    by_stage = []
+    full = []
     for sid in stage_ids:
         M = M_of[sid]
-        out += section(M, f"{M['stage']['name']}, in the flow {cont(M['flow']['name'])}", placed[sid], sid)
+        by_stage.append((M["stage"]["name"], placed[sid]))
+        full += section(M, M["stage"]["name"], placed[sid], sid, flow=M["flow"]["name"])
     if placed[""] or no_measure(""):
-        out += section(flow_M, "Shared by several of these stages", placed[""], "")
+        by_stage.append(("Shared by several stages", placed[""]))
+        full += section(flow_M, "Shared by several of these stages", placed[""], "")
     if flow_M is not None:
-        out += section(flow_M, f"The flow as a whole: {cont(flow_M['flow']['name'])}", placed["flow"], "flow")
+        if placed["flow"]:
+            by_stage.append(("The flow as a whole", placed["flow"]))
+        full += section(flow_M, f"The flow as a whole: {cont(flow_M['flow']['name'])}", placed["flow"], "flow")
+
+    def made(x):
+        return (x.get("exists") or "").strip() == "yes"
+    summary = [(name, len(xs), sum(made(x) for x in xs), sum(not made(x) for x in xs),
+                sum(made(x) and (x.get("watched") or "").strip() in ("no", "unknown") for x in xs),
+                sum(made(x) and bool((x.get("defect") or "").strip()) for x in xs)) for name, xs in by_stage]
+    out += ["", "### By stage", ""] + qc.table_lines(
+        ("Stage", "Measures", "Produced today", "Proposed", "Not collected or not known", "Gets something wrong"),
+        summary)
     results = check_measures.inspect(reg, flow_id, stage_ids)
     failed = [r for r in results if not r["passed"]]
-    out += ["", f"**The coverage list.** Every stage, step that matters, service and store these stages and the flow "
-            f"hold, with what is asked of each: {len(owed)} items, {covered} with a measure, {reasoned} with a reason "
-            f"why none (each under its stage above), {len(owed) - covered - reasoned} with neither.",
-            "", f"**Measures inspection.** {len(results)} rules checked: {len(results) - len(failed)} pass, "
-            f"{len(failed)} fail{'s' if len(failed) == 1 else ''}. It checks the measures' shape, not whether they "
-            "are right about the system."]
+    out += ["", f"**Checked for a measure:** {len(owed)} things these stages and the flow hold (stages, steps that "
+            f"matter, services, stores): {covered} with a measure, {reasoned} with a reason why none, "
+            f"{len(owed) - covered - reasoned} with neither",
+            "", f"**Check of how the measures are written:** {len(results)} rules, {len(results) - len(failed)} pass, "
+            f"{len(failed)} fail; not whether they are right about the system"]
     for half, heading in check_measures.HALVES:
         mine = [r for r in results if r["half"] == half]
         bad = [r for r in mine if not r["passed"]]
         fails = "; ".join(f"{cont(r['title'])}: fails on {'; '.join(cont(s) for s in r['said'])}" for r in bad)
-        out.append(f"- *{heading}*: " + (f"{fails}." if bad else f"all {len(mine)} rules pass."))
+        out += ["", f"**{heading}:** " + (fails if bad else f"all {len(mine)} rules pass")]
     if (scope_now(reg) or {}).get("mapping") == "fast":  # the map's rows are checked only where a measure rests
         import selective
         out += ["", selective.said(reg)]
-    out += ["", "**The detail.** Where each measure is produced, and every item of the coverage list with the measure "
-            "that answers it, is one level down: ask me for it, whole or for one stage."]
-    detail = [status(reg), "", "**The measures proposed, in detail.**"]
+    out += ["", "**More, if you want it:** each stage's measures, what each shows and what it gets wrong, where it is "
+            "produced, and each thing checked: ask me for it, whole or for one stage"]
+    detail = [status(reg), "", "**The measures proposed, stage by stage.**",
+              "", "**Each table says:** what it shows, whether the system produces it today, whether anything collects it"]
+    detail += full
+    detail += ["", "**Each measure in full.**"]
     titles = [(sid, f"{M_of[sid]['stage']['name']}, in the flow {cont(M_of[sid]['flow']['name'])}")
               for sid in stage_ids]
     if flow_M is not None:
@@ -1908,7 +2400,8 @@ def measures_review(reg, flow_id, stage_ids, recommend):
     for key, title in titles:
         if placed.get(key):
             M = M_of.get(key, flow_M)
-            detail += ["", f"### {title}", ""] + [line for x in placed[key] for line in item(M, x)]
+            detail += (["", f"### {title}: each measure in full", ""]
+                       + [line for x in placed[key] for line in item(M, x)])
     detail += ["", f"**The coverage list, item by item.** {len(owed)} items.", ""]
     for r in owed:
         if r["covered"]:
@@ -1945,16 +2438,20 @@ def measures_main(args):
             return 2
     run_md = reg / "RUN.md"
     before = run_md.read_bytes() if run_md.is_file() else None
+    import question_card
+    told_before = question_card.snapshot(run_md.parent)
     mark_the_measures_review(reg)
     text, detail, names, measure_names = measures_review(reg, args[1], args[2:], recommend)
-    bad = list(dict.fromkeys(review_terms(text + detail, measure_names | names)
-                             + prose_faults(text + detail, names | measure_names)))
-    if bad:
+    bad, advice = split_terms(review_terms(text + detail, measure_names | names), reg)
+    advice += prose_faults(text + detail, names | measure_names) + code_names(text + detail)
+    if still_refused(reg, "measures", bool(bad), "the person's terms"):
         if before is not None:
             run_md.write_bytes(before)
-        print("REFUSED: ids, file names, kit terms or broken prose in the message: " + "; ".join(bad) +
+            question_card.restore(run_md.parent, told_before)
+        print("REFUSED: ids or file names of this run in the message: " + "; ".join(bad) +
               ". Fix the recommendation or the register text it comes from, and run this again.", file=sys.stderr)
         return 2
+    advise(advice)
     (reg / MEASURES_REVIEW_FILE).write_text(text, encoding="utf-8", newline="\n")
     (reg / MEASURES_DETAIL_FILE).write_text(detail, encoding="utf-8", newline="\n")
     import go  # what the person is shown is what their go covers: go.py --measures-reviewed checks against this
@@ -1970,7 +2467,7 @@ def review_terms(text, measure_names):
     (a route, a queue) is how the person finds it, as a part's name is."""
     for n in sorted((n for n in measure_names if n), key=len, reverse=True):
         text = text.replace(n, " ")
-    return kit_terms(text)
+    return kit_terms(unquoted(text))  # words quoted from a source are never judged
 
 
 def no_business_impact(reg, flow_id):
@@ -2004,6 +2501,20 @@ def count_word(n):
     return ("no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten")[n] if n <= 10 else str(n)
 
 
+def stage_key(name):
+    """A stage name with its wording taken out: lower case, no article, each word cut to its stem ("Taking the
+    order" and "Take the order" both read "tak order"), so a renaming alone is not a change of stages."""
+    out = []
+    for w in re.findall(r"[a-z]+", (name or "").lower()):
+        if w in ("the", "a", "an"):
+            continue
+        w = w[:-3] if w.endswith("ing") and len(w) > 5 else w
+        w = w[:-1] if w.endswith("e") and len(w) > 3 else w
+        w = w[:-1] if len(w) > 3 and w[-1] == w[-2] else w
+        out.append(w)
+    return " ".join(out)
+
+
 def replaced_stages(reg, walked):
     """(the first look's stage names, the walk's) for the flow the person picked when the walk's differ from the first
     look's, else None. The first look's flow is the one named at the go, else the one it recommended."""
@@ -2012,8 +2523,8 @@ def replaced_stages(reg, walked):
     flow = next((f for f in o.get("flows") or [] if (f.get("name") or "").strip() == (picked or "").strip()), None)
     first = [(s.get("name") or "").strip() for s in (flow or {}).get("stages") or [] if (s.get("name") or "").strip()]
     walked = [n for n in walked if n]
-    if not first or not walked or [n.lower() for n in first] == [n.lower() for n in walked]:
-        return None
+    if not first or not walked or [stage_key(n) for n in first] == [stage_key(n) for n in walked]:
+        return None  # the same stages, at most reworded ("Taking the order", "Take the order"): nothing changed
     return first, walked
 
 
@@ -2095,65 +2606,75 @@ def before_reading(reg, flow_id):
         return False
 
 
+PICK_WORDS = {"none": "map only", "measure": "measures", "alerting": "measures and alerts",
+               "runbooks": "measures, alerts and runbooks"}
+
+
 def depth_review(reg, flow_id, recommend):
-    """The message for the person's pick of how far each stage goes, after mapping: the ask with the session's
-    recommendation first, what a yes does and the choices; then the mapping inspection as a count; then each stage
-    with its count of process steps and what is at stake if it fails, under the question whether the stages match
-    how the business sees the work. The steps themselves are on the page."""
+    """The message for the person's pick of how far each stage goes, after mapping: a question card with each stage,
+    what is lost if it fails and how far the run recommends taking it, with the reason per stage; a second card on
+    whether the stages match how the business sees the work only when mapping changed them beyond their wording;
+    then, below the cards, the mapping inspection and each stage's losses in full."""
     import check_map
     import flow_outputs as fo
+    import question_card as qc
     R = fo.load(reg)
     names = set()
-    walked = sorted((x for x in R["stages"] if x.get("flow") == flow_id), key=lambda x: int(x.get("order") or 0))
+    walked = sorted((x for x in R["stages"] if x.get("flow") == flow_id), key=layout.stage_order)
     flow = next((f.get("name") for f in R["flows"] if f.get("flow_id") == flow_id), "") or "The flow"
-    n_st = len(walked)
     early = before_reading(reg, flow_id)
-    ask = (f"**How far should each of its {count_word(n_st).lower()} stage{'' if n_st == 1 else 's'} go?** I "
-           f"recommend: {cont(recommend)}. For each stage: mapped only, measured, measured with alerts, or measured "
-           "with alerts and then runbooks (below).")
-    grounding = ("**Do these stages match how the business sees the work?** I recommend yes, as the code shows them. "
-                 "If not, say how you would divide it, and I redraw them before anything else.")
-    if early:
-        head = f"**{flow}: its stages and steps are mapped.**"
-        yes = ("If you say yes to item 1, I record it and read in full the code of the services that carry the stages you take "
-               "further, then go on to them, then the map's check and report. A stage left mapped only can go further "
-               "later; its services are read then. Each stage's steps are on the page.")
-        only = "mapped only: its steps and which services carry each, nothing more"
-    else:
-        head = f"**{flow} is mapped.**"
-        yes = ("If you say yes to item 1, I record it and go on to the stages you take further, then the map's check and report. "
-               "A stage left mapped only can go further later. Each stage's steps are on the page.")
-        only = "mapped only: the map below, nothing more"
-    choices = [only,
-               "measured: I propose what to measure to tell whether it is working",
-               "measured, with alerts: I propose which of those measures should wake someone, for you to review",
-               "measured, with alerts and then runbooks: and, for each alert, what to do when it fires"]
-    if (scope_now(reg) or {}).get("mapping") == "fast":  # one agent reads and maps the picked stages, then on
-        yes = ("If you say yes to item 1, one agent reads the code of the services that carry the stages you take further "
-               "and maps their steps in one pass; then I propose their measures, alerts and runbooks as you chose, "
-               "and the map rows those proposals rest on are each checked by one agent that wrote none of them before "
-               "you review the measures. A stage left mapped only can go further later. Each stage's steps are on "
-               "the page.")
-    out = [status(reg), "", needs([ask, grounding]), "", head, "", yes, "",
-           "For each stage you can choose:",
-           bullets(choices),
-           "", check_map.counted(reg, flow_id, before_reading=early)]
-    checked = checks_found(reg)
-    out += ["", checked] if checked else []
-    out += ["", "**The stages.**"]
-    changed = stages_change(reg, [(s.get("name") or "").strip() for s in walked])
-    if changed:
-        first = replaced_stages(reg, [(s.get("name") or "").strip() for s in walked])[0]
-        names |= set(first) | {cont(n) for n in first}
-        out += ["", changed]
+    rec = load(reg, "depth-recommendation.json") or {}
+    rows_, detail = [], []
     for i, s in enumerate(walked, 1):
         M = fo.build(R, flow_id, s["stage"])
         names |= set(fo.given_names(M)) | {cont(n) for n in fo.given_names(M)}
         n = sum(1 for x in M["steps"] if (x.get("name") or "").strip())
         items = at_stake_items(R, M)
-        out += ["", f"**{i}. {s['name']}** ({count_word(n)} step{'' if n == 1 else 's'}). "
-                + ("At stake if it fails:" if items else "No Business Impact is recorded for its steps.")]
-        out += [stake_lines(items)] if items else []
+        losses = list(dict.fromkeys(u for _, units in items for u in units))
+        lost = ("; ".join(losses[:2]) + (f"; and {len(losses) - 2} more, below" if len(losses) > 2 else "")
+                or "no loss recorded")  # a cell, not a list: the whole list is below the card
+        r = rec.get(s["stage"]) or {}
+        rows_.append((s["name"], lost, PICK_WORDS.get(r.get("depth"), ""), cont(r.get("why", ""))))
+        detail += ["", f"**{i}. {s['name']}** ({count_word(n)} step{'' if n == 1 else 's'}). "
+                   + ("At stake if it fails:" if items else "No Business Impact is recorded for its steps.")]
+        detail += [stake_lines(items)] if items else []
+    told = qc.terms(reg, ["stage", "measure", "alert", "runbook"])
+    # a recommendation is offered only when the record holds one, with its reason, for every stage: a table with an
+    # empty Recommended cell, or a choice "as the table says" pointing at nothing, is never shown
+    advised = bool(rows_) and all(r[2] and r[3] for r in rows_)
+    change = ("Change", 'you say a stage and how far, e.g. "Ship the order: measures"; I take each as you say')
+    parts = [dict(
+        title=f"How far should each stage of {flow} go?",
+        fields=[("Terms", told)],
+        table=(("Stage", "If it fails", "Recommended", "Why"), rows_) if advised else
+        (("Stage", "If it fails"), [r[:2] for r in rows_]),
+        after=[("Levels", "map only, then measures, then alerts on top, then runbooks on top"),
+               ("Cost", "each level up is more of my work for you to review; a stage can go further later")],
+        why="I propose measures, alerts and runbooks only for the stages you take further",
+        choices=[("As recommended", "I take each stage as far as the table says"), change,
+                 ("All map only", "I stop at the map; nothing is measured yet")] if advised else
+        [("Say how far", change[1]), ("All map only", "I stop at the map; nothing is measured yet")],
+        recommended=(1, cont(recommend)) if advised else
+        (None, "no recommendation per stage is recorded; you say how far each goes"))]
+    replaced = replaced_stages(reg, [(s.get("name") or "").strip() for s in walked])
+    if replaced:
+        import itertools
+        first, now = replaced
+        names |= set(first) | {cont(n) for n in first}
+        parts.append(dict(
+            title="Do these stages match how your business sees the work?",
+            table=(("Proposed before reading the code", "Found in the code"),
+                   list(itertools.zip_longest(first, now, fillvalue="-"))),
+            why="the code divides the work differently from the first proposal; the rest of the work uses the stages",
+            choices=[("Keep", "I use the stages found in the code"),
+                     ("Redraw", "you say how you would divide the work; I redraw the stages before anything else")],
+            recommended=(1, "they follow what the code does")))
+    cards = qc.cards(parts)
+    out =[status(reg), "", cards, "", "**Below, for reference.**", "", check_map.counted(reg, flow_id,
+                                                                                         before_reading=early)]
+    checked = checks_found(reg)
+    out += ["", checked] if checked else []
+    out += ["", f"**What is lost if each stage of {flow} fails.**"] + detail
     return "\n".join(out) + "\n", names
 
 
@@ -2220,8 +2741,9 @@ def _main(argv):
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
     run_lock.refuse_unless_register(argv)
+    _CAP_NOTES.clear()  # a line owed by a capped refusal belongs to this call's message only
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     if argv[:1] == ["depth"]:
         args, request = take_request(argv[1:])
         opts = {}
@@ -2252,39 +2774,49 @@ def _main(argv):
             return 2
         run_md = pathlib.Path(args[0]) / "RUN.md"
         before = run_md.read_bytes() if run_md.is_file() else None
+        import question_card
+        told_before = question_card.snapshot(run_md.parent)
         if request is not None:  # the request already said how far each stage goes: recorded, said in a line, no stop
             import go
             scope_file = pathlib.Path(args[0]) / layout.SCOPE
             kept = scope_file.read_bytes() if scope_file.is_file() else None
             got = depth_from_request(pathlib.Path(args[0]), args[1], request.strip(), opts.get("--depth", ""),
                                      opts.get("--given"))
-            bad = got if isinstance(got, str) else "; ".join(say_terms(got[0].split("\n", 2)[2], args[0]))
+            said = ([], []) if isinstance(got, str) else split_terms(say_terms(got[0].split("\n", 2)[2], args[0]),
+                                                                    args[0])
+            bad = got if isinstance(got, str) else "; ".join(said[0])
+            if not isinstance(got, str) and not still_refused(args[0], "depth", bool(bad), "the person's terms"):
+                bad = ""  # its words pass, or are taken after CAP refusals with the line saying so
             if bad:
                 if before is not None:
                     run_md.write_bytes(before)
+                    question_card.restore(run_md.parent, told_before)
                 if kept is not None:
                     scope_file.write_bytes(kept)
                 print(f"REFUSED: {bad}. Nothing recorded.", file=sys.stderr)
                 return 2
+            advise(said[1])
             import depth
             depth.write_quietly(args[0])
             print(with_page(got[0], args[0]))
             return 0
         mark_the_pick_stop(args[0], args[1])
         text, names = depth_review(pathlib.Path(args[0]), args[1], recommend)
-        bad = review_terms(text, names) + prose_faults(text, names)
-        if bad:
+        bad, advice = split_terms(review_terms(text, names), args[0])
+        if still_refused(args[0], "depth", bool(bad), "the person's terms"):
             if before is not None:
                 run_md.write_bytes(before)
-            print("REFUSED: ids, file names, kit terms or broken prose in the message: " + "; ".join(bad) +
+                question_card.restore(run_md.parent, told_before)
+            print("REFUSED: ids or file names of this run in the message: " + "; ".join(bad) +
                   ". Fix the recommendation or the register text it comes from, and run this again.", file=sys.stderr)
             return 2
+        advise(advice + prose_faults(text, names))
         # kept, so a run picked up again at the pick can show it again
         (pathlib.Path(args[0]) / PICK_FILE).write_text(text, encoding="utf-8", newline="\n")
         import guard  # go.py --depth records a pick only for a flow whose pick was put to the person
         guard.mark_pick_shown(args[0], args[1])
-        told =re.search(r"[*][*]The stages changed.*?the rest of the work uses[.]", text, re.S)
-        mark_stages_told(args[0], told.group(0) if told else "")
+        # the change of stages, asked in its own card, is never told again by the next message
+        mark_stages_told(args[0], stages_change(args[0]) if "Do these stages match" in text else "")
         import depth  # the page draws this stop's open choice from depth.json
         import go
         refused = go.record_flow_id(pathlib.Path(args[0]), args[1])  # found by id, never a name the walk may change
@@ -2349,11 +2881,12 @@ def _main(argv):
             return 0
         text = next_flow_message(reg, flow, why, left)
         known = set(register_names(reg)) | set(left)  # the reason may name a stage, a step or a service
-        bad = review_terms(text, known) + prose_faults(text, known)
-        if bad:
-            print("REFUSED: ids, file names, kit terms or broken prose in the message: " + "; ".join(bad) +
+        bad, advice = split_terms(review_terms(text, known), reg)
+        if still_refused(reg, "next", bool(bad), "the person's terms"):
+            print("REFUSED: ids or file names of this run in the message: " + "; ".join(bad) +
                   ". Fix the recommendation, and run this again.", file=sys.stderr)
             return 2
+        advise(advice + prose_faults(text, known))
         (reg / NEXT_FILE).write_text(text, encoding="utf-8", newline="\n")
         (reg / NEXT_JSON).write_text(json.dumps({"flow": flow, "why": why}) + "\n", encoding="utf-8")
         import depth  # the page draws the next-flow choice, with this recommendation, from depth.json
@@ -2378,15 +2911,19 @@ def _main(argv):
             return 2
         run_md = pathlib.Path(args[0]) / "RUN.md"
         before = run_md.read_bytes() if run_md.is_file() else None
+        import question_card
+        told_before = question_card.snapshot(run_md.parent)
         mark_the_review(args[0])
         text, names, measure_names = alerts_review(pathlib.Path(args[0]), args[1], args[2:], recommend)
-        bad = review_terms(text, measure_names) + prose_faults(text, names | measure_names)
-        if bad:
+        bad, advice = split_terms(review_terms(text, measure_names), args[0])
+        if still_refused(args[0], "alerts", bool(bad), "the person's terms"):
             if before is not None:
                 run_md.write_bytes(before)
-            print("REFUSED: ids, file names, kit terms or broken prose in the message: " + "; ".join(bad) +
+                question_card.restore(run_md.parent, told_before)
+            print("REFUSED: ids or file names of this run in the message: " + "; ".join(bad) +
                   ". Fix the recommendation or the register text it comes from, and run this again.", file=sys.stderr)
             return 2
+        advise(advice + prose_faults(text, names | measure_names))
         # kept, so a run picked up again at the review can show it again
         (pathlib.Path(args[0]) / REVIEW_FILE).write_text(text, encoding="utf-8", newline="\n")
         import go  # what the person is shown is what their go covers: go.py --alerts-reviewed checks against this
@@ -2395,27 +2932,51 @@ def _main(argv):
         return 0
     if argv[:1] == ["say"]:
         after = "--after" in argv
-        args = [a for a in argv[1:] if a != "--after"]
+        # --kit: a message the kit itself built (next.py's stops), sent once say has refused it and the refusal is
+        # written down as a kit finding: every refusal of its text is advice, never a stop of the run
+        report = "--report" in argv
+        kit = "--kit" in argv
+        args = [a for a in argv[1:] if a not in ("--after", "--report", "--kit")]
         if len(args) != 2 or not pathlib.Path(args[0]).is_dir():
             print(__doc__, file=sys.stderr)
             return 2
         text = pathlib.Path(args[1]).read_text(encoding="utf-8-sig").strip()
-        hits = say_terms(text, args[0])
-        if hits:
-            print(WORDS_REFUSED + " (ids, file names or the kit's own process words): " + "; ".join(hits)
+        hits, advice = split_terms(say_terms(text, args[0]), args[0])
+        if hits and not kit and still_refused(args[0], "say-words", True, "the person's terms"):
+            print(WORDS_REFUSED + " (ids or file names of this run): " + "; ".join(hits)
                   + ". Say each in the person's terms (the flow, stage, step or service by its name; what was done or "
                   "is next in plain words), and run this again. Nothing sent.", file=sys.stderr)
             return 1
+        if not hits and not kit:
+            still_refused(args[0], "say-words", False)
+        import question_card  # every question is a card: its why, its numbered choices, its recommendation
+        broken = question_card.faults(text)
+        if broken and not kit and still_refused(args[0], "say-form", True, "the question card's form"):
+            print("REFUSED: a question in the message is not in the question form: " + "; ".join(broken) + ". "
+                  "Render it as question_card.py does (SKILL.md, \"Every question is a card\"), and run this again. "
+                  "Nothing sent.", file=sys.stderr)
+            return 1
+        if not broken and not kit:
+            still_refused(args[0], "say-form", False)
+        advise(advice + hits + broken)  # what was refused before, now taken (--kit, or after CAP refusals)
+        # the words inside the form (long fields or cells, a question mark outside a card) read the business's own
+        # words, so they are advice only
+        advise(question_card.form_advice(text) + question_card.loose_questions(text)
+               + ([] if kit else question_card.paragraphs(text)),
+               lead="the question form would read better with:")
         if finish_claimed(text) and not run_finished(args[0]):
             print("REFUSED: the message says the run is finished, and the done check has not said DONE on the map as "
                   f"it is. Send what `brief.py end {args[0]}` prints instead. Nothing sent.", file=sys.stderr)
             return 1
         reconcile_phases(args[0])
         if after:  # a line added to a message a script printed, which has its status line and the page's address
-            print(text)
+            print("\n\n".join([text] + cap_notes()))
             return 0
         print(status(pathlib.Path(args[0])))
         print()
+        if report:  # the report: the kit's Done and Checked fields first, then the session's own fields and tables
+            print(report_fields(pathlib.Path(args[0])))
+            print()
         changed = stages_change_untold(args[0])  # the next message after mapping changed the agreed stages
         if changed:
             print(changed)
@@ -2474,10 +3035,15 @@ def _main(argv):
     o = load(reg, layout.ORIENTATION)
     bad = problems(reg, o, brief_now=what == "capability")
     if bad:
-        print("REFUSED: " + "; ".join(bad) + ". Fix orientation.json and run this again.", file=sys.stderr)
+        print("REFUSED: " + "; ".join(bad) + (". Put right what each names (the first look's own files, as its "
+                                              "line says) and run this again."
+                                              if all(b.startswith("first look:") for b in bad) else
+                                              ". Fix orientation.json and run this again."), file=sys.stderr)
         return 2
     run_md = reg / "RUN.md"
     before = run_md.read_bytes() if run_md.is_file() else None
+    import question_card
+    told_before = question_card.snapshot(run_md.parent)
     if what == "capability":
         mark_the_stop(reg)
     text = capability(reg, o) if what == "capability" else reentry(reg, o)
@@ -2487,35 +3053,29 @@ def _main(argv):
     quoted = next(((f, q) for f in (PICK_FILE, MEASURES_REVIEW_FILE, REVIEW_FILE) if what == "reentry"
                    for q in [shown_again(reg, f)] if q and q in text), None)
     if quoted:
-        bad = prose_faults(quoted[1], set(register_names(reg)))
-        if bad:
-            print(f"REFUSED: the message shown again from {quoted[0]} does not read as prose: " + "; ".join(bad)
-                  + ". Render that message again with its own command, and run this again.", file=sys.stderr)
-            return 2
+        advise([f"in the message shown again from {quoted[0]}, {x}" for x in
+                prose_faults(quoted[1], set(register_names(reg)))])
         text_checked = text.replace(quoted[1], "")
     else:
         text_checked = text
-    faults = prose_faults(text_checked + full)
-    if faults:
-        if before is not None:
-            run_md.write_bytes(before)
-        print("REFUSED: the brief does not read as prose where orientation.json's text was filled in: "
-              + "; ".join(fault_fields(o, faults)) + ". Rewrite those fields so each reads in its sentence, and run "
-              "this again.",
-              file=sys.stderr)
-        return 2
+    why = ((o.get("recommendation") or {}).get("why") or "") if what == "capability" else ""
+    advise(fault_fields(o, prose_faults(text_checked + full, [f.get("name", "") for f in o.get("flows") or []]))
+           + split_terms(orientation_terms(reg, o), reg)[1]
+           + [f"recommendation.why: {f}" for f in (reason_faults(why, reg) if why.strip() else [])
+              if f not in reason_refused(why, reg)])
     if what == "capability" and request:  # the recommended flow, taken as their go from the request
         got = go_from_request(reg, o["recommendation"]["flow"], request)
         if got:
             if before is not None:
                 run_md.write_bytes(before)
+                question_card.restore(run_md.parent, told_before)
             print(f"REFUSED: {got}. Nothing written.", file=sys.stderr)
             return 2
+        question_card.restore(run_md.parent, told_before)  # the brief rendered again defines its terms again
         text = capability(reg, o, request)
-        hits = say_terms(text.split("\n", 2)[2], reg)
-        if hits:
-            print("REFUSED: kit terms in the message: " + "; ".join(hits), file=sys.stderr)
-            return 2
+        # the session's own words in it (orientation.json) were checked above; the rest is the kit's text and the
+        # sources' verbatim quotes, so a hit here is advice, never a refusal after the go is recorded
+        advise([h for pair in split_terms(say_terms(text.split("\n", 2)[2], reg), reg) for h in pair])
     if what == "capability":
         (reg / "PLAN.md").write_text(full, encoding="utf-8", newline="\n")
         (reg / FLOWS_FILE).write_text(with_page(with_kit(text), reg), encoding="utf-8", newline="\n")
@@ -2530,4 +3090,7 @@ def _main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

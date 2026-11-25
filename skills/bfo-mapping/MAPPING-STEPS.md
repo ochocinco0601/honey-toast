@@ -35,8 +35,7 @@ is never inferred: it is written only where a source states it (the measures ski
 `<your-folder>` is the register folder: the one on the `FOLDER:` line `start.py` printed for the run picked up, or on a
 fresh start the one you were given or named, `bfo-work/<the system's name>/` (never `answers`), which
 `start_register.py` prints back on its own `FOLDER:` line. Never take it from a listing of the work folder: `bfo-work/`
-also holds `answers/`, where the page saves what the person sends, and a home screen drawn there leaves the person's
-page on an error. A script handed a folder that is not a register refuses it and names the register folders it found.
+can hold folders that are not registers, and a home screen drawn in one leaves the person's page on an error. A script handed a folder that is not a register refuses it and names the register folders it found.
 
 1. Start the register with `python "<skill>/start_register.py" "<your-folder>"`, in a new folder named for the
    capability. It copies the CSV files in `register-template/` (not `REGISTER.md`), and refuses a folder that
@@ -48,8 +47,8 @@ page on an error. A script handed a folder that is not a register refuses it and
    register folder up to a folder outside the workspace (inside it, the start step would take the backup for an
    earlier register); run `python "<skill>/reconcile.py" --migrate "<your-folder>"`, which rewrites the register
    itself in place; run the check again; and restart the page's listener so the page runs this kit:
-   `python "<skill>/listener.py" stop "<work folder>"`, then `python "<skill>/wait_on_page.py" "<your-folder>"`,
-   and start the wait again. Tell the person in one line, through `say`, what was done and where the backup is.
+   `python "<skill>/listener.py" stop "<work folder>"`, then `python "<skill>/wait_on_page.py" "<your-folder>"`.
+   Tell the person in one line, through `say`, what was done and where the backup is.
    Where the upgrade names AI agent rows not classed (an older kit classed them while proposing the measures), that line says how
    many, and that mapping re-reads the code behind each tool, reply and chained action and classes it (Step 7)
    before the run is done: a re-walk, announced before it starts and going ahead unless they object, as a
@@ -108,7 +107,14 @@ page on an error. A script handed a folder that is not a register refuses it and
    exists in the flows (leads, each with its spot and its words copied exactly) and what it holds for a later phase
    (holdings), and judges nothing: a source may be current, out of date or wrong, and the phase that uses a holding
    judges it. `first_look.py check` then proves from Claude Code's transcripts that every owed part was read by its
-   owed writer and that every quote and name is in its source; `first_look.py names` lists every name the sources
+   owed writer (a PDF or an image its writer tried and could not read as text does not stop it: its quotes become
+   rows marked `source not readable as text`), and lists each quote or name it did not find word for word in its
+   source in `first-look/quote-check.csv`, settled `found`, `paraphrase`, `not in source` (a lead not in its source is
+   left out, and listed in the brief) or `unchecked` (no one could open it or tell: the lead is kept, and shown to the
+   person) by a party that copied none of them: on split, the session running the first look; on single, where that
+   session copied the quotes itself, a fresh `bfo-row-judge` per row (`first_look.py quote-judges`), and the session
+   itself only for a row three judge prompts gave no verdict for, or when the judge agent is not installed, with a
+   note saying why, shown to the person as settled by it; `first_look.py names` lists every name the sources
    mention that no code holds, each placed in `first-look/placed.csv` (`used`, `unresolved` with the place to look,
    or `set aside`, with why). `brief.py capability` refuses until both pass and each flow in `orientation.json` has
    `seen_in`, the sources its leads rest on. Later phases find what a source holds for them with `first_look.py
@@ -238,15 +244,16 @@ page on an error. A script handed a folder that is not a register refuses it and
      `brief.py depth`, `next`, `measures` and `alerts` is one short sentence, with no semicolons.
    - **Render the brief:** `python "<skill>/brief.py" capability "<your-folder>"`. It refuses, and says why, while a
      field is empty, the services are not the survey's, the recommended flow was not found, or the text
-     carries an id, a file name or kit vocabulary. When it passes it writes the full brief to `PLAN.md` and prints the short one for the chat: the question
+     carries an id or a file name of this run (other words are advice; this refusal is not capped at three, because you
+     can always clear it by saying the thing in the person's terms). When it passes it writes the full brief to `PLAN.md` and prints the short one for the chat: the question
      and your recommendation first, what a yes does, the flows found as a list, and what else they can change.
      When they ask for the detail (each flow's stages, each service and why, what is still open), show `PLAN.md`.
    - **Send the printed brief as your message, exactly as printed, and stop.** `brief.py` marks the stop in `RUN.md` itself.
      Read nothing further until the person answers. If they ask for changes, change `orientation.json`, render again
      and wait again. A yes to a search the brief proposed is such a change and records no go: search, add each
      repository found (item 5), run the survey and the code reader again (item 6), update `orientation.json`, render
-     again and wait again, with any flow they picked in the same answer as the recommendation (SKILL.md phase 0
-     says how a yes sent from the home screen is taken).
+     again and wait again, with any flow they picked in the same answer as the recommendation. Every question is
+     asked and answered in the chat, in the question cards the brief prints.
    - **Record their answer by script:** `python "<skill>/go.py" "<your-folder>" --flow "<flow>" --words "<their
      answer, word for word>"` (add `--test` when a test stands in for the person). The go asks which flow comes first
      and, in a stage kit run, how far its stages go (every stage to measures unless they say otherwise; the kit's
@@ -606,9 +613,10 @@ Every part named in `carried_by` or `needs` gets one `element` row in `subjects.
   provisions (a database, a cache, a broker) is a `technology` component whose `repository` is the repository that
   defines it, with the path to the definition (`repo: path`). Something not separately built, such as an in-process
   sub-agent, is not a component, since a component is a deployable: it is an agent part inside its parent
-  component's run, in `agent-system.csv` (Step 7), not a `subjects.csv` row. The one blank the check accepts is a
-  `technology` component no repository defines (a platform service provisioned elsewhere), whose `source` says no
-  repository defines it and where it was looked for.
+  component's run, in `agent-system.csv` (Step 7), not a `subjects.csv` row. A `technology` component no repository
+  defines (a platform service provisioned elsewhere) says so in the cell itself: `none: ` and where it was looked for
+  (`none: looked in payments-repo, infra-repo and the Helm charts`). The check reads that prefix, never the prose of
+  `source`; a cell left blank with the words in `source`, the form of an earlier release, is warned, not refused.
 - `owner` and `responder`: from a source that states them, with the date it was true; otherwise inferred from what
   the sources show (who builds and deploys the part) and written `proposed:` with that basis. They are counted,
   never required: fill them when known, and the run is not refused without them.

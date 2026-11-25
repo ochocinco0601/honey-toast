@@ -105,6 +105,7 @@ def load(reg):
     R["corrections"] = read_csv(reg / "corrections.csv")  # later stages' requests to mapping; not part of the map
     R["alert_owners"] = go.alert_owners(reg)  # an alert a finished flow made is that flow's, never a further flow's
     R["_name"] = reg.name
+    R["_path"] = reg  # what the person-text check resolves this run's own ids and files against
     return R
 
 

@@ -1,25 +1,20 @@
-"""Serve a local question page and hand its answers to a waiting Claude Code session.
+"""Serve a run's pages to the person, read-only: every question is asked and answered in the chat, never here.
 
-  python -u page_ask.py serve DIR   serve DIR on 127.0.0.1; save each POST /answers to DIR/answers/
-  python -u page_ask.py watch DIR   print one line per answers file not yet announced (run under Monitor), and
-                                    one PROGRESS line per part of the map written while a flow is mapped
-  python -u page_ask.py poll DIR SECONDS
-                                    the same, but exit after the first pass that announces anything,
-                                    or print TIMEOUT and exit after SECONDS (run as a background task)
+  python -u page_ask.py serve DIR   serve DIR on 127.0.0.1
 
-The stage kit's own copy of the page step's listener. Changes from the page step it comes from: besides
-page-kit.js, it serves the folder's own pages read-only (any .html, .css, .js or .svg file under the served folder,
+The stage kit's own copy of the page step's listener. Changes from the page step it comes from:
+it serves the folder's own pages read-only (any .html, .css, .js or .svg file under the served folder,
 never outside it and never under answers/), so the home screen's links to the run's other pages work; it draws the
 work page at the folder's root on each request, from the folder's files (work_page.py); it answers /.alive with the
-folder it serves and its process id (also written to listener.pid), so it can be found and stopped; and it saves an answer
-into the answers/ of the run folder whose page sent it (by the page's address), or the served folder's own.
+folder it serves and its process id (also written to listener.pid), so it can be found and stopped; and while a flow
+is mapped it draws each run's home screen again as each part of the map is written (progress.py), so the open page
+shows the latest line. It takes no answers: nothing is posted to it but the tabs' own open and close notes.
 """
-import json, os, pathlib, sys, threading, time, uuid
+import json, os, pathlib, sys, threading, time
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote
 
-MAX_BODY = 1_000_000
 KIT = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [KIT, os.path.dirname(KIT)]  # the kit's own scripts: beside this one, or one folder up in the kit
 PAGES = (".html", ".css", ".js", ".svg")
@@ -35,10 +30,10 @@ STATUS_BEACON = BEACON.replace(b'"/.closed?id="', b'"/.status-closed?id="').repl
                                                                                      b'"/.status-shown?id="')
 STATUS_EVENTS = ("/.status-closed", "/.status-shown")
 TAB_EVENTS = ("/.closed", "/.shown") + STATUS_EVENTS
-# A run's status page (operator.html) reloads only itself and never moves to the page where the person answers, so
-# it is not a tab the run can lead: it sends only its own beacons (STATUS_BEACON), and its requests, recorded so an open on it is judged by the
-# browser's own request, never count as an open tab (listener.tab_open), so an open status tab never stops the kit
-# opening the page that asks.
+# A run's status page (operator.html) reloads only itself and never moves to the run's home screen, so it is not a
+# tab the run can lead: it sends only its own beacons (STATUS_BEACON), and its requests, recorded so an open on it is
+# judged by the browser's own request, never count as an open tab (listener.tab_open), so an open status tab never
+# stops the kit opening the home screen.
 UNLED = ("operator.html",)
 
 
@@ -67,19 +62,6 @@ def own_page(site, path):
     if not parts or parts[0].lower() == "answers" or target.suffix.lower() not in PAGES or not target.is_file():
         return None
     return target
-
-
-def answers_for(site, referer):
-    """The answers/ folder of the run folder whose page posted: the first folder of the page's address under the
-    served folder when it is a folder there, else the served folder's own."""
-    path = unquote((referer or "").split("://", 1)[-1].partition("/")[2].split("?")[0].split("#")[0])
-    first = path.split("/")[0] if "/" in path else ""
-    root = pathlib.Path(site).resolve()
-    if first and first not in (".", "..") and "\\" not in first and ":" not in first and first.lower() != "answers":
-        run = (root / first).resolve()
-        if run.parent == root and run.is_dir():
-            return str(run / "answers")
-    return str(root / "answers")
 
 
 def note_seen(site, path):
@@ -173,7 +155,7 @@ def check_page(site, path):
             break
         bare = to.split("?")[0]
     badge = ""
-    if bare in ("/page-kit.js", "/.alive"):
+    if bare == "/.alive":
         status = 200
     else:
         try:
@@ -256,7 +238,6 @@ def not_found(site):
 
 
 def serve(site):
-    os.makedirs(os.path.join(site, "answers"), exist_ok=True)
     # a listener left behind ends after a spell with no request; the next stop starts a fresh one
     idle = float(os.environ.get("BFO_LISTENER_IDLE_SECONDS") or 8 * 3600)
     last = [time.time()]
@@ -302,8 +283,6 @@ def serve(site):
             if bare == "/.alive":
                 body = ("%s\n%d" % (pathlib.Path(site).resolve(), os.getpid())).encode("utf-8")
                 ctype = "text/plain; charset=utf-8"
-            elif bare == "/page-kit.js":
-                target, ctype = pathlib.Path(KIT) / "page-kit.js", "text/javascript; charset=utf-8"
             elif live(site, self.path) is not None:
                 body, ctype = live(site, self.path), "text/html; charset=utf-8"
             else:
@@ -349,30 +328,7 @@ def serve(site):
                 self.send_response(204)
                 self.end_headers()
                 return
-            if self.path != "/answers" or self.headers.get("Origin") != own:
-                self.send_error(403)
-                return
-            length = int(self.headers.get("Content-Length") or 0)
-            if length <= 0 or length > MAX_BODY:
-                self.send_error(413)
-                return
-            try:
-                data = json.loads(self.rfile.read(length).decode("utf-8"))
-                if not isinstance(data, dict):
-                    raise ValueError("not an object")
-            except ValueError:
-                self.send_error(400)
-                return
-            name = "answers-%s-%s.json" % (time.strftime("%Y%m%d-%H%M%S"), uuid.uuid4().hex[:8])
-            answers = answers_for(site, self.headers.get("Referer"))
-            os.makedirs(answers, exist_ok=True)
-            path = os.path.join(answers, name)
-            with open(path + ".tmp", "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            os.replace(path + ".tmp", path)
-            print("SAVED " + path, flush=True)
-            self.send_response(204)
-            self.end_headers()
+            self.send_error(403)
 
         def log_message(self, *args):
             pass
@@ -396,6 +352,7 @@ def serve(site):
         httpd.handle_request()
         if dog:
             dog.tick()
+        refresh_progress(site)
         if watch.ended():
             ended_at = ended_at or time.time()
             if time.time() - ended_at >= grace:  # an open tab keeps asking, so the idle clock never runs out
@@ -432,73 +389,33 @@ class RunEnd:
         return self.answer
 
 
-def announce_new(site):
-    answers = os.path.join(site, "answers")
-    seen_path = os.path.join(answers, ".announced")
-    os.makedirs(answers, exist_ok=True)
-    try:
-        with open(seen_path, encoding="utf-8") as f:
-            seen = set(f.read().split())
-    except FileNotFoundError:
-        seen = set()
-    found = 0
-    for name in sorted(os.listdir(answers)):
-        if name.endswith(".json") and name not in seen:
-            # Ledger first: a caller that stops the process on reading the line cannot cause a repeat.
-            with open(seen_path, "a", encoding="utf-8") as f:
-                f.write(name + "\n")
-            print("ANSWERS " + os.path.join(answers, name), flush=True)
-            found += 1
-    return found
+_PROGRESS_AT = [0.0]
 
 
-def announce_progress(site):
-    """One PROGRESS line per part of the map written since the last look (progress.py), which wakes the session to
-    send it to the person; the home screen is drawn again so the open page shows it too."""
+def refresh_progress(site):
+    """While a flow is mapped, each run's home screen drawn again once a part of the map is written since the last
+    look (progress.py), at most every two seconds, so the open page shows the latest line; never stops the listener."""
+    if time.time() - _PROGRESS_AT[0] < 2:
+        return
+    _PROGRESS_AT[0] = time.time()
     try:
+        import home
         import progress
-        lines = progress.new_lines(site)
-    except Exception:  # noqa: BLE001 - a kit without it, or a record mid-write: never stop the wait on it
-        return 0
-    for line in lines:
-        print("PROGRESS " + line, flush=True)
-    if lines:
-        try:
-            import home
-            home.write(site)
-        except Exception:  # noqa: BLE001 - no home screen drawn yet: the line still reaches the session
-            pass
-    return len(lines)
-
-
-def watch(site):
-    while True:
-        announce_new(site)
-        announce_progress(site)
-        time.sleep(0.5)
-
-
-def poll(site, timeout):
-    end = time.time() + timeout
-    while not (announce_new(site) + announce_progress(site)):
-        if time.time() >= end:
-            print("TIMEOUT no answers yet", flush=True)
-            return
-        time.sleep(0.5)
+        root = pathlib.Path(site)
+        runs = [root] if (root / "RUN.md").is_file() else [d for d in root.iterdir() if (d / "RUN.md").is_file()]
+        for reg in runs:
+            if progress.new_lines(reg):
+                home.write(reg)
+    except Exception:  # noqa: BLE001 - a record mid-write, or a kit without them: the pages are served all the same
+        pass
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     args = sys.argv[1:]
-    if len(args) == 2 and args[0] in ("serve", "watch"):
-        site = os.path.abspath(args[1])
-        serve(site) if args[0] == "serve" else watch(site)
-    elif len(args) == 3 and args[0] == "poll":
-        try:
-            timeout = float(args[2])
-        except ValueError:
-            timeout = 0
-        if timeout <= 0:
-            sys.exit(__doc__)
-        poll(os.path.abspath(args[1]), timeout)
+    if len(args) == 2 and args[0] == "serve":
+        serve(os.path.abspath(args[1]))
     else:
         sys.exit(__doc__)

@@ -85,7 +85,8 @@ NOTES = {  # (plain, detail)
                 "fails on a watched_source that cites a line, unless it opens 'no inventory reachable' or says "
                 "'not read'), plus watched_source != source_ref. `watched` and `watched_source` are this step's"),
     "places": ("Whether what tells two measures apart is true of the place is for the reviewer",
-               "flow_outputs.counted_at_failures and flow_outputs.same_place_failures; and alike_items: two rows "
+               "flow_outputs.counted_at_failures and flow_outputs.same_place_failures (a name as the code spells it, "
+               "flow_outputs.counted_at_name, is a note to look at, never a failure); and alike_items: two rows "
                "with the same counted_at and the same counted_how fail unless a `defect` on one names the other or "
                "says they cannot be told apart"),
     "ids": ("", "go.reused"),
@@ -482,16 +483,26 @@ def instrumented_items(R, S):
     return out
 
 
+def place_notes(R, S):
+    """A place named as the code spells it (flow_outputs.counted_at_name): to look at, never a failure, and the
+    exact name is kept, since an operator searches by it."""
+    out = []
+    for m in R["measures"]:
+        hit = fo.counted_at_name(m, R.get("products", ()))
+        if hit:
+            out.append((f"{S.measure(m['handle'])} names its place as {hit}, as the code spells it: keep it, and say "
+                        "beside it in plain words the place it is (the table and its database, the topic or queue and "
+                        "its broker, the log and the service that writes it)",
+                        f"measures.csv {m['handle']}: counted_at names {hit} as the code spells it"))
+    return out
+
+
 def place_items(R, S):
     out = []
     for m in R["measures"]:
         name = S.measure(m["handle"])
         for e in fo.counted_at_failures(m, R.get("products", ())):
-            hit = re.search(r"counted_at names (.*?), a name only the code knows", e)
-            out.append(((f"{name} names its place as {hit.group(1)}, a name only the code knows: use the plain name "
-                         "a reader knows (the table and its database, the log and the service that writes it, or the "
-                         "system whose own status it is)") if hit else
-                        f"{name} cites the code but does not name, in plain words, the place it is taken at", e))
+            out.append((f"{name} cites the code but does not name, in plain words, the place it is taken at", e))
     for e in fo.same_place_failures(R["measures"]):
         m = re.match(r"measures\.csv (.*?): the same counted_at \((.*?)\) and", e)
         hs = m.group(1).split(", ") if m else []
@@ -531,7 +542,7 @@ def inspect(reg, flow_id, picked):
         "ids": id_items(reg),
     }
     found["cases"], noted = cases_items(R, S)
-    notes = {"cases": noted}
+    notes = {"cases": noted, "places": place_notes(R, S)}
     return [{"rule": r, "n": n, "half": h, "title": t, "passed": not found[r],
              "items": [d for _, d in found[r]], "said": [p for p, _ in found[r]],
              "note_items": [d for _, d in notes.get(r, [])], "notes": [p for p, _ in notes.get(r, [])]}
@@ -568,7 +579,7 @@ def main(argv):
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
     run_lock.refuse_unless_register(argv)
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     detail = "--detail" in argv
     argv = [a for a in argv if a != "--detail"]
     usage = __doc__.splitlines()[3].strip()
@@ -592,4 +603,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

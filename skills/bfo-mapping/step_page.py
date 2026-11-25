@@ -20,6 +20,7 @@ import capability_views as cv
 import flow_page as fp
 import page_style as ps
 import stage_flow_views as sfv
+import register_layout as layout
 import step_sequence as ss
 
 FILE = "STEP.html"
@@ -90,7 +91,7 @@ def placed(M, sc, parts):
 def reach(M, pid, sid):
     """"serves Stages 1–4" for a part whose process steps serve more than one stage of this step's flow, else ""."""
     flow = M["stage"][M["step"][sid]["stage"]].get("flow")
-    orders = sorted({int(M["stage"][M["step"][p["step"]]["stage"]].get("order") or 0)
+    orders = sorted({layout.stage_order(M["stage"][M["step"][p["step"]]["stage"]])
                      for p in M["R"]["participation"]
                      if p.get("subject_id") == pid and p.get("step") in M["step"]
                      and M["stage"].get(M["step"][p["step"]].get("stage"), {}).get("flow") == flow})

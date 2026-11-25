@@ -16,6 +16,7 @@ Usage: python first_look.py prepare <register>           survey, code reader, fe
 A source row of sources.csv is "other" when its kind is not `code` and it is not the run's own tool output; its
 `location` column says where it is: paths relative to the workspace root (several joined by "; "), or
 `connector:<connector>:<reference>` for a source fetched through a connector. Python standard library only."""
+import codecs
 import csv
 import datetime
 import html
@@ -26,7 +27,9 @@ import pathlib
 import re
 import sys
 import time
+import unicodedata
 import zipfile
+import zlib
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -50,6 +53,33 @@ FOR = ("measures", "alerts", "runbooks", "business context", "owners", "volumes"
        "capability", "other")
 LEAD_KINDS = ("flow", "stage", "step", "part", "people step", "right outcome")
 MERGED = f"{FL}/leads-merged.json"
+# Words a reader copied that the exact search did not find in its source: one row each, never a reason to stop the run.
+# On split the session running the first look settles them (it copied none of the quotes); on single, where it copied
+# them, a fresh judge does, and the session only when the judge agent is not installed or QUOTE_JUDGE_CAP judge
+# prompts gave no verdict, its note then marked SELF_SETTLED. Code checks only that every row has a verdict; a lead
+# whose quote is "not in source" is left out of everything the first look hands on (reader_files), and the brief
+# shows the person every row not independently confirmed (unfounded_said).
+QUOTES = f"{FL}/quote-check.csv"
+QUOTE_COLS = ("source", "part", "reader_file", "item", "name", "what", "quote", "looked_in", "reason", "nearest",
+              "verdict", "note")
+QUOTE_VERDICTS = ("found", "paraphrase", "not in source", "unchecked")
+UNCHECKED = "unchecked"  # a judge could not open or tell: the lead is kept, never called not in its source
+SELF_SETTLED = "settled by the session that copied it: "  # the note's start on a single-mode verdict no judge gave
+NOT_IN_SOURCE = "not in source"
+NO_MATCH = "no exact match"
+UNREADABLE = "source not readable as text"  # an image, or a PDF whose Read returned no text, or a file not decoded
+COPY_DIFFERS = "connector copy differs"
+# A verdict as people write it ("Found", "Not in source ", "not in the source") is read as the verdict it means.
+VERDICT_SAID = {"found": "found", "paraphrase": "paraphrase", "paraphrased": "paraphrase",
+                "not in source": NOT_IN_SOURCE, "not in the source": NOT_IN_SOURCE, "not found": NOT_IN_SOURCE,
+                "not in": NOT_IN_SOURCE, "unchecked": UNCHECKED}
+# In single mode the helper copied the quotes itself, so a fresh judge (the kit's bfo-row-judge, on a prompt this
+# module writes) settles each miss; its verdict maps onto the quote check's.
+QUOTE_JUDGE_PROMPTS = "quote-judges"  # prompts/quote-judges/q-<hash>.md
+QUOTE_VERDICT_DIR = f"{FL}/quote-verdicts"  # first-look/quote-verdicts/q-<hash>.csv
+QUOTE_JUDGED = f"{FL}/quote-judges.json"  # {hash: times a judge was launched}
+QUOTE_JUDGE_CAP = 3  # judge prompts written with no verdict back, after which the session settles the row, saying so
+JUDGE_TO_QUOTE = {"says": "found", "does not say": NOT_IN_SOURCE, "unclear": UNCHECKED}
 DEFAULTS = {"first_look_chars": 60000, "first_look_code_lines": 4000, "first_look_readers": 12}
 READER_SCALE = (1, 2, 4)  # how far a reader's share may grow, in text and in parts, before parts go unread
 PDF_PAGES = 20  # the Read tool's limit of pages per call
@@ -119,12 +149,67 @@ def locations(r):
     return [x.strip() for x in (r.get("location") or "").split(";") if x.strip()]
 
 
+# A real tag: a known HTML name, a namespaced name (ac:, ri:, w:) or one carrying a name=value attribute. A bare
+# attribute is a lower-case word on the tag's own line, so "a<b then retry" and "<low medium high>" stay text.
+_TAG = re.compile(r"""<(/?)([A-Za-z][\w:.-]*)((?:\s+[\w:.@-]+\s*=\s*(?:"[^"<>]*"|'[^'<>]*'|[^\s"'<>=`]+)"""
+                  r"""|[ \t]+[a-z][a-z0-9-]*)*)\s*/?>""")
+BLOCK_TAGS = set("p div li ul ol dl dt dd tr td th table thead tbody tfoot caption br hr blockquote pre section article "
+                 "header footer nav aside main figure figcaption form fieldset legend details summary title option "
+                 "h1 h2 h3 h4 h5 h6 body html head".split())
+INLINE_TAGS = set("a abbr b bdi bdo big cite code data del dfn em font i img input ins kbd label mark q s samp small "
+                  "span strike strong sub sup time tt u var wbr button select textarea svg g path rect text tspan "
+                  "meta link base col colgroup iframe object embed param video audio source track canvas map area "
+                  "picture noscript template center nobr ruby rt rp address menu meter progress output".split())
+FOLD = str.maketrans({"‘": "'", "’": "'", "‚": "'", "‛": "'", "′": "'",
+                      "“": '"', "”": '"', "„": '"', "‟": '"', "″": '"',
+                      "‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-", "―": "-",
+                      "−": "-", " ": " ", "​": None, "‌": None, "‍": None, "⁠": None,
+                      "﻿": None, "­": None})
+
+
+def _tags(t):
+    def one(m):
+        name = m.group(2).lower()
+        if name in BLOCK_TAGS:
+            return " "
+        return "" if name in INLINE_TAGS or ":" in name or "=" in m.group(3) else m.group(0)
+    return _TAG.sub(one, t)
+
+
 def norm_text(t):
-    """Text as the verbatim search compares it: tags stripped, entities decoded, whitespace runs collapsed."""
-    t = re.sub(r"<(?:br|p|div|li|tr|h\d)[^>]*>", "\n", t or "", flags=re.I)
-    t = re.sub(r"<[^>]+>", "", t)
-    t = html.unescape(t)
+    """Text as the verbatim search compares it, one form for a quote and its source: CDATA unwrapped, script and style
+    bodies and comments dropped, real tags stripped (a block tag leaves a space), entities decoded and tags stripped
+    again (markup escaped on one side, literal on the other), NFKC, curly quotes and dashes made plain, invisible
+    characters dropped, whitespace runs collapsed, lower case."""
+    t = re.sub(r"<!\[CDATA\[(.*?)\]\]>", r"\1", t or "", flags=re.S)
+    t = re.sub(r"<(script|style)\b[^<>]*>.*?</\1\s*>", " ", t, flags=re.S | re.I)
+    t = re.sub(r"<!--.*?-->|<![A-Za-z][^<>]*>|<\?[A-Za-z][^<>]*\?>", " ", t, flags=re.S)
+    t = _tags(html.unescape(_tags(t)))
+    t = unicodedata.normalize("NFKC", t).translate(FOLD)
     return re.sub(r"\s+", " ", t).strip().lower()
+
+
+def decoded(data):
+    """(text, plain) of a text file's bytes, plain when they were UTF-8: a BOM decides UTF-8 or UTF-16 first, then
+    UTF-8, then Windows ANSI (cp1252); UTF-16 with no BOM (SQL Server bcp -w, .NET Unicode) by its NULs falling on every
+    other byte. Stray NULs in UTF-8 text are dropped. (None, False) for a binary file: NULs and bytes UTF-8 cannot read."""
+    if data.startswith(codecs.BOM_UTF8):
+        return data[3:].decode("utf-8", errors="replace"), True
+    if data.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+        return data.decode("utf-16", errors="replace"), False
+    head = data[:8192]
+    if b"\0" in head:
+        for enc, high, low in (("utf-16-le", head[1::2], head[0::2]), ("utf-16-be", head[0::2], head[1::2])):
+            if len(data) % 2 == 0 and high.count(0) >= len(high) * 0.9 and 0 not in low:
+                return data.decode(enc, errors="replace"), False
+        try:  # stray NULs in otherwise UTF-8 text (an export's padding) are dropped, not a reason to refuse the file
+            return data.replace(b"\0", b"").decode("utf-8"), False
+        except UnicodeDecodeError:
+            return None, False
+    try:
+        return data.decode("utf-8"), True
+    except UnicodeDecodeError:
+        return data.decode("cp1252", errors="replace"), False
 
 
 def flatten(text):
@@ -152,24 +237,97 @@ def flatten(text):
     return out
 
 
-def pdf_pages(path):
+def pdf_count(path):
+    """(pages, sure) of a PDF: a PDF library's count when one is installed; else the page tree root's /Count, read
+    also inside compressed object streams, never below the pages and the linearization's /N found. Not sure when no
+    page tree /Count was found: the count is then the page objects seen, which a stream that cannot be inflated hides."""
+    try:
+        import pypdf
+        return max(len(pypdf.PdfReader(str(path)).pages), 1), True
+    except Exception:  # no library, or one the file defeats: the bytes are read below
+        pass
     data = pathlib.Path(path).read_bytes()
-    n = len(re.findall(rb"/Type\s*/Page(?![a-zA-Z])", data))
-    return max(n, 1)
+    texts = [data]
+    for m in re.finditer(rb"/Type\s*/ObjStm\b", data):
+        s = data.find(b"stream", m.end())
+        if s < 0:
+            continue
+        s += 6 + (2 if data[s + 6:s + 8] == b"\r\n" else 1)
+        e = data.find(b"endstream", s)
+        try:
+            texts.append(zlib.decompressobj().decompress(data[s:e if e > 0 else len(data)]))
+        except zlib.error:
+            pass
+    counts, pages, lin = [], 0, 0
+    for t in texts:
+        pages += len(re.findall(rb"/Type\s*/Page(?![a-zA-Z])", t))
+        for m in re.finditer(rb"/Type\s*/Pages(?![a-zA-Z])", t):
+            a, b = t.rfind(b"<<", 0, m.start()), t.find(b">>", m.end())
+            c = re.search(rb"/Count\s+(\d+)", t[max(a, 0):b if b > 0 else len(t)])
+            if c:
+                counts.append(int(c.group(1)))
+        lin = max([lin] + [int(x) for x in re.findall(rb"/Linearized\b[^>]*?/N\s+(\d+)", t)])
+    return max([pages, lin, 1] + counts), bool(counts)
+
+
+def pdf_pages(path):
+    return pdf_count(path)[0]
+
+
+def _col(ref):
+    n = 0
+    for ch in re.match(r"[A-Za-z]*", ref or "").group(0).upper():
+        n = n * 26 + ord(ch) - 64
+    return n
+
+
+def _xlsx(z):
+    """The sheets of an .xlsx as lines: one row a line, cells apart by tabs in their columns, shared strings read."""
+    shared = []
+    if "xl/sharedStrings.xml" in z.namelist():
+        xml = z.read("xl/sharedStrings.xml").decode("utf-8", errors="replace")
+        shared = [html.unescape("".join(re.findall(r"<(?:\w+:)?t\b[^>]*>(.*?)</(?:\w+:)?t>", si, re.S)))
+                  for si in re.findall(r"<(?:\w+:)?si\b[^>]*>(.*?)</(?:\w+:)?si>", xml, re.S)]
+    sheets = sorted((n for n in z.namelist() if re.match(r"xl/worksheets/sheet\d*\.xml$", n)),
+                    key=lambda n: int(re.sub(r"\D", "", n) or 0))
+    out = []
+    for n in sheets:
+        xml = z.read(n).decode("utf-8", errors="replace")
+        for row in re.findall(r"<(?:\w+:)?row\b[^>]*>(.*?)</(?:\w+:)?row>", xml, re.S):
+            cells = {}
+            for i, (attrs, body) in enumerate(re.findall(r"<(?:\w+:)?c\b([^>]*?)(?:/>|>(.*?)</(?:\w+:)?c>)", row, re.S)):
+                ref = re.search(r'\br="([A-Za-z]+)', attrs)
+                kind = re.search(r'\bt="(\w+)"', attrs)
+                kind = kind.group(1) if kind else ""
+                v = re.search(r"<(?:\w+:)?v>(.*?)</(?:\w+:)?v>", body or "", re.S)
+                if kind == "inlineStr":
+                    val = html.unescape("".join(re.findall(r"<(?:\w+:)?t\b[^>]*>(.*?)</(?:\w+:)?t>", body or "", re.S)))
+                elif kind == "s" and v and v.group(1).strip().isdigit() and int(v.group(1)) < len(shared):
+                    val = shared[int(v.group(1))]
+                else:
+                    val = html.unescape(v.group(1)) if v else ""
+                cells[_col(ref.group(1)) if ref else i + 1] = val
+            if any(x.strip() for x in cells.values()):
+                out.append("\t".join(cells.get(c, "") for c in range(1, max(cells) + 1)).rstrip("\t"))
+    return out
 
 
 def office_text(path):
-    """A .docx, .xlsx or .pptx as text: the text runs of its XML parts, one paragraph a line."""
+    """A .docx, .xlsx or .pptx as text: the text runs of its XML parts, one paragraph a line, tabs and line breaks
+    kept; a sheet one row a line, its cells apart by tabs."""
     path = pathlib.Path(path)
     out = []
     with zipfile.ZipFile(path) as z:
-        names = sorted(n for n in z.namelist() if n.endswith(".xml") and (
-            n.startswith("word/document") or n.startswith("ppt/slides/slide") or n == "xl/sharedStrings.xml"
-            or n.startswith("xl/worksheets/sheet")))
+        out += _xlsx(z)
+        names = sorted((n for n in z.namelist() if n.endswith(".xml") and (
+            n.startswith("word/document") or n.startswith("ppt/slides/slide"))),
+            key=lambda n: (re.sub(r"\d+", "", n), int(re.sub(r"\D", "", n) or 0)))
         for n in names:
             xml = z.read(n).decode("utf-8", errors="replace")
-            xml = re.sub(r"</(?:w:p|a:p|si|row)>", "\n", xml)
-            for line in re.sub(r"<[^>]+>", "", xml).splitlines():
+            xml = re.sub(r"<w:tabs>.*?</w:tabs>", "", xml, flags=re.S)
+            xml = re.sub(r"<w:(?:p)?tab\b[^>]*/>|</w:tc>", "\t", xml)
+            xml = re.sub(r"<(?:w:br|w:cr|a:br)\b[^>]*/?>|</(?:w:p|a:p)>", "\n", xml)
+            for line in re.sub(r"<[^>]+>", "", xml).split("\n"):
                 line = html.unescape(line).strip()
                 if line:
                     out.append(line)
@@ -192,7 +350,7 @@ def _files_of(p):
 def _cut_text(reg, sid, f, rel, text, ceiling, n0):
     """Parts of one text file: whole when under the ceiling, else cut at its top headings, else by lines; a file of one
     very long line is cut by characters into converted files."""
-    lines = text.splitlines()
+    lines = paths.lines(text)
     if len(text) <= ceiling:
         return [dict(path=rel, lines=f"1-{max(len(lines), 1)}", chars=len(text))]
     if len(lines) <= 2:  # one very long line: offset and limit cannot split it, so it is cut into files here
@@ -247,9 +405,10 @@ def owed_parts(reg, ceiling=None):
                 rel = f.resolve().as_posix()
                 ext = f.suffix.lower()
                 if ext == ".pdf":
-                    n = pdf_pages(f)
+                    n, sure = pdf_count(f)
                     for a in range(1, n + 1, PDF_PAGES):
-                        made.append(dict(route="file", path=rel, pages=f"{a}-{min(a + PDF_PAGES - 1, n)}", chars=0))
+                        made.append(dict(route="file", path=rel, pages=f"{a}-{min(a + PDF_PAGES - 1, n)}", chars=0,
+                                         unsure=not sure))
                 elif ext in OFFICE:
                     try:
                         text = office_text(f)
@@ -266,11 +425,20 @@ def owed_parts(reg, ceiling=None):
                     made.append(dict(route="file", path=rel, chars=0))
                 else:
                     try:
-                        text = f.read_text(encoding="utf-8")
-                    except (UnicodeDecodeError, OSError):
+                        text, plain = decoded(f.read_bytes())
+                    except OSError:
+                        text, plain = None, False
+                    if text is None:
                         bad.append((sid, f"{f.name} is not text and cannot be converted"))
                         continue
+                    if not plain:  # UTF-16 or Windows ANSI: the reader reads a UTF-8 copy, and its quotes are found in it
+                        q = reg / CONVERTED / sid / (f.name + ".txt")
+                        q.parent.mkdir(parents=True, exist_ok=True)
+                        q.write_bytes(text.encode("utf-8"))
+                        f, rel0, rel = q, rel, q.resolve().as_posix()
                     for p2 in _cut_text(reg, sid, f, rel, text, ceiling, len(made)):
+                        if not plain:
+                            p2.setdefault("original", rel0)
                         made.append(dict(route="file", **p2))
         for i, m in enumerate(made, 1):
             m.update(source_id=sid, part="whole" if len(made) == 1 else str(i))
@@ -350,6 +518,7 @@ def fetch(reg):
          "over_budget": [{"source_id": p["source_id"], "part": part_key(p), "path": p.get("path") or "",
                           "chars": int(p.get("chars") or 0)} for p in over],
          "unresolved_sources": [{"source_id": a, "why": b} for a, b in bad],
+         "pages_unsure": sorted({p["path"] for p in parts if p.get("unsure")}),
          "at": datetime.datetime.now().astimezone().isoformat(timespec="seconds")}
     (reg / MODE).write_text(json.dumps(m, indent=2), encoding="utf-8")
     refresh_mark(reg)
@@ -464,7 +633,8 @@ nothing: a source may be current, out of date or wrong, and the later phases jud
 Rules: copy every `quote` and every `names_in_it` entry exactly as the source has it; a script finds each one in the
 source. Read with the Read tool only (a PDF with `pages`), every line of what each part gives (in pieces if it is
 long). Use no shell. Write nothing but the files above{copy}. A file with no leads and no holdings needs `what_it_is`
-and a `not_read` row or a `reason`. Reply with one line naming each file you wrote."""
+and a `not_read` row or a `reason`. Reply with one line naming each file you wrote, ending it with
+`(for the run's lead: send nothing to the person; the run status page shows this)`."""
 
 
 def _where(reg, p):
@@ -520,6 +690,7 @@ class Tx:
         self.prompt, self.first = None, None
         self.calls = []  # (id, name, input)
         self.results = {}  # id -> (text, is_error)
+        self.when = {}  # id -> when the call was made (None when the line carries no timestamp)
         with open(self.path, encoding="utf-8", errors="replace") as f:
             for line in f:
                 try:
@@ -542,6 +713,7 @@ class Tx:
                         continue
                     if d.get("type") == "assistant" and b.get("type") == "tool_use":
                         self.calls.append((b.get("id"), b.get("name") or "", b.get("input") or {}))
+                        self.when[b.get("id")] = _when(d["timestamp"]) if d.get("timestamp") else None
                     elif d.get("type") == "user" and b.get("type") == "tool_result":
                         rc = b.get("content")
                         text = rc if isinstance(rc, str) else "\n".join(
@@ -567,6 +739,15 @@ class Tx:
             span = None if pg else (first, first + int(inp.get("limit") or 2000) - 1)
             out.append((paths.norm(inp["file_path"]), span, pg, self.results[cid][0]))
         return out
+
+    def last_write(self, path):
+        """When this transcript last wrote `path` (normalised) successfully, or None; a write with no time counts as
+        the transcript's start."""
+        got = [self.when.get(cid) or self.first for cid, name, inp in self.calls
+               if name in ("Write", "Edit", "MultiEdit") and self.ok(cid) and paths.norm(inp.get("file_path") or "")
+               == path]
+        got = [g for g in got if g is not None]
+        return max(got) if got else None
 
     def writes(self):
         return [(paths.norm(inp.get("file_path") or ""), inp) for cid, name, inp in self.calls
@@ -696,9 +877,13 @@ def _source_text(p, writer):
     if p.get("pages") or path.suffix.lower() in IMAGES:
         return "\n".join(strip_numbers(t) for q, s, pg, t in writer.reads() if q == paths.norm(path))
     try:
-        return path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+        return decoded(path.read_bytes())[0] or ""
+    except OSError:
         return ""
+
+
+SAVED_TO = re.compile(r"saved to:?\s*((?:[A-Za-z]:[\\/]|/)[^\"'\n]*?\.(?:txt|json))(?!\w)", re.I)
+SAVED_AT = re.compile(r"((?:[A-Za-z]:[\\/][^\s\"']+|/[^\s\"']+)\.(?:txt|json))")
 
 
 def _connector_text(writer):
@@ -707,21 +892,22 @@ def _connector_text(writer):
     texts, saved_unread = [], []
     reads = writer.reads()
     for name, text in writer.connector():
-        m = re.search(r"([A-Za-z]:[\\/][^\s\"']+|/[^\s\"']+)\.(?:txt|json)", text or "")
+        m = SAVED_TO.search(text or "") or SAVED_AT.search(text or "")  # a path after "saved to" may hold spaces
         saved = None
         if m and ("saved" in text.lower() or "tool-results" in text.lower()):
-            saved = paths.norm(m.group(0))
+            where = m.group(1)
+            saved = paths.norm(where)
         if saved:
             got = [(s, t) for q, s, pg, t in reads if q == saved]
             if not got:
-                saved_unread.append(m.group(0))
+                saved_unread.append(where)
                 continue
             try:
-                n = len(pathlib.Path(m.group(0)).read_text(encoding="utf-8", errors="replace").splitlines())
+                n = len(paths.lines(pathlib.Path(where).read_bytes().decode("utf-8", errors="replace")))
             except OSError:
                 n = None
             if n is not None and not _covers([s for s, t in got], 1, max(n, 1)):
-                saved_unread.append(m.group(0) + " (not read in full)")
+                saved_unread.append(where + " (not read in full)")
                 continue
             texts += [strip_numbers(t) for s, t in got]
         else:
@@ -741,7 +927,7 @@ def check(reg, given=None):
     txs = [t for t in transcripts(reg, given) if t.first is not None and t.first >= since]
     lead_prompt = reg / layout.PROMPTS / LEAD_PROMPT
     leads = [t for t in txs if launched_on(t, lead_prompt)]
-    out = []
+    out, misses, evaluated = [], [], set()
     for p in parts:
         key = part_key(p)
         f = reader_file(reg, p)
@@ -766,23 +952,26 @@ def check(reg, given=None):
                 continue
         else:
             owed = leads
-        copy_text = ""
+        copy_text = []
         if not owed:
             out.append(f"{key}: no transcript of its owed {'reader' if split else 'first-look helper'} in this first "
                        "look (launched on the kit's prompt, after the first look began)")
             continue
         fn = paths.norm(f)
-        writers = [t for t in txs if any(q == fn for q, _ in t.writes())]
-        strangers = [t for t in writers if t not in owed]
-        if strangers:
-            out.append(f"{key}: {f.name} was written by {strangers[0].path.stem}, not by its owed "
-                       f"{'reader' if split else 'first-look helper'}")
-            continue
-        mine = [t for t in owed if any(q == fn for q, _ in t.writes())]
+        mine = sorted((t for t in owed if t.last_write(fn) is not None), key=lambda t: t.last_write(fn))
         if not mine:
-            out.append(f"{key}: its owed {'reader' if split else 'helper'} never wrote {f.name}")
+            out.append(f"{key}: its owed {'reader' if split else 'helper'} never wrote {f.name}"
+                       + ("; launch its reader again (python first_look.py prompts)" if split else ""))
             continue
         w = mine[-1]
+        # a writer counts only after the owed writer's last write: a relaunched reader's write replaces every earlier one
+        strangers = [t for t in txs if t not in owed and (t.last_write(fn) or w.last_write(fn)) > w.last_write(fn)]
+        if strangers:
+            out.append(f"{key}: {f.name} was written by {strangers[0].path.stem} after its owed "
+                       f"{'reader' if split else 'first-look helper'}: "
+                       + ("launch its reader again (python first_look.py prompts), whose write replaces it"
+                          if split else "write it again from your own reading of the part"))
+            continue
         if split:
             mine_files = {paths.norm(reader_file(reg, x)) for x in parts if prompt_path(reg, x) == prompt_path(reg, p)}
             copies = paths.norm(reg / COPIES / p["source_id"])
@@ -811,8 +1000,8 @@ def check(reg, given=None):
                 out.append(f"{key}: partial fetch: the connector reported {want} items and the copy holds "
                            f"{_copy_items(copy)}")
                 continue
-            copy_text = norm_text(" ".join(x.read_text(encoding="utf-8", errors="replace")
-                                           for x in copy.rglob("*") if x.is_file()) if copy.is_dir() else "")
+            copy_text = [norm_text(t) for x in (sorted(copy.rglob("*")) if copy.is_dir() else []) if x.is_file()
+                         for t in flatten(x.read_text(encoding="utf-8", errors="replace"))]
         elif p["route"] == "code":
             owed_files = [x.strip() for x in (p.get("files") or "").split(";") if x.strip()]
             spans = {}
@@ -821,7 +1010,7 @@ def check(reg, given=None):
             unread = []
             for x in owed_files:
                 try:
-                    n = len(pathlib.Path(x).read_text(encoding="utf-8", errors="replace").splitlines())
+                    n = len(paths.lines(pathlib.Path(x).read_bytes().decode("utf-8", errors="replace")))
                 except OSError:
                     n = 1
                 if not _covers(spans.get(paths.norm(x), []), 1, max(n, 1)):
@@ -843,37 +1032,393 @@ def check(reg, given=None):
             else:
                 a, b = (int(x) for x in (p.get("lines") or "1-1").split("-"))
                 ok = _covers([s for s, pg in mine_reads if s], a, b)
-            if not ok:
+            binary = bool(p.get("pages")) or pathlib.Path(p["path"]).suffix.lower() in IMAGES
+            failed = any(r == q and not w.ok(cid) for cid, r in
+                         ((cid, paths.norm(inp.get("file_path") or "")) for cid, name, inp in w.calls if name == "Read"))
+            if not ok and binary and (failed or d.get("not_read")):
+                ok = None  # a PDF or an image its writer tried and could not read as text: its quotes are rows
+            if ok is False:
                 out.append(f"{key}: not read: {pathlib.Path(p['path']).name}"
                            + (f" pages {p['pages']}" if p.get("pages") else f" lines {p.get('lines')}"))
                 continue
-            texts = [_source_text(p, w)]
+            texts = [_source_text(p, w)] if ok else [""]
         hay = [norm_text(t) for x in texts for t in flatten(x)]
-        missing = []
-        for x in (d.get("leads") or []) + (d.get("holdings") or []):
-            for s in [x.get("quote") or ""] + list(x.get("names_in_it") or []):
-                n = norm_text(s)
-                if n and not any(n in h for h in hay):
-                    missing.append(s)
-                elif n and p["route"] == "connector" and n not in copy_text:
-                    missing.append(s + " (in what the connector returned, not in the reader's copy)")
-        if missing:
-            out.append(f"{key}: not found in the source: {missing[0]!r}" + (
-                f" and {len(missing) - 1} more" if len(missing) > 1 else ""))
+        readable = any(h for h in hay)
+        evaluated.add(key)
+        where = _looked_in(p, root_of(reg))
+        for sect, word in (("leads", "lead"), ("holdings", "holding")):
+            for i, x in enumerate(d.get(sect) or [], 1):
+                for what, s in [("quote", x.get("quote") or "")] + [("name in it", n) for n in x.get("names_in_it") or []]:
+                    n = norm_text(s)
+                    if not n:
+                        continue
+                    if not any(n in h for h in hay):
+                        reason, near, at = (NO_MATCH if readable else UNREADABLE), _nearest(n, hay), where
+                    elif p["route"] == "connector" and not any(n in c for c in copy_text):
+                        reason, near, at = COPY_DIFFERS, _nearest(n, copy_text), f"the reader's copy, {COPIES}/{p['source_id']}/"
+                    else:
+                        continue
+                    misses.append({"source": p["source_id"], "part": p["part"], "reader_file": f.name,
+                                   "item": f"{word} {i}", "name": (x.get("name") or x.get("for") or "").strip(),
+                                   "what": what, "quote": s, "looked_in": at, "reason": reason, "nearest": near})
+    return out + quote_problems(reg, misses, evaluated, m["mode"] == "single", txs)
+
+
+# ---------------------------------------------------------------- quotes the exact search missed
+
+def _looked_in(p, root):
+    if p["route"] == "connector":
+        return f"what the connector returned for {p.get('path') or p['source_id']}"
+    if p["route"] == "code":
+        return "; ".join(pathlib.Path(x.strip()).name for x in (p.get("files") or "").split(";") if x.strip())
+    rel = p.get("path") or ""
+    try:
+        rel = pathlib.Path(rel).resolve().relative_to(pathlib.Path(root).resolve()).as_posix()
+    except ValueError:
+        pass
+    return rel + (f" pages {p['pages']}" if p.get("pages") else f" lines {p['lines']}" if p.get("lines") else "")
+
+
+NEAREST_WORDS = 2  # a passage sharing fewer of the quote's words is no passage near it
+
+
+def _nearest(n, hay, most=240):
+    """The passage of the source closest to the words `n` (both in the search's form), a hint for whoever settles the
+    row; "" when the source holds no text or no passage shares at least NEAREST_WORDS of its words (one
+    word for a one-word name): never the document's start passed off as near."""
+    import difflib
+    want = n.split()
+    best, got = 0, ""
+    for h in hay:
+        words = h.split()
+        if not words:
+            continue
+        m = difflib.SequenceMatcher(None, words, want, autojunk=False).find_longest_match(0, len(words), 0, len(want))
+        size = m.size or 0
+        if size > best:
+            a = max(0, m.a - m.b)
+            best, got = size, " ".join(words[a:a + len(want) + 4])
+    shared = len(set(want) & set(got.split()))
+    return got[:most] if best and shared >= min(NEAREST_WORDS, len(set(want))) else ""
+
+
+def verdict_of(r):
+    """A row's verdict as one of QUOTE_VERDICTS, read whatever its case and spacing; "" when it is none of them."""
+    v = " ".join((r.get("verdict") or "").lower().split())
+    return VERDICT_SAID.get(v, "")
+
+
+def _quote_key(r):
+    return (r.get("source") or "", r.get("part") or "", r.get("reader_file") or "", r.get("item") or "",
+            r.get("what") or "", norm_text(r.get("quote") or ""))
+
+
+def quote_rows(reg):
+    return rows(pathlib.Path(reg) / QUOTES)
+
+
+def quote_problems(reg, misses, evaluated, single=False, txs=()):
+    """Write first-look/quote-check.csv: this check's misses, each keeping the verdict and note already set for it, and
+    the rows of parts this check did not reach kept as they were. The one problem it gives: rows with no verdict.
+    In single mode the helper copied the quotes itself, so a row's verdict is a fresh judge's (judge_verdict); the
+    helper's own counts only once QUOTE_JUDGE_CAP judges were launched for the row and none gave one."""
+    reg = pathlib.Path(reg).resolve()
+    old = quote_rows(reg)
+    kept = {_quote_key(r): r for r in old}
+    current = {part_key(p) for p in rows(reg / PARTS)}  # a part a later fetch no longer owes holds nothing
+    data = [r for r in old for k in [part_key({"source_id": r.get("source") or "", "part": r.get("part") or ""})]
+            if k not in evaluated and k in current]
+    launched = _judged(reg)
+    no_judge = None
+    if single and misses:
+        import judges
+        no_judge = judges.judge_agent_problem(reg)  # the judge agent not installed: the session settles, saying so
+    for m in misses:
+        was = kept.get(_quote_key(m)) or {}
+        verdict, note = (was.get("verdict") or "").strip(), (was.get("note") or "").strip()
+        got = judge_verdict(reg, m, txs) if single and not no_judge else None
+        if got:
+            verdict, note = got
+        elif single and not no_judge and launched.get(_quote_hash(m), 0) < QUOTE_JUDGE_CAP:
+            verdict, note = "", ""
+        if single and not got and verdict_of({"verdict": verdict}) and not note.startswith(SELF_SETTLED):
+            note = SELF_SETTLED + note  # no judge gave it: the person is shown it as not independently checked
+        data.append(dict(m, verdict=verdict, note=note))
+    if data or (reg / QUOTES).is_file():
+        write_rows(reg / QUOTES, QUOTE_COLS, data)
+    open_rows = [i for i, r in enumerate(data, 2) if not verdict_of(r)]
+    if not open_rows:
+        return []
+    lines = f"{QUOTES}, lines {', '.join(map(str, open_rows[:12]))}" + (
+        f" and {len(open_rows) - 12} more" if len(open_rows) > 12 else "")
+    if single and no_judge:
+        return [f"{len(open_rows)} quote(s) you copied were not found word for word in the source and have no "
+                f"verdict yet ({lines}). No fresh judge can settle them ({no_judge}), so set each yourself: open the "
+                "cited place and set verdict to found, paraphrase, not in source or unchecked, with a one-line note that begins "
+                "'no judge installed:', then run this again; the brief shows the person each one as settled by you"]
+    if single:
+        return [f"{len(open_rows)} quote(s) you copied were not found word for word in the source and have no judge's "
+                f"verdict yet ({lines}): you copied them, so you do not judge them. Run python first_look.py "
+                "quote-judges <register> and start every line it prints in one message, each as its whole prompt, as "
+                f"a {judges_agent()} subagent, in the foreground; then run this again. A row quote-judges has "
+                f"written a judge's prompt for {QUOTE_JUDGE_CAP} times with no verdict back (it then prints no line "
+                "for it) is yours to set (found, paraphrase, not in source or unchecked, with a one-line note saying "
+                "no judge answered); the brief shows the person each one as settled by you"]
+    return [f"{len(open_rows)} quote(s) a reader copied were not found word for word in the source and have no "
+            f"verdict yet ({lines}): open each cited place in its source (for an image or a PDF, look at it) and set "
+            "verdict to found (the wording differs only in form), paraphrase (the meaning is there, the words are "
+            "not), not in source, or unchecked (you cannot open it or cannot tell: the lead is kept and the person "
+            "is shown it), with a one-line note, then run this again"]
+
+
+# ---------------------------------------------------------------- single mode: a fresh judge settles each miss
+
+def judges_agent():
+    import judges
+    return judges.JUDGE_AGENT
+
+
+def _quote_hash(r):
+    import hashlib
+    return hashlib.sha256("\x1f".join(_quote_key(r)).encode("utf-8")).hexdigest()[:12]
+
+
+def _judge_paths(reg, r):
+    h = _quote_hash(r)
+    reg = pathlib.Path(reg).resolve()
+    return reg / layout.PROMPTS / QUOTE_JUDGE_PROMPTS / f"q-{h}.md", reg / QUOTE_VERDICT_DIR / f"q-{h}.csv", h
+
+
+def _judged(reg):
+    try:
+        got = json.loads((pathlib.Path(reg) / QUOTE_JUDGED).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return got if isinstance(got, dict) else {}
+
+
+QUOTE_JUDGE_TASK = """You are judging one row of a business flow observability first look's quote check, not a row of
+the map: a reader copied the words below from a source the person gave, and the script did not find them there word
+for word. You did not copy them. Open the cited place in the source with the Read tool at <Workspace>/<path> (a PDF
+with `pages`, an image as it is) and judge whether the source holds these words there. Your verdict decides what the
+person is told: a lead whose words are not in its source is dropped from the brief and listed for them, and one you
+cannot settle is kept and shown to them as unchecked.
+
+{ws}
+
+- Source: {source}, part {part}; the words are its {spot}
+- Cited location: {looked_in}
+- Why the script missed it: {reason}
+- The words: "{quote}"
+{near}
+Your verdict: `says` when the source holds these words at that place, or wording that differs from them only in
+form (spacing, punctuation, line breaks, case, markup such as bold); `says` with a reason that begins `paraphrase:` when the meaning is
+there and the words are not; `does not say` when it holds neither; `unclear` when you cannot open it or cannot tell
+(the lead is then kept, unchecked, never called absent).
+
+Verdict file: {path}
+Header line: {header}
+Data line: {data}<verdict>,"<reason>"
+"""
+
+
+def _judge_place(reg, r, root):
+    """(the judge's Workspace folder, the cited location as paths relative to it) for quote-check row `r`: the judge
+    opens <Workspace>/<path> and nowhere else, so the folder is one that holds every file it must open (the workspace
+    root when they sit inside it; else the document's own folder, the code files' common folder, or the reader's
+    copy of a connector's result), never a bare file name or a path it may not open."""
+    import os
+    reg, root = pathlib.Path(reg).resolve(), pathlib.Path(root).resolve()
+    p = next((x for x in rows(reg / PARTS) if part_key(x) == part_key(
+        {"source_id": r.get("source") or "", "part": r.get("part") or ""})), None)
+    looked = r.get("looked_in") or ""
+    if p is None:
+        return root, looked
+    if p["route"] == "connector" or r.get("reason") == COPY_DIFFERS:
+        # the judge has no connector: it opens the copy the reader saved
+        copy = reg / COPIES / (r.get("source") or "")
+        files = sorted(x.relative_to(copy).as_posix() for x in copy.rglob("*") if x.is_file()) if copy.is_dir() else []
+        return copy, "the reader's copy of what the connector returned: " + ("; ".join(files) or "(empty)")
+    files = ([pathlib.Path(x.strip()).resolve() for x in (p.get("files") or "").split(";") if x.strip()]
+             if p["route"] == "code" else [pathlib.Path(p.get("path") or "").resolve()])
+    if not files:
+        return root, looked
+    try:
+        rel = [f.relative_to(root).as_posix() for f in files]
+        ws = root
+    except ValueError:
+        try:
+            ws = pathlib.Path(os.path.commonpath([str(f.parent) for f in files]))
+        except ValueError:  # on different drives: no one folder holds them
+            return root, looked
+        rel = [f.relative_to(ws).as_posix() for f in files]
+    if p["route"] == "code":
+        return ws, "; ".join(rel) + " (each file in full)"
+    return ws, rel[0] + (f" pages {p['pages']}" if p.get("pages") else f" lines {p['lines']}" if p.get("lines") else "")
+
+
+def quote_judges(reg):
+    """Write one judge's prompt per quote-check row with no verdict, for a fresh bfo-row-judge (single mode), and
+    return the pointer lines; a row already judged QUOTE_JUDGE_CAP times gets none."""
+    import judges
+    reg = pathlib.Path(reg).resolve()
+    count = _judged(reg)
+    out = []
+    root = root_of(reg)
+    for r in quote_rows(reg):
+        if verdict_of(r):
+            continue
+        prompt, verdict, h = _judge_paths(reg, r)
+        if count.get(h, 0) >= QUOTE_JUDGE_CAP:
+            continue
+        buf = io.StringIO()
+        csv.writer(buf, lineterminator="").writerow(["first-look", "quote-check", f"{r.get('source')}/{r.get('part')}/"
+                                                     f"{r.get('item')}/{r.get('what')}", 1, 1, "", h, ""])
+        near = (f"- The passage nearest to them there (a hint only): \"{r.get('nearest')}\"\n"
+                if (r.get("nearest") or "").strip() else "")
+        ws, looked = _judge_place(reg, r, root)
+        text = QUOTE_JUDGE_TASK.format(
+            ws=f"Workspace: {ws.as_posix()} (the source is there; the cited location's paths are relative to it, "
+               f"opened as {ws.as_posix()}/<path>)", source=r.get("source") or "", part=r.get("part") or "",
+            spot=f"{r.get('item') or ''} ({r.get('what') or ''})", looked_in=looked,
+            reason=r.get("reason") or "", quote=(r.get("quote") or "").replace('"', "'"), near=near,
+            path=verdict.as_posix(), header=judges.HEADER, data=buf.getvalue())
+        verdict.parent.mkdir(parents=True, exist_ok=True)
+        out.append(judges.write_prompt(prompt, text))
+        count[h] = count.get(h, 0) + 1
+    (reg / QUOTE_JUDGED).parent.mkdir(parents=True, exist_ok=True)
+    (reg / QUOTE_JUDGED).write_text(json.dumps(count), encoding="utf-8")
     return out
+
+
+def judge_verdict(reg, r, txs):
+    """(verdict, note) a fresh judge gave row `r`: its verdict file well formed, for this row's hash, and written by
+    a bfo-row-judge launched on the prompt quote_judges wrote for the row; else None."""
+    import judges
+    prompt, path, h = _judge_paths(reg, r)
+    got = judges.read_verdict(path) if path.is_file() else None
+    if not got or got.get("row_hash") != h:
+        return None
+    fn = paths.norm(path)
+    part = next((x for x in rows(pathlib.Path(reg) / PARTS) if part_key(x) == part_key(
+        {"source_id": r.get("source") or "", "part": r.get("part") or ""})), None)
+    want = paths.norm(part["path"]) if part and part.get("route") == "file" else None
+    if not any(agent_type(t) == judges.JUDGE_AGENT and t.last_write(fn) is not None and launched_on(t, prompt)
+               and any(name == "Read" and (want is None or paths.norm(inp.get("file_path") or "") == want)
+                       for cid, name, inp in t.calls) for t in txs):
+        return None  # no sign the judge opened the source (a Read of it, whatever it returned): it must, as told
+    reason = " ".join((got.get("reason") or "").split())
+    v = JUDGE_TO_QUOTE[got["verdict"]]
+    if v == "found" and reason.lower().startswith("paraphrase"):
+        v = "paraphrase"
+    lead = "a judge could not open it or tell, so kept unchecked: " if v == UNCHECKED else "a judge: "
+    return v, lead + reason
+
+
+def not_in_source(reg):
+    """{reader file name: (set of (item, quote) whose quote is not in source, {(item, name)} not in source)}, each
+    keyed by its item and its normalised words, so a row matches only the lead or holding that still holds them."""
+    out = {}
+    for r in quote_rows(reg):
+        if verdict_of(r) != NOT_IN_SOURCE:
+            continue
+        items, names = out.setdefault(r.get("reader_file") or "", (set(), set()))
+        (items if r.get("what") == "quote" else names).add((r.get("item") or "", norm_text(r.get("quote") or "")))
+    return out
+
+
+def _entries(d):
+    """[(item, its entry)] of a reader's file, leads then holdings, as the quote check numbers them."""
+    return [(f"{word} {i}", x) for sect, word in (("leads", "lead"), ("holdings", "holding"))
+            for i, x in enumerate((d or {}).get(sect) or [], 1)]
+
+
+def _matches(gone, d):
+    """(quote keys, name keys) of `gone` that the reader's file `d` still holds at their item."""
+    items, names = gone
+    have_q = {(i, norm_text(x.get("quote") or "")) for i, x in _entries(d) if isinstance(x, dict)}
+    have_n = {(i, norm_text(n)) for i, x in _entries(d) if isinstance(x, dict) for n in x.get("names_in_it") or []}
+    return items & have_q, names & have_n
+
+
+def _without_unfounded(d, gone):
+    """The reader's file less the leads and holdings whose quote was judged not in the source, and less each name in
+    a kept one judged not in the source: each matched by its item and its words together, so a reordered or
+    rewritten file never loses the wrong one (a row that matches nothing is stale: stale_quotes)."""
+    if not gone or not isinstance(d, dict):
+        return d
+    items, names = _matches(gone, d)
+    d = dict(d)
+    for sect, word in (("leads", "lead"), ("holdings", "holding")):
+        keep = []
+        for i, x in enumerate(d.get(sect) or [], 1):
+            item = f"{word} {i}"
+            if not isinstance(x, dict):
+                keep.append(x)
+                continue
+            if (item, norm_text(x.get("quote") or "")) in items:
+                continue
+            x = dict(x, names_in_it=[n for n in x.get("names_in_it") or [] if (item, norm_text(n)) not in names])
+            keep.append(x)
+        d[sect] = keep
+    return d
+
+
+def stale_quotes(reg):
+    """[(reader file, item, quote)] of rows judged not in source whose reader's file no longer holds those words at
+    that item (the file was rewritten or reordered after the verdict): ignored, never applied to another entry; the
+    next check writes the file's rows again."""
+    reg = pathlib.Path(reg).resolve()
+    out = []
+    for name, gone in sorted(not_in_source(reg).items()):
+        try:
+            d = json.loads((reg / FL / name).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            d = {}
+        items, names = _matches(gone, d if isinstance(d, dict) else {})
+        out += [(name, i, q) for i, q in sorted((gone[0] - items) | (gone[1] - names))]
+    return out
+
+
+NOT_CONFIRMED = ("not in source", "unchecked", "self-settled")  # unfounded_said's kinds, in the brief's order
+
+
+def unfounded_said(reg):
+    """Every quote-check row not independently confirmed, for the brief, as dicts of kind (NOT_CONFIRMED: a quote
+    judged not in its source, so its lead dropped, or a name so judged, so taken out of its lead; a row no one could check, kept unchecked; a row the session that copied it
+    settled itself, no judge having answered), verdict, what ("quote" or "name in it"), quote, source and nearest."""
+    out = []
+    for r in quote_rows(reg):
+        v = verdict_of(r)
+        if (r.get("note") or "").startswith(SELF_SETTLED) and v:
+            kind = "self-settled"
+        elif v == UNCHECKED:
+            kind = "unchecked"
+        elif v == NOT_IN_SOURCE:
+            kind = "not in source"
+        else:
+            continue
+        out.append({"kind": kind, "verdict": v, "what": r.get("what") or "quote",
+                    "quote": (r.get("quote") or "").strip(), "source": r.get("source") or "",
+                    "nearest": (r.get("nearest") or "").strip()})
+    return sorted(out, key=lambda x: NOT_CONFIRMED.index(x["kind"]))
 
 
 # ---------------------------------------------------------------- names, holdings, the brief
 
 def reader_files(reg):
+    """[(part, the reader's file)], each file less what was judged not in its source (first-look/quote-check.csv), so
+    no later step takes a lead or a name the source does not hold."""
     reg = pathlib.Path(reg).resolve()
+    gone = not_in_source(reg)
     out = []
     for p in rows(reg / PARTS):
         f = reader_file(reg, p)
         try:
-            out.append((p, json.loads(f.read_text(encoding="utf-8"))))
+            d = json.loads(f.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
+        out.append((p, _without_unfounded(d, gone.get(f.name)) if isinstance(d, dict) else d))
     return out
 
 
@@ -933,6 +1478,10 @@ def brief_problems(reg, o):
         return ["the first look's fetch step has not run (python first_look.py fetch <register>): every source the "
                 "person gave that is not code is read by it"] if others else []
     out = [f"first look: {x}" for x in check(reg)]
+    stale = stale_merge(reg)
+    if stale:
+        out.append(f"first look: {MERGED} differs from the reader files as they are now ({', '.join(stale[:5])}): "
+                   "run first_look.py merge again and write orientation.json from what it writes")
     left = unplaced(reg)
     if left:
         out.append("first look: names the sources mention that no code holds, not yet placed (first-look/placed.csv: "
@@ -1112,13 +1661,20 @@ def _hold(reg, reason, remedy, said, more_time=False):
     stopped for time is offered more time as a choice the kit applies itself, never a file to edit."""
     import datetime
     reg = pathlib.Path(reg)
-    first = ("1. Try again with more time: I give it longer and run the first look again." if more_time else
-             f"1. Fix it and try again: {remedy}. Then tell me, and I run the first look again.")
-    text = "\n".join([
-        f"{HELD_LEAD}: {reason}. What would you like to do?", "", first,
-        f"2. Go on without it: {WITHOUT_COST}.",
-        "3. Stop here.", "",
-        "Answer with the number, or in your own words."])
+    import question_card as qc
+    first = (("More time", "I give it longer and start reading again") if more_time else
+             ("Fixed", "they put it right and you tell me; I start reading again"))
+    text = qc.card(
+        title="The tool that lists where the code calls out would not run: how shall I go on?",
+        fields=[("Cause", reason), ("Fix", "" if more_time else remedy)],
+        after=[("Who can fix", "I can, by giving it longer" if more_time else
+                "whoever set up this tool on this computer; send them the Fix line"),
+               ("Cost", "without it, reading takes longer and a call the readers miss is not flagged")],
+        why="that tool tells the readers where each service receives, calls and stores",
+        choices=[first, ("Go on without it", "I read without the list: slower, and a missed call is not flagged"),
+                 ("Stop", "I stop here; nothing more is read")],
+        recommended=(1, "it costs a few minutes") if more_time else
+        (1, "with it, reading is faster and a missed call is flagged"))
     (reg / READER_STOP).write_text(json.dumps({
         "stop": "code reader", "reason": reason, "remedy": remedy, "message": text, "more_time": more_time,
         "choices": ["retry", "without", "stop"], "at": datetime.datetime.now().astimezone().isoformat(
@@ -1270,6 +1826,9 @@ def prepare(reg):
         out.append(f"NOT READABLE: {sid}: {why} (merge places it as unresolved; the brief lists it).")
     if m.get("over_budget"):
         out.append("OVER BUDGET: " + not_read_line(reg))
+    for f in m.get("pages_unsure") or []:
+        out.append(f"PAGES UNSURE: {f}: its page count could not be read from the PDF's page tree; the pages owed are "
+                   "the page objects found, which may be fewer than the pages.")
     if m["mode"] == "split":
         lines = prompts(reg)
         refresh_mark(reg)
@@ -1291,18 +1850,7 @@ def merge(reg):
     seen in and the spots), and place each name no code holds as unresolved, with where it was seen, unless already
     placed. Returns the merged record."""
     reg = pathlib.Path(reg).resolve()
-    groups, where = {}, {}
-    for p, d in reader_files(reg):
-        sid = p["source_id"]
-        for x in d.get("leads") or []:
-            k = (x.get("kind") or "", _key(x.get("name")))
-            g = groups.setdefault(k, {"kind": k[0], "name": (x.get("name") or "").strip(), "seen_in": [], "spots": []})
-            if sid not in g["seen_in"]:
-                g["seen_in"].append(sid)
-            g["spots"].append({"source_id": sid, "spot": x.get("spot") or "", "says": x.get("says") or ""})
-        for x in (d.get("leads") or []) + (d.get("holdings") or []):
-            for n in x.get("names_in_it") or []:
-                where.setdefault(n.strip(), f"{sid} at {x.get('spot') or 'its text'}")
+    groups, where = _groups(reg)
     merged = {"flows": [g for g in groups.values() if g["kind"] == "flow"],
               "stages": [g for g in groups.values() if g["kind"] == "stage"],
               "steps": [g for g in groups.values() if g["kind"] in ("step", "people step")],
@@ -1319,6 +1867,45 @@ def merge(reg):
         have[n] = {"name": n, "placed_as": "unresolved", "why": why}
     write_rows(reg / PLACED, PLACED_COLS, list(have.values()))
     return merged
+
+
+def stale_merge(reg):
+    """The names of leads where the merged record and the reader files as they are now differ, either way: a lead the
+    merge holds that the files (less what was judged not in its source) no longer give, a lead they give that the merge
+    lacks, or one whose sources or spots changed. [] when it was merged from the files as they are, or never merged."""
+    reg = pathlib.Path(reg).resolve()
+    try:
+        stored = json.loads((reg / MERGED).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    now = {(g["kind"], _key(g["name"])): g for g in _groups(reg)[0].values()}
+    had = {}
+    for sect in ("flows", "stages", "steps", "parts", "right_outcomes"):
+        for g in (stored.get(sect) or []) if isinstance(stored, dict) else []:
+            if isinstance(g, dict):
+                had[(g.get("kind"), _key(g.get("name")))] = g
+    out = []
+    for k in sorted(set(had) | set(now), key=lambda k: (str(k[0]), str(k[1]))):
+        a, b = had.get(k), now.get(k)
+        if a is None or b is None or a.get("seen_in") != b.get("seen_in") or a.get("spots") != b.get("spots"):
+            out.append(((a or b).get("name") or "").strip())
+    return out
+
+
+def _groups(reg):
+    groups, where = {}, {}
+    for p, d in reader_files(reg):
+        sid = p["source_id"]
+        for x in d.get("leads") or []:
+            k = (x.get("kind") or "", _key(x.get("name")))
+            g = groups.setdefault(k, {"kind": k[0], "name": (x.get("name") or "").strip(), "seen_in": [], "spots": []})
+            if sid not in g["seen_in"]:
+                g["seen_in"].append(sid)
+            g["spots"].append({"source_id": sid, "spot": x.get("spot") or "", "says": x.get("says") or ""})
+        for x in (d.get("leads") or []) + (d.get("holdings") or []):
+            for n in x.get("names_in_it") or []:
+                where.setdefault(n.strip(), f"{sid} at {x.get('spot') or 'its text'}")
+    return groups, where
 
 
 # ---------------------------------------------------------------- liveness, for the first-look mark
@@ -1353,7 +1940,7 @@ def agents_alive(site, given=None, run=None):
 
 def main(argv):
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     args = list(argv)
     if args[:1] == ["answer"]:  # answer <register> <1|2|3> --words "<their words>" [--test]
         test = "--test" in args
@@ -1367,22 +1954,40 @@ def main(argv):
         said = answer(args[1], args[2], words, test=test)
         print(said, file=sys.stderr if said.startswith("REFUSED") else sys.stdout)
         return 2 if said.startswith("REFUSED") else 0
-    if len(args) < 2 or args[0] not in ("prepare", "fetch", "prompts", "check", "names", "merge", "holdings"):
+    if len(args) < 2 or args[0] not in ("prepare", "fetch", "prompts", "check", "names", "merge", "holdings",
+                                         "quote-judges"):
         print(__doc__, file=sys.stderr)
         return 2
     cmd, reg = args[0], pathlib.Path(args[1]).resolve()
     if not (reg / "sources.csv").is_file():
         print(f"REFUSED: {reg} holds no sources.csv. Nothing written.", file=sys.stderr)
         return 2
-    if cmd in ("prepare", "fetch", "prompts", "merge"):  # the register is written by one run at a time
+    if cmd in ("prepare", "fetch", "prompts", "merge", "quote-judges"):  # one run at a time writes the register
         import run_lock
         run_lock.guard(reg)
     if cmd == "prepare":
         print(prepare(reg))
         return 0
+    if cmd == "quote-judges":
+        import judges
+        absent = judges.judge_agent_problem(reg)
+        if absent:
+            print(f"REFUSED: {absent}. Nothing written.", file=sys.stderr)
+            return 2
+        lines = quote_judges(reg)
+        refresh_mark(reg)
+        print(f"{len(lines)} quote judge(s): launch every line below in one message, each as its whole prompt, as a "
+              f"{judges.JUDGE_AGENT} subagent, in the foreground; then python first_look.py check <register>.")
+        print("\n".join(lines))
+        return 0
     if cmd == "merge":
+        stale = stale_quotes(reg)
         m = merge(reg)
         left = unplaced(reg)
+        if stale:
+            print(f"STALE: {len(stale)} verdict(s) in {QUOTES} no longer match their reader's file (rewritten or "
+                  "reordered since), so they were not applied: run python first_look.py check <register> and settle "
+                  "its rows, then merge again. " + "; ".join(f"{f} {i}" for f, i, q in stale[:5]))
         print(f"MERGED: {len(m['flows'])} flow(s), {len(m['stages'])} stage(s), {len(m['steps'])} step(s), "
               f"{len(m['parts'])} part(s) in {MERGED}, each with the sources it was seen in. Names no code holds are "
               f"placed as unresolved in {PLACED}: change any to used or set aside where you know better. Write "
@@ -1442,4 +2047,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

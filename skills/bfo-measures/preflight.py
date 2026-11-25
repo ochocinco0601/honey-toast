@@ -92,6 +92,34 @@ def tools(reg):
     return out + [_check("semgrep", PASS, f"semgrep {said[0]} answers, at {exe}", reader=True)], env
 
 
+def _has_pdf(reg):
+    """True when a source the first look reads (not code) is or holds a PDF."""
+    import first_look as fl
+    root = fl.root_of(reg)
+    for r in fl.rows(pathlib.Path(reg) / "sources.csv"):
+        if not fl.is_other(r):
+            continue
+        for loc in fl.locations(r):
+            p = pathlib.Path(loc)
+            if any(f.suffix.lower() == ".pdf" for f in fl._files_of(p if p.is_absolute() else root / p)):
+                return True
+    return False
+
+
+def pdf_reader(reg=None):
+    """Whether a PDF's pages can be read as text on this computer (Claude Code's Read of a PDF's `pages` needs
+    pdftoppm): a notice, never a hold, for without it a PDF's quotes are checked by a model, not by the script.
+    With a register, nothing when no source it reads is a PDF."""
+    if reg is not None and not _has_pdf(reg):
+        return []
+    exe = shutil.which("pdftoppm")
+    if exe:
+        return _check("pdf pages", PASS, f"pdftoppm is installed, at {exe}: a PDF's pages can be read as text")
+    return _check("pdf pages", WARN, "pdftoppm is not installed, so a PDF's pages may not read as text: the run goes "
+                  "on, and the quotes taken from a PDF are checked by a model instead of by the script",
+                  "install poppler (it holds pdftoppm) and start the run again, if you want PDFs checked by the script")
+
+
 def sources(reg):
     """The checks of the code sources: (lines, {repository: (folder, files)}, scan target, its files)."""
     import first_look as fl
@@ -220,7 +248,8 @@ def run(reg):
     reg = pathlib.Path(reg).resolve()
     t0 = time.monotonic()
     out, env = tools(reg)
-    out += agents(reg)
+    pdf = pdf_reader(reg)
+    out += ([pdf] if pdf else []) + agents(reg)
     lines, named, _, have = sources(reg)
     out += lines
     if not any(c["state"] == FAIL and c["check"] == "scan target" for c in out):
@@ -274,10 +303,7 @@ def before_code_reader(reg):
     if stop and stop.get("code") == STOP_CODE and not own:
         run_state.clear_stop(reg)
     if own:
-        text = "\n".join([f"{LEAD}: {len(own)} check(s) of this computer and the sources you gave failed. What "
-                          "would you like to do?", ""] + [f"- {c['said']}. To fix it: {c['fix']}." for c in own] + [
-            "", "1. Fix it and try again: put right what each line above says. Then tell me, and I check again.",
-            "2. Stop here.", "", "Answer with the number, or in your own words."])
+        text = held_card(own)
         got.update(held=True, message=text, choices=["retry", "stop"])
         (reg / FILE).write_text(json.dumps(got, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
         run_state.record_stop(reg, f"{LEAD}: " + "; ".join(c["said"] for c in own) + ".", NEXT, code=STOP_CODE)
@@ -285,6 +311,21 @@ def before_code_reader(reg):
         fl._hold(reg, "; ".join(c["said"] for c in reader), "; ".join(dict.fromkeys(c["fix"] for c in reader)),
                  "code reader: NOT RUN: " + "; ".join(c["said"] for c in reader) + ".")
     return "\n".join(lines(got))
+
+
+def held_card(own):
+    """The hold as a question card: each failed setup check with its fix, who can fix it, and the choices."""
+    import question_card as qc
+    n = len(own)
+    return qc.card(
+        title=f"The setup check found {n} problem{'' if n == 1 else 's'}: shall I check again once fixed?",
+        table=(("Problem", "Fix"), [(c["said"], c["fix"]) for c in own]),
+        after=[("Who can fix", "whoever set up this tool on this computer; send them the table"),
+               ("Cost", "nothing is read until the setup check passes")],
+        why="the setup check runs first, so the work does not fail halfway",
+        choices=[("Fixed", "you, or they, put it right and tell me; I run the setup check again"),
+                 ("Stop", "I stop here; nothing is read")],
+        recommended=(1, "each fix is named in the table"))
 
 
 def answer(reg, choice, words, test=False):
@@ -329,7 +370,7 @@ def issues(reg):
 
 def main(argv):
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     args = list(argv)
     if args[:1] == ["answer"]:
         test = "--test" in args
@@ -352,4 +393,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

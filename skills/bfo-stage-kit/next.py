@@ -81,7 +81,12 @@ def _lock_refusal(reg):
 def _run(cmd):
     p = subprocess.run([sys.executable, *cmd], cwd=HERE, capture_output=True, text=True, encoding="utf-8",
                        errors="replace")
-    return p.returncode, (p.stdout + p.stderr).strip()
+    # brief.py's advice is for the session writing a message, never part of what the person is sent
+    err = "".join(x for x in p.stderr.splitlines(True) if not x.startswith(ADVICE_LEAD))
+    return p.returncode, (p.stdout + err).strip()
+
+
+ADVICE_LEAD = "ADVICE, for you and not the person"  # brief.ADVICE's opening words
 
 
 def _code(reg, sub, cmd, done=lambda: True):
@@ -410,13 +415,23 @@ def _names(reg, units):
     return got[0] if len(got) == 1 else ", ".join(got[:-1]) + " and " + got[-1]
 
 
+FORM_REFUSED = "REFUSED: a question in the message is not in the question form"  # brief.py say's card-form refusal
+
+
+def _say_kit(reg, f):
+    """The kit's own message, sent once say has refused it and the refusal is written down as a kit finding: say
+    --kit takes it, every refusal of its text printed as advice, which _run leaves out. (code, printed)."""
+    return _run(["brief.py", "say", "--kit", str(reg), str(f)])
+
+
 def _kit_defect(reg, template, fn, out):
-    """A message the kit wrote refused by its own word check is a kit defect: written down as kit facts only (the
-    template and the line that builds its text, never what was refused). Any other failure of `say` is not: None."""
+    """A message the kit wrote refused by its own word check or its question-form check is a kit defect: written down
+    as kit facts only (the template and the line that builds its text, never what was refused). Any other failure of
+    `say` is not: None. Called from the stop function itself, whose line it names."""
     import brief
     import inspect
     import kit_findings
-    if not out.startswith(brief.WORDS_REFUSED):
+    if not out.startswith((brief.WORDS_REFUSED, FORM_REFUSED)):
         return None
     call = sys._getframe(1).f_lineno
     src, first = inspect.getsourcelines(fn)
@@ -450,14 +465,21 @@ def _lost_stop(reg, sub, gone, lines):
     f = folder / f"agents-lost-{sub.replace(' ', '-')}.md"
     f.write_text(text, encoding="utf-8")
     code, out = _run(["brief.py", "say", str(reg), str(f)])
+    finding = None
+    if code != 0:  # the kit's own message: its refusal is a kit finding, and the message goes out with advice
+        finding = _kit_defect(reg, "agents-lost", _lost_stop, out)
+        code, out = _say_kit(reg, f)
     case.log(reg, "agents lost", sub=sub, prompts=[pathlib.Path(p).as_posix() for _, p, _ in gone], states=sorted(
         str(x) for x in states))
     if code != 0:
         return {"kind": "code", "sub": sub, "ok": False, "command": ["python", "brief.py", "say", str(reg), str(f)],
-                "said": out, "kit_finding": _kit_defect(reg, "agents-lost", _lost_stop, out)}
-    return {"kind": "stop", "stop": "agents lost", "sub": sub, "message": out, "said": lines,
-            "records_with": "next.py --event retry \"<their words>\" on their word to try again; else "
-                            "next.py --event chat"}
+                "said": out, "kit_finding": finding}
+    a = {"kind": "stop", "stop": "agents lost", "sub": sub, "message": out, "said": lines,
+         "records_with": "next.py --event retry \"<their words>\" on their word to try again; else "
+                         "next.py --event chat"}
+    if finding:
+        a["kit_finding"] = finding
+    return a
 
 
 def _retry(reg, sub):
@@ -618,49 +640,61 @@ def _stuck(reg, flow, sub, units, kind, said, why):
     retry = (_stalled_resettable(reg, units) if kind == "stalled" else fast_map.can_reset(reg, units))
     retry = retry and set(units) <= fast_map.planned(reg)  # only a unit of this flow's plan has an agent to send
     who = _names(reg, units)
-    choices = []
+    import question_card as qc
+    choices = []  # (event, verb, what happens): each choice names who acts
+    named = []
     if kind == "rows":
         values = [m for u in units for m in fast_map.value_misses(reg, u)]
-        choices.append(("correct", ("Tell me the right value, or let me correct those findings myself, only where "
-                                    "the check names them; mapping goes on once they pass.") if values else
-                        "I correct those findings myself, only where the check names them, and mapping goes on once "
-                        "they pass."))
+        choices.append(("correct", "Tell me, or let me fix them", "you give the right value, or I correct only what "
+                        "the map's check names; mapping goes on once they pass") if values else
+                       ("correct", "Let me fix them", "I correct only what the map's check names; mapping goes on "
+                        "once they pass"))
+        named = list(dict.fromkeys((VALUE_WORDS.get(c, c.replace('_', ' ')), v, ", ".join(allowed))
+                                   for u in units for _, _, c, v, allowed in fast_map.value_misses(reg, u)))
     if retry:
         told = "" if kind == "stalled" else ", told what was wrong"
-        choices.append(("retry", f"Send the agent once more{told}. If it is held again, you get these choices again, "
-                                 "without this one."))
-    choices.append(("leave-unread", f"Leave {who} unread: the map shows it as not read, with your words, and mapping "
-                                    "goes on with the rest."))
-    choices.append(("stop", "Stop mapping here: what is mapped so far is kept."))
-    lines = [f"Mapping is held at {who}: {CAUSE[kind]}. What would you like to do?", ""]
-    if kind == "rows":
-        named = list(dict.fromkeys(f"The {VALUE_WORDS.get(c, c.replace('_', ' '))} \"{v}\" is not one the kit takes; "
-                                   f"it takes one of: {', '.join(allowed)}."
-                                   for u in units for _, _, c, v, allowed in fast_map.value_misses(reg, u)))
-        lines[1:1] = named + ([""] if named else [])
-    lines += [f"{i}. {label}" for i, (_, label) in enumerate(choices, 1)]
-    lines += ["", "Answer with the number, or in your own words."]
+        choices.append(("retry", "Retry", f"I send the mapping agent once more{told}; if it is stuck again, you get "
+                                          "these choices without this one"))
+    choices.append(("leave-unread", "Skip it", f"the map shows {who} as not read, with your words; its steps get no "
+                                               "measures or alerts"))
+    choices.append(("stop", "Stop mapping", "what is mapped so far is kept"))
+
+    def card(with_values=True):
+        return qc.card(
+            title=f"Mapping {who} is stuck: how shall I go on?",
+            fields=[("Cause", CAUSE[kind])],
+            table=(("What was written", "Value", "Allowed"), named) if with_values and named else None,
+            after=[("Affects", f"the part of the map {who} carries")],
+            why="the map cannot count those findings as they are",
+            choices=[(verb, what) for _, verb, what in choices],
+            recommended=(1, "it changes only what the check names" if kind == "rows" else
+                         "it costs one more try" if retry else "the rest of the map goes on"))
+    lines = card().splitlines()
     text = "\n".join(lines)
     folder = pathlib.Path(reg) / MESSAGES
     folder.mkdir(exist_ok=True)
     msg = folder / f"mapping-held-{sub.replace(' ', '-')}.md"
     msg.write_text(text, encoding="utf-8")
-    code, out = _run(["brief.py", "say", str(reg), str(msg)])
+    code, out = _run(["brief.py", "say", str(reg), str(msg), "--kit"])
     if code != 0 and kind == "rows" and named:  # the value lines name the kit's columns: the choices alone
-        text = "\n".join(x for x in lines if x not in named)
+        text = card(with_values=False)
         msg.write_text(text, encoding="utf-8")
         code, out = _run(["brief.py", "say", str(reg), str(msg)])
-    if code != 0:  # never sent unchecked: a message of the kit's that say refuses is a kit defect
+    finding = None
+    if code != 0:  # a message of the kit's that say refuses is a kit defect, written down; it goes out with advice
+        finding = _kit_defect(reg, "mapping-held", _stuck, out)
+        code, out = _say_kit(reg, msg)
+    if code != 0:
         return {"kind": "code", "sub": sub, "ok": False, "command": ["python", "brief.py", "say", str(reg), str(msg)],
-                "said": out, "kit_finding": _kit_defect(reg, "mapping-held", _stuck, out)}
+                "said": out, "kit_finding": finding}
     shown = out
     case.set_flow(reg, flow, **{STUCK: {"units": list(units), "kind": kind, "shown": shown, "text": text,
-                                        "choices": [ev for ev, _ in choices], "sub": sub, "said": said,
+                                        "choices": [ev for ev, _, _ in choices], "sub": sub, "said": said,
                                         "why": list(why)}, CORRECTING: {}})
-    records = {str(i): f'next.py --event {ev} "<their words>"' for i, (ev, _) in enumerate(choices, 1)}
+    records = {str(i): f'next.py --event {ev} "<their words>"' for i, (ev, _, _) in enumerate(choices, 1)}
     return {"kind": "stop", "stop": "mapping held", "sub": sub, "message": shown, "said": said, "why": why,
-            "units": list(units), "choices": [{"n": i, "event": ev, "label": label}
-                                              for i, (ev, label) in enumerate(choices, 1)],
+            "units": list(units), "choices": [{"n": i, "event": ev, "label": f"{verb}: {what}"}
+                                              for i, (ev, verb, what) in enumerate(choices, 1)],
             "records_with": ("send the message as printed; take their answer by its number or its words to one "
                              "choice and call " + "; ".join(f"{n} -> {c}" for n, c in records.items())
                              + "; an answer that fits none: ask again in plain words; never ask them for a command "
@@ -736,6 +770,8 @@ def _not_a_choice(reg, flow, held, line):
     msg = folder / "mapping-held-again.md"
     msg.write_text(f"{line}\n\n{held.get('text') or ''}", encoding="utf-8")
     code, out = _run(["brief.py", "say", str(reg), str(msg)])
+    if code != 0:  # the kit's own message: sent with its refusal as advice, never held
+        code, out = _say_kit(reg, msg)
     return {"kind": "stop", "stop": "mapping held", "sub": held.get("sub") or "", "units": held.get("units") or [],
             "message": out if code == 0 else msg.read_text(encoding="utf-8"), "said": held.get("said") or "",
             "not taken": line,
@@ -1140,10 +1176,14 @@ def _map_stop(reg, flow, ended, by_kit=False):
         f = folder / f"map-stop-{flow}.md"
         f.write_text(text, encoding="utf-8")
         code, out = _run(["brief.py", "say", str(reg), str(f)])
+        finding = None
+        if code != 0:  # the kit's own message: its refusal is a kit finding, and the message goes out with advice
+            finding = _kit_defect(reg, "fast-map-stop", _map_stop, out)
+            code, out = _say_kit(reg, f)
         if code != 0:
             return {"kind": "code", "sub": "map stop", "ok": False,
                     "command": ["python", "brief.py", "say", str(reg), str(f)], "said": out,
-                    "kit_finding": _kit_defect(reg, "fast-map-stop", _map_stop, out)}
+                    "kit_finding": finding}
         import kit_findings
         beside = kit_findings.line(reg)
         beside = f" Send beside the report, as it is: {beside}" if beside else ""
@@ -1169,11 +1209,17 @@ def _map_stop(reg, flow, ended, by_kit=False):
     f = folder / f"map-stop-{flow}.md"
     f.write_text(text, encoding="utf-8")
     code, out = _run(["brief.py", "say", str(reg), str(f)])
+    finding = None
+    if code != 0:  # the kit's own message: its refusal is a kit finding, and the message goes out with advice
+        finding = _kit_defect(reg, "map-stop", _map_stop, out)
+        code, out = _say_kit(reg, f)
     if code != 0:
         return {"kind": "code", "sub": "map stop", "ok": False,
                 "command": ["python", "brief.py", "say", str(reg), str(f)], "said": out,
-                "kit_finding": _kit_defect(reg, "map-stop", _map_stop, out)}
+                "kit_finding": finding}
     a = {"kind": "stop", "stop": "map", "message": out, "records_with": "next.py --event chat"}
+    if finding:
+        a["kit_finding"] = finding
     if by_kit:
         a["then"] = "back to the stage kit's SKILL.md for the pick of how far each stage goes"
     return a
@@ -1342,9 +1388,23 @@ def main(argv):
         i = argv.index("--event")
         event = (argv[i + 1], argv[i + 2] if len(argv) > i + 2 else "")
         argv = argv[:i]
-    print(json.dumps(decide(argv[0], argv[1], event, by_kit, test), ensure_ascii=False))
+    print(json.dumps(silent(decide(argv[0], argv[1], event, by_kit, test)), ensure_ascii=False))
     return 0
 
 
+SILENT = guard.SILENT  # put on the action the session acts on when an agent returns, not only in SKILL.md
+QUIET_KINDS = ("fanout", "wait", "agent", "judgment", "code")
+
+
+def silent(action):
+    """The action with `to_the_person` set to SILENT on every kind that is not a stop or a line to send."""
+    if isinstance(action, dict) and action.get("kind") in QUIET_KINDS:
+        action = dict(action, to_the_person=SILENT)
+    return action
+
+
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))

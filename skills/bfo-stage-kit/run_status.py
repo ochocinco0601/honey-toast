@@ -42,7 +42,7 @@ import register_layout as layout  # noqa: E402
 
 
 COUNT_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}
-MEASURED_JUDGES = 3  # the count the checks are built for
+JUDGES_BUILT_FOR = 3  # the count the checks are built for
 
 
 def judges_per_row(reg):
@@ -52,7 +52,7 @@ def judges_per_row(reg):
 def judges_note(reg):
     """What the DONE or NOT DONE line of a split run says beside its verdict when fewer judges than the checks are built for."""
     n = judges_per_row(reg)
-    if n >= MEASURED_JUDGES:
+    if n >= JUDGES_BUILT_FOR:
         return ""
     return (f"{COUNT_WORDS.get(n, n)} judge{'s' if n != 1 else ''} per row (run-settings.json): the checks that catch "
             f"wrong rows are built for three judges per row")
@@ -1348,4 +1348,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    for _s in (sys.stdout, sys.stderr):  # a name from a source never crashes a Windows console
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv[1:]))
