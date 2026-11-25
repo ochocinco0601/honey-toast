@@ -87,8 +87,13 @@ tools: Read, Grep, Glob, Write
    target it knows as a line to nothing, and the map's check refuses it: to a unit of this run, `to_unit` that unit
    exactly as your prompt lists it; to a service the person left out of this run, `to_unit` its name exactly as your
    prompt lists it (never the name the code, a config file or a page gives it); to a store or broker this unit's own
-   `subjects.csv` has, `to_unit` blank and `to_part` its `subject_id`; to anything else (another store or broker, a
-   third party, a mainframe, a service no unit reads), `to_unit` blank and `to_part` `external:<its name>`, with
+   `subjects.csv` has, `to_unit` blank and `to_part` its `subject_id` (a store's or broker's `subject_id` is
+   `store:<the key that holds its address, as the configuration file spells it>`, or, when no key shows, an id of
+   its own with its `part_kind`); to anything else (another store or broker, a
+   third party, a mainframe, a service no unit reads), `to_unit` blank and `to_part` `external:<its name>`, its name
+   being the configuration key its address sits under (`external:partner.client.base-url`), or its host where the code
+   holds a literal, never a class or interface name (that goes in `source`); only where neither shows, the name the
+   caller uses (below), which the identity step judges, with
    "outside this run" in `source` where it is a service. A message names its broker in `via`. A call whose target the code does not
    show goes to `external:<the name the caller uses>`, with what you traced in `source`; never leave both `to_unit`
    and `to_part` blank. A call that breaks this is refused as you return, with the row and the names you may use.

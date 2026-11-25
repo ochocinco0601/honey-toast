@@ -84,7 +84,9 @@ are complete enough for the next step (measures built, alerts wired, runbooks us
 skill's `agents/` folder) before the session starts: `bfo-source-reader` (the first look's source readers),
 `bfo-flow-mapper` (the fast map), `bfo-unit-reader` (the full reading's readers) and `bfo-row-judge` (the full
 reading's judges, and the first look's judges of the quotes the helper copied itself). Each step that launches one
-refuses, naming the copy step, while it is missing. The stage kit maps fast and its first look judges quotes,
+refuses, naming the copy step, while it is missing. After the merge, run control may also hand over one
+`general-purpose` agent (built in, nothing to install) to judge the parts no identity rule placed: launch it as its
+action says and call run control again. The stage kit maps fast and its first look judges quotes,
 so the checks before the first look hold the run, in plain words with the copy step, while `bfo-flow-mapper` or
 `bfo-row-judge` is missing.
 <!-- /shared: agent-types-before-a-run -->

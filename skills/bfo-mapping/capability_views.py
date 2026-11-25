@@ -406,12 +406,16 @@ def check(R):
                 err.append(f"subjects.csv {r['subject_id']}: no purpose; write what this part does in this flow, in one "
                            "sentence, cited")
     comps = [r for r in parts if r.get("level") == "component"]
+    upgraded = bool(R.get("_path")) and (pathlib.Path(R["_path"]) / "identifiers.csv").is_file()
     for r in comps:
         if re.search(r"\(.+\)", r.get("name") or ""):
-            warn.append(f"subjects.csv {r['subject_id']}: name {r.get('name')!r} holds a second name in brackets; a "
+            err.append(f"subjects.csv {r['subject_id']}: name {r.get('name')!r} holds a second name in brackets; a "
                        "component is named by its own name as its code or deployment states it (the deployment's or "
                        "resource's name, else its image's, else its folder's), never a label made up for it, and what "
                        "it does goes in purpose (FILL-STEPS Step 5)")
+    if not upgraded:  # a warning until the register is upgraded (identifiers.csv), then an error
+        warn += [e for e in err if "holds a second name in brackets" in e]
+        err[:] = [e for e in err if "holds a second name in brackets" not in e]
     if comps and "repository" not in R["subjects"][0]:
         err.append("subjects.csv has no repository column (a register made before it was added, or one that kept each "
                    "repository inside name): add it after application_id, as in the template, move each repository out "
@@ -609,9 +613,110 @@ def check(R):
                 warn.append(f"{t}.csv line {n}: no citation")
     err += bound_failures(R)
     if R.get("_path"):
+        i_err, i_warn = identity_failures(R)
+        err += i_err
+        warn += i_warn
+    if R.get("_path"):
         warn += declared_value_failures(R["_path"], register_values())
     col_err, col_warn = column_failures(R, err)
     return col_err + err, col_warn + warn
+
+
+IDENT_BASIS = ("rule: read", "rule: derived", "judgment", "not found")
+CLASS_NAME = re.compile(r"^[A-Z][a-z0-9]+(?:[A-Z][A-Za-z0-9]*)+$")  # `PartnerClient`, `IPaymentGateway`
+
+
+def identity_failures(R):
+    """(errors, warnings) of the identity checks for a register that has its root identifiers.csv: names that are a
+    part's own identifiers, one part per name, every deployable findable by service name, every database by its
+    system, every identifier cited and marked with its basis in the current OpenTelemetry name."""
+    p = pathlib.Path(R["_path"]) / "identifiers.csv"
+    if not p.is_file():
+        return [], []
+    err, warn = [], []
+    idents = read_csv(p)
+    by = {}
+    for x in idents:
+        by.setdefault(x.get("subject_id", ""), []).append(x)
+    otel = {r["deprecated_name"]: r["attribute"] for r in read_csv(METHOD / "otel-attributes.csv")
+            if r.get("deprecated_name")}
+    for n, x in enumerate(idents, 2):
+        basis = (x.get("basis") or "").strip()
+        if not basis.startswith(IDENT_BASIS):
+            err.append(f"identifiers.csv line {n}: basis {basis!r} is not rule: read, rule: derived, judgment: "
+                       "<evidence> or not found: <where looked>")
+        if not (x.get("source") or "").strip():
+            err.append(f"identifiers.csv line {n}: no source")
+        if x.get("attribute") in otel:
+            err.append(f"identifiers.csv line {n}: {x['attribute']} is deprecated; write {otel[x['attribute']]} "
+                       "(method/otel-attributes.csv keeps the alias a vendor reads)")
+    cp = pathlib.Path(R["_path"]) / "corrections-applied.csv"
+    named = {(f.get("row"), f.get("after")) for f in (read_csv(cp) if cp.is_file() else [])
+             if f.get("table") == "subjects" and f.get("column") == "name" and (f.get("words") or "").strip()}
+
+    def person_named(sid, nm):  # a person's correction set this name: it stands
+        return (sid, nm) in named
+    els = [r for r in R["subjects"] if r.get("kind") == "element"]
+    comps = [r for r in els if r.get("level") == "component"]
+    parts = [r for r in els if r.get("level") in ("component", "external dependency")]
+    names = {}
+    for r in parts:  # one key, one row, one name
+        names.setdefault((r.get("name") or "").strip().lower(), []).append(r["subject_id"])
+    for nm, sids in names.items():
+        if nm and len(sids) > 1:
+            err.append(f"subjects.csv: {len(sids)} parts are named {nm!r} ({', '.join(sids)}); one part per "
+                       "deployable, store or outside system, each named by its own name")
+    svc = {}
+    for r in comps:
+        sid, rows = r["subject_id"], by.get(r["subject_id"], [])
+        attrs = {x.get("attribute"): (x.get("value") or "").strip() for x in rows if not x.get("operation")}
+        if r.get("band") == "application":
+            own = {v.lower() for a, v in attrs.items() if v and a in ("k8s.deployment.name", "container.image.name")
+                   or (a or "").startswith("custom: ") and (a or "").endswith(" name")}
+            folder = (r.get("repository") or "").split(":")[-1].strip().rstrip("/").rsplit("/", 1)[-1].lower()
+            nm = (r.get("name") or "").strip()
+            if own and nm.lower() not in own and nm.lower() != folder and not person_named(sid, nm):  # none read: named by its folder
+                err.append(f"subjects.csv {sid}: name {nm!r} is none of its own identifiers (k8s.deployment.name, "
+                           "container.image.name) nor its folder; a part is named as its deployment states it")
+            if "service.name" not in attrs and not rows:  # a part this run read no identifiers for: nobody can add them
+                warn.append(f"subjects.csv {sid}: no identifiers read for it (not read in this run's identity step)")
+            elif "service.name" not in attrs:
+                err.append(f"subjects.csv {sid}: no service.name row in identifiers.csv (a `not set` row counts)")
+            elif not attrs["service.name"].startswith("not set"):
+                svc.setdefault(attrs["service.name"], []).append(sid)
+        elif (r.get("part_kind") or "").strip() == "database" and rows and "db.system.name" not in attrs:
+            err.append(f"subjects.csv {sid}: a database with no db.system.name row in identifiers.csv")
+    for v, sids in svc.items():
+        if len(sids) > 1:
+            warn.append(f"identifiers.csv: {len(sids)} deployables share service.name {v!r} ({', '.join(sids)}): a "
+                        "tracing tool shows them as one service; a finding for the people who deploy them")
+    entry = {x.get("subject_id") for x in idents if x.get("operation") and x.get("attribute") == "span: kind"}
+    for r in R["participation"]:
+        if r.get("operation") and r.get("subject_id") in by and r["subject_id"] not in entry and any(
+                c.get("subject_id") == r["subject_id"] and c.get("band") == "application" for c in comps):
+            warn.append(f"participation.csv {r['subject_id']} step {r.get('step')}: entry point "
+                        f"{r['operation']!r} has no span: kind row in identifiers.csv")
+            entry.add(r["subject_id"])
+    for r in parts:
+        if r.get("level") == "external dependency" and CLASS_NAME.match((r.get("name") or "").strip()) and not any(
+                (x.get("basis") or "").startswith("not found") for x in by.get(r["subject_id"], [])):
+            warn.append(f"subjects.csv {r['subject_id']}: outside system named {r.get('name')!r}, a class or interface "
+                       "name; name it by its configured client name or host, or record its name with basis "
+                       "`not found: configuration not given`")
+    if comps and not any((r.get("application_id") or "").strip() for r in comps):
+        warn.append("subjects.csv: application_id is blank on every component; ask the person for the app id "
+                    "(an open item)")
+    comp_names = {(r.get("name") or "").strip() for r in comps}
+    for r in R["measures"]:
+        seg = (r.get("counted_at") or "").split(",")[0].strip()
+        if seg and comp_names and seg not in comp_names and re.search(r"\b(service|store|database)\b", seg, re.I):
+            warn.append(f"measures.csv {r.get('handle')}: counted_at names {seg!r}, not a component's name")
+    for t in ("subjects", "participation", "measures"):
+        for r in R[t]:
+            if any("business transaction" in (v or "").lower() for v in r.values()):
+                warn.append(f"{t}.csv {r.get('subject_id') or r.get('handle')}: says \"business transaction\", "
+                            "which a tracing tool uses for its own trace grouping; say what the kit means instead")
+    return err, warn
 
 
 # A file and its lines (`path:41`, `path:41-60`): the citation of code. Kept in step with reconcile.CODE.

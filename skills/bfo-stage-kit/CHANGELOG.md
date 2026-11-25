@@ -5,8 +5,53 @@ earlier version of this kit": a new run leaves your earlier register untouched a
 
 From Release 3, each entry ends with an effect line: what a register you already have needs for it. It is
 `none`, `rename: reconcile.py --migrate` (a mechanical rename that touches no content; the check refuses the
-register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
+register until it runs), `upgrade: reconcile.py --upgrade-identity` (a content change, every change recorded,
+refused without a backup), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
+
+## Release 9.15 — 2026-11-25
+
+Release 9.15 makes each part one real thing, named by its own identifiers, and keeps a drawn map from counting as
+finished while its own check refuses rows.
+
+- **One part per deployable.** The merge folds every unit row of one deployable into one part; a store into one part
+  by its configured address, or into the deployable's one store when it has exactly one; and an outside system by its
+  configured client name or address (a shared gateway host alone never makes two systems one). Each folded id stays
+  an alias in `merge/part-ids.csv` and is never given again, and every change is recorded in
+  `corrections-applied.csv`.
+  Effect: start a fresh run.
+- **Each part carries its own identifiers.** A new run reads what each deployable is called once the units are
+  listed, before any mapping agent or reader starts: `identity.py` reads the configuration and deployment files only,
+  as OpenTelemetry attribute names (`service.name`, `k8s.deployment.name`, `db.system.name` and others), each with
+  its basis: `rule: read`, `rule: derived` or `not found`. The merge names each part by them and writes them to the
+  register's `identifiers.csv`, and the map's check gains the identity checks (CHECKS.md, cv-80 to cv-93). A user, password or token in a connection URL is never written.
+  Effect: start a fresh run.
+- **Merge judgments are a draft.** After the merge, run control hands over one agent for the parts no rule can place
+  (an outside system or store with no resolved address, a workload no image matches), on the prompt in
+  `identity/judge-prompt.md`. The agent writes each decision with its basis and evidence to `identity/merges.csv`,
+  then a done mark; until the mark is there run control hands it over again, as often as `relaunches` in
+  run-settings.json allows, then goes on with those parts kept apart; once the mark is there, it merges again with
+  the decisions. A correction (`go.py --apply-correction`, table `merges`, row the candidates) undoes a merge at the
+  next merge and stands through every later merge.
+  Effect: start a fresh run. A register mapped by an earlier release can instead be upgraded in place, optionally,
+  with `python reconcile.py --upgrade-identity <register> --backup <new folder outside the workspace>`.
+- **A map is finished only while it holds.** Run control no longer stops at a drawn fast map whose merge is older
+  than the units, whose map check fails, or with a unit owed again: it goes back to the fast read and acts (merges
+  again, sends units back to their mapping agent), never leaving the person a map with refused rows and no choice
+  waiting. The drawing merges again whenever the units changed since the last merge.
+  Effect: none. A register held at the map with refused rows needs no hand repair: call
+  run control again with this release and it takes the run back into mapping. Do not merge it by hand first.
+- **A call to a system with no unit** (a `to_unit` that is neither a unit nor a service left out) is drawn to an
+  outside part of that name, still listed unmatched, never to nothing, so the map's check no longer refuses it.
+  Effect: none.
+- **No drop is silent.** A service read again with under half the calls an earlier reading found is named in the
+  message at the map, with both counts and the advice to check those calls in the code; a copy set aside is never
+  replaced. The fast map's check says when the merge is older than the units, the cause the map's check cannot name;
+  a unit set aside by the map's check says so in its reason.
+  Effect: none.
+- **A component named with a second name in brackets** is an error once the register has its `identifiers.csv`, as
+  every new run does, and a warning before that.
+  Effect: start a fresh run.
 
 ## Release 9.14 — 2026-11-25
 

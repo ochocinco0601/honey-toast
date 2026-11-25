@@ -664,6 +664,23 @@ def unit_problems(reg, unit, families=None):
     return out
 
 
+SHRUNK_FROM = 4  # an earlier reading with this many calls or more, read again with under half, is said to the person
+
+
+def fewer_calls(reg):
+    """[(unit, calls now, calls in its fullest earlier reading)]: a unit of this flow read again after it was set aside
+    with under half the calls an earlier reading found. Never refused: said at the map, so no drop is silent."""
+    reg = pathlib.Path(reg)
+    out = []
+    for u in sorted(planned(reg)) if (reg / FOLDER / PLAN).is_file() else []:
+        copies = [d for d in (reg / FOLDER / REFUSED).glob(f'*/{u}') if d.is_dir()]
+        now = len(rows(reg / 'units' / u / 'calls.csv'))
+        most = max((len(rows(d / 'calls.csv')) for d in copies), default=0)
+        if most >= SHRUNK_FROM and now * 2 < most:
+            out.append((u, now, most))
+    return out
+
+
 def _resolve(ws, f):
     p = ws / f
     if p.is_file():
@@ -1018,7 +1035,9 @@ PART_RULES = ("each deployable you read is one `subjects.csv` row of kind `eleme
               "`repository` the repository folder its code sits in; a store or platform its deployment provisions "
               "(a database, a cache, a broker) is a component too, band `technology`, its `repository` the one that "
               "defines it (`repo: path`), or, where no repository defines it, `none: ` and where it was looked for "
-              "(`none: looked in infra-repo and the Helm charts`); a part whose code "
+              "(`none: looked in infra-repo and the Helm charts`), its `subject_id` `store:<the configuration key you see it "
+              "under>` (`store:spring.datasource`), or, when no key shows, an id of its own with its `part_kind`, so the merge makes one part of "
+              "it however many units name it; a part whose code "
               "cannot be had is level `external dependency`, repository blank. `part_kind` is exactly one of the "
               "kit's part kinds (method/part-kinds.csv): {kinds}; a service such as an HTTP or gRPC server is "
               "`API service`, a browser-facing one `web front end`. `band` is `application` for a service, worker or "
@@ -1073,8 +1092,8 @@ def register_refusals(reg):
         if r:  # said with the unit's own row, which its correction (fast_map.py fix) addresses
             table = {"element": "subjects", "call": "calls"}.get(r.get("record") or "", "")
             rid = (r.get("row_id") or (r.get("local") if table == "calls" else "") or "").strip()
-            out.setdefault(r["unit"], []).append(e + (f" (units/{r['unit']}/{table}.csv {rid})" if table and rid
-                                                      else ""))
+            out.setdefault(r["unit"], []).append("the map's check of the merged rows: " + e + (
+                f" (units/{r['unit']}/{table}.csv {rid})" if table and rid else ""))
     return out
 
 
@@ -1407,15 +1426,17 @@ def set_aside_bad_ids(reg, extra=None):
             why.append(f"{u}'s rows broke the unit rules again after it was written once more: {said}")
             continue
         n = times.get(u, 0) + 1
-        dest = reg / FOLDER / REFUSED / f"row-ids-{u}-{n}" / u
+        name, k = f"row-ids-{u}-{n}", 1
+        while (reg / FOLDER / REFUSED / name).exists():  # a copy set aside before a try again is kept, never replaced
+            k += 1
+            name = f"row-ids-{u}-{n}-{k}"
+        dest = reg / FOLDER / REFUSED / name / u
         dest.parent.mkdir(parents=True, exist_ok=True)
-        if dest.exists():
-            shutil.rmtree(dest)
         shutil.move(str(d), str(dest))
         times[u] = n
         owed.append(u)
         reasons[u] = said
-        record.append({"session": f"row-ids-{u}-{n}", "units": [u],
+        record.append({"session": name, "units": [u],
                        "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")})
     if owed:
         (reg / FOLDER).mkdir(parents=True, exist_ok=True)
@@ -1469,7 +1490,24 @@ def check(reg, flow, ws=None, transcripts=None):
     problems += found
     notes += cite_notes
     problems += provenance_problems(reg, transcripts)
+    notes += merged_notes(reg)
     return problems, notes
+
+
+def merged_notes(reg):
+    """What the merged map on disk says of the units now, said where this check passes and the map's check may not:
+    a merge older than the units (run control merges again before the drawing, and only then does the map's check
+    read these units' rows), and the map's own check of the merged rows. Nothing when there is no merge yet."""
+    import merge
+    reg = pathlib.Path(reg)
+    if not (reg / "subjects.csv").is_file() or not (reg / "merge").is_dir():
+        return []
+    stale = [p for p in merge.check(reg)[1] if "not what a merge" in p]
+    if not stale:
+        return []
+    return [f"the merged map is older than the units ({'; '.join(stale)}): the map's check (capability_views.py "
+            "--check) reads that older merge, so its errors may name rows the units no longer hold; run control "
+            "merges again before the drawing"]
 
 
 def facts(reg):

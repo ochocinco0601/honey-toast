@@ -340,13 +340,18 @@ the mapping is under way and what is being done (reading, checking or fixing), a
    such part a move names. The
    mapping skill run alone has no pick and reads none in depth. A stage taken further later has its services read
    then, before its measures.
-2. `python "<skill>/units.py" "<your-folder>"` lists the reading units (`units/units.csv`). Then
+2. `python "<skill>/units.py" "<your-folder>"` lists the reading units (`units/units.csv`). Run control reads, at
+   this step and before any reader, what each deployable is called from its deployment and configuration files
+   (`identity.py`, into `identity/`), so the merge names each part by its own identifiers. Then
    `python "<skill>/readers.py" prompt "<your-folder>" --in-scope`, which writes a reader for every unit of a service
    the flow reads (of the go's scope, `scope.json` `services_in`, those of the stages taken further) not yet read for
    this flow, and launch as above. Each reader reads its unit along the stages' path (or in full, with `reading` `full`) and writes only `units/<unit>/`; a unit it finds
    nothing of this flow in is recorded as read, with no rows.
 3. When every reader is back (`readers.py prompt "<your-folder>" --in-scope` writes no reader and names none still
-   running): `python "<skill>/merge.py" "<your-folder>"` writes the map's parts and the calls between them. **Then
+   running): `python "<skill>/merge.py" "<your-folder>"` writes the map's parts and the calls between them, and the
+   register's `identifiers.csv`. Where parts are left that no identity rule placed, run control hands over one
+   `general-purpose` agent on `identity/judge-prompt.md`; it writes its decisions as a draft, then its done mark, and
+   on the next call run control merges again with them (with no mark, it hands the agent over again). **Then
    the sweep:** every call a reader recorded from a step of a stage taken further (`units/<unit>/calls.csv`, its
    `step_hint`) that reaches a surveyed service not yet read for this flow (its `to_unit`, or an `external:<name>`
    that is a surveyed service) makes that service owed a reader too, and so does each consumer the code reader records

@@ -87,8 +87,8 @@ read and those you did not, so the lead can cut the unit in two. Write rows only
 ## What to write
 
 - `subjects.csv`: the parts of this unit (`kind=element`): the service, and anything only it owns (its database, its
-  queue). Unit-local ids such as `orders.svc`, `orders.db`. Name, purpose and source, each purpose citing the lines
-  that show it.
+  queue). Unit-local ids such as `orders.svc`. Name, purpose and source, each purpose citing the lines
+  that show it. A store or broker is written with `subject_id` `store:<the configuration key you see it under>` (the key that holds its address, as the configuration file spells it: `store:spring.datasource`), or, when no key shows, a unit-local id of its own (`orders.db`) with its `part_kind` (database, cache or message broker); an outside system is named in `to_part` as `external:<its configuration key>` (`external:partner.client.base-url`), or its host where the code holds a literal, never a class or interface name (that goes in `source`); only where neither a key nor a host shows, the name the caller uses, which the identity step then judges. Operators look parts up by these names, and the merge resolves each reference to one part for the whole map, however many units name it.
 - `operations.csv`: each operation a part serves that the flow uses or that another unit may call (for http,
   `METHOD /full/path` as served, path parameters as `{name}`; for a message, the queue or topic consumed).
 - `calls.csv`: each call going out of a part: to another unit (`to_unit`, the operation as the caller writes it), or to

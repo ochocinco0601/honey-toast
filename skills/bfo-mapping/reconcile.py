@@ -4,6 +4,9 @@ and check each code citation against the files the new walk read. Reconciling on
 
 Usage: python reconcile.py <earlier register> <new register> [--workspace <folder>] [--out <file>]
        python reconcile.py --migrate <register> [<register> ...]
+       python reconcile.py --upgrade-identity <register> --backup <new folder> [--workspace <folder>]
+              run after --migrate. It CHANGES CONTENT (one part per deployable, named by its identifiers), records
+              every change, and refuses without a backup (upgrade_identity.py)
 
 Columns renamed since an earlier release (RENAMED) are read under their new names whenever an earlier register is
 reconciled. `--migrate` rewrites a register in place to the current names: the columns, the receipt questions that
@@ -841,6 +844,9 @@ def main(argv):
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
     run_lock.refuse_unless_register(argv)
+    if argv[:1] == ["--upgrade-identity"]:  # content changes, every one recorded: upgrade_identity.py
+        import upgrade_identity
+        return upgrade_identity.main(argv[1:])
     if argv[:1] == ["--migrate"]:
         if len(argv) < 2:
             sys.exit("usage: python reconcile.py --migrate <register> [<register> ...]")

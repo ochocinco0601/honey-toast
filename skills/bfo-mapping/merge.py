@@ -77,6 +77,9 @@ Matching a call (the unit's `calls.csv` row).
   consumer -> broker with name `... : <queue> consumer`, its step_hint the steps the consumer's participation rows give
   that part. No consumer: listed unmatched; the publisher -> broker relationship is still drawn.
 - Unmatched calls go to `merge/unmatched-calls.csv` with `why`, and are still in the map once.
+- A call whose `to_unit` names no unit and no service left out (and no `to_part`) is drawn to the outside part
+  `external:<to_unit>`, minted as any `external:` part, and is still listed unmatched, so a name meant as a unit is
+  corrected; it is never drawn to nothing.
 - Out of scope: the scopes so far are every flow's go in `scope.json` (written by go.py, read with go.load_all). A
   unit units.csv lists that has no folder, and whose deployable no go so far took in (`services_in`), is out of
   scope: it is not missing, and nothing of it is merged. A unit with a folder is always merged, whatever the go
@@ -138,6 +141,7 @@ from collections import Counter
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import go  # noqa: E402
+import identity  # noqa: E402  (what each deployable is called, read once from its configuration and deployment files)
 import provenance  # noqa: E402  (who wrote each unit table, from the transcripts)
 import reading_check as rc  # noqa: E402
 import paths  # noqa: E402
@@ -165,6 +169,347 @@ OUTSIDE_KINDS = (("via", "message broker"), ("message", "message broker"), ("db"
 OUTSIDE_SERVICE_KIND = "third-party API"
 LEFT_OUT_KIND = "API service"
 UNIT_REF = re.compile(r"([a-z0-9-]+)/(.+)")
+
+
+FOLD = "merge: folded"  # the source of every removal the fold records
+IDENT_COLS = ["subject_id", "operation", "attribute", "value", "source", "basis"]
+STORE_KINDS = {"database": "db", "cache": "cache", "message broker": "broker", "queue": "broker",
+               "search index": "db", "data store": "db"}
+SECOND_SOURCE = re.compile(r"@Qualifier|DataSource\s*\(|ConnectionFactory\s*\(|@Primary")
+INVOLVEMENT = ("performs", "supports", "records")
+
+
+def id_num(sid):
+    m = re.search(r"(\d+)$", sid or "")
+    return (int(m.group(1)) if m else 10 ** 9, sid or "")
+
+
+def key_text(key):
+    return "|".join(str(k) for k in key)
+
+
+def second_source(reg, r):
+    """The row's cited lines show a second qualified data source (a bean, a qualifier): a keyless store reference
+    then never resolves by rule."""
+    if SECOND_SOURCE.search(r.get("source") or ""):
+        return True
+    cited = rc.cited_in(r.get("source") or "")
+    if not cited:
+        return False
+    ws = rc.workspace(pathlib.Path(reg).resolve(), [p for p, _, _ in cited])
+    for path, a, b in cited:
+        try:
+            lines = (ws / path).read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        lo, hi = (a or 1) - 1, b or len(lines)
+        if any(SECOND_SOURCE.search(x) for x in lines[lo:hi]):
+            return True
+    return False
+
+
+def identity_key(reg, u, r, dep, ident):
+    """The part a unit element is: a deployable by its deployable; a store by its resolved address, or
+    by (deployable, configuration key), or, keyless, by the deployable's one store of that kind when identity's inputs
+    are complete and its cited lines show no second source; anything else is its own row."""
+    local, dep = (r.get("subject_id") or "").strip(), (dep or u).lower()
+    if is_service_row(r):
+        return ("deployable", dep)
+    cls = STORE_KINDS.get((r.get("part_kind") or "").strip().lower())
+    if local.startswith("store:") or cls:
+        if local.startswith("store:") and local[6:].strip():
+            res = identity.resolved((ident or {}).get((dep, local)))
+            return ("store",) + res if res else ("store", dep, local[6:])
+        if ident is not None:
+            cands = [(ref, rows) for (d, ref), rows in ident.items()
+                     if d == dep and ref.startswith("store:") and identity.store_class(rows) == cls]
+            complete = not any(x.get("value") == "deployment files not given" for x in ident.get((dep, ""), []))
+            if len(cands) == 1 and complete and not second_source(reg, r):
+                ref, rows = cands[0]
+                res = identity.resolved(rows)
+                return ("store",) + res if res else ("store", dep, ref[6:])
+    return ("row", u, local)
+
+
+def norm_cands(text):
+    """A `candidates` cell in one form (ids split, stripped, in id order, `;`-joined), so a correction keyed on one
+    order binds to a redraft written in another."""
+    return ";".join(sorted({c.strip() for c in (text or "").split(";") if c.strip()}, key=id_num))
+
+
+def judged_merges(reg):
+    """identity/merges.csv, each row with the corrections recorded to it (table `merges`, keyed by its candidates, in
+    one form)."""
+    fixes = [dict(f, row=norm_cands(f.get("row"))) for f in go.applied_corrections(reg, "merges")]
+    return [go.corrected("merges", dict(r, candidates=norm_cands(r.get("candidates"))), fixes)
+            for r in tables.dicts(pathlib.Path(reg) / identity.DIR / "merges.csv")]
+
+
+def apart_pairs(merges):
+    """Every pair of ids a decision keeps apart (`apart`, the agent's or a person's correction): a fold never joins
+    them, whatever a later `merge` row says."""
+    out = set()
+    for d in merges:
+        if (d.get("decision") or "").strip().lower() == "apart":
+            ids = norm_cands(d.get("candidates")).split(";")
+            out |= {frozenset((a, b)) for a in ids for b in ids if a and b and a != b}
+    return out
+
+
+def joinable(xs, ys, apart):
+    return not any(frozenset((x, y)) in apart for x in xs for y in ys)
+
+
+def fold_groups(members, known, merges, refused=None):
+    """The members grouped by identity key, then joined by each judgment `merge` decision (its candidates are map
+    ids), in first-member order; never joining two ids an `apart` decision keeps apart (each refusal listed)."""
+    parent = list(range(len(members)))
+    apart = apart_pairs(merges)
+    ids_of = {i: {known[(m[0], m[2])]} if (m[0], m[2]) in known else set() for i, m in enumerate(members)}
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def join(i, j, why):
+        a, b = find(i), find(j)
+        if a == b:
+            return
+        if not joinable(ids_of[a], ids_of[b], apart):
+            if refused is not None and why.startswith("identity/"):  # a rule's key yields to `apart` silently
+                refused.append(f"{why}: {', '.join(sorted(ids_of[a] | ids_of[b], key=id_num))} not joined; an "
+                               "`apart` decision keeps two of them apart")
+            return
+        parent[a] = b
+        ids_of[b] |= ids_of.pop(a)
+    first = {}
+    for i, m in enumerate(members):
+        if m[6] in first:
+            join(i, first[m[6]], f"identity key {key_text(m[6])}")
+        else:
+            first[m[6]] = i
+    for d in merges:
+        if (d.get("decision") or "").strip().lower() != "merge":
+            continue
+        want = set(norm_cands(d.get("candidates")).split(";")) - {""}
+        hit = [i for i, m in enumerate(members) if known.get((m[0], m[2])) in want]
+        for i in hit[1:]:
+            join(i, hit[0], f"identity/merges.csv {norm_cands(d.get('candidates'))}")
+    groups = {}
+    for i in range(len(members)):
+        groups.setdefault(find(i), []).append(members[i])
+    return sorted(groups.values(), key=lambda g: members.index(g[0]))
+
+
+def person_set(fixes, sid, col, value):
+    """The cell holds what a person's correction (one with their words) set."""
+    return any(f.get("row") == sid and f.get("column") == col and f.get("after") == value
+               and (f.get("words") or "").strip() for f in fixes)
+
+
+def fold_cells(base, others, now_of, fixes, ident, dep, key, header):
+    """The survivor's row with each folded member's cells brought in: a blank cell filled; a differing cell taken only
+    where a person's correction set the member's value and none set the survivor's. A deployable's `name` is its
+    deployment's name, else its image's, else its folder (identity/), unless a person corrected it."""
+    row = dict(base)
+    sid = row.get("subject_id", "")
+    for m in others:
+        mrow = now_of(m[4]) if m[4] else {c: m[1].get(c, "") for c in header}
+        msid = m[4]["subject_id"] if m[4] else ""
+        for c in header:
+            if c == "subject_id" or not (mrow.get(c) or "").strip():
+                continue
+            if not (row.get(c) or "").strip():
+                row[c] = mrow[c]
+            elif row[c] != mrow[c] and msid and person_set(fixes, msid, c, mrow[c]) \
+                    and not person_set(fixes, sid, c, row[c]):
+                row[c] = mrow[c]
+    if key[0] == "deployable" and ident is not None and not person_set(fixes, sid, "name", row.get("name", "")):
+        row["name"] = identity.part_name(ident.get((dep.lower(), ""), []), dep)[0]
+    elif key[0] == "store" and len(key) > 3 and ident is not None \
+            and not person_set(fixes, sid, "name", row.get("name", "")):
+        named = [identity.store_name(v) for v in ident.values() if ("store",) + (identity.resolved(v) or ()) == key]
+        if named and named[0]:
+            row["name"] = named[0]
+    return row
+
+
+def carry_words(kit, sid, others, fixes):
+    """A survivor cell taken from a folded member's person-corrected cell keeps the person's words."""
+    for k in kit:
+        if k.get("row") != sid or not k.get("column") or k.get("words"):
+            continue
+        for m in others:
+            if m[4]:
+                f = next((f for f in fixes if f.get("row") == m[4]["subject_id"] and f.get("column") == k["column"]
+                          and f.get("after") == k.get("after") and (f.get("words") or "").strip()), None)
+                if f:
+                    k["words"] = f["words"]
+
+
+def fold_participation(out_p, entries, recorded, part_fixes, kit):
+    """Participation through the fold: rows landing on one key are one row, the survivor's own
+    first; a finished row whose key the fold changed is recorded on its old key (key column and combined cells), and
+    each further finished row on the key is withdrawn by a recorded removal on its old key."""
+    groups = {}
+    base = {i: b for i, _, b in entries}
+    for i, old, _ in entries:
+        groups.setdefault(go.row_key("participation", out_p[i]), []).append((i, old, base[i]))
+    drop, touched = set(), set()
+    for key, got in groups.items():
+        got = [(i, old) for i, old, _ in got]
+        if all(old == out_p[i]["subject_id"] for i, old in got):
+            continue
+        got.sort(key=lambda e: (e[1] != out_p[e[0]]["subject_id"], e[0]))
+        rows = [out_p[i] for i, _ in got]
+        final = dict(rows[0])
+        inv = [r.get("involvement", "") for r in rows]
+        final["involvement"] = next((x for x in INVOLVEMENT if x in inv), inv[0])
+        final["activity"] = "; ".join(dict.fromkeys(r["activity"].strip() for r in rows if r.get("activity", "").strip()))
+        for c in ("decision_point", "reply_decision_point"):
+            final[c] = next((r[c] for r in rows if (r.get(c) or "").strip()), "")
+        touched.update(i for i, _ in got)
+        for n, (i, old) in enumerate(got):
+            was_row = dict(base[i], subject_id=old)  # the root row as recorded: before unrecorded unit corrections
+            oldkey = go.row_key("participation", was_row)
+            if old in recorded:
+                was = go.corrected("participation", was_row, part_fixes, oldkey)
+                if n == 0:
+                    for c in PART_COLS:
+                        if (was.get(c) or "") != (final.get(c) or ""):
+                            kit.append({"table": "participation", "row": oldkey, "column": c,
+                                        "before": was.get(c) or "", "after": final.get(c) or "",
+                                        "source": f"{FOLD}: {old} into {final['subject_id']}",
+                                        "why": "a finished flow's row, its part folded into another"})
+                elif not go.removed(part_fixes, oldkey):
+                    kit.append({"table": "participation", "row": oldkey, "column": "", "after": go.REMOVED,
+                                "before": json.dumps(was, ensure_ascii=False),
+                                "source": f"{FOLD}: {old} into {final['subject_id']}, combined with {key}",
+                                "why": "a finished flow's row, combined into one row of the part it folded into"})
+            if n:
+                drop.add(i)
+        out_p[got[0][0]] = final
+    return [r for i, r in enumerate(out_p) if i not in drop], touched
+
+
+def root_identifiers(reg, ident, survivor_of, alias, dep_of, ops, ext_survivor=None):
+    """The root identifiers.csv: each part's rows from identity/, each entry point's rows from its
+    operation's protocol and text, by rule; every recorded `identifiers` correction applied by its key, one recorded
+    on a folded id applied to the survivor's row."""
+    out, seen = [], set()
+
+    def add(sid, op, attr, value, source, basis):
+        k = (sid, op, attr, value)
+        if sid and value and k not in seen:
+            seen.add(k)
+            out.append({"subject_id": sid, "operation": op, "attribute": attr, "value": value, "source": source,
+                        "basis": basis})
+    for sid, (head, _, key) in survivor_of.items():
+        dep = (dep_of.get(head[0], head[0]) or head[0]).lower()
+        refs = []
+        if key[0] == "deployable":
+            refs = [(dep, "")]
+        elif key[0] == "store":
+            refs = [(d, ref) for (d, ref), rows in ident.items() if ref.startswith("store:")
+                    and ((identity.resolved(rows) and ("store",) + identity.resolved(rows) == key)
+                         or (d, ref) == (key[1], "store:" + str(key[2]) if len(key) > 2 else ""))]
+        for ref in refs:
+            for x in ident.get(ref, []):
+                if x.get("attribute") != "custom: finding" or key[0] == "deployable":
+                    add(sid, "", x.get("attribute", ""), x.get("value", ""), x.get("source", ""), x.get("basis", ""))
+    for sid, (key, rows) in (ext_survivor or {}).items():
+        for x in rows or []:
+            add(sid, "", x.get("attribute", ""), x.get("value", ""), x.get("source", ""), x.get("basis", ""))
+    derived = "rule: derived: from operations.csv protocol and operation"
+    for sid, o in ops:
+        op, proto, src = claim(o.get("operation"))[2], (o.get("protocol") or "").strip().lower(), o.get("source", "")
+        if not sid or not op:
+            continue
+        if proto == "http":
+            k = http_key(op)
+            route = op.split(None, 1)[1] if k and len(op.split(None, 1)) > 1 else op
+            add(sid, op, "span: kind", "SERVER", src, derived)
+            add(sid, op, "http.route", route, src, derived)
+            add(sid, op, "span: name", f"{k[0]} {route}" if k else op, src, derived)
+        elif proto == "rpc":
+            add(sid, op, "span: kind", "SERVER", src, derived)
+            add(sid, op, "rpc.method", op.rsplit("/", 1)[-1].rsplit(".", 1)[-1], src, derived)
+            add(sid, op, "span: name", op, src, derived + " (OTel RPC conventions; not checked against a vendor)")
+        elif proto == "message":
+            add(sid, op, "span: kind", "CONSUMER", src, derived)
+            add(sid, op, "messaging.destination.name", op, src, derived)
+            add(sid, op, "span: name", f"process {op}", src, derived + " (the consumer span-name form is UNCONFIRMED)")
+        elif proto == "scheduled":
+            add(sid, op, "span: kind", "INTERNAL", src, derived + " (UNCONFIRMED: no endpoint; search traces by span "
+                                                               "name)")
+            add(sid, op, "span: name", op, src, derived)
+    fixes = []
+    for f in go.applied_corrections(reg, "identifiers"):
+        head, sep, rest = (f.get("row") or "").partition(" · ")
+        fixes.append(dict(f, row=alias.get(head, head) + sep + rest))
+    return [go.corrected("identifiers", r, fixes) for r in out]
+
+
+def fold_gone(fixes, sid):
+    """The row is removed now, by a fold."""
+    last = [f for f in fixes if f.get("row") == sid and not (f.get("column") or "").strip()
+            and removal_or_restore(f)]
+    return bool(last) and last[-1].get("after") == go.REMOVED and (last[-1].get("source") or "").startswith(FOLD)
+
+
+def removal_or_restore(f):
+    return f.get("after") == go.REMOVED or f.get("before") == go.REMOVED
+
+
+def carrier_hosts(reg):
+    """Hosts that front many systems (an API gateway, an egress proxy): run-settings.json `carrier_hosts`."""
+    try:
+        got = json.loads((pathlib.Path(reg) / layout.SETTINGS).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return set()
+    return {h.strip().lower() for h in got.get("carrier_hosts") or [] if h.strip()}
+
+
+def external_keys(reg, refs, ident):
+    """{external ref: (key, its identifier rows)} for the outside systems the calls name: its
+    configured client name where set; else its host, and its base path too when the host is a carrier (listed in
+    run-settings.json, or reached under more than one client configuration prefix), so a shared gateway host is never
+    a key on its own; a ref with no resolved address is its own key."""
+    by_dep = {}  # (deployable, ref): its rows; one ref name two deployables configure differently goes to judgment
+    for (d, ref), rows in (ident or {}).items():
+        if ref.startswith(EXTERNAL):
+            by_dep[(d, ref)] = rows
+    carriers, prefixes = carrier_hosts(reg), {}
+    for (d, ref), rows in by_dep.items():
+        host = identity.value(rows, "server.address").lower()
+        if host and identity.resolved(rows):  # the client's prefix: its configuration key before the address leaf
+            segs = ref[len(EXTERNAL):].split(".")
+            prefixes.setdefault(host, set()).add(".".join(segs[:-1]) or segs[0])
+    carriers |= {h for h, ps in prefixes.items() if len(ps) > 1}
+
+    def key_of(ref, rows):
+        svc = identity.value(rows, "server.service.name")
+        host = identity.value(rows, "server.address").lower() if identity.resolved(rows) else ""
+        if svc:
+            return ("external", svc)
+        if host:
+            path = identity.value(rows, "url.path") if host in carriers else ""
+            if host in carriers and not path:  # a gateway host whose paths are in code: never a key on its own
+                return ("ref", ref)
+            return ("external", host, path)
+        return ("ref", ref)
+    out = {}
+    for ref in refs:
+        got = [(key_of(ref, rows), rows) for (d, r2), rows in sorted(by_dep.items()) if r2 == ref]
+        if not got:
+            out[ref] = (("ref", ref), None)
+        elif len({k for k, _ in got}) > 1:
+            out[ref] = (("ref", ref), got[0][1])
+        else:
+            out[ref] = got[0]
+    return out
 
 
 def claim(text):
@@ -429,7 +774,9 @@ def build(reg, write=False, out=None):
         """`fresh` in place of the recorded row, each cell it changes recorded as a correction the merge makes."""
         was = now_of(rec)
         for c in header:
-            if (was.get(c) or "") != (fresh.get(c) or ""):
+            if (was.get(c) or "") != (fresh.get(c) or "") and not any(
+                    k.get("row") == rec.get("subject_id", "") and k.get("column") == c
+                    and k.get("after") == (fresh.get(c) or "") for k in kit):
                 kit.append({"table": "subjects", "row": rec.get("subject_id", ""), "column": c,
                             "before": was.get(c) or "", "after": fresh.get(c) or "", "source": source,
                             "why": "a finished flow's row, changed by what the merge reads now"})
@@ -466,6 +813,11 @@ def build(reg, write=False, out=None):
     # elements
     ids, band, first_el = {}, {}, {}
     given = part_ids(reg)
+    prior = tables.dicts(reg / PART_IDS)
+    given_was = {((r.get("source") or "").strip(), (r.get("local") or "").strip()): (r.get("was") or "").strip()
+                 for r in prior}  # the id each member had on its own, kept while a fold joins it to another
+    prior_alias = {(r.get("subject_id") or "").strip(): (r.get("alias_of") or "").strip() for r in prior
+                   if (r.get("alias_of") or "").strip()}
     now_ids = []
     lead_sids = {r.get("subject_id", "").strip() for r in lead_s}
     for r in lead_s:
@@ -483,6 +835,9 @@ def build(reg, write=False, out=None):
     # so the service is one part, and the placeholder's row is replaced by a correction the merge records
     finished_ph = finished_placeholders(reg, lead_s, flow_now)
     taken_over = {}
+    ident = identity.load(reg)
+    members = []  # (u, r, local, part, rec, ph, key): every unit element, before any id is given
+    seen_local = set()
     for u in units:
         for r in data[u]["subjects"]:
             if r.get("kind", "").strip() == "relationship":
@@ -491,35 +846,67 @@ def build(reg, write=False, out=None):
             fill_repository(r, u, unit_rows)
             local = r.get("subject_id", "").strip()
             part = " ".join((r.get("name") or "").split()).lower() or local  # its identity across rewrites: the name
-            if (u, local) in ids:
+            if (u, local) in seen_local:
                 problems.append(f"units/{u}/subjects.csv {r.get('row_id')}: subject_id {local} used twice")
                 continue
-            rec = element_record(u, r)
-            ph = finished_ph.get(dep_of.get(u, u).lower())
-            if rec:
-                sid = rec["subject_id"]
-                if ph and sid == ph["subject_id"]:
-                    taken_over[sid] = ph
-            elif ph and ph["subject_id"] not in taken_over and is_service_row(r):
-                sid = ph["subject_id"]
-                taken_over[sid] = ph
-            elif given.get((u, part)) and given[(u, part)] not in lead_sids \
-                    and given[(u, part)] not in ids.values():  # as the last merge gave it: ids never shift
-                sid = given[(u, part)]
-            else:
-                n += 1
-                sid = f"S{n:02d}"
-            ids[(u, local)] = sid
-            now_ids.append({"source": u, "local": part, "subject_id": sid})
-            first_el.setdefault(u, sid)
-            band[sid] = r.get("band", "")
-            unit_elements.append((u, r, sid))
+            seen_local.add((u, local))
+            members.append((u, r, local, part, element_record(u, r), finished_ph.get(dep_of.get(u, u).lower()),
+                            identity_key(reg, u, r, dep_of.get(u, u), ident)))
+    # one part per identity key. The id each element had, or would keep, on its own: its record, its finished
+    # placeholder, or the last merge's; a group's survivor is its lowest recorded id, else its lowest known id
+    known = {}
+    for u, r, local, part, rec, ph, key in members:
+        if rec:
+            known[(u, local)] = rec["subject_id"]
+        elif ph and is_service_row(r):
+            known[(u, local)] = ph["subject_id"]
+        elif given.get((u, part)) and given[(u, part)] not in lead_sids:
+            known[(u, local)] = given_was.get((u, part)) or given[(u, part)]
+    refused = []
+    groups = fold_groups(members, known, judged_merges(reg), refused)
+    problems += refused
+    alias, survivor_of = {}, {}
+    for g in groups:
+        live = sorted({m[4]["subject_id"] for m in g if m[4] and not m[4].get("removed")}, key=id_num)
+        anyknown = sorted({known[(m[0], m[2])] for m in g if (m[0], m[2]) in known}, key=id_num)
+        if live:
+            sid = live[0]
+        elif anyknown and anyknown[0] not in ids.values():
+            sid = anyknown[0]
+        else:
+            n += 1
+            sid = f"S{n:02d}"
+        head = next((m for m in g if known.get((m[0], m[2])) == sid), g[0])
+        for m in g:
+            ids[(m[0], m[2])] = sid
+            was = known.get((m[0], m[2]))
+            if was and was != sid:
+                alias[was] = sid
+            now_ids.append({"source": m[0], "local": m[3], "subject_id": sid, "key": key_text(m[6]), "alias_of": "",
+                            "was": was or sid})
+            first_el.setdefault(m[0], sid)
+        if head[5] and sid == head[5]["subject_id"] and (head[4] or is_service_row(head[1])):
+            taken_over[sid] = head[5]
+        band[sid] = head[1].get("band", "")
+        survivor_of[sid] = (head, [m for m in g if m is not head], g[0][6])
+        unit_elements.append((head[0], head[1], sid))
 
     def resolve(u, local):
         local = (local or "").strip()
         if local.startswith(EXTERNAL):
             return ids.get(("", local))
         return ids.get((u, local))
+
+    left_out_names = scopes(reg)[1]
+
+    def unknown_target(c):
+        """`external:<to_unit>` for a call whose to_unit names no unit and no service left out: drawn to that outside
+        part, never to nothing, and still listed unmatched so the name is corrected if it was meant as a unit."""
+        t = c.get("to_unit", "").strip()
+        if (not t or t in data or t in outside or t.lower() in left_out_names or c.get("to_part", "").strip()
+                or c.get("protocol", "").strip().lower() == "message"):
+            return None
+        return EXTERNAL + t
 
     externals, reached = {}, {}
     for u in units:
@@ -529,6 +916,10 @@ def build(reg, write=False, out=None):
                 if ref.startswith(EXTERNAL):
                     externals.setdefault(ref, c.get("source", ""))
                     reached.setdefault(ref, set()).add("via" if col == "via" else c.get("protocol", "").strip().lower())
+            ref = unknown_target(c)
+            if ref:
+                externals.setdefault(ref, c.get("source", ""))
+                reached.setdefault(ref, set()).add(c.get("protocol", "").strip().lower())
     ext_rows = []
 
     def kinded(rec, kind, source):
@@ -553,7 +944,7 @@ def build(reg, write=False, out=None):
         if rec:
             ids[("", ref)] = sid = rec["subject_id"]
             band[sid] = rec.get("band", "")
-            if not go.removed(fixes, sid):
+            if not go.removed(fixes, sid) or fold_gone(fixes, sid):  # a fold may be undone: decided below
                 ext_rows.append(keep("external", kinded(rec, kind, f"merge: {ref} given the kind its calls show"),
                                      local=ref))
             continue
@@ -569,6 +960,88 @@ def build(reg, write=False, out=None):
                                           "name": ref[len(EXTERNAL):],
                                           "purpose": f"proposed: named by the calls as {ref}; no unit reads it",
                                           "source": externals[ref]}, local=ref))
+
+    # outside systems: one part per configured client name or address, and per judgment (identity/merges.csv)
+    ext_keys = external_keys(reg, set(externals) | set(record["external"]), ident)
+    ext_sid = {ref: ids[("", ref)] for ref in ext_keys if ("", ref) in ids}
+    groups_x = {}
+    for ref, sid in sorted(ext_sid.items(), key=lambda x: id_num(x[1])):
+        groups_x.setdefault(ext_keys[ref][0], []).append(ref)
+    union = {k: k for k in groups_x}
+
+    def top(k):
+        while union[k] != k:
+            k = union[k]
+        return k
+    judged = judged_merges(reg)
+    apart = apart_pairs(judged)
+
+    def ids_under(t):
+        return {ext_sid[r] for k, refs in groups_x.items() if top(k) == t for r in refs}
+    for d in judged:
+        if (d.get("decision") or "").strip().lower() == "merge":
+            want = set(norm_cands(d.get("candidates")).split(";")) - {""}
+            ks = list(dict.fromkeys(top(k) for k, refs in groups_x.items() if any(ext_sid[r] in want for r in refs)))
+            for k in ks[1:]:
+                a, b = top(ks[0]), top(k)
+                if a == b:
+                    continue
+                if joinable(ids_under(a), ids_under(b), apart):
+                    union[b] = a
+                else:
+                    problems.append(f"identity/merges.csv {norm_cands(d.get('candidates'))}: outside systems "
+                                    f"{', '.join(sorted(ids_under(b), key=id_num))} not joined; an `apart` "
+                                    "decision keeps them apart")
+    merged_x = {}
+    for k, refs in groups_x.items():
+        merged_x.setdefault(top(k), []).extend(refs)
+    ext_folded, ext_survivor = set(), {}
+    for k, refs in merged_x.items():
+        refs.sort(key=lambda r: id_num(ext_sid[r]))
+        sid = ext_sid[refs[0]]
+        named = next((ext_keys[r][0] for r in refs if ext_keys[r][0][0] == "external"), k)
+        ext_survivor[sid] = (named, next((ext_keys[r][1] for r in refs if ext_keys[r][1]), None))
+        for r in refs[1:]:
+            was = ext_sid[r]
+            if was == sid:
+                continue
+            alias[was], ids[("", r)] = sid, sid
+            ext_folded.add(was)
+            rec = record["external"].get(r)
+            if rec and not go.removed(fixes, was):
+                kit.append({"table": "subjects", "row": was, "column": "",
+                            "before": json.dumps(now_of(rec), ensure_ascii=False), "after": go.REMOVED,
+                            "source": f"{FOLD} into {sid}: outside system {key_text(k)}",
+                            "why": f"folded into {sid}: one part per outside system"})
+    for i, row in enumerate(ext_rows):
+        sid = row.get("subject_id", "")
+        k, _ = ext_survivor.get(sid, (None, None))
+        if k and k[0] == "external" and not person_set(fixes, sid, "name", row.get("name", "")):
+            name = "".join(x for x in k[1:] if x)
+            if name and name != row.get("name"):
+                ref = next((r for r, s2 in ext_sid.items() if s2 == sid), "")
+                rec = record["external"].get(ref)
+                ext_rows[i] = settle(rec, dict(row, name=name), f"merge: {ref} named by its address") if rec \
+                    else dict(row, name=name)
+    ext_rows = [r for r in ext_rows if r.get("subject_id") not in ext_folded]
+    for r in ext_rows:  # a survivor whose fold was undone (a corrected judgment): restored, recorded
+        if fold_gone(fixes, r.get("subject_id", "")):
+            kit.append({"table": "subjects", "row": r["subject_id"], "column": "", "before": go.REMOVED,
+                        "after": json.dumps(r, ensure_ascii=False), "source": "merge: fold undone",
+                        "why": "restored: the judgment that folded it was corrected (identity/merges.csv)"})
+    resolution[:] = [x for x in resolution if x.get("subject_id") not in ext_folded]
+    # an earlier merge's folded id stays an alias (its target followed through this merge's folds) unless it is a part
+    # again, a fold undone: a folded id is never given again, and the upgrade re-points what still cites it
+    live_ids = set(ids.values()) | lead_sids
+    for was, sid in prior_alias.items():
+        if was not in alias and was not in live_ids:
+            seen = set()
+            while sid in alias and sid not in seen:
+                seen.add(sid)
+                sid = alias[sid]
+            alias[was] = sid
+    for was, sid in sorted(alias.items(), key=lambda x: id_num(x[0])):  # written after every fold, outside ones too
+        now_ids.append({"source": "alias", "local": was.lower(), "subject_id": was, "key": "", "alias_of": sid})
 
     left_out = scopes(reg)[1]
     unread_words = {dep_of.get(u, u): w for u, w in left_unread(reg).items()}
@@ -633,6 +1106,14 @@ def build(reg, write=False, out=None):
     lead_rels = [r for r in out_s if r.get("kind", "").strip() == "relationship"]
     els = []
     for u, r, sid in unit_elements:
+        head, others, key = survivor_of[sid]
+        for m in others:  # each folded member's own record, withdrawn (once) as folded into the survivor
+            mrec = m[4]
+            if mrec and mrec["subject_id"] != sid and not go.removed(fixes, mrec["subject_id"]):
+                kit.append({"table": "subjects", "row": mrec["subject_id"], "column": "",
+                            "before": json.dumps(now_of(mrec), ensure_ascii=False), "after": go.REMOVED,
+                            "source": f"{FOLD} into {sid}: identity key {key_text(key)}",
+                            "why": f"folded into {sid}: one part per deployable, store or outside system"})
         row = {c: r.get(c, "") for c in header}
         row["subject_id"] = sid
         if row.get("part_of", "").strip():
@@ -642,19 +1123,33 @@ def build(reg, write=False, out=None):
             else:
                 unknown(u, r, "part_of", row["part_of"])
         local, rid = r.get("subject_id", "").strip(), r.get("row_id", "").strip()
-        rec = element_record(u, r)
+        rec = head[4] if head[4] and head[4]["subject_id"] == sid else None
         if rec:
             if go.removed(fixes, sid):
-                problems.append(f"units/{u}/subjects.csv {rid}: its row was removed in a finished flow (the map's "
-                                f"{sid}, a tombstone in merge/ids.csv), and a row_id is never reused: give a new row "
-                                "a new row_id")
-                continue
-            row = (settle(rec, row, f"merge: units/{u}/subjects {rid} corrected")
-                   if unit_fixed(u, "subjects", rid, rec) else now_of(rec))
+                if not any(f.get("row") == sid and f.get("after") == go.REMOVED
+                           and (f.get("source") or "").startswith(FOLD) for f in fixes):
+                    problems.append(f"units/{u}/subjects.csv {rid}: its row was removed in a finished flow (the map's "
+                                    f"{sid}, a tombstone in merge/ids.csv), and a row_id is never reused: give a new "
+                                    "row a new row_id")
+                    continue
+                kit.append({"table": "subjects", "row": sid, "column": "", "before": go.REMOVED,
+                            "after": json.dumps(now_of(rec), ensure_ascii=False), "source": "merge: fold undone",
+                            "why": "restored: the judgment that folded it was corrected (identity/merges.csv)"})
+            base = row if unit_fixed(u, "subjects", rid, rec) else now_of(rec)
+            final = fold_cells(base, others, now_of, fixes, ident, dep_of.get(u, u), key, header)
+            if final != now_of(rec):
+                row = settle(rec, final, f"merge: units/{u}/subjects {rid} corrected" if base is row
+                             else f"merge: fold of {key_text(key)} into {sid}")
+                carry_words(kit, sid, others, fixes)
+            else:
+                row = final
         elif sid in taken_over:
             ph = taken_over[sid]
+            row = fold_cells(row, others, now_of, fixes, ident, dep_of.get(u, u), key, header)
             row = settle(ph, row, f"merge: {dep_of.get(u, u)} read in flow {flow_now}, in place of flow "
                                   f"{ph.get('flow', '')}'s placeholder")
+        else:
+            row = fold_cells(row, others, now_of, fixes, ident, dep_of.get(u, u), key, header)
         els.append(keep("element", row, u, local, rid))
 
     # relationships
@@ -676,6 +1171,39 @@ def build(reg, write=False, out=None):
                 "name": name, "from_id": frm, "to_id": to, "step_hint": step_hint, "operation": within,
                 "sequence": sequence, "carries_case_id": carries,
                 "source": ("proposed: " if proposed and not src.lower().startswith("proposed") else "") + src}
+
+    folded_parts = {sid for sid, (_, others, _) in survivor_of.items() if others} | set(alias.values())
+    rel_seen = set()
+
+    def folded_away(sid):
+        return any(f.get("row") == sid and f.get("after") == go.REMOVED and (f.get("source") or "").startswith(FOLD)
+                   for f in fixes + kit)
+
+    def fold_rel(row, rec):
+        """A relationship with its ends mapped through the fold: a recorded one's change recorded; one whose
+        two ends are now one part, or the same as one already given, withdrawn (recorded when it was recorded)."""
+        mapped = dict(row, **{c: alias.get(row.get(c, ""), row.get(c, "")) for c in ("from_id", "to_id")})
+        was_ends = f"{row.get('from_id', '')} to {row.get('to_id', '') or '?'}: "
+        if mapped != row and was_ends in (row.get("name") or ""):  # the name says its ends: they follow the fold
+            mapped["name"] = row["name"].replace(was_ends, f"{mapped['from_id']} to {mapped['to_id'] or '?'}: ", 1)
+        if rec and mapped != row:
+            mapped = settle(rec, mapped, f"{FOLD}: an end of {rec['subject_id']} folded")
+        frm, to = mapped.get("from_id", ""), mapped.get("to_id", "")
+        text = (mapped.get("name") or "").split(": ", 1)[-1]
+        same = (frm, to, mapped.get("operation", ""), text)
+        why = None
+        if frm and frm == to and frm in folded_parts:
+            why = f"{FOLD}, both ends are {frm}"
+        elif same in rel_seen and (frm in folded_parts or to in folded_parts):
+            why = f"{FOLD}, the same as another relationship of {frm} to {to}"
+        rel_seen.add(same)
+        if why is None:
+            return mapped
+        if rec and not go.removed(fixes, rec["subject_id"]):
+            kit.append({"table": "subjects", "row": rec["subject_id"], "column": "",
+                        "before": json.dumps(now_of(rec), ensure_ascii=False), "after": go.REMOVED, "source": why,
+                        "why": "a relationship the fold makes internal or duplicate"})
+        return None
 
     def as_recorded(rec):
         """A recorded relationship, as the map holds it, counted as its name says (never by fact-base.json now)."""
@@ -730,6 +1258,9 @@ def build(reg, write=False, out=None):
                                          "why": f"out of scope: {out_service(to_unit)} was left out at the go"})
                 elif to_unit not in data:
                     why = f"{to_unit} is not a unit in units.csv"
+                    if unknown_target(c):
+                        to = resolve(u, unknown_target(c)) or ""
+                        why += f"; drawn to the outside part {unknown_target(c)}"
                 else:
                     ops = ops_of(to_unit, proto)
                     if proto == "http":
@@ -754,7 +1285,9 @@ def build(reg, write=False, out=None):
                 why = "names neither to_unit nor to_part"
             if rec and not again:  # a finished flow's call: as recorded, never resolved afresh nor listed unmatched
                 counts["recorded"] = counts.get("recorded", 0) + 1
-                if go.removed(fixes, rec["subject_id"]):
+                if go.removed(fixes, rec["subject_id"]) and folded_away(rec["subject_id"]):
+                    pass
+                elif go.removed(fixes, rec["subject_id"]):
                     problems.append(f"units/{u}/calls.csv {crid}: its row was removed in a finished flow (the map's "
                                     f"{rec['subject_id']}, a tombstone in merge/ids.csv), and a row_id is never reused: "
                                     "give a new row a new row_id")
@@ -768,7 +1301,9 @@ def build(reg, write=False, out=None):
                                                sequence=c.get("sequence", "").strip(),
                                                carries_case_id=c.get("carries_case_id", ""), source=src),
                                      f"merge: units/{u}/calls {crid} corrected")
-                    rels.append(keep("call", row, u, crid))
+                    row = fold_rel(row, rec)
+                    if row:
+                        rels.append(keep("call", row, u, crid))
             else:
                 if matched:
                     counts["matched"] += 1
@@ -782,7 +1317,9 @@ def build(reg, write=False, out=None):
                 if rec:
                     row = settle(rec, row, f"merge: {now_read[rec['to_id']]} read in flow {flow_now}"
                                  if rec.get("to_id") in now_read else f"merge: units/{u}/calls {crid} corrected")
-                rels.append(keep("call", row, u, crid))
+                row = fold_rel(row, rec)
+                if row:
+                    rels.append(keep("call", row, u, crid))
             if proto == "message" and broker:
                 for cu, part, orow in consumers:
                     cid = resolve(cu, part)
@@ -808,7 +1345,9 @@ def build(reg, write=False, out=None):
                     else:
                         row = rel(cid, broker, f"{op} consumer", orow.get("source", ""), CONSUMER_KINDS, d2, p2,
                                   "; ".join(steps))
-                    rels.append(keep("consumer", row, cu, cid, orow.get("row_id", "").strip(), broker, op))
+                    row = fold_rel(row, crec)
+                    if row:
+                        rels.append(keep("consumer", row, cu, cid, orow.get("row_id", "").strip(), broker, op))
 
     # participation
     out_p = []
@@ -816,13 +1355,15 @@ def build(reg, write=False, out=None):
         row = dict(r)
         row["subject_id"] = lead_id(row.get("subject_id")) or row.get("subject_id", "")
         out_p.append(row)
-    unit_p = 0
+    unit_p, p_entries, later = 0, [], []
     finished = any(record.values())
     part_fixes = go.applied_corrections(reg, "participation")
 
     def part_out(u, r):
+        """The root row a unit row gave before any fold: its part under the id it had on its own."""
         row = {c: (r.get(c) or "") for c in PART_COLS}
-        row["subject_id"] = resolve(u, row["subject_id"]) or row["subject_id"]
+        own = known.get((u, row["subject_id"].strip()))
+        row["subject_id"] = own or resolve(u, row["subject_id"]) or row["subject_id"]
         return row
 
     def part_kit(before, now, source):
@@ -858,8 +1399,9 @@ def build(reg, write=False, out=None):
                 for f in reversed(mine):
                     if f["column"] in old and old[f["column"]] == f.get("after"):
                         old[f["column"]] = f.get("before", "")
-                part_kit(part_out(u, old), row, f"merge: units/{u}/participation {r.get('row_id', '').strip()} "
-                                                "corrected")
+                later.append((len(out_p), part_out(u, old), row,
+                              f"merge: units/{u}/participation {r.get('row_id', '').strip()} corrected"))
+            p_entries.append((len(out_p), part_out(u, r)["subject_id"], part_out(u, old if mine else r)))
             out_p.append(row)
             unit_p += 1
         for f in unit_fixes:
@@ -869,6 +1411,12 @@ def build(reg, write=False, out=None):
                 except ValueError:
                     continue
                 part_kit(part_out(u, old), None, f"merge: units/{u}/participation {f.get('row')} removed")
+
+    out_p, touched = fold_participation(out_p, p_entries, {r.get("subject_id") for r in record["element"].values()},
+                                        part_fixes, kit)
+    for i, before, row, source in later:  # a unit correction's change, where the fold did not already record the row
+        if i not in touched:
+            part_kit(before, row, source)
 
     for (u, rid), in_tables in placed.items():
         if rid and len(in_tables) > 1:
@@ -905,6 +1453,20 @@ def build(reg, write=False, out=None):
              layout.UNMATCHED_CSV: tables.text(UNMATCHED_COLS, unmatched),
              layout.OUT_OF_SCOPE_CSV: tables.text(UNMATCHED_COLS, out_of_scope),
              layout.SUMMARY_JSON: json.dumps(summary, indent=1) + "\n"}
+    if ident is not None:  # the root identifiers, from identity/ and the entry points, corrections applied
+        files["identifiers.csv"] = tables.text(IDENT_COLS, root_identifiers(
+            reg, ident, survivor_of, alias, dep_of,
+            [(resolve(u, o.get("part")), o) for u in units for o in data[u]["operations"]], ext_survivor))
+    used = {r.get("subject_id") for r in subjects}
+    problems += [f"subjects.csv: {was} is a folded id (an alias of {sid}) and is used again; a folded id is never "
+                 "reused" for was, sid in alias.items() if was in used]
+    problems += [f"subjects.csv {r.get('subject_id')}: a relationship from {r.get('from_id')} to itself, a part the "
+                 "fold made one; it is withdrawn by a recorded removal" for r in subjects
+                 if r.get("kind") == "relationship" and r.get("from_id") and r.get("from_id") == r.get("to_id")
+                 and r.get("from_id") in {s for s, (_, o, _) in survivor_of.items() if o}]
+    for i, m in enumerate(judged_merges(reg), 2):
+        if not (m.get("basis") or "").strip() or not (m.get("evidence") or "").strip():
+            problems.append(f"identity/merges.csv line {i}: a merge or keep-apart decision with no basis or evidence")
     gaps_now = read_gaps(reg, taken_over, kit)
     if gaps_now is not None:
         files["measure-gaps.csv"] = gaps_now
@@ -1033,7 +1595,7 @@ def merge(reg):
     for name, text in files.items():
         with open(reg / name, "w", encoding="utf-8", newline="") as f:
             f.write(text)
-    tables.write(reg / PART_IDS, ["source", "local", "subject_id"], got["part_ids"])
+    tables.write(reg / PART_IDS, ["source", "local", "subject_id", "key", "alias_of", "was"], got["part_ids"])
     _record_kit(reg, got["kit"])
     return summary, problems
 

@@ -47,7 +47,7 @@ reviews.
 ## The job this serves
 
 Two levels up, the customers and the business who depend on a capability, and the team that runs it in production,
-who need its failures seen and acted on. Step 1 of the path from a new capability to supported in production: understand who depends on it. From the code
+who need its failures seen and acted on. The first thing on the way to supported in production is knowing who depends on it. From the code
 and the documents the person points at, this skill draws one business flow: what one case of it is and how to follow
 it, the stages it goes through and the process steps in each, the services, stores, outside parties and people that
 carry each step, and each step's Business Impact. **In:** what the person points at (repositories, documents,
@@ -73,7 +73,9 @@ knows what they are trusting.
 skill's `agents/` folder) before the session starts: `bfo-source-reader` (the first look's source readers),
 `bfo-flow-mapper` (the fast map), `bfo-unit-reader` (the full reading's readers) and `bfo-row-judge` (the full
 reading's judges, and the first look's judges of the quotes the helper copied itself). Each step that launches one
-refuses, naming the copy step, while it is missing.
+refuses, naming the copy step, while it is missing. After the merge, run control may also hand over one
+`general-purpose` agent (built in, nothing to install) to judge the parts no identity rule placed: launch it as its
+action says and call run control again.
 <!-- /shared: agent-types-before-a-run -->
 
 ## Run alone, or from the stage kit

@@ -72,25 +72,25 @@ FAST_CHECKS_SAID = ("one checker per map row a proposal rests on, one round (sel
 
 
 def kit_running():
-    """The skill this copy of go.py belongs to (its folder's name), or None for the kit's source folder."""
+    """The skill this copy of go.py belongs to (its folder's name), or None when this folder is not named for one of the skills."""
     name = pathlib.Path(__file__).resolve().parent.name
     return name if name in KITS else None
 
 
 def fast_offered():
-    """True when this copy of the kit maps fast: the stage kit, or the source folder it is built from. The mapping
+    """True when this copy of the kit maps fast: the stage kit, or an unversioned copy. The mapping
     skill alone never asks how far each stage goes, and the fast map reads only the stages so picked, so it keeps the
     full reading."""
     return kit_running() != "bfo-mapping"
 
 
 def source_folder():
-    """True in the folder the kit is built from, where its tests run; never in a built or installed copy."""
-    return (pathlib.Path(__file__).resolve().parent / "build_kit.py").is_file()
+    """True in an unversioned copy (no KIT-VERSION.txt beside this file); never in a released copy."""
+    return not (pathlib.Path(__file__).resolve().parent / "KIT-VERSION.txt").is_file()
 
 
 def stage_kit_run(reg):
-    """True when this run maps fast: run from the stage kit's copy (or the source folder), or from the mapping skill's
+    """True when this run maps fast: run from the stage kit's copy (or an unversioned copy), or from the mapping skill's
     copy within a run the stage kit started (its start step recorded skill `kit`), since the stage kit hands its
     mapping to the mapping skill and that skill's commands name its own folder."""
     if fast_offered():
@@ -118,7 +118,9 @@ IDS = (("flows", "flow_id"), ("stages", "stage"), ("steps", "step"), ("subjects"
 # attributes, a part's gaps, a step's impacts): a sampled or corrected row is named by all of them
 ROW_KEYS = {"participation": ("subject_id", "step", "operation"), "case-attributes": ("flow", "attribute"),
             "measure-gaps": ("element", "question"), "step-impact": ("step", "impact_category"),
-            "agent-system": ("agent", "id")}
+            "agent-system": ("agent", "id"),
+            # an identifier is one per part, entry point and attribute; a merge decision is named by its candidates
+            "identifiers": ("subject_id", "operation", "attribute"), "merges": ("candidates",)}
 CORRECTIONS, APPLIED = "corrections.csv", "corrections-applied.csv"
 APPLIED_COLS = ("correction_id", "table", "row", "column", "before", "after", "why", "source", "applied_at", "unit",
                 "words")  # `words`: the person's own words on a row they add (--added), recorded with it
@@ -313,9 +315,17 @@ def corrected(table, row, fixes, key=None):
 
 
 def removed(fixes, key):
-    """A removal of the row named `key` is recorded among `fixes`."""
-    return any(f.get("row") == key and f.get("after") == REMOVED and not (f.get("column") or "").strip()
-               for f in fixes)
+    """A removal of the row named `key` is recorded among `fixes`, and no later restore (`before` the removal, column
+    blank: a fold undone) brings it back."""
+    out = False
+    for f in fixes:
+        if f.get("row") != key or (f.get("column") or "").strip():
+            continue
+        if f.get("after") == REMOVED:
+            out = True
+        elif f.get("before") == REMOVED:
+            out = False
+    return out
 
 
 def added_row(fixes, key):
@@ -441,7 +451,7 @@ def apply_correction(reg, cid, value=None, added=False, remove=False, words=None
             return (f"units/{unit}/{', '.join(changed)} changed outside the kit since it was collected: call run "
                     "control (next.py), which sets the unit aside and has its mapping agent write it again")
     else:
-        home = reg
+        home = reg / "identity" if table == "merges" else reg  # a judgment the identity step recorded: its own file
         if remove and table in ("subjects", "participation") and (reg / layout.UNITS_CSV).is_file():
             return (f"in a split run {table}.csv is the merge's output: remove the unit row it comes from (a "
                     f"correction naming its unit and row_id), and the merge withdraws the map's row and records it")
@@ -1257,8 +1267,8 @@ def fast_agent_problem(reg):
 
 
 def maps_fast_at_go(reg, a):
-    """Whether this go maps fast: always in a stage kit run (and from the source folder, unless a test of the full
-    reading passes --full); from the mapping skill alone only with --fast, which it then refuses."""
+    """Whether this go maps fast: always in a stage kit run (and from an unversioned copy, unless --full
+    asks for the full reading); from the mapping skill alone only with --fast, which it then refuses."""
     if stage_kit_run(reg):
         return not (getattr(a, "full", False) and source_folder())
     return bool(getattr(a, "fast", False))
@@ -2350,7 +2360,7 @@ def _main(argv):
     ap.add_argument("--stages")
     ap.add_argument("--judges", type=int)
     ap.add_argument("--fast", action="store_true")  # with --flow: the stage kit maps fast always; kept so it is no error
-    ap.add_argument("--full", action="store_true", help=argparse.SUPPRESS)  # source folder only: tests of the full reading
+    ap.add_argument("--full", action="store_true", help=argparse.SUPPRESS)  # an unversioned copy only: the full reading
     ap.add_argument("--how-far", dest="how_far", choices=("none", "measure", "alerting", "runbooks", "ask"))
     ap.add_argument(CONTEXT_FLAG, dest="context_tokens", type=int)  # with --fast: the mapping agents' context window
     ap.add_argument("--words")

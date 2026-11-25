@@ -46,10 +46,10 @@ the run's process).
 | cv-22 | capability_views.py | check | 298 | error | a | a {pk} has no | subjects.level is blank where the part_kind's family is case, interaction or person |
 | cv-23 | capability_views.py | check | 301 | error | a (migration) | subjects.csv has no purpose | subjects.csv has the purpose column; said in place of cv-03, with what to do |
 | cv-24 | capability_views.py | check | 306 | error | a | no purpose; write what | subjects.purpose filled on a part row; the same rule as view question `part: purpose` (vq-q06) |
-| cv-76 | capability_views.py | check | 377 | warning | a | holds a second name in brackets | a component's subjects.name is its own name as its code or deployment states it, with no second name in brackets; a warning so a register made before the rule still draws |
+| cv-76 | capability_views.py | check | 377 | error | a | holds a second name in brackets | a component's subjects.name is its own name as its code or deployment states it, with no second name in brackets; a warning until the register is upgraded (it has identifiers.csv, by reconcile.py --upgrade-identity), then an error |
 | cv-25 | capability_views.py | check | 310 | error | a (migration) | subjects.csv has no repository | subjects.csv has the repository column; said in place of cv-03, with what to do |
 | cv-26 | capability_views.py | check | 410 | warning | d (text) | a component with no repository whose text says | a component with no repository whose name, purpose or source reads as not separately built ("in process" matches an in-flight state too): a warning for the session or the person to look at, never a refusal, so the unit's tables stay |
-| cv-27 | capability_views.py | check | 451 | error | a | a system component with | subjects.repository filled on a system component: a repository, `not built here:` and an image, or `none: <where looked>` (capability_views.repository_none parses the prefix; the prose of source is never searched, ) |
+| cv-27 | capability_views.py | check | 451 | error | a | a system component with | subjects.repository filled on a system component: a repository, `not built here:` and an image, or `none: <where looked>` (capability_views.repository_none parses the prefix; the prose of source is never searched) |
 | cv-77 | capability_views.py | check | 426 | warning | a | repository says none and not where it was looked for | subjects.repository `none:` with nothing after it: told to say where it was looked for, never a refusal |
 | cv-78 | capability_views.py | check | 430 | warning | a | repository says none on a component of band | subjects.repository `none:` on a component not of band technology: told what a service's repository is, never a refusal |
 | cv-79 | capability_views.py | check | 440 | warning | a (migration) | repository is blank and source says no repository | the form of an earlier release (subjects.repository blank, source saying no repository defines it) on a technology component: told to write `none: <where looked>`, never a refusal |
@@ -97,6 +97,20 @@ the run's process).
 | cv-66 | capability_views.py | check | 466 | error | a | done_by {x} is not | Enum list |
 | cv-67 | capability_views.py | check | 472 | warning | d (text) | no citation | CITE regex over cells |
 | cv-68 | capability_views.py | bound_failures | 501 | error | d (text) | bound_in_code {v} cites no | flows/stages.bound_in_code that names a time limit cites code; also run by flow_outputs.py --check for its flow and stage |
+| cv-80 | capability_views.py | identity_failures | 642 | error | a | is not rule: read, rule: derived | identifiers.basis is rule: read, rule: derived, judgment: <evidence> or not found: <where looked> |
+| cv-81 | capability_views.py | identity_failures | 645 | error | a | : no source | every identifiers.csv row cites its source |
+| cv-82 | capability_views.py | identity_failures | 647 | error | a | is deprecated; write | identifiers.attribute is the current OpenTelemetry name; method/otel-attributes.csv keeps the alias a vendor reads |
+| cv-83 | capability_views.py | identity_failures | 657 | error | a | parts are named | one part per deployable, store or outside system: no two parts share a name |
+| cv-84 | capability_views.py | identity_failures | 669 | error | a | is none of its own identifiers | a deployable's name is its k8s.deployment.name, container.image.name or folder |
+| cv-85 | capability_views.py | identity_failures | 672 | error | a | no service.name row in identifiers.csv | every deployable has a service.name row, a `not set` finding row included |
+| cv-86 | capability_views.py | identity_failures | 676 | error | a | a database with no db.system.name row | every database has a db.system.name row |
+| cv-87 | capability_views.py | identity_failures | 679 | warning | a | deployables share service.name | two deployables with one service.name: a finding |
+| cv-88 | capability_views.py | identity_failures | 685 | warning | a | has no span: kind row | an entry point of a deployable has its span: kind row |
+| cv-89 | capability_views.py | identity_failures | 691 | error | a | a class or interface | an outside system is named by its client name or host, never a class, unless its name's basis is not found |
+| cv-90 | capability_views.py | identity_failures | 695 | warning | a | application_id is blank on every component | the app id is asked for, an open item |
+| cv-91 | capability_views.py | identity_failures | 701 | warning | a | not a component's name | measures.counted_at names a component by its name |
+| cv-92 | capability_views.py | identity_failures | 705 | warning | d (text) | which a tracing tool uses for its own trace grouping | "business transaction" is never the kit's word |
+| cv-93 | capability_views.py | identity_failures | 682 | warning | a | no identifiers read for it | a deployable this run read no identifiers for (a lead row, or a service surveyed after the identity step) is named as a finding, never a stop |
 | fo-77 | flow_outputs.py | alert_table_failures | 60 | error | a (migration) | the alert columns of an earlier release | measures.csv holds no alert column of an earlier release; the stage check says so too |
 | fo-78 | flow_outputs.py | alert_table_failures | 66 | error | b | names no measure in measures.csv | alerts.handle -> measures |
 | fo-80 | flow_outputs.py | alert_table_failures | 69 | error | a | appears twice; one row per measure | alerts.handle unique |

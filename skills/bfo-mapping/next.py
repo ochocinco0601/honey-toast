@@ -152,6 +152,68 @@ def _redraw_stale(reg, flow, sub):
     return None
 
 
+IDENTITY_STATE = "identity/judging.json"  # {"judged": [ids and workloads applied], "listed": [...], "launches": n}
+
+
+def _read_identity(reg):
+    """What each deployable is called, read once from its deployment and configuration files (identity.py) before any
+    reader or mapping agent, so the merge folds by it and writes the root identifiers.csv."""
+    import identity
+    if (reg / identity.DIR / "identifiers.csv").is_file():
+        return
+    rows, unmatched = identity.write(reg, judges.workspace(reg))
+    case.log(reg, "read identity", identifiers=len(rows), unmatched=len(unmatched))
+
+
+def _identity_judged(reg, flow, sub):
+    """After the merge: the parts no identity rule placed, judged as a draft by ONE general-purpose agent, on the
+    prompt upgrade_identity.judge_prompt wrote. Its done mark (written last) is its finish: then the merge runs again,
+    which applies its identity/merges.csv and judged identifiers. No mark, not done: it is handed over again."""
+    import upgrade_identity as ui
+    if not (reg / "identity" / "identifiers.csv").is_file():
+        return None
+    p = reg / IDENTITY_STATE
+    try:
+        st = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        st = {}
+    judged = set(st.get("judged") or [])
+    mark = reg / ui.JUDGED_DONE
+    if st.get("listed") and mark.is_file():
+        judged |= set(st["listed"])
+        mark.unlink()
+        p.write_text(json.dumps({"judged": sorted(judged), "listed": [], "launches": 0}), encoding="utf-8")
+        case.log(reg, "applying the identity judgments", cases=st["listed"])
+        failed = _code(reg, sub, ["merge.py", str(reg)])
+        if failed:
+            return failed
+    cands, unmatched = ui.cases(reg)
+    new = sorted(({r["subject_id"] for r in cands} | {w.get("workload") or "" for w in unmatched}) - judged - {""})
+    if not new:
+        return None
+    launches = int(st.get("launches") or 0) + 1 if st.get("listed") else 1
+    import settings
+    if launches > int(settings.load(reg).get("relaunches") or 2) + 1:
+        # never a loop the person cannot see: the judgments are a draft, so the run goes on with these parts apart
+        p.write_text(json.dumps({"judged": sorted(judged | set(new)), "listed": [], "launches": 0,
+                                 "unjudged": sorted(set(st.get("unjudged") or []) | set(new))}), encoding="utf-8")
+        case.log(reg, "identity judging agent wrote no done mark; going on without its judgments, the parts kept apart",
+                 cases=new, launches=launches - 1)
+        return None
+    ui.judge_prompt(reg, only=set(new), mark=True, workspace=judges.workspace(reg))
+    p.write_text(json.dumps({"judged": sorted(judged), "listed": new, "launches": launches}), encoding="utf-8")
+    case.log(reg, "identity judging agent handed over", cases=new, launches=launches)
+    prompt = (f"Read {(reg / ui.JUDGE_PROMPT).resolve().as_posix()} and do exactly what it says. "
+              "Reply with one line.")
+    return {"kind": "agent", "sub": sub, "agent_type": "general-purpose", "units": [],
+            "agents": [{"name": "identity-judge", "agent_type": "general-purpose", "units": [], "prompt": prompt}],
+            "at_once": 1, "launches": launches,
+            "then": "launch the one agent listed with the Agent tool, subagent_type general-purpose, with its prompt "
+                    "as its whole prompt; wait for its reply, then call this again: run control applies its judgments "
+                    f"once it has written {ui.JUDGED_DONE}, and hands it over again until it has"
+                    + (f" (handed over {launches} times so far)" if launches > 1 else "")}
+
+
 def _lead_duplicates(reg):
     """In a fast run, the lead's own part rows (subjects.csv) that name a service the mapping agent maps (a deployable
     of units.csv): the merged map would hold it twice. Nothing in a full run, whose lead rows are checked otherwise."""
@@ -543,6 +605,28 @@ def _fast_set_aside(reg, flow, sub):
         case.log(reg, "set aside a refused mapping agent's rows", units=owed)
         return {"kind": "set aside", "units": owed}
     return None
+
+
+def _merge_stale(reg):
+    """Whether the merged root tables are no longer what a merge of the unit folders gives now."""
+    import merge
+    return any("not what a merge" in p for p in merge.check(reg)[1])
+
+
+def _drawn_map_wrong(reg, flow):
+    """[why the fast map of the flow worked now, which run control counts as drawn, does not hold]: a unit owed again,
+    a merge older than the units, or the map's own check (capability_views.py --check) failing. Empty when it holds,
+    and for a flow finished before the one worked now (a later flow's units change the merge by design)."""
+    import capability_views as cv
+    import fast_map
+    import go
+    cur = go.load(reg) or {}
+    if (go.flow_id_of(reg, cur) or cur.get("flow", "")) != flow or not (pathlib.Path(reg) / "subjects.csv").is_file():
+        return []
+    import merge
+    wrong = [f"a unit is owed again: {u}" for u in fast_map.unfinished(reg)]
+    wrong += [p for p in merge.check(reg)[1] if "not what a merge" in p]
+    return wrong or [e for e in cv.check(cv.load(reg))[0] if e.startswith(("subjects.csv", "participation.csv"))]
 
 
 def _back_to_fast_read(reg, flow):
@@ -1036,8 +1120,9 @@ def _step(reg, flow, sub):
         checked = _correction_checked(reg, flow, sub)
         if checked:
             return checked
-        # a unit corrected since the merge (the lead's correction, or the list's spelling written back): merged again
-        if fast_map.normalise_units(reg) or chose.get("units"):
+        # a unit changed since the merge (the lead's correction, the list's spelling written back, or a unit written
+        # again after it was set aside): merged again, so the map's check reads the units as they are
+        if fast_map.normalise_units(reg) or chose.get("units") or _merge_stale(reg):
             a = _code(reg, sub, ["merge.py", str(reg)])
             if a:
                 return a
@@ -1062,6 +1147,7 @@ def _step(reg, flow, sub):
             _close_mapping_rows(reg, flow)
         return a
     if sub == "units":
+        _read_identity(reg)
         _record_reading(reg)
         if (reg / layout.UNITS_CSV).is_file():
             return None
@@ -1081,7 +1167,7 @@ def _step(reg, flow, sub):
         if failed:
             return _merge_refused(reg, flow, sub, failed)
         _close_open(reg, flow, "reader")  # a reader relaunched with the merge's reason: its work is merged now
-        return _redraw_stale(reg, flow, sub)
+        return _identity_judged(reg, flow, sub) or _redraw_stale(reg, flow, sub)
     if sub == "re-reads":
         if not _unmatched(reg):
             return None
@@ -1229,6 +1315,9 @@ def _map_stop(reg, flow, ended, by_kit=False):
     if fast(reg) and not ended:
         import fast_map
         text = ("The fast map is drawn: " + fast_map.summary(reg, flow) + ". " + fast_map.NOT_DONE)
+        text += "".join(f"\n\nThe second reading of {u} found {now} calls where an earlier reading found {most}. "
+                        "Check those calls in the code before relying on this part of the map."
+                        for u, now, most in fast_map.fewer_calls(reg))
         folder = pathlib.Path(reg) / MESSAGES
         folder.mkdir(exist_ok=True)
         f = folder / f"map-stop-{flow}.md"
@@ -1395,6 +1484,12 @@ def _decide(reg, flow, event, by_kit, test):
         case.set_flow(reg, flow, state="mapping", sub="units")
         case.log(reg, "a stage taken further: reading its services", owed=readers.in_scope(reg)[0])
         f = case.flow(reg, flow)
+    if f.get("state") == "mapped" and fast(reg):
+        wrong = _drawn_map_wrong(reg, flow)
+        if wrong:  # the units changed after the map was drawn, or its check fails: back into run control, never a stop
+            case.log(reg, "the drawn fast map no longer holds: mapping again from the fast read", said=wrong)
+            case.set_flow(reg, flow, state="mapping", sub="fast read")
+            f = case.flow(reg, flow)
     if f.get("state") in (ENDED, "mapped"):
         return _map_stop(reg, flow, f.get("state") == ENDED, by_kit)
     steps = order(reg)
