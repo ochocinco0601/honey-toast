@@ -144,7 +144,7 @@ svg.lines{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index
 .demo{font-size:11px;border:1px solid var(--ink2);border-radius:3px;padding:0 4px;color:var(--ink2);margin-left:6px}
 .seg.other{border-style:dashed;opacity:.6}
 .chainhead .oth{color:var(--ink3);opacity:.75;font-style:italic}
-.prow{display:grid;grid-template-columns:minmax(90px,130px) minmax(150px,1fr) 64px minmax(300px,520px);align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--rule2);padding:6px 14px}
+.prow{display:grid;grid-template-columns:minmax(90px,130px) minmax(150px,1fr) 64px 84px minmax(300px,520px);align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--rule2);padding:6px 14px}
 .prow.frow{grid-template-columns:minmax(180px,1fr) minmax(300px,520px)}
 button.prow:hover{background:var(--sel)}
 .phead{font-size:12px;color:var(--ink3);background:var(--stagebg)}
@@ -276,9 +276,10 @@ button.flow{border:0;text-align:left;font:inherit}
 .chainhead{letter-spacing:0!important;font-size:9.5px!important;line-height:1.3}
 .chainhead .oth{opacity:1!important;font-style:normal!important}
 .seg.other{opacity:1!important;border-color:var(--ink3)!important}
-.prow:not(.frow){grid-template-columns:minmax(100px,120px) minmax(110px,1fr) 52px minmax(380px,520px)!important}
+.prow:not(.frow){grid-template-columns:minmax(100px,120px) minmax(110px,1fr) 52px 84px minmax(340px,520px)!important}
+.prow .upd{font-variant-numeric:tabular-nums;font-size:12.5px;line-height:1.25;color:var(--ink2);white-space:nowrap} .prow .upd small{font-size:11.5px;color:var(--ink3)}
 .prow:not(.frow)>span:first-child{white-space:nowrap}
-@media (max-width:1200px){.chainhead{text-transform:none;font-size:10px!important}.chainsort{right:-14px!important}}
+@media (max-width:1440px){.chainhead{text-transform:none;font-size:10px!important}.chainsort{right:-14px!important}}
 .cp{border-style:solid!important;border-color:var(--rule)!important}
 :root{--sel:#e6e8ec}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--sel:#262b34}}:root[data-theme="dark"]{--sel:#262b34}
 .fl{display:flex;align-items:center;gap:8px}.fmark{flex:none;width:6px;height:16px;border-radius:2px;background:var(--lv1)}
@@ -301,10 +302,11 @@ button.flow{border:0;text-align:left;font:inherit}
 .ms dd{margin:4px 0 14px!important;font-size:13.5px!important;color:var(--ink)}
 
 /* the Flow map's drawing: every class starts fd- */
-.fd{--fd-fg:var(--ink);--fd-muted:var(--ink3);--fd-line:#c3cad6;--fd-faint:var(--rule2);--fd-box:var(--card);--fd-stage:#e3e8f0;--fd-case:var(--lv1);--fd-lit:var(--lv2);display:grid;gap:10px;min-width:0}
+.fd{--fd-fg:var(--ink);--fd-muted:var(--ink3);--fd-line:#c3cad6;--fd-faint:var(--rule2);--fd-box:var(--card);--fd-stage:#e3e8f0;--fd-case:var(--lv1);--fd-lit:var(--lv2);display:grid;gap:6px;min-width:0}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .fd{--fd-line:#465061;--fd-stage:#232a36}}
 :root[data-theme="dark"] .fd{--fd-line:#465061;--fd-stage:#232a36}
-.fd-box{overflow-x:auto}
+.fd-wrap{position:relative;min-width:0} .fd-box{overflow-x:auto}
+.fd-pin{position:absolute;left:0;top:0;pointer-events:none;font-family:var(--font)} .fd-pin .fd-l,.fd-pin .fd-m{pointer-events:auto}
 .fd-svg{display:block;max-width:100%;height:auto;font-family:var(--font)}
 .fd-stage{fill:var(--fd-stage);cursor:pointer} .fd-stage.on{fill:var(--fd-lit)} .fd-stage.sel{stroke:var(--fd-fg);stroke-width:2}
 .fd-step{fill:var(--fd-box);stroke:var(--fd-line);stroke-width:1.5;cursor:pointer}
@@ -324,16 +326,24 @@ button.flow{border:0;text-align:left;font:inherit}
 .fd-ans{fill:none;stroke:var(--fd-muted);stroke-width:1;stroke-dasharray:3 2} .fd-anst{fill:var(--fd-fg);font-size:11.5px}
 .fd-m{cursor:pointer} .fd-m circle,.fd-m path{fill:var(--c)} .fd-m.sel circle,.fd-m.sel path{stroke:var(--fd-fg);stroke-width:2} .fd-m.off{opacity:.12;pointer-events:none}
 .fd-nt{pointer-events:none}
+.fd-mn{fill:var(--fd-fg);font-size:10.5px;font-weight:600}
 .fd-sn{fill:var(--fd-muted);font-size:11px;font-weight:400} .fd-fid{fill:var(--fd-muted);font-size:12px;font-weight:400}
 .fd-sh{fill:var(--fd-fg);font-size:12px;font-weight:600}
-.fd-now{margin:0;font-size:13.5px;line-height:1.45;min-height:2.9em;color:var(--ink2)} .fd-now b{font-weight:600;color:var(--ink)} .fd-now .sep{color:var(--ink3);margin:0 .5em}
-.fd-key{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;border-top:1px solid var(--rule);padding-top:10px;font-size:12.5px}
-.fd-play{font-size:12.5px;background:transparent;border:1.5px solid var(--ink2);border-radius:6px;padding:3px 12px;min-width:64px}
-.fd-kinds{display:inline-flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.fd-now{margin:0;font-size:12.5px;line-height:1.4;color:var(--ink2);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .fd-now b{font-weight:600;color:var(--ink)} .fd-now .sep{color:var(--ink3);margin:0 .5em}
+.fd-key{margin-left:auto;position:relative;display:flex;gap:8px;align-items:center;font-size:12px;align-self:center}
+.fd-size,.fd-speed,.fd-pair{display:inline-flex;align-items:center;gap:6px}
+.fd-opts{position:absolute;right:0;top:calc(100% + 6px);z-index:5;display:flex;flex-direction:column;align-items:flex-start;gap:9px;background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.35);width:max-content;max-width:min(560px,80vw)}
+.fd-opts[hidden]{display:none}
+.fd-more{font-size:12px;background:transparent;border:1px solid var(--rule);border-radius:5px;padding:2px 8px;color:var(--ink2);white-space:nowrap;cursor:pointer} .fd-more:hover,.fd-more[aria-expanded=true]{color:var(--ink);border-color:var(--ink2)}
+.fd-key .mswitch{margin-left:0;align-self:flex-start;font-weight:400;font-size:12px;gap:6px} .fd-key .seg2{border-width:1px;border-radius:5px} .fd-key .seg2 button{font-size:12px;padding:2px 7px}
+.maptop{position:sticky;top:-16px;z-index:4;background:var(--canvas);padding:6px 0;margin-top:-6px}
+.fd.sized .fd-svg{max-width:none}
+.fd-play{font-size:12px;background:transparent;border:1px solid var(--ink2);border-radius:5px;padding:2px 8px;min-width:46px}
+.fd-kinds{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:12px} .fd-kinds b{font-weight:400;margin-right:2px}
 .fd-kinds[hidden]{display:none}
-.fd-kind{font-size:12.5px;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);border-radius:999px;padding:2px 10px;background:transparent}
+.fd-kind{font-size:12px;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--rule);border-radius:999px;padding:1px 8px;background:transparent}
 .fd-kind i{width:9px;height:9px;border-radius:50%;background:var(--c)} .fd-kind i.dia{border-radius:1px;transform:rotate(45deg) scale(.85)}
-.keypop .chip.AGT{justify-self:start}
+.keypop .chip.AGT,.keypop .kmarks{justify-self:start}
 .fd-kind[aria-pressed=true]{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)} .fd-kinds.dim .fd-kind[aria-pressed=false]{opacity:.45}
 </style></head>
 <body>
@@ -346,6 +356,7 @@ button.flow{border:0;text-align:left;font:inherit}
   <h6>Colour: the flow</h6><span class="kgold"><i style="background:var(--lv1)"></i><i style="background:var(--lv2);border:1px solid var(--lv2-b)"></i><i style="border:1px solid var(--lv3-b)"></i></span><span>Gold is the business flow and its levels: flow, stage, process step</span>
   <h6>Colour: measures, by layer</h6>
   <span class="chip">BH</span><span>Business health</span><span class="chip BI">BI</span><span>Business impact</span><span class="chip APP">APP</span><span>Application</span><span class="chip TECH">TECH</span><span>Technology</span><span class="chip AGT">AGT</span><span>Agentic (a diamond on the drawing)</span>
+  <svg class="kmarks" width="64" height="16" viewBox="0 0 64 16" aria-hidden="true"><circle cx="7" cy="8" r="5" style="fill:var(--bh)"/><text x="14.5" y="11.5" style="fill:var(--ink);font-size:10.5px;font-weight:600">4</text><path d="M34,2 l6,6 l-6,6 l-6,-6 z" style="fill:var(--agent)"/><circle cx="54" cy="8" r="5" style="fill:var(--app)"/></svg><span>On the flow map: one mark per kind where it applies; a number beside a mark counts that kind's measures there. Click a mark for their cards. Controls › Measures turns them on.</span>
   <h6>Progress along the milestones</h6>
   <span class="strip" style="width:90px;grid-template-columns:repeat(4,1fr)"><span class="seg s2"></span><span class="seg s1"></span><span class="seg"></span><span class="seg other"></span></span><span>Done, under way, not yet, other teams' work (dashed)</span>
   <h6>Words</h6>
@@ -440,13 +451,15 @@ const chainHead=()=>CHAIN.map((c,i)=>`<span class="${OTHERS.has(i)?'oth':''}">${
 function portfolioView(){
   const started=APPS.filter(a=>a.register).length;
   const rows=APPS.map((a,i)=>[a,i]).filter(([a])=>!S.q||[a.name,a.id,a.sub].join(" ").toLowerCase().includes(S.q.toLowerCase()));
-  const key={sub:([a])=>(a.register?"0":"1")+(a.sub?"0"+a.sub:"1")+"|"+a.name,app:([a])=>a.name,id:([a])=>a.id?"0"+a.id:"1",chain:([a,i])=>String(9-appChain(i).reduce((x,y)=>x+y,0)-(a.register?1:0)).padStart(2,"0")+a.name}[S.sort||"sub"];
-  rows.sort((x,y)=>key(x).localeCompare(key(y))*(S.dir||1));
-  const hd=(k,t)=>`<button class="sorth" data-s="${k}">${t}${(S.sort||"sub")===k?((S.dir||1)>0?" ▲":" ▼"):""}</button>`;
+  let key={sub:([a])=>(a.register?"0":"1")+(a.sub?"0"+a.sub:"1")+"|"+a.name,app:([a])=>a.name,id:([a])=>a.id?"0"+a.id:"1",chain:([a,i])=>String(9-appChain(i).reduce((x,y)=>x+y,0)-(a.register?1:0)).padStart(2,"0")+a.name}[S.sort||"sub"];
+  // Last updated: newest first on the first click; an application with no register always sorts last
+  if(S.sort==="upd"){key=([a])=>a.updated||""; rows.sort((x,y)=>{const a=key(x),b=key(y); return !a!==!b?(a?-1:1):(b.localeCompare(a)*(S.dir||1)||x[0].name.localeCompare(y[0].name));});}
+  else rows.sort((x,y)=>key(x).localeCompare(key(y))*(S.dir||1));
+  const hd=(k,t)=>`<button class="sorth" data-s="${k}">${t}${(S.sort||"sub")===k?(((S.dir||1)>0)!==(k==="upd")?" ▲":" ▼"):""}</button>`;
   document.getElementById("work").innerHTML=`<div class="ptop"><h2>Portfolio</h2><span class="tally">${APPS.length} application${APPS.length===1?"":"s"} · ${started} started</span>
     <input id="q" placeholder="Find an application, ID or sub-line of business" value="${esc(S.q)}"></div>
-    <div class="ptable"><div class="prow phead">${hd("sub","Sub-line of business")}${hd("app","Application")}${hd("id","ID")}<span class="chainhead" style="position:relative">${chainHead()}<button class="sorth chainsort" data-s="chain" title="Sort by how far along the chain">${(S.sort||"sub")==="chain"?((S.dir||1)>0?"▲":"▼"):"⇅"}</button></span></div>
-    ${rows.map(([a,i])=>`<button class="prow" data-i="${i}"><span class="sub">${esc(a.sub||NR)}</span><span>${esc(a.name)}</span><span class="id">${esc(a.id||NR)}</span>${strip(appChain(i))}</button>`).join("")}</div>`;
+    <div class="ptable"><div class="prow phead">${hd("sub","Sub-line of business")}${hd("app","Application")}${hd("id","ID")}${hd("upd","Last updated")}<span class="chainhead" style="position:relative">${chainHead()}<button class="sorth chainsort" data-s="chain" title="Sort by how far along the chain">${(S.sort||"sub")==="chain"?((S.dir||1)>0?"▲":"▼"):"⇅"}</button></span></div>
+    ${rows.map(([a,i])=>`<button class="prow" data-i="${i}"><span class="sub">${esc(a.sub||NR)}</span><span>${esc(a.name)}</span><span class="id">${esc(a.id||NR)}</span><span class="upd">${a.updated?`${esc(a.updated.slice(0,10))}<br><small>${esc(a.updated.slice(11))}</small>`:"–"}</span>${strip(appChain(i))}</button>`).join("")}</div>`;
   document.querySelectorAll(".sorth").forEach(b=>b.onclick=()=>{const k=b.dataset.s;S.dir=(S.sort||"sub")===k?-(S.dir||1):1;S.sort=k;portfolioView();});
   document.querySelectorAll(".prow[data-i]").forEach(b=>b.onclick=()=>{pickFlow(+b.dataset.i,-1);S.view="app";render();});
   const q=document.getElementById("q"); q.oninput=()=>{S.q=q.value;portfolioView();const n=document.getElementById("q");n.focus();n.setSelectionRange(n.value.length,n.value.length);};
@@ -480,6 +493,13 @@ function chipsFor(el,sid){
 const OUTSIDE={};
 // the smallest scale the drawing is shown at; below it, the Flow map card scrolls sideways inside itself
 const FLOOR=0.5;
+// the drawing's size: Fit (shrinks to the card, never under FLOOR) or a fixed scale, at which the card scrolls sideways
+// and browser zoom works; kept across flows and visits
+const SIZES=[["fit","Fit"],["1","100%"],["1.25","125%"],["1.5","150%"]];
+let SIZE="fit"; try{SIZE=localStorage.getItem("fdsize")||"fit";}catch(e){} if(!SIZES.some(([k])=>k===SIZE)) SIZE="fit";
+// the moving case's pace: 1x is the drawing's own timing; kept across flows and visits
+const SPEEDS=["0.25","0.5","1","2"];
+let SPEED="1"; try{SPEED=localStorage.getItem("fdspeed")||"1";}catch(e){} if(!SPEEDS.includes(SPEED)) SPEED="1";
 // The Flow map's body is the drawing (FD, below); the words are in the panel, on a click.
 function mapView(){
   const w=document.getElementById("work");
@@ -488,12 +508,13 @@ function mapView(){
     document.getElementById("panel").innerHTML=`<h1>${esc(FL?FL.name:"")}</h1>`;
     return;
   }
-  w.innerHTML=`<div class="ptop"><h2>Flow map</h2><span class="levels" aria-label="How a business flow is built"><b>1</b> business flow<span class="ar">›</span><b>${D.stages.length}</b> stages<span class="ar">›</span><b>${steps}</b> process steps<span class="ar">›</span><b>${comps}</b> components</span>
+  w.innerHTML=`<div class="ptop maptop"><h2>Flow map</h2><span class="levels" aria-label="How a business flow is built"><b>1</b> business flow<span class="ar">›</span><b>${D.stages.length}</b> stages<span class="ar">›</span><b>${steps}</b> process steps<span class="ar">›</span><b>${comps}</b> components</span>
     <span class="mswitch">Measures <span class="seg2">${[["off","Off"],["all","All"],["inst","Instrumented"],["prop","Proposed"]].map(([k,t])=>`<button data-m="${k}" class="${S.mf===k?"on":""}">${t}</button>`).join("")}</span></span></div>
     <div class="mapcard"><div class="mapbody" id="fdHost"></div></div>`;
-  w.querySelectorAll(".seg2 button").forEach(b=>b.onclick=()=>{S.mf=b.dataset.m;S.showM=S.mf!=="off";S.selM=null;render();});
+  w.querySelectorAll(".mswitch .seg2 button").forEach(b=>b.onclick=()=>{S.mf=b.dataset.m;S.showM=S.mf!=="off";S.selM=null;render();});
   const host=document.getElementById("fdHost");
   FD.mount(host);
+  const op=FD.ctl.querySelector(".fd-opts"); op.querySelector(".mswitch")?.remove(); op.insertBefore(w.querySelector(".ptop .mswitch"),op.querySelector(".fd-kinds")); w.querySelector(".ptop").append(FD.ctl);
   panelView();
 }
 window.addEventListener("resize",()=>requestAnimationFrame(lines));
@@ -538,7 +559,7 @@ function panelView(){
   const ms=measuresOn(S.sel);
   const showMeas=S.showM;
   const head=S.selM||S.sel?``
-    :`<h1>${esc(FL.name)}</h1><p>Click a process step, a stage or a component for its words here${S.showM?", or a measure's dot for its card":""}.</p>`;
+    :`<h1>${esc(FL.name)}</h1><p>Click a process step, a stage or a component for its words here${S.showM?", or a measure mark for its cards":""}.</p>`;
   let list="";
   if(S.selM){
     {const sm=S.selM.map(h=>D.measures.find(m=>m.h===h)).filter(Boolean), k=sm[0]&&AB[sm[0].layer];
@@ -574,8 +595,8 @@ if(!G) return null;
 let dead=false;
 const NS="http://www.w3.org/2000/svg";
 const root=document.createElement("div"); root.className="fd";
-root.innerHTML=`<p class="fd-now" aria-live="polite"></p><div class="fd-box"><svg class="fd-svg" role="img" aria-label="The business flow, its stages and their process steps across the top; one row per component below; a grey square where a step uses a component; the gold dot is one case moving through the flow"></svg></div>
-  <div class="fd-key"><button type="button" class="fd-play">Pause</button><button type="button" class="fd-play fd-loop">Repeat: whole flow</button><button type="button" class="fd-play fd-view">View: overview</button><span class="fd-kinds"></span></div>`;
+root.innerHTML=`<div class="fd-key"><button type="button" class="fd-play">Pause</button><button type="button" class="fd-more" aria-expanded="false" aria-haspopup="true">Controls ▾</button><div class="fd-opts" hidden><span class="fd-pair"><button type="button" class="fd-play fd-loop" title="Switch between repeating the whole flow and repeating one step">Repeat: whole flow</button><button type="button" class="fd-play fd-view" title="Switch between the overview and the waterfall, which opens the step the case is on to show its calls">View: overview</button></span><span class="fd-size">Size <span class="seg2">${SIZES.map(([k,t])=>`<button type="button" data-z="${k}">${t}</button>`).join("")}</span></span><span class="fd-speed">Speed <span class="seg2">${SPEEDS.map(k=>`<button type="button" data-v="${k}">${k}x</button>`).join("")}</span></span><span class="fd-kinds" hidden></span></div></div>
+  <p class="fd-now" aria-live="polite"></p><div class="fd-wrap"><div class="fd-box"><svg class="fd-svg" role="img" aria-label="The business flow, its stages and their process steps across the top; one row per component below; a grey square where a step uses a component; the gold dot is one case moving through the flow"></svg></div><svg class="fd-pin"></svg></div>`;
 const svg=root.querySelector("svg"), playB=root.querySelector(".fd-play"), viewB=root.querySelector(".fd-view"), loopB=root.querySelector(".fd-loop"), kinds=root.querySelector(".fd-kinds"), nowP=root.querySelector(".fd-now");
 const el=(n,a,p)=>{const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e;};
 // short names wrap inside their box; columns are widened only until no name needs a third line
@@ -585,8 +606,14 @@ function wrapText(str,x,y,maxW,lh,cls,anchor,parent){const t=el("text",{class:cl
     if(line.length&&cur.getComputedTextLength()>maxW){cur.textContent=line.join(" "); cur=ts(); cur.textContent=w; line=[w];} else line.push(w);});
   return t;}
 const fits=(str,maxW,cls)=>{const t=wrapText(str,0,0,maxW,1,cls,"start",svg), n=t.childNodes.length, w=t.getBBox().width; t.remove(); return n<=2&&w<=maxW;};
-let CW=0, OPEN=0; const SG=20, Y={flow:10,stage:46,step:126,lane0:232}, SH=62, LH=30, MX=40, TX=10, DS=13, TIP=12, T0=MX+20;
-const LX=Math.round(130+Math.max(...G.lanes.map(l=>l.label.length))*7.1+16);
+let CW=0, OPEN=0, NW=0, NH=0; const SG=20, Y={flow:8,stage:40,step:112,lane0:182}, SH=56, LH=22, MX=40, TX=10, DS=13, TIP=12, T0=MX+20;
+// room for the busiest spot of measure marks: before each step's squares, and beside the names; reserved from all the
+// flow's measures, so the layout never moves when measures are switched on, off or filtered
+const KW=n=>DS+(n>1?String(n).length*6.5+2:0), SPAN={};
+{const c={}; D.measures.forEach(m=>(G.place[m.h]||[]).forEach(p=>{const k=p.join(","); (c[k]??={})[m.layer]=(c[k][m.layer]||0)+1;}));
+  for(const k in c) SPAN[k]=Object.values(c[k]).reduce((a,n)=>a+KW(n),0);}
+const MXS=G.steps.map((s,i)=>Math.max(MX,Math.ceil(20+Math.max(0,...G.lanes.map((l,j)=>SPAN[`cell,${i},${j}`]||0)))));
+const LX=Math.round(130+Math.max(...G.lanes.map(l=>l.label.length))*7.1+16+Math.max(0,...G.lanes.map((l,j)=>SPAN["lane,"+j]||0)));
 const ORDER=Object.keys(AB), VAR=L=>`var(${LVAR[L]})`;
 const MS=Object.fromEntries(D.measures.map(m=>[m.h,m]));
 // each step's trace as a list of moves: a call down to a part, or its response back up
@@ -600,67 +627,67 @@ const dur=moves.map(m=>m.length?m.length*SEG:IDLE), start=[]; dur.reduce((a,d,i)
 const total=dur.reduce((a,b)=>a+b+MOVE,0);
 // view: overview (every step narrow) or waterfall (the step the case is on, or a picked one, opens to show its trace)
 let mode="overview", focus=-1;
-let only=null, repeatMode="flow", loopStep=-1, lastI=0, lastSel=null, paused=false, t=0, last=performance.now(), pinned=-1, cl=[], cw=[], cx=[], st=[], stageEls=[], laneLabels=[], bot, pulse, halo;
+let gLab=null, slide=[], only=null, repeatMode="flow", loopStep=-1, lastI=0, lastSel=null, paused=false, t=0, last=performance.now(), pinned=-1, cl=[], cw=[], cx=[], st=[], stageEls=[], laneLabels=[], bot, pulse, halo;
 const laneY=i=>Y.lane0+i*LH, stepY=Y.step+SH, yOf=ln=>ln<0?stepY:laneY(ln);
 const pickEl=id=>{S.selM=null; S.sel=S.sel===id?null:id; if(S.sel) panelOpen(true); render();};
-const pickM=h=>{if(S.selM&&S.selM.length===1&&S.selM[0]===h) S.selM=null; else {S.selM=[h]; S.sel=null; panelOpen(true);} render();};
+const pickMs=hs=>{if(S.selM&&S.selM.length===hs.length&&hs.every(h=>S.selM.includes(h))) S.selM=null; else {S.selM=hs; S.sel=null; panelOpen(true);} render();};
 function build(f=focus){
-  focus=f; svg.textContent="";
+  focus=f; svg.textContent=""; pin.textContent="";
   const nst=si=>G.steps.filter(s=>s.stage===si).length;
   // the narrow width is fitted once; every opened step gets the widest trace's width, and the overview reserves the
   // same space, so the drawing keeps one size and scale as the case moves
   if(!CW){for(CW=80;CW<240;CW+=2) if(G.steps.every(s=>fits(s.short,CW-14,"fd-sh"))&&G.stages.every((sg,si)=>fits(sg.short,nst(si)*CW-4-(si?TIP+10:12),"fd-t"))) break;
     OPEN=Math.max(CW,...moves.map(m=>T0+m.length*TX+12));}
   let x=LX, prev=-1; cl=[]; cw=[]; cx=[];
-  G.steps.forEach((s,i)=>{if(prev>=0&&s.stage!==prev)x+=SG; const w=i===focus?OPEN:CW; cl.push(x); cw.push(w); cx.push(x+w/2); x+=w; prev=s.stage;});
+  G.steps.forEach((s,i)=>{if(prev>=0&&s.stage!==prev)x+=SG; const w=(i===focus?OPEN:CW)+MXS[i]-MX; cl.push(x); cw.push(w); cx.push(x+w/2); x+=w; prev=s.stage;});
   const W=x+24+(focus<0?OPEN-CW:0), H=Y.lane0+G.lanes.length*LH+10;
-  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.style.width=W+"px";
-  // never below a readable scale: under FLOOR of natural size the drawing keeps that size and its card scrolls sideways
-  svg.style.minWidth=Math.round(W*FLOOR)+"px";
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); NW=W; sizeIt();
   const defs=el("defs",{},svg); el("feGaussianBlur",{stdDeviation:2},el("filter",{id:"fd-glow",x:"-50%",y:"-50%",width:"200%",height:"200%"},defs));
   const mk=el("marker",{id:"fd-ah",viewBox:"0 0 8 8",refX:7,refY:4,markerWidth:7,markerHeight:7,orient:"auto"},defs);
   el("path",{d:"M0,0 L8,4 L0,8 z",style:"fill:var(--fd-muted)"},mk);
   // the waterfall's arrowheads keep one size when their call lights up, so they never cover a call's number
   el("path",{d:"M0,0 L8,4 L0,8 z",style:"fill:var(--fd-muted)"},el("marker",{id:"fd-ah2",viewBox:"0 0 8 8",refX:7,refY:4,markerWidth:8,markerHeight:8,markerUnits:"userSpaceOnUse",orient:"auto"},defs));
   const gBack=el("g",{},svg), gCall=el("g",{},svg), gFront=el("g",{},svg);
+  gLab=el("g",{},svg); el("rect",{x:0,y:0,width:LX-9,height:H,style:"fill:var(--fd-box)"},gLab);
   G.lanes.forEach((ln,i)=>{el("line",{class:"fd-lane",x1:LX-8,x2:W-14,y1:laneY(i),y2:laneY(i)},gBack);
-    laneLabels[i]=el("text",{class:"fd-l"+(S.sel==="c-"+ln.sid?" sel":""),x:LX-14,y:laneY(i)+4,"text-anchor":"end"},gBack); laneLabels[i].textContent=ln.label;
+    laneLabels[i]=el("text",{class:"fd-l"+(S.sel==="c-"+ln.sid?" sel":""),x:LX-14,y:laneY(i)+4,"text-anchor":"end"},gLab); laneLabels[i].textContent=ln.label;
     laneLabels[i].addEventListener("click",()=>pickEl("c-"+ln.sid));});
   const GN={business:"people",application:"application",technology:"technology",external:"outside"};
   G.lanes.forEach((ln,i)=>{if(i===0||G.lanes[i-1].band!==ln.band){let j=i; while(j+1<G.lanes.length&&G.lanes[j+1].band===ln.band)j++;
-    const y0=laneY(i)-10, y1=laneY(j)+10; el("path",{d:`M44,${y0} h-5 V${y1} h5`,style:"stroke:var(--fd-line)","stroke-width":1,fill:"none"},gBack);
-    el("text",{class:"fd-grp",x:50,y:(y0+y1)/2+4},gBack).textContent=GN[ln.band]||ln.band;}});
-  el("text",{class:"fd-t",x:10,y:Y.flow+17},gBack).textContent="flow";
-  el("text",{class:"fd-t",x:10,y:Y.stage+32},gBack).textContent="stages";
-  el("text",{class:"fd-t",x:10,y:Y.step+21},gBack).textContent="steps";
+    const y0=laneY(i)-10, y1=laneY(j)+10; el("path",{d:`M44,${y0} h-5 V${y1} h5`,style:"stroke:var(--fd-line)","stroke-width":1,fill:"none"},gLab);
+    el("text",{class:"fd-grp",x:50,y:(y0+y1)/2+4},gLab).textContent=GN[ln.band]||ln.band;}});
+  el("text",{class:"fd-t",x:10,y:Y.flow+17},gLab).textContent="flow";
+  el("text",{class:"fd-t",x:10,y:Y.stage+32},gLab).textContent="stages";
+  el("text",{class:"fd-t",x:10,y:Y.step+21},gLab).textContent="steps";
   const ly0=laneY(0)-8, ly1=laneY(G.lanes.length-1)+8;
-  el("text",{class:"fd-t",transform:`translate(18 ${(ly0+ly1)/2}) rotate(-90)`,"text-anchor":"middle"},gBack).textContent="components";
+  el("text",{class:"fd-t",transform:`translate(18 ${(ly0+ly1)/2}) rotate(-90)`,"text-anchor":"middle"},gLab).textContent="components";
   // stages: a chevron over their own steps
-  stageEls=[]; const stX=[];
+  stageEls=[]; slide=[]; const stX=[];
   G.stages.forEach((sg,si)=>{const idx=G.steps.map((s,i)=>s.stage===si?i:-1).filter(i=>i>=0);
     const x0=cl[idx[0]]+2, w=cl[idx.at(-1)]+cw[idx.at(-1)]-cl[idx[0]]-4, h=56, tip=TIP;
     const p=el("path",{class:"fd-stage"+(S.sel===sg.id?" sel":""),d:`M${x0},${Y.stage} h${w} l${tip},${h/2} l${-tip},${h/2} h${-w} ${si?`l${tip},${-h/2} z`:"z"}`},gBack);
     p.addEventListener("click",()=>pickEl(sg.id));
-    const sx=x0+(si?tip+6:8), lab=el("text",{class:"fd-sn fd-nt",x:sx,y:Y.stage+17},gBack); lab.textContent="Stage "+sg.num;
-    wrapText(sg.short,sx,Y.stage+35,w-(si?tip+10:12),16,"fd-t fd-nt","start",gBack);
+    const sx=x0+(si?tip+6:8), gs=el("g",{},gBack), lab=el("text",{class:"fd-sn fd-nt",x:sx,y:Y.stage+17},gs); lab.textContent="Stage "+sg.num;
+    wrapText(sg.short,sx,Y.stage+35,w-(si?tip+10:12),16,"fd-t fd-nt","start",gs);
+    slide.push({g:gs,x0:sx,room:x0+w-sx-gs.getBBox().width-4});
     stageEls.push(p); stX.push(sx+lab.getBBox().width+4);});
   // process steps, their columns and their calls (narrow columns: an indented tree of brackets)
   st=G.steps.map((s,i)=>{const L=cl[i], CW=cw[i];
     const col=el("rect",{class:"fd-col",x:L+3,y:Y.step,width:CW-6,height:H-Y.step-4,rx:4},gBack);
     const box=el("rect",{class:"fd-step"+(S.sel===s.id?" sel":""),x:L+5,y:Y.step,width:CW-10,height:SH,rx:4},gFront);
     box.addEventListener("click",()=>pickEl(s.id));
-    if(s.outside){el("rect",{class:"fd-ans",x:L+4,y:Y.lane0-12,width:CW-8,height:76,rx:3},gFront);
-      ["No","component","recorded."].forEach((w,k)=>{el("text",{class:"fd-anst",x:L+CW/2,y:Y.lane0+4+k*14,"text-anchor":"middle"},gFront).textContent=w;});}
+    if(s.outside){el("rect",{class:"fd-ans",x:L+4,y:Y.lane0-10,width:CW-8,height:56,rx:3},gFront);
+      ["No","component","recorded."].forEach((w,k)=>{el("text",{class:"fd-anst",x:L+CW/2,y:Y.lane0+6+k*14,"text-anchor":"middle"},gFront).textContent=w;});}
     el("text",{class:"fd-sn fd-nt",x:L+CW/2,y:Y.step+13,"text-anchor":"middle"},gFront).textContent=s.n;
     wrapText(s.short,L+CW/2,Y.step+29,CW-14,14,"fd-sh fd-nt","middle",gFront);
-    const marks={}; s.marks.forEach(([ln])=>{const c="c-"+G.lanes[ln].sid; marks[ln]=el("rect",{class:"fd-mark"+(S.sel===c?" sel":""),x:L+MX-6,y:laneY(ln)-6,width:12,height:12,rx:2},gFront);
+    const marks={}; s.marks.forEach(([ln])=>{const c="c-"+G.lanes[ln].sid; marks[ln]=el("rect",{class:"fd-mark"+(S.sel===c?" sel":""),x:L+MXS[i]-6,y:laneY(ln)-6,width:12,height:12,rx:2},gFront);
       marks[ln].addEventListener("click",()=>pickEl(c));});
-    const segs=[], calls=[], x0=L+MX, E=x0+6, DX=7; let d=0, py=stepY; const open=[];
+    const segs=[], calls=[], x0=L+MXS[i], E=x0+6, DX=7; let d=0, py=stepY; const open=[];
     if(i===focus){
       // the opened step's trace as a waterfall: each move a little right of the last; a call a line down, numbered only
       // where the register records call order; a response a dashed line up
-      let px=L+T0;
-      moves[i].forEach((mv,j)=>{const xk=L+T0+j*TX, y2=yOf(mv.to), up=mv.kind==="resp";
+      let px=L+MXS[i]+20;
+      moves[i].forEach((mv,j)=>{const xk=L+MXS[i]+20+j*TX, y2=yOf(mv.to), up=mv.kind==="resp";
         const c=el("path",{class:"fd-call"+(up?" resp":""),d:`M${px},${py} H${xk} V${y2}`,...(up?{}:{"marker-end":"url(#fd-ah2)"})},gCall);
         if(!up&&mv.q!=null) el("text",{class:"fd-num",x:xk+2,y:y2-10},gCall).textContent=mv.q;
         segs.push({x1:px,y1:py,x2:xk,y2,lane:mv.to,call:c}); calls.push(c); px=xk; py=y2;});
@@ -676,29 +703,68 @@ function build(f=focus){
   cl.forEach((l,i)=>{if(i+1<cl.length) el("path",{class:"fd-arrow",d:`M${l+cw[i]-4},${Y.step+SH/2} H${cl[i+1]+3}`,"marker-end":"url(#fd-ah)"},gFront);});
   const fb=el("rect",{class:"fd-flowbar"+(S.sel==="m-f-"+G.flow.id?" sel":""),x:cl[0]+2,y:Y.flow,width:cl.at(-1)+cw.at(-1)-cl[0]+8,height:24,rx:4},gBack);
   fb.addEventListener("click",()=>pickEl("m-f-"+G.flow.id));
-  const fname=el("text",{class:"fd-t fd-nt",x:cl[0]+12,y:Y.flow+17},gBack); el("tspan",{class:"fd-fid"},fname).textContent="Flow "+G.flow.id+" "; el("tspan",{dx:4},fname).textContent=G.flow.short;
+  const gf=el("g",{},gBack), fname=el("text",{class:"fd-t fd-nt",x:cl[0]+12,y:Y.flow+17},gf); el("tspan",{class:"fd-fid"},fname).textContent="Flow "+G.flow.id+" "; el("tspan",{dx:4},fname).textContent=G.flow.short;
+  slide.push({g:gf,x0:cl[0]+12,room:cl.at(-1)+cw.at(-1)-cl[0]-fname.getBBox().width-12});
   // measures: one dot per place each applies, coloured by kind
   if(S.showM){
     const gM=el("g",{},svg), at={};
     D.measures.filter(MF).forEach(m=>(G.place[m.h]||[]).forEach(p=>{(at[p.join(",")]??=[]).push(m);}));
-    Object.values(at).forEach(l=>l.sort((a,b)=>ORDER.indexOf(a.layer)-ORDER.indexOf(b.layer)));
+    // one mark per kind at each spot, the kind's count beside it when there is more than one
+    const kindsAt=k=>{const l=at[k]||[]; return ORDER.filter(L=>l.some(m=>m.layer===L)).map(L=>({layer:L,hs:l.filter(m=>m.layer===L).map(m=>m.h)}));};
+    const wOf=g=>DS+(g.hs.length>1?String(g.hs.length).length*6.5+2:0), span=gs=>gs.reduce((a,g)=>a+wOf(g),0);
     // agentic is its own kind: a diamond (a square turned on its corner, the dots' size); the others are dots
-    const dot=(x,y,m)=>{const on=S.selM&&S.selM.includes(m.h), g=el("g",{class:"fd-m"+(only&&only!==m.layer?" off":"")+(on?" sel":""),"data-h":m.h,style:`--c:${VAR(m.layer)}`},gM);
-      if(m.layer==="agentic"){el("path",{d:`M${x},${y-6} l6,6 l-6,6 l-6,-6 z`},g);
+    const mark=(x,y,k,into)=>{const on=!!S.selM&&S.selM.length===k.hs.length&&k.hs.every(h=>S.selM.includes(h));
+      const g=el("g",{class:"fd-m"+(only&&only!==k.layer?" off":"")+(on?" sel":""),"data-h":k.hs.join(","),style:`--c:${VAR(k.layer)}`},into);
+      if(k.layer==="agentic"){el("path",{d:`M${x},${y-6} l6,6 l-6,6 l-6,-6 z`},g);
         if(on) el("path",{d:`M${x},${y-9.5} l9.5,9.5 l-9.5,9.5 l-9.5,-9.5 z`,style:"fill:none;stroke:var(--fd-fg);stroke-width:1.5"},g);}
       else el("circle",{cx:x,cy:y,r:5},g);
-      g.addEventListener("click",e=>{e.stopPropagation(); pickM(m.h);});};
-    const fx=fname.getBBox().x+fname.getBBox().width+16; (at["flow"]||[]).forEach((m,k)=>dot(fx+k*DS,Y.flow+12,m));
+      if(k.hs.length>1) el("text",{class:"fd-mn",x:x+7.5,y:y+3.5},g).textContent=k.hs.length;
+      el("title",{},g).textContent=`${LAYER[k.layer]}: ${k.hs.length} measure${k.hs.length>1?"s":""}`;
+      g.addEventListener("click",e=>{e.stopPropagation(); pickMs(k.hs);});};
+    // a row of marks from x rightwards; a row that must end at x is started at x minus its width
+    const row=(x,y,gs,into=gM)=>{gs.forEach(k=>{mark(x,y,k,into); x+=wOf(k);});};
+    const fx=fname.getBBox().x+fname.getBBox().width+16; row(fx,Y.flow+12,kindsAt("flow"),gf);
     // a stage carries only its own measures; those on how it ends ("out") are in the panel, under its ways out
-    G.stages.forEach((sg,si)=>{let x=stX[si]+5; (at["stage,"+si]||[]).forEach(m=>{dot(x,Y.stage+13,m); x+=DS;});});
-    G.steps.forEach((s,i)=>{const l=at["step,"+i]||[], x0=cx[i]-(l.length-1)*DS/2; l.forEach((m,k)=>dot(x0+k*DS,Y.step-8,m));
-      G.lanes.forEach((ln,j)=>(at[`cell,${i},${j}`]||[]).forEach((m,k)=>dot(cl[i]+MX-15-k*DS,laneY(j),m)));});
-    G.lanes.forEach((ln,j)=>{const l=at["lane,"+j]||[]; if(!l.length) return; const bx=laneLabels[j].getBBox().x; l.forEach((m,k)=>dot(bx-10-k*DS,laneY(j),m));});
+    G.stages.forEach((sg,si)=>row(stX[si]+5,Y.stage+13,kindsAt("stage,"+si),slide[si].g));
+    G.steps.forEach((s,i)=>{const l=kindsAt("step,"+i); row(cx[i]-span(l)/2+DS/2,Y.step-8,l);
+      G.lanes.forEach((ln,j)=>{const c=kindsAt(`cell,${i},${j}`); row(cl[i]+MXS[i]-16-span(c)+DS/2,laneY(j),c);});});
+    G.lanes.forEach((ln,j)=>{const l=kindsAt("lane,"+j); if(!l.length) return; {const bb=laneLabels[j].getBBox(); row(bb.x-10-bb.width*.1-span(l)+DS/2,laneY(j),l,gLab);};});
   }
   bot=el("circle",{class:"fd-case",r:6,cy:Y.step+SH-9},svg);
   halo=el("circle",{class:"fd-halo",r:9},svg); svg.insertBefore(halo,gFront); halo.style.display="none";
   pulse=el("circle",{class:"fd-case",r:4.5},svg); pulse.style.display="none";
+  // the names column is drawn into a layer over the card's left edge that never scrolls
+  pin.setAttribute("viewBox",`0 0 ${LX-6} ${H}`); pin.appendChild(gLab); NH=H; pinSize(); pinLab();
 }
+const box=root.querySelector(".fd-box"), pin=root.querySelector(".fd-pin"), zoom=()=>svg.getBoundingClientRect().width/NW||1;
+function pinSize(){const z=zoom(); pin.style.width=((LX-6)*z)+"px"; pin.style.height=(NH*z)+"px";}
+new ResizeObserver(()=>pinSize()).observe(svg);
+// the flow's and each stage's name slide along their band to stay in view, never past its end
+function pinLab(){const sl=box.scrollLeft/zoom();
+  slide.forEach(o=>o.g.setAttribute("transform",`translate(${Math.max(0,Math.min(sl+LX+8-o.x0,o.room))} 0)`));}
+// a scroll the page made itself is told apart from one the person made; after the person scrolls, the card stops
+// following the case for a few seconds
+let ours=false, userAt=-1e9;
+box.addEventListener("scroll",()=>{if(ours) ours=false; else userAt=performance.now(); pinLab();});
+// while playing, the card scrolls to keep the case in view beside the names column
+function follow(x){if(paused||box.scrollWidth<=box.clientWidth||performance.now()-userAt<5000) return; const z=zoom(), px=x*z, left=box.scrollLeft+LX*z+20, right=box.scrollLeft+box.clientWidth-30;
+  if(px<left||px>right){const to=Math.max(0,px-LX*z-40); if(Math.abs(to-box.scrollLeft)>1){ours=true; box.scrollLeft=to;}}}
+function sizeIt(){const z=SIZE==="fit"?1:+SIZE; root.classList.toggle("sized",SIZE!=="fit");
+  svg.style.width=Math.round(NW*z)+"px";
+  // Fit never goes below a readable scale: under FLOOR of natural size the drawing keeps that size and its card scrolls
+  svg.style.minWidth=SIZE==="fit"?Math.round(NW*FLOOR)+"px":"";
+  if(typeof pinLab==="function") requestAnimationFrame(pinLab);
+  keyEl.querySelectorAll(".fd-size button").forEach(b=>{b.classList.toggle("on",b.dataset.z===SIZE); b.setAttribute("aria-pressed",String(b.dataset.z===SIZE));});}
+// the controls live in the heading row; their options open as a panel over the page and close on a click elsewhere
+const keyEl=root.querySelector(".fd-key"), moreB=root.querySelector(".fd-more"), opts=root.querySelector(".fd-opts");
+function foldIt(open){opts.hidden=!open; moreB.textContent=open?"Controls ▴":"Controls ▾"; moreB.setAttribute("aria-expanded",String(open));}
+moreB.addEventListener("click",e=>{e.stopPropagation(); foldIt(opts.hidden);});
+const away=e=>{if(!opts.hidden&&e.target.isConnected&&!keyEl.contains(e.target)) foldIt(false);}, esc=e=>{if(e.key==="Escape"&&!opts.hidden){foldIt(false); moreB.focus();}};
+document.addEventListener("click",away); document.addEventListener("keydown",esc);
+function speedIt(){keyEl.querySelectorAll(".fd-speed button").forEach(b=>{b.classList.toggle("on",b.dataset.v===SPEED); b.setAttribute("aria-pressed",String(b.dataset.v===SPEED));});}
+speedIt();
+keyEl.querySelectorAll(".fd-speed button").forEach(b=>b.addEventListener("click",()=>{SPEED=b.dataset.v; try{localStorage.setItem("fdspeed",SPEED);}catch(e){} speedIt();}));
+keyEl.querySelectorAll(".fd-size button").forEach(b=>b.addEventListener("click",()=>{SIZE=b.dataset.z; try{localStorage.setItem("fdsize",SIZE);}catch(e){} sizeIt();}));
 // the line above the drawing: the full names of where the case is
 let nowAt=-1;
 function showNow(i){if(i===nowAt) return; nowAt=i; const s=G.steps[i], g=G.stages[s.stage]; nowP.textContent="";
@@ -708,7 +774,7 @@ function showNow(i){if(i===nowAt) return; nowAt=i; const s=G.steps[i], g=G.stage
 function showActive(i,ln){showNow(i); laneLabels.forEach((t,k)=>t.classList.toggle("act",k===ln));
   svg.querySelectorAll(".fd-mark.cur").forEach(m=>m.classList.remove("cur")); if(ln>=0&&st[i].marks[ln]) st[i].marks[ln].classList.add("cur");
   if(ln<0||!st[i].marks[ln]){halo.style.display="none";return;}
-  halo.style.display=""; halo.setAttribute("cx",cl[i]+MX); halo.setAttribute("cy",laneY(ln));}
+  halo.style.display=""; halo.setAttribute("cx",cl[i]+MXS[i]); halo.setAttribute("cy",laneY(ln));}
 function frame(){
   if(dead||!root.isConnected||!st.length) return;
   // a process step picked in the panel: the case replays that step
@@ -722,7 +788,7 @@ function frame(){
   const f=mode==="overview"?-1:(pinned>=0?pinned:i); if(f!==focus) build(f);
   const o=st[i]; let x=cx[i];
   if(rem>dur[i]&&pinned<0){const k=(rem-dur[i])/MOVE; x=i+1<cx.length?cx[i]+(cx[i+1]-cx[i])*k:cx[i];}
-  bot.setAttribute("cx",x);
+  bot.setAttribute("cx",x); follow(x);
   stageEls.forEach((p,k)=>p.classList.toggle("on",k===G.steps[i].stage));
   st.forEach((q,k)=>{const on=k===i; q.box.classList.toggle("on",on); q.col.classList.toggle("on",on); if(!on) q.calls.forEach(c=>c.classList.remove("on"));});
   if(rem<=dur[i]&&o.segs.length){
@@ -734,7 +800,7 @@ function frame(){
   } else {pulse.style.display="none"; showActive(i,-1);}
 }
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-function tick(dt){if(dead||paused||!root.isConnected) return; t+=dt*(reduce?0.5:1);
+function tick(dt){if(dead||paused||!root.isConnected) return; t+=dt*(reduce?0.5:1)*(+SPEED);
   if(pinned>=0&&t>start[pinned]+dur[pinned]+0.4) t=start[pinned]+0.001; if(t>=total) t=0;}
 function loop(now){if(dead) return; tick(Math.max(0,Math.min((now-last)/1000,0.1))); last=now; frame(); requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
@@ -745,12 +811,13 @@ viewB.addEventListener("click",()=>{mode=mode==="overview"?"waterfall":"overview
 function keyRow(){if(only&&!D.measures.some(m=>m.layer===only&&MF(m))){only=null; build();}
   kinds.hidden=!S.showM; kinds.textContent=""; kinds.classList.toggle("dim",!!only);
   if(!S.showM) return;
-  const b0=document.createElement("b"); b0.textContent="Measures, by kind"; kinds.append(b0);
+  const b0=document.createElement("b"); b0.textContent="Only one kind"; kinds.append(b0);
   ORDER.filter(L=>D.measures.some(m=>m.layer===L&&MF(m))).forEach(L=>{const b=document.createElement("button"); b.type="button"; b.className="fd-kind";
     b.style.setProperty("--c",VAR(L)); b.setAttribute("aria-pressed",String(only===L));
     const i=document.createElement("i"); if(L==="agentic") i.className="dia"; b.append(i,document.createTextNode(LAYER[L])); kinds.append(b);
     b.addEventListener("click",()=>{only=only===L?null:L; build(); keyRow(); frame();});});}
-return {mount(host){host.append(root); build(); keyRow(); frame();}, destroy(){dead=true; clearInterval(iv); root.remove();}};
+keyEl.remove();
+return {ctl:keyEl, mount(host){host.append(root); build(); keyRow(); frame();}, destroy(){dead=true; clearInterval(iv); document.removeEventListener("click",away); document.removeEventListener("keydown",esc); keyEl.remove(); root.remove();}};
 }
 // the side panel closes to a strip on the right edge; open or closed is remembered, as the light or dark choice is
 function panelOpen(open,keep){const m=document.querySelector(".main"),b=document.getElementById("pbtn"),was=!m.classList.contains("pclosed");

@@ -19,7 +19,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import flow_model as fm  # noqa: E402
 
-VERSION = 3
+VERSION = 4
 TEMPLATE = HERE / "viewer.template.html"
 PORTFOLIO = "portfolio.csv"  # read from the folders given when --portfolio is not
 
@@ -70,11 +70,12 @@ def build(folders, portfolio=None):
         apps.append({"id": r.get("application_id", ""), "name": r.get("application") or (reg or {}).get("name", ""),
                      "division": r.get("division", ""), "line": r.get("line_of_business", ""), "sub": r.get("sub_line", ""),
                      "register": r.get("register", "") if reg else "", "mock": r.get("mock", "").lower() in ("yes", "true", "1"),
-                     "what": (reg or {}).get("what", ""), "flows": (reg or {}).get("flows", [])})
+                     "what": (reg or {}).get("what", ""), "flows": (reg or {}).get("flows", []),
+                     "updated": (reg or {}).get("updated", "")})
     for name, reg in by_name.items():
         if name not in used:
             apps.append({"id": "", "name": reg["name"], "division": "", "line": "", "sub": "", "register": name,
-                         "mock": False, "what": reg["what"], "flows": reg["flows"]})
+                         "mock": False, "what": reg["what"], "flows": reg["flows"], "updated": reg["updated"]})
     return {"version": VERSION, "built": datetime.date.today().isoformat(), "apps": apps}, problems
 
 

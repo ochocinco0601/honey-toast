@@ -1,11 +1,11 @@
 The stage kit's model code this viewer runs on, copied unchanged from a released stage kit. The viewer imports only these files; it never reads an installed kit. Refreshed on purpose, never automatically, then tested.
-Kit release: release-9.12.1 2026-11-24
+Kit release: release-9.13 2026-11-25
 Files: 28, each as that release's KIT-VERSION.txt lists it (digest, path):
 45ab212f7894  brief.py
-331fa53a27c7  capability_views.py
+82cf99602f3e  capability_views.py
 7fd0f62b0c36  case.py
 3bb978792a7f  depth.py
-e92e2213aa9b  flow_outputs.py
+f39202f11da2  flow_outputs.py
 1f8e660a1efd  flow_page.py
 5ee219ebacb1  go.py
 20fd9c692a69  home.py
@@ -16,15 +16,15 @@ e92e2213aa9b  flow_outputs.py
 26b056624634  method/layers.csv
 8691712fae7c  method/measure-forms.csv
 6eb53baafd1f  method/part-kinds.csv
-20ca66afcc5d  one_canvas.py
+5995cf4f478a  one_canvas.py
 67bcb9e9cd63  page_style.py
 e752d94733cf  part_inside.py
 70d09a6bd2b0  part_page.py
-d141fb378d9d  register-template/REGISTER.md
+ad8e3017e8a1  register-template/REGISTER.md
 fab9caf6b010  register_layout.py
 e03690773abf  run_lock.py
 700122e6ef27  run_md.py
-c65ea46f4c9d  stage_flow_views.py
+0340275441f8  stage_flow_views.py
 4fdc8857fd2d  step_page.py
 48f1c160390c  step_sequence.py
 9500c3f2b0cf  tables.py

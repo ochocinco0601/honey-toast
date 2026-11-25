@@ -9,6 +9,19 @@ It is a skill as well as a program: installed as `.claude/skills/bfo-viewer/`, C
 when you say "open the flow viewer", "show me the portfolio" or "show my business flows" (`SKILL.md`). It can also be
 run by hand, as below.
 
+## Using the page
+
+- **Portfolio.** Each application's row shows its milestones and **Last updated**: the newest modified time of any file
+  in its register. Click a heading to sort; Last updated sorts newest first. A register copied by git or a file
+  transfer takes the time of the copy.
+- **Flow map.** **Pause** and **Controls** sit at the right of the Flow map heading. Controls opens a panel with
+  Repeat, View, **Size** (Fit, 100%, 125%, 150%), **Speed** (0.25x to 2x), **Measures** and a filter for one kind of
+  measure. Size and Speed are remembered between flows and visits. At 100% and above the map keeps its size, the
+  browser's zoom enlarges it, the card scrolls sideways with the names kept in view, and the card follows the moving
+  case unless you have just scrolled it yourself.
+- **Measures on the map.** One mark per kind of measure where it applies, with a number beside it when there is more
+  than one; click a mark for those measures' cards. The **Key** (top right) explains every mark and colour.
+
 ## Install
 
 Copy this folder to `.claude/skills/bfo-viewer/` (or anywhere, to run it by hand). Python 3.9 or later, standard library only.

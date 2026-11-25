@@ -304,7 +304,8 @@ def map_screen(M):
         fstart = " fstart" if fi else ""
         sub = plural(n, "stage") if n else "not broken into stages in the register"
         out.append(f'<div class="cell{fstart}" style="grid-column:1;grid-row:{r} / span {max(1, n)}">'
-                   + box("flow", "f:" + fid, f.get("name", ""), sub, f"m-f-{fid}") + "</div>")
+                   + box("flow", "f:" + fid, f"Flow {fid}: {cv.short_name(f)}" if cv.short_name(f) else f.get("name", ""),
+                         sub, f"m-f-{fid}") + "</div>")
         for si, st in enumerate(f["_stages"]):
             gid, cls = st["stage"], fstart if si == 0 else ""
             items = "".join(
@@ -314,7 +315,7 @@ def map_screen(M):
                 for x in st["_steps"])
             parts, sp, deps, pd = stage_chain(M, st)
             out.append(f'<div class="cell{cls}" style="grid-column:2;grid-row:{r}">'
-                       + box("stage", "g:" + gid, f'Stage {st.get("order")}: {st.get("name", "")}', "", f"m-g-{gid}") + "</div>")
+                       + box("stage", "g:" + gid, cv.stage_label(st), "", f"m-g-{gid}") + "</div>")
             out.append(f'<div class="cell{cls}" style="grid-column:3;grid-row:{r}">'
                        f'<details class="steps" id="m-d-{E(gid)}" data-k="g:{E(gid)}" data-row="{E(gid)}">'
                        f'<summary>{fold_count(M, st["_steps"])}</summary><ul>{items}</ul></details></div>')

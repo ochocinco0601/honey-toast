@@ -5,6 +5,7 @@ column as "", step ids sort as numbers where they are numbers. The flow's stages
 kit's own model (capability_views, one_canvas), from the copy of it carried in kit_copy/.
 """
 import csv
+import datetime
 import json
 import re
 import shutil
@@ -428,4 +429,11 @@ def register(reg):
                 problems.append(f"{reg.name} {fid}: not drawn: {fl['error']}")
         flows.append(fl)
     return {"register": reg.name, "name": name or reg.name, "what": first_sentence(about[0]["what_it_is"]) if about else "",
-            "flows": flows}, problems
+            "flows": flows, "updated": last_updated(reg)}, problems
+
+
+def last_updated(reg):
+    """The newest modified time of any file in the register's folder, as 'YYYY-MM-DD HH:MM' local time; the kit
+    records no update time of its own. The viewer's own page, which it may write into the register, is not counted."""
+    ts = [f.stat().st_mtime for f in Path(reg).rglob("*") if f.is_file() and f.name != "viewer.html"]
+    return datetime.datetime.fromtimestamp(max(ts)).strftime("%Y-%m-%d %H:%M") if ts else ""

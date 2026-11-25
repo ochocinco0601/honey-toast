@@ -111,6 +111,7 @@ what was read and excluded from what was never opened.
 |---|---|
 | flow_id | `F1`, `F2`, ... |
 | name | One case's path, named as the business would say it ("Originating a loan") |
+| short_name | Optional. The flow's name sized for a glance, two to five words, by `reference/assigning-business-work-to-levels.md`, "Short names": unique in its flow across the flow, its stages and its steps (names differing only by *a* or *the* count as the same). Drafted, so written `proposed: ` and the short name until the people who own the work confirm it. Where it is filled, the map pages show it beside the level's identifier, and the full name stays reachable; `check_map.py` checks its length and that it is unique. Empty in a register made before the column. A flow whose name is already verb first in two to five words takes its name |
 | case | What one case is, and where it is recorded |
 | starts_at, ends_at | The event that starts one case and the outcome that ends it |
 | delivers | The capability ids this flow delivers, `;` separated. A flow can deliver several; a capability can be delivered by several flows |
@@ -127,6 +128,7 @@ what was read and excluded from what was never opened.
 | flow | The flow id it belongs to |
 | order | 1, 2, 3 within its flow |
 | name | The stretch, as the business would name it |
+| short_name | Optional. The stage's name sized for a glance, two to five words, by `reference/assigning-business-work-to-levels.md`, "Short names": unique in its flow across the flow, its stages and its steps (names differing only by *a* or *the* count as the same). Drafted, so written `proposed: ` and the short name until the people who own the work confirm it. Where it is filled, the map pages show it beside the level's identifier, and the full name stays reachable; `check_map.py` checks its length and that it is unique. Empty in a register made before the column. A stage whose name is already verb first in two to five words takes its name; a name of one word is kept as it is |
 | entry, exit | What is true when a case enters and leaves it |
 | bound_in_code | Optional. Fill it only where the application's own code sets a timer, deadline or overdue rule for this stage: `proposed: ` and the limit, cited to the code that sets it. Leave it empty otherwise, never `none assumed`: few applications set one, and an empty cell owes nothing, no gap and no question. A limit a document or a person states, or one the business shows the party, goes in `expectations.csv` → `objective`, never here; the parties' expectations are the stage card's main content. Where it is filled, the page shows it as "Time limit in the code", and the receipt asks the stage `past the time limit` |
 | arrivals_per_period | Cases arriving per period at this stage. The operators' measured value; `not stated: measured by the operators` until they give it |
@@ -162,6 +164,7 @@ within each stage.
 | step | A number or short id, unique across the register |
 | stage | The stage id it belongs to |
 | name | The outcome |
+| short_name | Optional. The step's name sized for a glance, two to five words, by `reference/assigning-business-work-to-levels.md`, "Short names": unique in its flow across the flow, its stages and its steps (names differing only by *a* or *the* count as the same). Drafted, so written `proposed: ` and the short name until the people who own the work confirm it. Where it is filled, the map pages show it beside the level's identifier, and the full name stays reachable; `check_map.py` checks its length and that it is unique. Empty in a register made before the column. An act inside the stage is named verb first (`proposed: Price items`); a step that takes the case out of its stage, by the state it leaves the case in (`proposed: Card refused`). The only step of a stage may share the stage's short name |
 | business_subject | The subject id of the case it acts on (a `case` row in subjects.csv) |
 | right_outcome | What a right outcome is for this step, for one case; `proposed: ` when no one stated it |
 | qualifier | Blank, or `partial: <what is missing>`, or `stub: <what stands in>` when the step is only partly carried out, saying which part falls short: `stub: the chat assistant uses a fixed list` |
