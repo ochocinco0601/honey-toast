@@ -489,9 +489,12 @@ collapses stage into step cannot see it at all, and will report a process as slo
 being able to say how much of the time was spent waiting. Process mining computes the same
 split from each step's start and end: service time inside the steps, waiting time between them.
 
-**A stage and a step are both named verb first, at different sizes.** BPMN modelling
-practice names an activity with a verb, and TOGAF names value streams and their stages verb-noun, so nothing here departs
-from them. What tells a stage from a step is its size and its boundaries, never its grammar: a stage
+**A stage and a step are both named for what they do, at different sizes.** A stage is named verb
+first. A step's full name is written as what happens to the case, *The credit file is pulled*, as
+the mapping procedure records it; its short name (below, *Short names*) carries the verb-first
+form, *Pull the credit file*, and that is the form the tables and the worked example here use.
+BPMN modelling practice names an activity with a verb, and TOGAF names value streams and their
+stages verb-noun, so nothing here departs from them. What tells a stage from a step is its size and its boundaries, never its grammar: a stage
 runs between two of Step 4's boundaries and contains steps; a step is one act inside it with one
 outcome. A stage with a single step can carry nearly the same words as that step, and that is not a
 defect.
@@ -547,6 +550,56 @@ halves that the business does not recognise as having separately happened, which
 Where a boundary is drawn at a point of no return inside a step, it falls where that step completes
 instead: the step is the last one in the stage it closes, and every step still belongs to exactly
 one stage.
+
+## Short names — the same name, sized for a glance
+
+**Every flow, stage and process step can be read at a glance by a short name.** The full name stays
+the name of record: it is what the level means, and a reader can always reach it. The short name is
+the Name field in a second form, not a ninth field, and it never stands in for the level's
+identifier: a view shows the two together, *Stage 2 Take payment*.
+
+1. **A flow or stage whose name is already verb first in two to five words is already short: its
+   short name is its name.** *Place an order*, *Take payment*, *Hand over for shipping*. Draft a different one only
+   where the name breaks that rule, and then keep its words: *Placing an order* becomes *Place an
+   order*. A name that is a bare noun or a state, *Consultation*, *Owner and pet identified*, keeps
+   its words in the short name, even a single word; the full name is what needs correcting, and the
+   short name does not invent an act to hide that. A name over five words is cut down to five,
+   keeping the verb and its object: *Take in a deposit from another bank* becomes *Take in a
+   deposit*.
+2. **A step that is an act inside its stage is named verb first, verb and object.** *Price items*,
+   *Empty cart*, *Email confirmation*. Process modelling names activities this way.
+3. **A step that takes the case out of its stage is named by the state it leaves the case in:
+   object, then state.** The main way out and every other way: *Card charged*, *Card refused*,
+   *Shipping failed*, *Items delivered*. These are the steps the views label *Expected outcome* and
+   *Other outcome*, and a state is how process modelling names an end event. Take the state from
+   the lifecycle's record of the move where it has one, an `implicit:` state included, so the short
+   name says what the record says, put in the business's words: *Order paid*, never the table a
+   row is written to.
+4. **At most five words, and never one** (the one exception is rule 1's). An act needs its object and a state needs what it is
+   true of: *Ship* or *Refused* leaves the reader to guess. No abbreviations or codes: shorten the
+   phrase, never the words.
+5. **Unique within its flow, across its levels.** No two steps share a short name, and no step
+   shares one with a stage or the flow, except a stage with a single step (Step 4); names that
+   differ only by *a* or *the* count as the same. Where two would collide, keep the word that tells
+   them apart: *Payment refused as repeat*, *Payment refused as invalid*, *Payment refused, no
+   balance*.
+6. **Faithful to the full name.** It may drop words, never add a claim. *Items received* claims a
+   receipt nothing records; a step whose outcome the source leaves unknown is not named *failed*.
+7. **Drafted, and marked proposed.** The short name is drafted with the full name, marked
+   `proposed` until the people who own the work confirm it, like every other name here. It is
+   drafted, not cut down by rule: a full name cut down word by word stays a sentence, too long
+   for a glance, and near-identical steps cut the same way collide.
+
+**The rule applied — short names.**
+
+| Full name | Wrong | Right |
+|---|---|---|
+| *Placing an order* (a flow) | *Order placement* — a noun where the flow's act is named | *Place an order* |
+| *Hand over for shipping* (a stage) | *Ship* — one word, and claims more than a hand-over | *Hand over for shipping*: already short |
+| *The order's items are priced in the shopper's currency* (an act) | *Items priced in currency* — an act named as a state | *Price items* |
+| *The order's total is charged to the shopper's card* (the stage's way out) | *Charge card* — the way out of a stage named as an act | *Card charged* |
+| *The payment is refused as a repeat* · *as invalid* · *for want of balance* | *Payment refused* three times — they collide | *Payment refused as repeat* · *Payment refused as invalid* · *Payment refused, no balance* |
+| *The items reach the shopper* | *Items received* — adds a claim | *Items delivered*, the lifecycle's own state |
 
 ## What each level makes obtainable
 
@@ -982,6 +1035,16 @@ screen is this procedure's own, and is flagged rather than dressed up.
 - **Where is this case now** — Kanban (Anderson, 2010) and pipeline stages in sales and case
   management, where the question has an answer at every moment; here it is answered by the stage
   the case is in
+
+**Short names**
+- **Verb–object activity labels** — Mendling, Reijers & van der Aalst, *Seven Process Modeling
+  Guidelines* (2010), G6, resting on Mendling, Reijers & Recker (2010), who found verb–object
+  labels less ambiguous than action–noun ones. The rule for an act
+- **End events named by the state reached** — BPMN style guidance (Silver, *BPMN Method and
+  Style*: end events labelled noun–adjective, *Request rejected*). The rule for a step that takes
+  the case out of its stage
+- **Unique labels, no abbreviations** — Trisotech's and Camunda's modelling guides. The five-word
+  ceiling is this procedure's own, set by what fits in a box at a glance, not taken from a study
 
 **Step 7 — deriving it twice**
 - **Software reflexion model** — Murphy, Notkin & Sullivan: a model read from the source compared

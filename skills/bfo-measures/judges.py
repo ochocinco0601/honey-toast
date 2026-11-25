@@ -180,7 +180,8 @@ def rows(reg, unit):
     reg = pathlib.Path(reg).resolve()
     done = finished(reg, unit)
     every = [r for r in all_rows(reg, unit) if r["index"] not in done.get(r["path"], ())]
-    return [r for r in every if r["cited"]], sum(1 for r in every if not r["cited"])
+    extra = short_name_rows(reg) if unit == "flow" and _fast(reg) else []  # a fast map's one judge per flow
+    return [r for r in every if r["cited"]] + extra, sum(1 for r in every if not r["cited"])
 
 
 def finished(reg, unit):
@@ -473,6 +474,14 @@ def flagged_in(reg, rws, rnd, n):
     return [r for r in rws if _flags(_any_hash(reg, r, rnd))]
 
 
+SHORT_LAST = 2  # a flow's short names are judged, fixed and judged once more, in a fast map too
+
+
+def last_round(row, s):
+    """The row's last judging round: the run's `judge_rounds`, but always two for a flow's short names."""
+    return SHORT_LAST if row["table"] == SHORT_ROWS else s["judge_rounds"]
+
+
 def _moved_on(reg, row, rnd, last):
     """Flagged in this round at an older content and not judged at its current one: fixed, and due in the next round,
     not this one. Never in the last round (`last`, judge_rounds): with no round left, the row is judged again in it."""
@@ -485,15 +494,15 @@ def _moved_on(reg, row, rnd, last):
 def scope(reg, unit, rnd, n, mode=None):
     """The rows judged in this round: all of them in round 1, else those flagged in the round before at any hash; less
     the rows flagged in this round and fixed since, which are due in the next."""
-    last = settings(reg)["judge_rounds"]
+    s = settings(reg)
     rws = rows(reg, unit)[0]
-    if run_settings.load(reg).get("mapping") == "fast":  # only the rows a proposal rests on (selective.py)
-        import selective
+    if run_settings.load(reg).get("mapping") == "fast":  # only the rows a proposal rests on (selective.py), and the
+        import selective                                 # flow's short names, judged before the map is drawn
         keep = (selective.selected(reg) or {}).get(unit, set())
-        rws = [r for r in rws if (r["table"], r["key"]) in keep]
+        rws = [r for r in rws if (r["table"], r["key"]) in keep or r["table"] == SHORT_ROWS]
     if (mode or ("all" if rnd <= 1 else "flagged")) != "all":
         rws = flagged_in(reg, rws, rnd - 1, n)
-    return [r for r in rws if not _moved_on(reg, r, rnd, last)]
+    return [r for r in rws if not _moved_on(reg, r, rnd, last_round(r, s))]
 
 
 # ---- run ----
@@ -1076,17 +1085,171 @@ def _held_lines(unit, held, relaunched, cap, limit):
                 f"launched afresh once, recorded in judging/{STUCK}"] if relaunched["stuck"] else []))
 
 
+SHORT_TABLES = ("flows", "stages", "steps")  # the levels with a short name (assigning-business-work-to-levels.md)
+
+
+def _step_kind(reg, step):
+    """("act", []) for a step whose moves stay in its stage, ("way out", [the states it leaves the case in]) for one
+    that takes the case out of it (flow_outputs.step_labels: "Expected outcome", "Other outcome"), or (None, []) when
+    the step cites no move of the lifecycle, so its kind is not known."""
+    import flow_outputs  # imported here: it imports go, which imports this module
+    from map_record import state
+    reg = pathlib.Path(reg)
+    stages, steps, life = (tables.dicts(reg / f"{t}.csv") for t in ("stages", "steps", "lifecycle"))
+    me = next((s for s in steps if s.get("step") == step), None)
+    moves = {m.get("move_id"): m for m in life}
+    mine = [moves[x] for x in dict.fromkeys(re.findall(r"\bL\d+\b", (me or {}).get("source", ""))) if x in moves]
+    if not mine:
+        return None, []
+    label = flow_outputs.step_labels(stages, steps, life).get(step, "")
+    if not label:  # its stage is not in the register
+        return None, []
+    if label in ("Expected outcome", "Other outcome"):
+        return "way out", list(dict.fromkeys(state(m.get("to_state")) for m in mine if not flow_outputs.side_move(m)))
+    return "act", []
+
+
+NO_CLAIM = "It may drop words from the full name, never add a claim the full name does not make."
+DRAFT = "A `proposed:` before a short name only marks it as a draft: judge its words."
+SHORT_ROWS = "short-names"  # a fast map's one judge per flow of all its short names (short_name_rows)
+
+
+def _short_item(row):
+    """(short name, full name, kind, lifecycle states) of a flow, stage or step row whose short_name is filled, or
+    None. The kind is "flow or stage", "act", "way out", or "" for a step whose kind is not known."""
+    if row["table"] not in SHORT_TABLES or "short_name" not in row["header"]:
+        return None
+    got = dict(zip(row["header"], (_strip(c).strip() for c in row["cells"])))
+    short = re.sub(r"^proposed:\s*", "", got.get("short_name", "")).strip()
+    if not short:
+        return None
+    full = re.sub(r"^proposed:\s*", "", got.get("name", "")).strip()
+    if row["table"] != "steps":
+        return short, full, "flow or stage", []
+    kind, states = _step_kind(row["path"].parent, got.get("step", "")) if row.get("path") else (None, [])
+    return short, full, kind or "", states
+
+
+def _kind_tests(kind, states):
+    """The method rule's test of fitting its kind (rules 1 to 3), for one short name: none for a step whose kind is not
+    known."""
+    if kind == "flow or stage":
+        return ["A flow or stage whose full name is already verb first in two to five words keeps that name as its "
+                "short name; any other keeps the full name's words, at most five, and invents no act."]
+    if kind == "act":
+        return ["This step is an act inside its stage: its short name is verb first, a verb and its object "
+                "(Price items)."]
+    if kind == "way out":
+        return (["This step takes the case out of its stage: its short name is the object, then the state it leaves "
+                 "the case in (Card charged), not an act."]
+                + (["Its lifecycle states are: " + "; ".join(states) + ". A state word taken from them adds no claim."]
+                   if states else []))
+    return []
+
+
+def short_name_question(row):
+    """The short-name question a judge is asked of a flow, stage or step row whose short_name is filled, or "": the
+    method rule's tests of faithfulness (rule 6) and of fitting its kind (rules 1 to 3). The full reading's; a fast
+    map asks the same tests of a whole flow at once (short_name_rows)."""
+    got = _short_item(row)
+    if got is None:
+        return ""
+    short, full, kind, states = got
+    return ("## Its short name\n\n"
+            f"This row also has a short name: \"{short}\" (full name: \"{full}\"). {DRAFT} Judge it against the full "
+            "name and these tests, not against the code:\n"
+            + "".join(f"- {t}\n" for t in [NO_CLAIM] + _kind_tests(kind, states))
+            + "\nIf the short name fails a test, the verdict is `does not say` (never `unclear`), with a reason that "
+            "begins `short name:`, says what is wrong and gives a short name that passes. If the row fails too, give "
+            "both in the one reason.\n\n")
+
+
+def _fast(reg):
+    try:
+        return run_settings.load(reg).get("mapping") == "fast"
+    except ValueError:
+        return False
+
+
+def _flows_now(reg):
+    """{flow id: its stage ids} of the flow worked now (go.py's record), or of every flow in flows.csv before any go."""
+    import go
+    reg = pathlib.Path(reg)
+    s = go.load(reg) or {}
+    fid = go.flow_id_of(reg, s) if s else ""
+    if fid:
+        return {fid: set(go.stages_of(reg, s))}
+    stages = tables.dicts(reg / "stages.csv")
+    flows = [(f.get("flow_id") or "").strip() for f in tables.dicts(reg / "flows.csv")]
+    return {f: {(x.get("stage") or "").strip() for x in stages if (x.get("flow") or "").strip() == f}
+            for f in flows if f}
+
+
+def short_name_rows(reg):
+    """A fast map's short names, one row per flow worked now that has any filled (table `short-names`, key the flow
+    id), so one judge reads them all together. Its cells are each short name with its table, row, full name, kind and
+    lifecycle states, so a change to any one makes the flow's verdict stale. It cites no code and is no table's row: a
+    flag it carries lands on the row it names (short_name_flags, collect)."""
+    reg = pathlib.Path(reg).resolve()
+    every = [r for r in all_rows(reg, "flow") if r["table"] in SHORT_TABLES]
+    stage_of = {(s.get("step") or "").strip(): (s.get("stage") or "").strip() for s in tables.dicts(reg / "steps.csv")}
+    out = []
+    for fid, stages in _flows_now(reg).items():
+        header, cells = ["flow"], [fid]
+        for r in every:
+            got = dict(zip(r["header"], (_strip(c).strip() for c in r["cells"])))
+            mine = {"flows": got.get("flow_id") == fid, "stages": got.get("stage") in stages,
+                    "steps": stage_of.get(got.get("step", "")) in stages}[r["table"]]
+            item = _short_item(r) if mine else None
+            if item:
+                header.append(f"{r['table']} {r['key']}")
+                cells.append(json.dumps([r["table"], r["key"], *item], ensure_ascii=False))
+        if len(cells) > 1:
+            out.append(make_row("flow", SHORT_ROWS, fid, header, cells))
+    return out
+
+
+def short_names_prompt(row):
+    """What a fast map's per-flow short-name judge is asked: the tests short_name_question states, each short name with
+    its own."""
+    lines = []
+    for c in row["cells"][1:]:
+        table, key, short, full, kind, states = json.loads(c)
+        lines.append(f"- {table} {key}: \"{short}\" (full name: \"{full}\")"
+                     + "".join(f"\n  - {t}" for t in _kind_tests(kind, states)))
+    return ("## The flow's short names\n\n"
+            f"This is not a row of the map and cites no code: open no file. It is every short name of flow "
+            f"{row['key']}, judged together. {DRAFT} Judge each against its own full name and the tests given, not "
+            f"against the code. Every short name: {NO_CLAIM}\n\n" + "\n".join(lines)
+            + "\n\nIf every short name passes, the verdict is `says`. If any fails, it is `does not say` (never "
+            "`unclear`), and the reason names each one that fails as `short name: <table> <row>: <what is wrong>; "
+            "<a short name that passes>`, the table and row exactly as listed above.\n\n")
+
+
+FLAG = re.compile(r"short name:\s*(flows|stages|steps)\s+(\S+?):\s*(.*?)(?=\s*short name:\s*(?:flows|stages|steps)\s|$)",
+                  re.S)
+
+
+def short_name_flags(reason):
+    """[(table, row, reason)] of each short name a per-flow verdict's reason flags."""
+    return [(t, k, "short name: " + why.strip().rstrip("|").strip()) for t, k, why in FLAG.findall(reason or "")]
+
+
 def prompt(body, row, rnd, j, path, ws=None, flow=""):
     """One judge's prompt. Its data line names the row, round and judge, the flow worked now and the row's hash, which
-    the judge copies into its verdict file: a verdict is current only while both match the row."""
+    the judge copies into its verdict file: a verdict is current only while both match the row. A flow, stage or step
+    row with a short name also carries the short-name question (short_name_question)."""
     fields = "\n".join(f"- {h}: {v}" for h, v in zip(row["header"], row["cells"]) if v.strip())
     buf = io.StringIO()
     csv.writer(buf, lineterminator="").writerow([row["unit"], row["table"], row["key"], rnd, j, flow, row["hash"], ""])
     where = f"{ws_line(ws)}\n\n" if ws else ""
-    return (f"{body}\n\n## The row\n\n{where}"
+    what = (short_names_prompt(row) if row["table"] == SHORT_ROWS else
+            f"## The row\n\n{where}"
             f"The row is from the map's {row['table']} table (unit {row['unit']}, row {row['key']}; judging round "
             f"{rnd}, you are judge {j}). Its columns and values:\n{fields}\n\n"
             f"Cited locations: {row['citations']}\n\n"
+            f"{short_name_question(row)}")
+    return (f"{body}\n\n{what}"
             f"Verdict file: {path}\n"
             f"Header line: {HEADER}\n"
             f"Data line: {buf.getvalue()}<verdict>,\"<reason>\"\n\n"
@@ -1673,16 +1836,16 @@ def row_state(reg, row, top, s):
     """(state, round, the verdicts it is read from) of a row whose unit's latest round is `top`, `s` the settings: its
     round is its latest by identity; its state is read from the verdicts at its current content, and while those are
     short a flag at an older content keeps it flagged (it is being fixed)."""
-    n = s["judges"]
+    n, last = s["judges"], last_round(row, s)
     rnd = next((r for r in range(top, 0, -1) if _any_hash(reg, row, r)), 0)
     got = _round(reg, row, rnd, n) if rnd else []
     every = _any_hash(reg, row, rnd) if rnd else []
-    if rnd and len(got) < n and _flags(every) and (rnd < s["judge_rounds"] or len(every) >= n):
-        return ("flagged" if rnd < s["judge_rounds"] else "disputed"), rnd, every
+    if rnd and len(got) < n and _flags(every) and (rnd < last or len(every) >= n):
+        return ("flagged" if rnd < last else "disputed"), rnd, every
     if rnd == 0 or len(got) < n:
         return "pending", rnd, got
-    if _flags(got) or (rnd >= s["judge_rounds"] and _flags(every)):
-        return ("disputed" if rnd >= s["judge_rounds"] else "flagged"), rnd, got
+    if _flags(got) or (rnd >= last and _flags(every)):
+        return ("disputed" if rnd >= last else "flagged"), rnd, got
     return "passed", rnd, got
 
 
@@ -1707,6 +1870,22 @@ def _unmatched_calls(reg):
     return {r["call"] for r in csv.DictReader(io.StringIO(files.get(layout.UNMATCHED_CSV) or ""))}
 
 
+def _land_short_name_flags(out):
+    """A flag a fast map's per-flow short-name verdict carries, put on the flow, stage or step row it names in the
+    judgements: that row's entry takes the flow's state and round and the flag's own reason (one is added for a row
+    that cites no code, so has none)."""
+    at = {(r["unit"], r["table"], r["row"]): r for r in out}
+    for r in [r for r in out if r["table"] == SHORT_ROWS and r["state"] in ("flagged", "disputed")]:
+        for table, key, why in short_name_flags(r["reasons"]):
+            mine = at.get(("flow", table, key))
+            if mine is None:
+                mine = at[("flow", table, key)] = {"unit": "flow", "table": table, "row": key, "reasons": ""}
+                out.append(mine)
+            mine.update({"round": r["round"], "judges": r["judges"], "says": r["says"], "flagged": r["flagged"],
+                         "state": r["state"], "reasons": " | ".join(x for x in (mine["reasons"] if mine.get("state")
+                                                                              in ("flagged", "disputed") else "", why) if x)})
+
+
 def collect(reg, transcripts=None):
     """Write judging/judgements.csv, label disputed rows, and count the models the judges ran on. A disputed call the
     merge leaves unmatched is left unlabelled: its re-read labels it (merge.py), and a label `collect` put there
@@ -1725,11 +1904,12 @@ def collect(reg, transcripts=None):
             out.append({"unit": unit, "table": row["table"], "row": row["key"], "round": rnd, "judges": len(got),
                         "says": len(got) - len(flags), "flagged": len(flags), "state": state,
                         "reasons": " | ".join(reasons)})
+    _land_short_name_flags(out)
     layout.judging_dir(reg).mkdir(exist_ok=True)
     tables.write(reg / layout.JUDGEMENTS_CSV, JUDGEMENT_FIELDS, out, lineterminator="\r\n")
     calls = [f"{u}/{r['key']}" for u, r in disputed if r["table"] == "calls"]
     left = _unmatched_calls(reg) if calls else set()
-    _label([r for u, r in disputed if not (r["table"] == "calls" and f"{u}/{r['key']}" in left)])
+    _label([r for u, r in disputed if r.get("path") and not (r["table"] == "calls" and f"{u}/{r['key']}" in left)])
     models = Counter()
     for p, wrote in writers(reg, transcripts).items():
         eff = effective_writer(p, wrote)[0] or wrote[-1][0]

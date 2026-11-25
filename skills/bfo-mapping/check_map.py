@@ -16,6 +16,7 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+import capability_views as cv  # noqa: E402
 import map_record as mr  # noqa: E402
 import register_layout as layout  # noqa: E402
 import go  # noqa: E402
@@ -33,6 +34,9 @@ RULES = [
     ("kept", "Every row of a finished flow is as it was when this flow began"),
     ("agent-decisions", "Every AI agent's tools, replies and chained actions are classed as its decisions or not"),
 ]
+# Checked only on a flow whose register fills `short_name` somewhere (REGISTER.md: optional, empty in a register made
+# before the column), so an older register is inspected by the same ten rules as before.
+SHORT_RULE = ("short-names", "Every short name is two to five words, and used once in its flow")
 NOT_YET = ["who depends on the flow, recorded as connections", "open questions, each naming who could answer it",
            "how each row was established, from a source or inferred"]
 
@@ -127,8 +131,64 @@ def inspect(reg, flow_id):
     found["kept"] = [f"{THING.get(t, 'a row mapping wrote')} {said_row(t, r)} of {flows.get(fid, 'a finished flow')}, "
                      "changed since that flow was finished" for t, r, fid in go.changed_rows(reg)]
     found["agent-decisions"] = agent_items(R, flow_id)
+    rules = list(RULES)
+    shorts = short_items(flow, stages, steps)
+    if shorts is not None:
+        rules.append(SHORT_RULE)
+        found[SHORT_RULE[0]], noted[SHORT_RULE[0]] = shorts, []
     return [{"rule": rule, "title": title, "passed": not found[rule], "items": found[rule], "notes": noted[rule]}
-            for rule, title in RULES]
+            for rule, title in rules]
+
+
+ARTICLES = {"a", "an", "the"}
+
+
+def said_level(table, row):
+    """A flow or stage by its name as written; a process step's sentence carried on in lower case, as `cont` does."""
+    return cont(row.get("name")) if table == "steps" else (row.get("name") or "").strip()
+
+
+def short_key(text):
+    """What two short names are compared by: their words, any case, without a, an or the and without punctuation
+    (assigning-business-work-to-levels, "Short names", rule 5)."""
+    return " ".join(w for w in re.findall(r"[\w'’-]+", text.lower()) if w not in ARTICLES)
+
+
+def short_items(flow, stages, steps):
+    """What fails the short-name rule (assigning-business-work-to-levels, "Short names", rules 4 and 5), in the map's
+    own words, or None where the flow fills no short name at all. A filled short name is two to five words, one only
+    on a flow or stage whose full name is one word; no two levels of the flow share one, except the only step of a stage with its
+    stage."""
+    rows = ([("flows", flow)] + [("stages", s) for s in stages] + [("steps", s) for s in steps])
+    filled = [(t, r, cv.short_name(r)) for t, r in rows if cv.short_name(r)]
+    if not filled:
+        return None
+    out = []
+    for t, r, short in filled:
+        n, whole = len(short.split()), len((r.get("name") or "").split())
+        if n > 5:
+            out.append(f"{THING[t]} {said_level(t, r)}: its short name “{short}” is {n} words, more than five")
+        elif n == 1 and (t == "steps" or whole != 1):
+            out.append(f"{THING[t]} {said_level(t, r)}: its short name “{short}” is one word, and only a name of "
+                       "one word keeps one")
+    alone = {}  # a stage with one step: that step may share the stage's short name
+    for s in steps:
+        alone.setdefault(s["stage"], []).append(s["step"])
+    # a flow or stage left empty takes its name (rule 1), so its name is what a step must not repeat
+    kept = [(t, r, r.get("name") or "") for t, r in rows if t != "steps" and not cv.short_name(r) and r.get("name")]
+    by = {}
+    for t, r, short in filled + kept:
+        by.setdefault(short_key(short), []).append((t, r, short))
+    for same in by.values():
+        if len(same) < 2:
+            continue
+        if (len(same) == 2 and {t for t, _, _ in same} == {"stages", "steps"}
+                and next(r for t, r, _ in same if t == "steps")["stage"] == next(r for t, r, _ in same if t == "stages")["stage"]
+                and len(alone.get(next(r for t, r, _ in same if t == "stages")["stage"], [])) == 1):
+            continue
+        out.append(f"short name “{same[0][2]}” used by " + " and ".join(f"{THING[t]} {said_level(t, r)}"
+                                                                         for t, r, _ in same))
+    return out
 
 
 def agent_items(R, flow_id):

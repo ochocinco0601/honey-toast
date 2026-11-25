@@ -1127,7 +1127,7 @@ def task_lines(M, sid):
     label = M.get("_step_label", {}).get(sid, sid)
     head = f"{label} · {or_list(who)}" if who else (f"{label} · by the software" if performed_at_all(M, sid) else label)
     hl = lines(head, TW - 16)
-    nl = lines(M["step"][sid].get("name", ""), TW - 16, FS)
+    nl = lines(cv.glance_name(M["step"][sid]), TW - 16, FS)  # the short name where the register has one: the full name is the task's title
     return hl, nl, _r(max(66, 14 + LP * len(hl) + 4 + LH * len(nl) + 6) + pill(M, sid)[0] + 8)
 
 

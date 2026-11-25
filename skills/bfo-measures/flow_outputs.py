@@ -1393,13 +1393,13 @@ def structure(M):
     flow, stage, stages, subj = M["flow"], M["stage"], M["stages"], M["subj"]
     caps = [c["name"] for d in ids(flow.get("delivers")) for c in M["R"]["capabilities"] if c["capability_id"] == d]
     t = ["flowchart TD"]
-    t.append(f'  FL["Intended flow<br/><b>{q(flow["name"])}</b><br/>one case: '
+    t.append(f'  FL["Intended flow<br/><b>{q(cv.glance_name(flow))}</b><br/>one case: '
              f'{q(strip_parens(flow["case"]).split(":")[0].strip())}"]')
     for k, c in enumerate(caps):
         t += [f'  CAP{k}["Capability<br/><b>{q(c)}</b>"]', f"  CAP{k} -->|delivered by| FL"]
     prev = "FL"
     for s in stages:
-        t += [f'  {s["stage"]}["Stage {s["order"]} of {len(stages)}<br/><b>{q(s["name"])}</b>"]',
+        t += [f'  {s["stage"]}["Stage {s["order"]} of {len(stages)}<br/><b>{q(cv.glance_name(s) if s["stage"] == stage["stage"] else s["name"])}</b>"]',
               f'  {prev} -->|{"first stage" if prev == "FL" else "then"}| {s["stage"]}']
         prev = s["stage"]
     sid = stage["stage"]

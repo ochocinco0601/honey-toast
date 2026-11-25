@@ -28,8 +28,8 @@ ORDER = ["lead steps", "impact", "pick", "units", "readers", "merge", "re-reads"
          "judge round 1", "fixers", "judge round 2", "draw", "check", "mapping ends"]
 # The fast map (go.py --fast, fast_map.py): one mapping agent reads the code and writes every unit's rows, then the
 # merge, the checks by script and the drawing; no readers, re-reads or judges.
-FAST_ORDER = ["lead steps", "impact", "pick", "units", "fast read", "merge", "lead rows", "fast check", "fast draw",
-              "mapping ends"]
+FAST_ORDER = ["lead steps", "impact", "pick", "units", "fast read", "merge", "lead rows", "fast check", "short names",
+              "fast draw", "mapping ends"]  # short names: one judge per flow of its short names (next._short_names)
 STAGE_KIT = "bfo-stage-kit"
 
 

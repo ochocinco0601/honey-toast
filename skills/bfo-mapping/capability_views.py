@@ -1760,13 +1760,34 @@ def outcome_short(name):
     return m.group(1) if m else (name or "")
 
 
+def short_name(row):
+    """A flow's, stage's or step's short name as the reader sees it (the register's `short_name`, without the
+    `proposed:` that marks a drafted one), or "" where the register has none."""
+    v = ((row or {}).get("short_name") or "").strip()
+    return v[len("proposed:"):].strip() if v.lower().startswith("proposed:") else v
+
+
+def glance_name(row):
+    """The name a box on the map shows: the short name where the register has one, else the name as today."""
+    return short_name(row) or (row or {}).get("name", "")
+
+
+def stage_label(st, n=None):
+    """A stage on a box of the map: "Stage 2: Take payment", its short name beside its number where it has one."""
+    return f'Stage {st.get("order") or n or ""}: {glance_name(st)}'
+
+
 def step_title(M, sid, short=False):
     """A process step as the reader sees it: "Process step 3.1: …" for an act inside its stage, "Expected outcome: …" or
-    "Other outcome: …" for a way the stage ends; short=True gives an outcome its short name, for its box on the
-    map. A page that does not number its steps keeps the register's id."""
-    name = M["step"].get(sid, {}).get("name", "")
+    "Other outcome: …" for a way the stage ends; short=True, for its box on the map, gives it its short name from the
+    register beside the same label, and, where the register has none, an outcome the words after its subject. A page
+    that does not number its steps keeps the register's id."""
+    row = M["step"].get(sid, {})
+    name = row.get("name", "")
     label = M.get("_step_label", {}).get(sid)
-    if short and is_outcome(M, sid):
+    if short and short_name(row):
+        name = short_name(row)
+    elif short and is_outcome(M, sid):
         name = outcome_short(name)
     return f"{label}: {name}" if label else f"{sid}. {name}"
 

@@ -997,6 +997,8 @@ def _step(reg, flow, sub):
                          "unit the mapping agent did not write, launch it again (fast read)",
                          LEAD_WRITE + ["units/<unit>/ (the row named only, through fast_map.py fix)"],
                          ["fast_map.py check"], found) if found else None
+    if sub == "short names":
+        return _short_names(reg, flow, sub)
     if sub == "fast draw":
         import fast_map
         checked = _correction_checked(reg, flow, sub)
@@ -1141,6 +1143,27 @@ def _step(reg, flow, sub):
                              ["go.py --mapping-ends"], [out])
         return None
     raise ValueError(sub)
+
+
+def _short_names(reg, flow, sub):
+    """A fast map's short names, before the map is drawn, so judged once whether or not measures follow: one judge
+    reads all the flow's (judges.short_name_rows); a flag goes to the flow's fixer (readers.py fix, as in the full
+    reading), and the corrected names are judged once more; still flagged then, they are disputed (judges.collect)."""
+    rows = judges.short_name_rows(reg)
+    if not rows:
+        return None
+    a = _fanout(reg, flow, sub, "judge", 1, ["flow"], judges.emit(reg, "flow", 1))
+    if a:
+        return a
+    judges.collect(reg)
+    if not judges.flagged_in(reg, rows, 1, judges.settings(reg)["judges"]):
+        return None
+    a = (_fanout(reg, flow, sub, "fixer", 1, ["flow"], readers.emit(reg, ["flow"], "fix"))
+         or _fanout(reg, flow, sub, "judge", 2, ["flow"], judges.emit(reg, "flow", 2, "flagged")))
+    if a:
+        return a
+    judges.collect(reg)
+    return None
 
 
 def _skip(reg, flow, sub, by_kit=False):

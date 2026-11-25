@@ -16,6 +16,8 @@ element of the same name; an operation by the operation a measure names; a proce
 and part; a call by the operation it calls. The judges are judges.py's, one per row and one round in a fast map
 (judges.settings), every unit's packed together (selective.py launch, judges.emit_selected); judges.scope takes only
 these rows.
+A flow's short names are not selected here: run control judges them before the map is drawn (next.py, step `short
+names`), so they are judged once whether or not measures follow.
 Python standard library only.
 """
 import csv

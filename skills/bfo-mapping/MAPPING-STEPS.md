@@ -563,6 +563,10 @@ outcome are one process step: they are mechanism, recorded in Step 6.
   order where the lifecycle does not chain them itself.
 - Name the process step as its outcome, without its performer: "Stock is confirmed for the order", not "Catalog API
   confirms stock", never "POST /items returns 201".
+- `short_name`: the same name sized for a glance, by *Assigning*, "Short names": a step inside the stage verb first
+  ("Confirm stock"), a way out of the stage by the state it leaves the case in ("Stock confirmed", "Card refused"),
+  at most five words, unique in the flow, `proposed` until confirmed. A stage or flow whose name already follows its
+  rule takes its name.
 - **Every stage's last process step is the move that takes the case out of it**, into the next stage's entry or an
   ending. One process step per way out: the main move, and each alternative or exception ending. A stage with no process step
   whose `to_state` is its exit is cut wrong: go back to Step 2.

@@ -1,8 +1,8 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9.12.1 2026-11-24
-7ca978af67c4  CHANGELOG.md
+Build: release-9.13 2026-11-25
+24fa4c93c31e  CHANGELOG.md
 67ef9d3d3245  CHECKS.md
-79cffc62df91  FILL-STEPS.md
+1d24e76473c2  FILL-STEPS.md
 35feb8d4ac33  KNOWN-GAPS.md
 255978c2faa1  LAUNCH.md
 3ccb0a72150e  SKILL.md
@@ -14,9 +14,9 @@ dc0f0f8f2918  agents/bfo-unit-reader.md
 5f204fdb5659  agents_now.py
 838ff5b1f936  all_systems.py
 45ab212f7894  brief.py
-331fa53a27c7  capability_views.py
+82cf99602f3e  capability_views.py
 7fd0f62b0c36  case.py
-fbf55b995ccc  check_map.py
+0eb652035b83  check_map.py
 c8d55e01ba66  check_measures.py
 3bb978792a7f  depth.py
 07aeb251ee37  example-eshop/about.csv
@@ -131,14 +131,14 @@ b8e4326e26ee  fact-extractor/precision.py
 af655dd697d2  fact-extractor/semgrep_bin.py
 aadbfeeca1a5  fast_map.py
 13164d0c9ad1  first_look.py
-e92e2213aa9b  flow_outputs.py
+f39202f11da2  flow_outputs.py
 1f8e660a1efd  flow_page.py
 5ee219ebacb1  go.py
-11ffc45a8f5b  guard.py
+df127956a5a7  guard.py
 20fd9c692a69  home.py
 ba0933a43b7b  home.template.html
 5af2a68f1d7b  jobs.py
-588398a1a24d  judges.py
+dd25db43d451  judges.py
 409d57e9d6f6  kit_findings.py
 dc556fcb7329  listener.py
 605a69aeb1f6  map_record.py
@@ -151,8 +151,8 @@ e4270c8420b7  method/hop-failures.csv
 26b056624634  method/layers.csv
 8691712fae7c  method/measure-forms.csv
 6eb53baafd1f  method/part-kinds.csv
-f3a3347772c7  next.py
-20ca66afcc5d  one_canvas.py
+517df13bf57f  next.py
+5995cf4f478a  one_canvas.py
 691ccf374c2c  open_items.py
 c94846ab015b  operator_page.py
 cb02d7b7941e  page/page_ask.py
@@ -166,15 +166,15 @@ fd3de4f5b9fc  preflight.py
 d3a9bddf42ea  progress.py
 36af2522a571  provenance.py
 b1be280dee59  question_card.py
-16d12d743c38  readers.py
+a076e17b7db0  readers.py
 e15f1d6e2e26  reading_check.py
 97d30fbb7ef4  reconcile.py
-35ac12d6ed8d  reference/assigning-business-work-to-levels.md
+fcfd2a9b421d  reference/assigning-business-work-to-levels.md
 3a76e721bc84  reference/four-layers.md
 55491c31e702  reference/runbook-model.md
 7c038d2ffead  reference/vocabulary.md
 decb8b3b30d9  reference/what-each-level-can-report.md
-d141fb378d9d  register-template/REGISTER.md
+ad8e3017e8a1  register-template/REGISTER.md
 1add18ed80f9  register-template/RUN.md
 9daa048e353f  register-template/about.csv
 fd9fdcf6ca52  register-template/agent-system.csv
@@ -184,7 +184,7 @@ ff82438db0bf  register-template/case-attributes.csv
 b0588450aa0f  register-template/corrections.csv
 7cba0b5074e3  register-template/expectations.csv
 c193b09a0cbf  register-template/failure-modes.csv
-6e21e611beaa  register-template/flows.csv
+0fdfc136d0f9  register-template/flows.csv
 d6edcbf68905  register-template/how-made.csv
 a55e98ace5d4  register-template/lifecycle.csv
 986d3f60d956  register-template/measure-gaps.csv
@@ -194,9 +194,9 @@ a427544ca375  register-template/product-names.csv
 64d11f49aa68  register-template/remedies.csv
 1fa5814e78ee  register-template/set-aside.csv
 ba63b622a67a  register-template/sources.csv
-c2ae3dc631c5  register-template/stages.csv
+61282f349d49  register-template/stages.csv
 947d49c44c87  register-template/step-impact.csv
-86b2e4b0309f  register-template/steps.csv
+9776f7bb4777  register-template/steps.csv
 7c0afa3affdd  register-template/subjects.csv
 fab9caf6b010  register_layout.py
 62f9f6baf9db  reread.py
@@ -207,11 +207,11 @@ e03690773abf  run_lock.py
 1e9ed869e874  run_status.py
 9b8fbeb66a78  saved_pages.py
 753b4452ab19  say_back.py
-0221e3e457e4  selective.py
+43b5d19e4a0e  selective.py
 eea27624c290  settings.py
 f267d0745899  sources_page.py
 858466d2a35a  split-run-formats.md
-c65ea46f4c9d  stage_flow_views.py
+0340275441f8  stage_flow_views.py
 5d8d23d5f199  start.py
 cc5adc38d102  start_register.py
 4fdc8857fd2d  step_page.py

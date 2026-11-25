@@ -8,6 +8,25 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.13 — 2026-11-25
+
+Short names on the map: each flow, stage and step can carry a short name of two to five words, shown on the map's
+boxes beside its identifier while the full name stays in the panel a box opens, and every short name is judged for
+its meaning.
+
+- **Short names on the map.** A flow, a stage and a process step can carry a short name of two to five words
+  (`short_name` in `flows.csv`, `stages.csv` and `steps.csv`, written `proposed: ` until the people who own the work
+  confirm it), drafted with the full name by the method's rule (*Assigning*, "Short names"): an act inside a stage
+  verb first, *Price items*; a way out of a stage by the state it leaves the case in, *Card refused*. Where it is
+  filled, the map shows it beside the level's identifier, *Flow F1: Place an order*, *Stage 2: Take payment*,
+  *Process step 1.2: Price items*, *Expected outcome: Order paid*, on the map page's boxes, the stage drawing's tasks,
+  and the flow and the file's own stage in the stage file's diagram; the full name stays where it was: in the panel a box opens,
+  the task's tooltip and the stage file's heading. The map's inspection gains a rule, on a flow that has short names: each is two to
+  five words (one only where the full name is one word) and used once in its flow.
+  Effect: none. A register without short names is drawn and inspected as before.
+- **A short name is judged for its meaning.** A short name that adds a claim (*Items received* where nothing records a receipt) or does not fit its kind is flagged on its row, with the reason. On every map a flagged short name is fixed like any flagged row and judged once more; still flagged then, it is shown as disputed. In the full reading each flow, stage or step row's judges judge its short name too; in a fast map, one judge per flow reads all its short names together before the map is drawn, whether or not measures follow.
+  Effect: none. A register without short names is judged as before.
+
 ## Release 9.12.1 — 2026-11-24
 
 A fix to Release 9.11.1.

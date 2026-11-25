@@ -517,7 +517,8 @@ is left to offer, or the person says stop at that offer, stop the listener with 
    read that unit, so a stop keeps every unit written; when the model's context window is larger than 200,000 tokens,
    record it at the go with `--context-tokens <n>`. Run control then
    merges, checks every citation by script (`fast_map.py check`), and draws `fast-map.html`, with no readers, re-reads
-   or judges; its map stop says what was not read or checked. Do not run those steps by hand: call `next.py` and do
+   or judges of its rows; its map stop says what was not read or checked. Before the drawing, one judge reads all of
+   the flow's short names against their full names, and the flow's fixer corrects what it flags (`next.py` launches both). Do not run those steps by hand: call `next.py` and do
    what it prints. `go.py` refuses `--stages`: the stages are picked after mapping, with
    `--depth`. It writes `scope.json` (with what remains after this run) and `run-settings.json`, and the go and scope
    lines of `RUN.md`; it refuses a flow or service the brief did not name. Map their words to the brief's names

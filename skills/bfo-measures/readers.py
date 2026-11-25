@@ -119,7 +119,17 @@ def flow_fix_prompt(reg, table, rows, ws=None):
             "what the cited lines show: narrow the claim, or correct the citation. You may instead relabel the claim "
             "`proposed:`, drop a citation, or withdraw the row (delete it); say which in your reply. Never change "
             f"{key}: a row whose key changes counts as withdrawn and a new row, judged afresh. Change no other row.", ""]
+    if any("short name:" in (r.get("reasons") or "") for r in rows):
+        out += [SHORT_FIX, ""]
     return "\n".join(out + _tail(f"to your own table {path}"))
+
+
+SHORT_FIX = ("A reason that begins `short name:` is about the row's short_name only: open no code for it. Rewrite that "
+             "one cell, using the reason, keep `proposed: ` before it, and change no other cell for it. "
+             + "The short name: " + judges.NO_CLAIM + " An act inside a stage is verb first, a verb and its object "
+             "(Price items); a step that takes the case out of its stage is the object, then the state it leaves the "
+             "case in (Card charged); a flow or stage whose full name is already verb first in two to five words "
+             "keeps that name. Two to five words, used once in the flow.")
 
 
 def owed_section(owed):
