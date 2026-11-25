@@ -1,0 +1,17 @@
+attribute,status,vendor_alias,deprecated_name
+service.name,stable,,
+service.namespace,stable,,
+k8s.deployment.name,stable,,
+container.image.name,development,,
+deployment.environment.name,stable,deployment.environment,deployment.environment
+db.system.name,stable,db.system,db.system
+db.namespace,stable,db.name,db.name
+server.address,stable,,
+server.port,stable,,
+url.path,stable,,
+messaging.system.name,development,messaging.system,messaging.system
+messaging.destination.name,development,,
+server.service.name,development,peer.service,peer.service
+http.route,stable,,
+rpc.method,development,,
+rpc.service,development,,

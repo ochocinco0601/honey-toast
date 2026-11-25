@@ -321,6 +321,9 @@ button.flow{border:0;text-align:left;font:inherit}
 .fd-t{fill:var(--fd-fg);font-size:14px;font-weight:600} .fd-s{fill:var(--fd-fg);font-size:13px;pointer-events:none}
 .fd-l{fill:var(--fd-fg);font-size:13px;cursor:pointer} .fd-l.act{fill:var(--fd-case);font-weight:700} .fd-l.sel{font-weight:700;text-decoration:underline}
 .fd-grp{fill:var(--fd-muted);font-size:11.5px;letter-spacing:.04em}
+.fd-gh{fill:var(--fd-fg);font-size:12px;font-weight:650} .fd-jdg{fill:var(--fd-muted);font-style:italic;font-size:11.5px;font-weight:400}
+.fd-ep{fill:var(--fd-fg);font-size:10.5px;paint-order:stroke;stroke:var(--fd-box);stroke-width:4px;stroke-linejoin:round;pointer-events:none}
+.idt{width:100%;border-collapse:collapse;font-size:12px;margin:4px 0 8px} .idt th{text-align:left;font-weight:600;color:var(--ink3)} .idt td,.idt th{padding:2px 6px 2px 0;vertical-align:top;overflow-wrap:anywhere}
 .fd-flowbar{fill:var(--fd-stage);cursor:pointer} .fd-flowbar.sel{stroke:var(--fd-fg);stroke-width:2}
 .fd-case{fill:var(--fd-case);pointer-events:none} .fd-halo{fill:var(--fd-case);opacity:.3;filter:url(#fd-glow);pointer-events:none}
 .fd-ans{fill:none;stroke:var(--fd-muted);stroke-width:1;stroke-dasharray:3 2} .fd-anst{fill:var(--fd-fg);font-size:11.5px}
@@ -571,8 +574,9 @@ function panelView(){
     const isStep=D.wires.some(([a])=>a===S.sel), isComp=D.wires.some(([,b])=>b===S.sel);
     // a component picked on the drawing: the process steps that use it (number and short name), with or without measures
     const G=window.FLOWDRAW, cj=/^c-/.test(S.sel)&&G?G.lanes.findIndex(l=>l.sid===S.sel.slice(2)):-1;
-    const links=cj>=0?`<div class="pway"><span class="k">Used by</span><span>${G.steps.filter(s=>s.marks.some(([l])=>l===cj)).map(s=>`${esc(s.n)} ${pw(s.short)}`).join("<br>")}</span></div>`
-      :sst||showMeas?"":isStep?`<div class="pway"><span class="k">Runs on</span><span>${D.wires.filter(([a])=>a===S.sel).map(([,b])=>pw(nm(b))).join(", ")}</span></div>`
+    const eps=s=>(s.entry||{})[cj]||[];
+    const links=cj>=0?`<div class="pway"><span class="k">Used by</span><span>${G.steps.filter(s=>s.marks.some(([l])=>l===cj)).map(s=>`${esc(s.n)} ${pw(s.short)}${eps(s).length?` <span style="color:var(--ink3)">entry point: ${eps(s).map(esc).join("; ")}</span>`:""}`).join("<br>")}</span></div>`+idsHtml(G,cj,S.ep)
+      :sst||showMeas?"":isStep?`<div class="pway"><span class="k">Runs on</span><span>${D.wires.filter(([a])=>a===S.sel).map(([,b])=>pw(nm(b))).join(", ")}</span></div>`+callsHtml(G,S.sel)
       :isComp?`<div class="pway"><span class="k">Used by</span><span>${D.wires.filter(([,b])=>b===S.sel).map(([a])=>pw(D.label[a])).join("<br>")}</span></div>`:"";
     // a process step or a stage: its stage's way in and ways out, which the drawing leaves out
     const wst=sst||D.stages.find(x=>x.stepcol.some(y=>y.id===S.sel));
@@ -587,6 +591,18 @@ function panelView(){
   P.innerHTML=head+list;
   P.querySelectorAll(".chip[data-hs]").forEach(c=>c.onclick=()=>{S.selM=c.dataset.hs.split(",");render();});
 }
+// a lane's identifiers: what to search for in your telemetry, each with its basis (rule, judgment or not found) and where it was read
+function idsHtml(G,j,ep){const I=G&&G.ids&&G.ids[G.lanes[j].sid]; if(!I) return "";
+  const tbl=(rs)=>rs.length?`<table class="idt"><tr><th>Attribute</th><th>Value</th><th>Vendor reads</th><th>Basis</th><th>Read from</th></tr>${rs.map(r=>`<tr>${r.map(v=>`<td>${esc(v)||"—"}</td>`).join("")}</tr>`).join("")}</table>`:`<p class="hint">None recorded.</p>`;
+  const s=ep!=null&&G.steps[ep], ops=s?((s.entry||{})[j]||[]):[];
+  let h=ops.length?ops.map(o=>`<h5 style="margin:10px 0 0;font-size:12px">Entry point at ${esc(s.n)}: ${esc(o)}</h5>${tbl(I.entry[o]||[])}`).join(""):"";
+  h+=`<h5 style="margin:10px 0 0;font-size:12px">Identifiers of ${esc(G.lanes[j].label)}</h5>${tbl(I.part)}`;
+  I.judged.forEach(x=>{h+=`<p class="hint"><b>${x.decision==="merge"?"Merged":"Kept apart"} by judgment</b> from ${x.candidates.map(esc).join(" and ")}. Evidence: ${esc(x.evidence)}${x.change?`. What would change it: ${esc(x.change)}`:""}.</p>`;});
+  if(I.folded.length) h+=`<p class="hint">Also known before as ${I.folded.map(esc).join(", ")} (folded by rule).</p>`;
+  return h;}
+// a step's calls, each with the operation it carries
+function callsHtml(G,id){const s=G&&G.steps.find(x=>x.id===id); if(!s||!s.edges.length) return "";
+  return `<div class="pway"><span class="k">Calls</span><span>${s.edges.map(([a,b,,op])=>`${esc(G.lanes[a].label)} → ${esc(G.lanes[b].label)}${op?`: ${esc(op)}`:""}`).join("<br>")}</span></div>`;}
 // The Flow map's drawing: flow › stages › process steps across the top, one row per component,
 // a grey square where a step uses a component, its calls as brackets, one case (the gold dot) moving through the steps,
 // and the measures as dots by kind where each applies (FLOWDRAW). Click, never hover.
@@ -613,7 +629,8 @@ const KW=n=>DS+(n>1?String(n).length*6.5+2:0), SPAN={};
 {const c={}; D.measures.forEach(m=>(G.place[m.h]||[]).forEach(p=>{const k=p.join(","); (c[k]??={})[m.layer]=(c[k][m.layer]||0)+1;}));
   for(const k in c) SPAN[k]=Object.values(c[k]).reduce((a,n)=>a+KW(n),0);}
 const MXS=G.steps.map((s,i)=>Math.max(MX,Math.ceil(20+Math.max(0,...G.lanes.map((l,j)=>SPAN[`cell,${i},${j}`]||0)))));
-const LX=Math.round(130+Math.max(...G.lanes.map(l=>l.label.length))*7.1+16+Math.max(0,...G.lanes.map((l,j)=>SPAN["lane,"+j]||0)));
+const JUDGED=l=>(G.ids?.[l.sid]?.judged||[]).some(j=>j.decision==="merge"), GH=G.groups?24:0;
+const LX=Math.round(130+Math.max(...G.lanes.map(l=>l.label.length+(JUDGED(l)?11:0)),...(G.groups||[]).map(g=>g.title.length*0.85-14))*7.1+16+Math.max(0,...G.lanes.map((l,j)=>SPAN["lane,"+j]||0)));
 const ORDER=Object.keys(AB), VAR=L=>`var(${LVAR[L]})`;
 const MS=Object.fromEntries(D.measures.map(m=>[m.h,m]));
 // each step's trace as a list of moves: a call down to a part, or its response back up
@@ -628,7 +645,7 @@ const total=dur.reduce((a,b)=>a+b+MOVE,0);
 // view: overview (every step narrow) or waterfall (the step the case is on, or a picked one, opens to show its trace)
 let mode="overview", focus=-1;
 let gLab=null, slide=[], only=null, repeatMode="flow", loopStep=-1, lastI=0, lastSel=null, paused=false, t=0, last=performance.now(), pinned=-1, cl=[], cw=[], cx=[], st=[], stageEls=[], laneLabels=[], bot, pulse, halo;
-const laneY=i=>Y.lane0+i*LH, stepY=Y.step+SH, yOf=ln=>ln<0?stepY:laneY(ln);
+const laneY=i=>Y.lane0+i*LH+((G.lanes[i]?.group??-1)+1)*GH, stepY=Y.step+SH, yOf=ln=>ln<0?stepY:laneY(ln);
 const pickEl=id=>{S.selM=null; S.sel=S.sel===id?null:id; if(S.sel) panelOpen(true); render();};
 const pickMs=hs=>{if(S.selM&&S.selM.length===hs.length&&hs.every(h=>S.selM.includes(h))) S.selM=null; else {S.selM=hs; S.sel=null; panelOpen(true);} render();};
 function build(f=focus){
@@ -640,7 +657,7 @@ function build(f=focus){
     OPEN=Math.max(CW,...moves.map(m=>T0+m.length*TX+12));}
   let x=LX, prev=-1; cl=[]; cw=[]; cx=[];
   G.steps.forEach((s,i)=>{if(prev>=0&&s.stage!==prev)x+=SG; const w=(i===focus?OPEN:CW)+MXS[i]-MX; cl.push(x); cw.push(w); cx.push(x+w/2); x+=w; prev=s.stage;});
-  const W=x+24+(focus<0?OPEN-CW:0), H=Y.lane0+G.lanes.length*LH+10;
+  const W=x+24+(focus<0?OPEN-CW:0), H=laneY(G.lanes.length-1)+LH/2+10;
   svg.setAttribute("viewBox",`0 0 ${W} ${H}`); NW=W; sizeIt();
   const defs=el("defs",{},svg); el("feGaussianBlur",{stdDeviation:2},el("filter",{id:"fd-glow",x:"-50%",y:"-50%",width:"200%",height:"200%"},defs));
   const mk=el("marker",{id:"fd-ah",viewBox:"0 0 8 8",refX:7,refY:4,markerWidth:7,markerHeight:7,orient:"auto"},defs);
@@ -651,11 +668,12 @@ function build(f=focus){
   gLab=el("g",{},svg); el("rect",{x:0,y:0,width:LX-9,height:H,style:"fill:var(--fd-box)"},gLab);
   G.lanes.forEach((ln,i)=>{el("line",{class:"fd-lane",x1:LX-8,x2:W-14,y1:laneY(i),y2:laneY(i)},gBack);
     laneLabels[i]=el("text",{class:"fd-l"+(S.sel==="c-"+ln.sid?" sel":""),x:LX-14,y:laneY(i)+4,"text-anchor":"end"},gLab); laneLabels[i].textContent=ln.label;
-    laneLabels[i].addEventListener("click",()=>pickEl("c-"+ln.sid));});
-  const GN={business:"people",application:"application",technology:"technology",external:"outside"};
-  G.lanes.forEach((ln,i)=>{if(i===0||G.lanes[i-1].band!==ln.band){let j=i; while(j+1<G.lanes.length&&G.lanes[j+1].band===ln.band)j++;
-    const y0=laneY(i)-10, y1=laneY(j)+10; el("path",{d:`M44,${y0} h-5 V${y1} h5`,style:"stroke:var(--fd-line)","stroke-width":1,fill:"none"},gLab);
-    el("text",{class:"fd-grp",x:50,y:(y0+y1)/2+4},gLab).textContent=GN[ln.band]||ln.band;}});
+    if(JUDGED(ln)) el("tspan",{class:"fd-jdg"},laneLabels[i]).textContent=" · judgment";
+    laneLabels[i].addEventListener("click",()=>{S.ep=null; pickEl("c-"+ln.sid);});});
+  // lanes grouped under the application that owns them (the flow sets the view: one map can hold many), then outside
+  G.lanes.forEach((ln,i)=>{if(i===0||G.lanes[i-1].group!==ln.group){let j=i; while(j+1<G.lanes.length&&G.lanes[j+1].group===ln.group)j++;
+    const y0=laneY(i)-10, y1=laneY(j)+10; el("path",{d:`M36,${y0} h-5 V${y1} h5`,style:"stroke:var(--fd-line)","stroke-width":1,fill:"none"},gLab);
+    el("text",{class:"fd-gh",x:31,y:laneY(i)-LH/2-6},gLab).textContent=G.groups[ln.group].title;}});
   el("text",{class:"fd-t",x:10,y:Y.flow+17},gLab).textContent="flow";
   el("text",{class:"fd-t",x:10,y:Y.stage+32},gLab).textContent="stages";
   el("text",{class:"fd-t",x:10,y:Y.step+21},gLab).textContent="steps";
@@ -680,8 +698,11 @@ function build(f=focus){
       ["No","component","recorded."].forEach((w,k)=>{el("text",{class:"fd-anst",x:L+CW/2,y:Y.lane0+6+k*14,"text-anchor":"middle"},gFront).textContent=w;});}
     el("text",{class:"fd-sn fd-nt",x:L+CW/2,y:Y.step+13,"text-anchor":"middle"},gFront).textContent=s.n;
     wrapText(s.short,L+CW/2,Y.step+29,CW-14,14,"fd-sh fd-nt","middle",gFront);
-    const marks={}; s.marks.forEach(([ln])=>{const c="c-"+G.lanes[ln].sid; marks[ln]=el("rect",{class:"fd-mark"+(S.sel===c?" sel":""),x:L+MXS[i]-6,y:laneY(ln)-6,width:12,height:12,rx:2},gFront);
-      marks[ln].addEventListener("click",()=>pickEl(c));});
+    const marks={}; s.marks.forEach(([ln,,ep,more])=>{const c="c-"+G.lanes[ln].sid; marks[ln]=el("rect",{class:"fd-mark"+(S.sel===c?" sel":""),x:L+MXS[i]-6,y:laneY(ln)-6,width:12,height:12,rx:2},gFront);
+      marks[ln].addEventListener("click",()=>{if(S.sel===c&&S.ep!==i){S.ep=i; render(); return;} S.ep=i; pickEl(c);});
+      // the entry point named on the mark: the first, and how many more; the panel lists them all
+      if(ep){const tail=more?` +${more}`:"", room=CW-MXS[i]-6, t=el("text",{class:"fd-ep",x:L+MXS[i]+9,y:laneY(ln)+4},gFront);
+        let v=ep; t.textContent=v+tail; while(v.length>3&&t.getComputedTextLength()>room){v=v.slice(0,-1); t.textContent=v.trimEnd()+"…"+tail;}}});
     const segs=[], calls=[], x0=L+MXS[i], E=x0+6, DX=7; let d=0, py=stepY; const open=[];
     if(i===focus){
       // the opened step's trace as a waterfall: each move a little right of the last; a call a line down, numbered only

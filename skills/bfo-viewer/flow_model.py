@@ -264,29 +264,34 @@ def flowdraw_of(reg, flow, M):
     data_steps = []
     for si, x in steps:
         sid = x["id"].replace("m-s-", "")
-        involve = {}
+        involve, entry = {}, {}
         for p in part:
-            if p["step"] == sid and p["subject_id"] in subj and involve.get(p["subject_id"]) != "performs":
-                involve[p["subject_id"]] = p["involvement"]
+            if p["step"] == sid and p["subject_id"] in subj:
+                if involve.get(p["subject_id"]) != "performs":
+                    involve[p["subject_id"]] = p["involvement"]
+                got = entry.setdefault(p["subject_id"], [])
+                for o in (o.strip() for o in p["operation"].split(";")):
+                    if o and o not in got:
+                        got.append(o)
         ordered = sorted((r for r in rels if sid in [h.strip() for h in r["step_hint"].split(";")]),
                          key=lambda r: to_int(r["sequence"]) if to_int(r["sequence"]) is not None else 99)
-        edges = [[r["from_id"], r["to_id"], to_int(r["sequence"])] for r in ordered]
-        for a, b, _ in edges:
+        edges = [[r["from_id"], r["to_id"], to_int(r["sequence"]), call_op(r)] for r in ordered]
+        for a, b, _, _ in edges:
             involve.setdefault(a, "supports")
             involve.setdefault(b, "supports")
-        targets = {b for _, b, _ in edges}
+        targets = {b for _, b, _, _ in edges}
         roots = [n for n in involve if n not in targets and (any(e[0] == n for e in edges) or not edges)]
         roots.sort(key=lambda n: involve[n] != "performs")
         outside = not involve and not M["stages"][si]["parts"]
         data_steps.append({"id": x["id"], "sid": sid, "stage": si, "n": x["n"], "involve": involve, "edges": edges,
-                           "roots": roots, "outside": outside})
+                           "roots": roots, "outside": outside, "entry": entry})
 
     lanes = []
 
     def visit(n, edges, seen=()):
         if n not in lanes:
             lanes.append(n)
-        for a, b, _ in edges:
+        for a, b, _, _ in edges:
             if a == n and b not in seen:
                 visit(b, edges, seen + (n,))
     for d in data_steps:
@@ -296,7 +301,9 @@ def flowdraw_of(reg, flow, M):
             if n not in lanes:
                 lanes.append(n)
     band = {n: "external" if subj[n]["level"] == "external dependency" else subj[n]["band"] for n in lanes}
-    lanes.sort(key=lambda n: {"business": 0, "application": 1, "technology": 2}.get(band[n], 3))
+    ident = rows(reg, "identifiers.csv")
+    groups, group_of = owner_groups(reg, lanes, subj, band, rels, ident)
+    lanes.sort(key=lambda n: (group_of[n], {"business": 0, "application": 1, "technology": 2}.get(band[n], 3)))
     LN = {n: i for i, n in enumerate(lanes)}
 
     place = {}
@@ -336,15 +343,124 @@ def flowdraw_of(reg, flow, M):
         "flow": {"id": flow, **named(flow_row, flow_row["name"] or M["flow"])},
         "stages": [{"id": s["id"], "num": s["num"], **named(stage_row.get(gid(s), Row()), stage_row.get(gid(s), Row())["name"] or s["name"])}
                    for s in M["stages"]],
-        "lanes": [{"sid": n, "label": subj[n]["name"].split(" (")[0] or n, "band": band[n]} for n in lanes],
+        "lanes": [{"sid": n, "label": lab, "band": band[n], "group": group_of[n]}
+                  for n, lab in zip(lanes, lane_labels(lanes, subj))],
+        "groups": groups,
         "steps": [{"id": d["id"], "stage": d["stage"], "n": d["n"], "outside": d["outside"],
                    **named(step_row.get(d["sid"], Row()), step_row.get(d["sid"], Row())["name"]),
-                   "marks": [[LN[n], v == "performs"] for n, v in d["involve"].items()],
-                   "edges": [[LN[a], LN[b], q] for a, b, q in d["edges"]],
+                   "marks": [[LN[n], v == "performs", (d["entry"].get(n) or [""])[0], max(0, len(d["entry"].get(n) or []) - 1)]
+                             for n, v in d["involve"].items()],
+                   "entry": {LN[n]: e for n, e in d["entry"].items() if e},
+                   "edges": [[LN[a], LN[b], q, op] for a, b, q, op in d["edges"]],
                    "roots": [LN[r] for r in d["roots"]]} for d in data_steps],
         "place": place,
+        "ids": lane_identifiers(reg, lanes, ident),
     }
     return out, notes
+
+
+def call_op(rel):
+    """A call's operation: the relationship's operation column, else what its name says after "from to: "."""
+    v = rel["operation"].strip()
+    return v or (rel["name"].rsplit(": ", 1)[-1].strip() if ": " in rel["name"] else "")
+
+
+def lane_labels(lanes, subj):
+    """Each lane's name, never cut: its short_name where the register has one, else its name; a name another lane
+    also shows gets its subject id."""
+    # a person's name may carry a description in brackets (a component's never does): that is cut, then checked like the rest
+    lab = [short_name(subj[n]) or (subj[n]["name"].split(" (")[0] if subj[n].get("band") == "business" else subj[n]["name"]) or n
+           for n in lanes]
+    while len(set(lab)) < len(lab):  # ids are unique, so each round parts every pair still alike
+        lab = [f"{x} ({n})" if lab.count(x) > 1 else x for x, n in zip(lab, lanes)]
+    return lab
+
+
+def owner_groups(reg, lanes, subj, band, rels, ident):
+    """The lanes' groups, in drawing order: people; this register's application; each other application a part names;
+    outside this application. A component's application is its application_id, else its recorded app id or
+    service.namespace; a store or broker with neither sits with the first deployable that calls it."""
+    about = (rows(reg, "about.csv") or [Row()])[0]
+    rec = {}
+    for r in ident:
+        if not r["operation"] and r["value"].strip() and r["attribute"] in ("custom: app id", "service.namespace"):
+            rec.setdefault(r["subject_id"], {})[r["attribute"]] = r["value"].strip()
+    home = about["application_id"].strip()
+
+    def app(n):
+        return subj[n]["application_id"].strip() or rec.get(n, {}).get("custom: app id", "") or \
+            rec.get(n, {}).get("service.namespace", "")
+    owner = {}
+    for n in lanes:
+        if band[n] in ("business", "external"):
+            continue
+        if band[n] == "application" or app(n):
+            owner[n] = app(n) or home
+    rest = [n for n in lanes if n not in owner and band[n] not in ("business", "external")]
+    while rest:  # a store called through another store takes its owner once that one has it, whatever the lane order
+        placed = {n: owner[c] for n in rest
+                  for c in [next((r["from_id"] for r in rels if r["to_id"] == n and r["from_id"] in owner), None)] if c}
+        if not placed:
+            owner.update({n: home for n in rest})
+            break
+        owner.update(placed)
+        rest = [n for n in rest if n not in placed]
+    order = [home] + [owner[n] for n in lanes if n in owner and owner[n] != home]
+    order = list(dict.fromkeys(order))
+    groups, key = [], {}
+    if any(band[n] == "business" for n in lanes):
+        key["people"] = len(groups)
+        groups.append({"kind": "people", "title": "people"})
+    for a in order:
+        if a == home and not any(owner.get(n) == home for n in lanes):
+            continue
+        key[a] = len(groups)
+        if a == home:
+            title = f"{about['system'] or 'This application'} · app id " + (home or "not recorded")
+        else:
+            ns = next((rec[n].get("service.namespace") for n in lanes if owner.get(n) == a and rec.get(n, {}).get("service.namespace")), "")
+            title = (f"{ns} · app id {a}" if ns and ns != a else f"Application {a}")
+        groups.append({"kind": "app", "title": title})
+    if any(band[n] == "external" for n in lanes):
+        key["outside"] = len(groups)
+        groups.append({"kind": "outside", "title": "outside this application"})
+    group_of = {n: key["people" if band[n] == "business" else "outside" if band[n] == "external" else owner[n]]
+                for n in lanes}
+    return groups, group_of
+
+
+def otel_aliases():
+    """attribute -> the name a vendor reads, from the kit's method/otel-attributes.csv where the kit copy has it."""
+    p = KIT_DIR / "method" / "otel-attributes.csv"
+    return {r["attribute"]: r["vendor_alias"] for r in rows(p.parent, p.name) if r["vendor_alias"]}
+
+
+def lane_identifiers(reg, lanes, ident):
+    """Per lane: its part's identifier rows, its entry points' rows by operation, and how the merge formed it (the ids
+    folded into it by rule, and each judgment that merged it or kept it apart, with its evidence)."""
+    alias = otel_aliases()
+    out = {}
+    for n in lanes:
+        part, entry = [], {}
+        for r in ident:
+            if r["subject_id"] != n:
+                continue
+            row = [r["attribute"], r["value"], alias.get(r["attribute"], ""), r["basis"], r["source"]]
+            (entry.setdefault(r["operation"], []) if r["operation"] else part).append(row)
+        out[n] = {"part": part, "entry": entry, "folded": [], "judged": []}
+    for r in rows(reg, "merge/part-ids.csv"):
+        if r["alias_of"] in out:
+            out[r["alias_of"]]["folded"].append(r["subject_id"])
+    for r in rows(reg, "identity/merges.csv"):
+        ids = [c.strip() for c in r["candidates"].split(";") if c.strip()]
+        for n in lanes:
+            if n in ids and r["basis"].strip().lower().startswith("judgment"):
+                out[n]["judged"].append({"decision": r["decision"], "candidates": ids, "evidence": r["evidence"],
+                                         "change": r["what_would_change_it"]})
+    for n, v in out.items():
+        judged = {c for j in v["judged"] if j["decision"] == "merge" for c in j["candidates"]}
+        v["folded"] = sorted(set(v["folded"]) - judged)
+    return out
 
 
 def milestones(reg, flows_with):

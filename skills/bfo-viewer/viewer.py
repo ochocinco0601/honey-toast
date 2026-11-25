@@ -19,7 +19,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import flow_model as fm  # noqa: E402
 
-VERSION = 4
+VERSION = 5
 TEMPLATE = HERE / "viewer.template.html"
 PORTFOLIO = "portfolio.csv"  # read from the folders given when --portfolio is not
 
