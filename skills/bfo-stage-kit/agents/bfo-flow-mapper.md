@@ -44,15 +44,22 @@ tools: Read, Grep, Glob, Write
 
 1. **One unit at a time: read it first, and only what is listed.** Read every file your prompt lists for a unit with
    the Read tool, many in parallel per turn, before writing that unit. Read nothing else: no file a listed file imports, no test. When a call's target
-   cannot be told from what you read, record the call as the caller writes it and say so in its `source`. Use Grep and
+   cannot be told from what you read, write it to `external:<the name the caller uses>` (item 5) and say so in its
+   `source`. Use Grep and
    Glob only to find a line in a listed file; they do not count as reading, and you have no shell.
 2. **Read to the last line.** The Read tool returns at most 2,000 lines when given no limit. For a longer file, read on
    with `offset` and `limit` until its last line is read. A file you cannot read to its end is listed in its unit's
    `files.csv` as `not read` with the reason `read in part: lines <first>-<last> read`, and no row cites the part you
    did not read. A Read that fails is no read: a file too large for one Read is read in parts with `offset` and
-   `limit`; a file a hook or the tool refuses is listed as `not read` with the reason the tool gave, never cited.
+   `limit`. A file a hook or the tool refuses is never cited, and the refusal is never a reason to stop, even one
+   that does not name the file (a rule in the environment that hides what a read returned, say): the file you asked
+   for is listed as `not read`, reason `blocked: <what the tool said>`, and you go on with the next file and write the unit's tables. A unit with nothing written leaves its
+   steps with no rows at all, where a unit with one file blocked is a map with one gap the person can see.
 3. **Then write that unit at once, in one pass, before the next unit:** its `subjects.csv`, `operations.csv`, `calls.csv`, `participation.csv` and
-   `files.csv` into `units/<unit>/`, in the columns `split-run-formats.md` gives, with one `row_id` numbering across
+   `files.csv` into `units/<unit>/`, in the columns `split-run-formats.md` gives, each row with exactly as many
+   cells as the header, a cell that holds a comma, a double quote or a line break written in double quotes (a double
+   quote inside it written twice: `"saves the order, then charges"`), because a row that does not parse is refused
+   whole, with one `row_id` numbering across
    all of the unit's tables: `<unit>-1`, `<unit>-2`, and so on, counting on from one table to the next, never starting
    again at 1 in a table and never a second number inside the id, because a row is addressed as `<unit>/<row_id>`
    whatever its table. Write rows only for the process steps your prompt lists: the picked stages' steps.
@@ -73,12 +80,18 @@ tools: Read, Grep, Glob, Write
    passes on the case's id anywhere on the flow (cite the line), `no:` only when none of its code does.
 4. **Cite as you read:** every row `path:line` or `path:first-last`, relative to the workspace. Never re-read a file to
    check a row: you read the code once.
-5. **Calls between units:** give each call to another unit the `to_unit` and the `operation` spelled exactly as the
-   called side serves it, as the code you read shows it (the route, the client method, the message name); another
-   mapping agent may write that unit's `operations.csv`. A call whose two sides do not meet is shown as a gap. A call
-   into a service that is not one of this run's units (the person left it out, or the closure did not reach it) keeps
-   its `to_unit` as the caller names it, and its `source` says "outside this run"; the map shows it as a gap, never
-   as complete.
+5. **Calls between units:** give each call to another unit the `operation` spelled exactly as the called side serves
+   it, as the code you read shows it (the route, the client method, the message name), and its `to_unit` by the
+   forms below; another mapping agent may write that unit's `operations.csv`. A call whose two sides do not meet is
+   shown as a gap. Every call names where it goes, in one of these forms, because the merge draws a call with no
+   target it knows as a line to nothing, and the map's check refuses it: to a unit of this run, `to_unit` that unit
+   exactly as your prompt lists it; to a service the person left out of this run, `to_unit` its name exactly as your
+   prompt lists it (never the name the code, a config file or a page gives it); to a store or broker this unit's own
+   `subjects.csv` has, `to_unit` blank and `to_part` its `subject_id`; to anything else (another store or broker, a
+   third party, a mainframe, a service no unit reads), `to_unit` blank and `to_part` `external:<its name>`, with
+   "outside this run" in `source` where it is a service. A message names its broker in `via`. A call whose target the code does not
+   show goes to `external:<the name the caller uses>`, with what you traced in `source`; never leave both `to_unit`
+   and `to_part` blank. A call that breaks this is refused as you return, with the row and the names you may use.
 6. **If you run out of room** before a unit's files are all read: stop reading, write that unit from what you have read
    (every file you did not read in `files.csv` as `not read`, reason `not read: ran out of room`), mark it
    `unfinished` with the note `ran out: <n> file(s) left`, and stop. Run control launches the unit again for the files
@@ -91,7 +104,7 @@ tools: Read, Grep, Glob, Write
    names it), columns `unit,status,note`: one row per unit you were given. `done` when every listed file is cited, not
    relevant, or not read with a reason no relaunch can cure (a hook or the tool blocked it, generated code, over the
    budget the prompt gave): a relaunch would hit the same wall, so such a unit is done and the map shows each file as a
-   gap. `unfinished`, with what is left in `note`, only for work a relaunch can finish: you ran out of room, or files
+   gap (where files were blocked, the note `blocked: <n> file(s)`). `unfinished`, with what is left in `note`, only for work a relaunch can finish: you ran out of room, or files
    were left for the next launch. Run control reads this file, not your reply, to decide whether to launch you again,
    and stops for the person when a unit makes no progress over the relaunches the run allows.
 9. Write nowhere but the `units/<unit>/` folders your prompt names and that status file.

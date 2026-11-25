@@ -71,7 +71,11 @@ Open every cited line range with the Read tool at `<Workspace>/<path>`, passing 
 and a `limit` that reaches its last line (a Read without them covers only the file's first lines, and the judge check
 counts only the lines a Read covered). If a cited file will not open at that path, do not look for it anywhere else
 and do not judge from another file: write the verdict `unclear` with a reason that reads: cited file <path> could
-not be opened at <the full path you tried>. Then reply done.
+not be opened at <the full path you tried>. Then reply done. A Read the environment refuses (a hook or the tool
+blocks the file or what it returned, whether or not it names the file) is the same: never stop without a verdict.
+Write `unclear` with a reason that reads: cited file <path> blocked: <what the tool said>. Then reply done. The
+verdict, with the refusal in its reason, is what tells the run why the row could not be checked; a judge that writes
+nothing tells it nothing.
 
 Judge whether the code at the cited lines supports what the row claims. Judge only what the row asserts about the code. Labels like "proposed:" mark inferences the row admits are not
 in the code, so do not fail a row for a clearly labelled inference, but do fail it if the code contradicts it or if a

@@ -306,6 +306,29 @@ def stage_outcomes(M, stage_id, label):
     return list(dict.fromkeys(sid for sid, m in sfv.exits(M, stage_id) if M["_step_label"].get(sid) == label))
 
 
+def no_way_out(M, stage_id):
+    """Why a stage has no expected outcome, in words, or "" when it has one: no move of its own, or each of its moves
+    ends in a state its own moves start from (a move that changes no state stays in the stage of its from-state)."""
+    import flow_outputs as fo
+    import stage_flow_views as sfv
+    if stage_outcomes(M, stage_id, "Expected outcome"):
+        return ""
+    name = M["stage"][stage_id].get("name", stage_id)
+    moves = sfv.stage_moves(M, stage_id)
+    if not moves:
+        return f"{stage_id} ({name}): none of its steps cites a move, so nothing takes a case out of it"
+    if sfv.exits(M, stage_id):
+        return (f"{stage_id} ({name}): its ways out are all labelled other outcomes; none is labelled the expected "
+                "outcome")
+    def where(m):
+        to = fo.state(m.get("to_state"))
+        return f"changes no state ({to})" if to == fo.state(m.get("from_state")) else f"ends in {to}"
+    stay = "; ".join(f"{cv.step_title(M, sid)} {where(m)}" for sid, m in moves)
+    return (f"{stage_id} ({name}): every move ends in a state the stage's own moves start from, so no move takes a "
+            f"case out of it ({stay}). A move that changes no state stays in the stage of its from-state: give it the "
+            "state it leaves the case in, or move its step to the stage of that state")
+
+
 def stage_undo(M, stage_id):
     import stage_flow_views as sfv
     return [sfv.move_said(M, sid, m) for sid, m in sfv.stage_moves(M, stage_id)

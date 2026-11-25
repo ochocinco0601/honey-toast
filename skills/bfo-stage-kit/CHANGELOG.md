@@ -8,6 +8,37 @@ From Release 3, each entry ends with an effect line: what a register you already
 register until it runs), `fill from each row's citation` (the answer is in the lines each row already cites), or
 `re-walk` a named part of the walk, with the reason.
 
+## Release 9.14 — 2026-11-25
+
+Release 9.14 fixes a fast map that could be held with no way on, and could refuse its own mapping agents' rows.
+
+- **A held run always has a way on.** The held card offers "fix them" only when every problem names a row the lead
+  can correct. `fast_map.py fix --row` rewrites a row that does not parse, whole. Choosing to correct at the drawing
+  gives a task and stays open until the map's check passes. Units set aside at the check or the drawing are read again
+  from the fast read, so no earlier "refused again" text comes back. No message tells the session to launch an agent
+  itself: run control hands over every agent to launch.
+  Effect: none.
+- **The mapping agent is told the form, and refused as it returns.** Its prompt states the quoting rule and every way
+  to name a call's target (a unit, a part, `external:<name>`, a service the run leaves out), with the run's units and
+  left-out services listed. A call with no target or an unknown unit is sent back with the row and the names it may use.
+  Effect: none.
+- **A read the environment refuses is recorded, not a stop.** The mapping agent and the row judge record it as
+  `blocked: <what the tool said>` and carry on.
+  Effect: none.
+- **An earlier run's agents are not this run's.** A mapping agent of another run that wrote into the same folder (a
+  name differing only in capitals is the same folder on some disks) no longer refuses this run's units.
+  Effect: none.
+- **One element per outside system.** A call naming an outside system the lead's rows already hold reaches that
+  element; one an earlier merge minted beside it is withdrawn.
+  Effect: none.
+- **A stage with no way out says why.** The run status names the cause: no move of its own, only other outcomes, or
+  every move ending in a state the stage starts from (a move that changes no state stays in the stage of its
+  from-state).
+  Effect: none.
+- **Smaller.** `kit_findings.py` takes the kit's file by any path inside the kit; `next.py` takes a relative register
+  path; `next.py --help` and `merge.py --help` print their usage.
+  Effect: none.
+
 ## Release 9.13 — 2026-11-25
 
 Short names on the map: each flow, stage and step can carry a short name of two to five words, shown on the map's

@@ -1,14 +1,14 @@
 The version of this skill folder, written when it was built: the release and date it was built as, then every file with the first 12 characters of a hash of its text (line endings aside). The start step checks the folder against it at every launch and resume.
-Build: release-9.13 2026-11-25
-24fa4c93c31e  CHANGELOG.md
+Build: release-9.14 2026-11-25
+90b681f9ceca  CHANGELOG.md
 67ef9d3d3245  CHECKS.md
 1d24e76473c2  FILL-STEPS.md
 35feb8d4ac33  KNOWN-GAPS.md
 255978c2faa1  LAUNCH.md
 3ccb0a72150e  SKILL.md
 be9aa901cfa1  USE.md
-d548a1ce5934  agents/bfo-flow-mapper.md
-f66b12fa4fb7  agents/bfo-row-judge.md
+37633e6cda6b  agents/bfo-flow-mapper.md
+7014ea7c9ec3  agents/bfo-row-judge.md
 8a887f7ce54f  agents/bfo-source-reader.md
 dc0f0f8f2918  agents/bfo-unit-reader.md
 5f204fdb5659  agents_now.py
@@ -129,7 +129,7 @@ b8e4326e26ee  fact-extractor/precision.py
 414706db9e8a  fact-extractor/run.py
 85512e80010c  fact-extractor/selftest.py
 af655dd697d2  fact-extractor/semgrep_bin.py
-aadbfeeca1a5  fast_map.py
+9c007e7105e2  fast_map.py
 13164d0c9ad1  first_look.py
 f39202f11da2  flow_outputs.py
 1f8e660a1efd  flow_page.py
@@ -139,10 +139,10 @@ df127956a5a7  guard.py
 ba0933a43b7b  home.template.html
 5af2a68f1d7b  jobs.py
 dd25db43d451  judges.py
-409d57e9d6f6  kit_findings.py
+056b61da7bb5  kit_findings.py
 dc556fcb7329  listener.py
 605a69aeb1f6  map_record.py
-b971a420fe29  merge.py
+65ae1f4284f1  merge.py
 8ef08732d97c  method/agent-questions.csv
 786e9638b07c  method/closed-columns.csv
 e4270c8420b7  method/hop-failures.csv
@@ -151,7 +151,7 @@ e4270c8420b7  method/hop-failures.csv
 26b056624634  method/layers.csv
 8691712fae7c  method/measure-forms.csv
 6eb53baafd1f  method/part-kinds.csv
-517df13bf57f  next.py
+f2f30795d29e  next.py
 5995cf4f478a  one_canvas.py
 691ccf374c2c  open_items.py
 c94846ab015b  operator_page.py
@@ -204,7 +204,7 @@ e03690773abf  run_lock.py
 700122e6ef27  run_md.py
 36676bc27297  run_page.py
 99e6e2644288  run_state.py
-1e9ed869e874  run_status.py
+c86381a8dd1a  run_status.py
 9b8fbeb66a78  saved_pages.py
 753b4452ab19  say_back.py
 43b5d19e4a0e  selective.py
@@ -222,7 +222,7 @@ cc5adc38d102  start_register.py
 9500c3f2b0cf  tables.py
 23f851e0eebe  timings.py
 b8e6ac8bcf75  units.py
-eba85988099c  view_questions.py
+d25928fa9971  view_questions.py
 8b6b9faed5a4  wait_on_page.py
 67092c3a2629  watchdog.py
 cd13ee40b7f1  work_page.py

@@ -539,9 +539,17 @@ def build(reg, write=False, out=None):
             return row
         return settle(rec, dict(row, part_kind=kind), source)
 
+    lead_named = {" ".join((r.get("name") or "").split()).lower(): r.get("subject_id", "").strip() for r in lead_s
+                  if r.get("kind") == "element" and r.get("band") != "business" and r.get("subject_id", "").strip()}
     for ref in sorted(set(externals) | set(record["external"])):
         rec = record["external"].get(ref)
         kind = outside_kind(reached.get(ref, ()))
+        same = lead_named.get(" ".join(ref[len(EXTERNAL):].split()).lower())
+        if same:  # the lead already drew this outside part: the calls reach it; one an earlier merge minted is withdrawn
+            if rec and rec.get("subject_id") != same:
+                withdraw(rec, f"merge: {ref} is the lead's {same}")
+            ids[("", ref)] = same
+            continue
         if rec:
             ids[("", ref)] = sid = rec["subject_id"]
             band[sid] = rec.get("band", "")
@@ -1147,6 +1155,9 @@ def _take(argv, flag):
 
 def main(argv):
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I, the script's folder is not on it
+    if list(argv)[:1] in (["-h"], ["--help"]):
+        print(__doc__)
+        return 0
     import run_lock  # a folder that is not a register (the answers folder, say) is refused, naming the registers
     run_lock.refuse_unless_register(argv)
     argv = list(argv)

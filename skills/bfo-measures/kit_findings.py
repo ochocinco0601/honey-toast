@@ -57,7 +57,14 @@ def version():
 def kit_file(name):
     """`name` when it is a file of the kit as its version marker lists it, else None."""
     import start
-    if not name or "\\" in name or name.startswith("/") or ":" in name or ".." in name.split("/"):
+    if not name:
+        return None
+    try:
+        name = pathlib.Path(name).resolve().relative_to(HERE).as_posix() if pathlib.Path(name).is_absolute() \
+            else pathlib.PurePosixPath(name.replace("\\", "/")).as_posix()
+    except ValueError:
+        return None  # a path outside the kit
+    if name.startswith("/") or ":" in name or ".." in name.split("/"):
         return None
     listed = start.marker_files(HERE)
     return name if listed is not None and name in listed and (HERE / name).is_file() else None
@@ -73,7 +80,7 @@ def refusal(code, file, line):
         return "the code is one of the kit's own finding codes (kit_findings.py --list); nothing else"
     if kit_file(file) is None:
         return "the file is a file of the kit, as its version marker lists it; nothing else"
-    lines = len((HERE / file).read_bytes().splitlines())
+    lines = len((HERE / kit_file(file)).read_bytes().splitlines())
     if not isinstance(line, int) or not 1 <= line <= lines:
         return f"the line is a line of that file of the kit, from 1 to {lines}"
     return None
@@ -90,6 +97,7 @@ def record(reg, code, file, line):
     why = refusal(code, file, line)
     if why:
         return None, why
+    file = kit_file(file)
     p = pathlib.Path(reg) / FILE
     key = f"- {code} | {file}:{line} |"
     if any(x.startswith(key) for x in _lines(reg)):

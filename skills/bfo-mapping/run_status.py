@@ -740,7 +740,11 @@ def view_questions(reg, owed, measured=None, alerting=None, runbooks=None):
         if vq.CONTRACT[q] == vq.COUNT:
             continue
         if C[q]["empty"]:
-            why.append(f"{q} {len(C[q]['empty'])} empty")
+            causes = []
+            if q == "stage: expected outcomes":
+                M = vq.load(reg)
+                causes = [w for w in (vq.no_way_out(M, el) for el in C[q]["empty"] if el in M["stage"]) if w]
+            why.append(f"{q} {len(C[q]['empty'])} empty" + (": " + " | ".join(causes) if causes else ""))
         unread = C[q]["gapped"].get("not read", [])
         if q in NOT_READ_BY_STAGE:  # a part whose stages were all left mapped only is not read, by the person's pick
             unread = [e for e in unread if str(e).strip() not in unpicked]

@@ -545,6 +545,13 @@ def _fast_set_aside(reg, flow, sub):
     return None
 
 
+def _back_to_fast_read(reg, flow):
+    """Units set aside after the merge: the run steps back to the fast read, so their rewrite is merged and checked
+    afresh before the drawing, never judged again on the merge of the rows set aside."""
+    case.set_flow(reg, flow, state="mapping", sub="fast read")
+    return _fast_read(reg, flow, "fast read")
+
+
 FAST_LAUNCHES = "launches.json"  # fast/: {unit: {"launches", "listed", "stalled"}}, kept by _fast_stalled
 
 
@@ -631,8 +638,9 @@ def _stuck(reg, flow, sub, units, kind, said, why):
         return _judgment(sub, told + "The person chose that you correct these rows yourself. Put right each problem "
                          "named below, changing only the rows it names, so the rows meet the unit rules, each change with "
                          "`python <skill>/fast_map.py fix <register> <unit> <table> <row_id> <column> \"<value>\"` "
-                         "(or `--remove` in place of the column and value; `--nth 2` for a second row with the same "
-                         "id), never with Write, Edit or a script: a unit changed any other way is set aside and "
+                         "(or `--remove` in place of the column and value; `--row \"<the whole row as one CSV line>\"` "
+                         "for a row that does not parse, each cell that holds a comma in double quotes; `--nth 2` for "
+                         "a second row with the same id), never with Write, Edit or a script: a unit changed any other way is set aside and "
                          "written again by its mapping agent. Then call this again. If you cannot put them right, "
                          "call this again with --event choices, which puts the choices to the person again",
                          [f"units/{u}/ (the rows named only, through fast_map.py fix)" for u in units],
@@ -643,7 +651,7 @@ def _stuck(reg, flow, sub, units, kind, said, why):
     import question_card as qc
     choices = []  # (event, verb, what happens): each choice names who acts
     named = []
-    if kind == "rows":
+    if kind == "rows" and _correctable(reg, units, why):
         values = [m for u in units for m in fast_map.value_misses(reg, u)]
         choices.append(("correct", "Tell me, or let me fix them", "you give the right value, or I correct only what "
                         "the map's check names; mapping goes on once they pass") if values else
@@ -667,8 +675,8 @@ def _stuck(reg, flow, sub, units, kind, said, why):
             after=[("Affects", f"the part of the map {who} carries")],
             why="the map cannot count those findings as they are",
             choices=[(verb, what) for _, verb, what in choices],
-            recommended=(1, "it changes only what the check names" if kind == "rows" else
-                         "it costs one more try" if retry else "the rest of the map goes on"))
+            recommended=(1, {"correct": "it changes only what the check names", "retry": "it costs one more try"}
+                         .get(choices[0][0], "the rest of the map goes on")))
     lines = card().splitlines()
     text = "\n".join(lines)
     folder = pathlib.Path(reg) / MESSAGES
@@ -701,7 +709,21 @@ def _stuck(reg, flow, sub, units, kind, said, why):
                              "or a set phrase")}
 
 
-CORRECTION_COPY = "correcting"  # fast/correcting/<unit>/: the unit's tables as they were when the person chose
+def _correctable(reg, units, why):
+    """Whether the lead's correction can carry out what holds `units`: every problem the unit rules find in each names
+    one of its rows (fast_map.py fix addresses a row by its id), and, where they find none (the map's check of the
+    merged rows held it), the reasons given name a row of each. A choice the kit cannot carry out is never put."""
+    import fast_map
+    for u in units:
+        found = fast_map.unit_problems(reg, u)
+        if any(not _named_rows(u, [p]) for p in found):
+            return False
+        if not found and not _named_rows(u, why):
+            return False
+    return True
+
+
+CORRECTION_COPY = "correcting"  #fast/correcting/<unit>/: the unit's tables as they were when the person chose
 UNIT_FILES = ("subjects", "operations", "calls", "participation", "files")
 
 
@@ -754,10 +776,16 @@ def _correction_checked(reg, flow, sub):
                          "changes to the rows named, then call this again",
                          [f"units/{u}/ (the rows named only)" for u in chose["units"]], ["fast_map.py check"],
                          breaches)
+    if chose.get("sub") == "fast draw":  # held by the map's check of the merged rows: closed at the drawing
+        return None
     if not any(fast_map.unit_problems(reg, u) for u in chose["units"]):
-        case.set_flow(reg, flow, **{CORRECTING: {}})
-        case.log(reg, "the lead's correction holds", units=chose["units"])
+        _correction_holds(reg, flow, chose)
     return None
+
+
+def _correction_holds(reg, flow, chose):
+    case.set_flow(reg, flow, **{CORRECTING: {}})
+    case.log(reg, "the lead's correction holds", units=chose["units"])
 
 
 ANSWER_EVENTS = {"retry": "try again", "leave-unread": "leave unread", "correct": "correct the rows"}
@@ -828,7 +856,9 @@ def _stuck_answer(reg, flow, kind, words, test):
                 shutil.rmtree(dest)
             if (pathlib.Path(reg) / "units" / u).is_dir():
                 shutil.copytree(pathlib.Path(reg) / "units" / u, dest)
-        named = {u: _named_rows(u, held.get("why") or []) for u in units}
+        # the rows the reasons name, and every row the unit rules name now (the reasons given are cut to five)
+        named = {u: sorted(set(_named_rows(u, held.get("why") or []))
+                           | set(_named_rows(u, fast_map.unit_problems(reg, u)))) for u in units}
         case.set_flow(reg, flow, **{STUCK: {}, CORRECTING: dict(held, named=named, words=words)})
     return None
 
@@ -988,23 +1018,26 @@ def _step(reg, flow, sub):
         import fast_map
         refused = _fast_set_aside(reg, flow, sub)
         if refused:  # a refused mapping agent: its units are launched again, never handed to the person to relaunch
-            return refused if refused.get("kind") != "set aside" else _fast_read(reg, flow, "fast read")
+            return refused if refused.get("kind") != "set aside" else _back_to_fast_read(reg, flow)
         found, _ = fast_map.check(reg, flow, judges.workspace(reg))
         return _judgment(sub, "Put right what the fast map's rule check found: a cited range that does not exist, in "
                          "the unit row or your own row it names (a unit row only with `python <skill>/fast_map.py fix "
                          "<register> <unit> <table> <row_id> <column> \"<value>\"`, never Write, Edit or a script: a "
                          "unit changed any other way is set aside and written again by its mapping agent); or, for a "
-                         "unit the mapping agent did not write, launch it again (fast read)",
+                         "unit the mapping agent did not write, call this again, which hands you its mapping agent to "
+                         "launch (never launch one on your own: run control's launch is what lets it rewrite a unit)",
                          LEAD_WRITE + ["units/<unit>/ (the row named only, through fast_map.py fix)"],
                          ["fast_map.py check"], found) if found else None
     if sub == "short names":
         return _short_names(reg, flow, sub)
     if sub == "fast draw":
         import fast_map
+        chose = case.flow(reg, flow).get(CORRECTING) or {}
         checked = _correction_checked(reg, flow, sub)
         if checked:
             return checked
-        if fast_map.normalise_units(reg):  # a unit corrected since the merge: written back in the list's spelling
+        # a unit corrected since the merge (the lead's correction, or the list's spelling written back): merged again
+        if fast_map.normalise_units(reg) or chose.get("units"):
             a = _code(reg, sub, ["merge.py", str(reg)])
             if a:
                 return a
@@ -1012,6 +1045,8 @@ def _step(reg, flow, sub):
         if a:
             return a
         refused = fast_map.register_refusals(reg)
+        if chose.get("units") and not set(refused) & set(chose["units"]):
+            _correction_holds(reg, flow, chose)
         if refused:  # rows only a mapping agent may write: set its units aside and launch it again with the reason
             owed, stuck, why = fast_map.set_aside_bad_ids(reg, refused)
             if stuck:
@@ -1020,7 +1055,7 @@ def _step(reg, flow, sub):
                 case.log(reg, "fast draw held", said=said)
                 return _stuck(reg, flow, sub, stuck, "rows", said, why)
             case.log(reg, "set aside units the map's check refused", units=owed)
-            return _fast_read(reg, flow, "fast read")
+            return _back_to_fast_read(reg, flow)
         a = (_code(reg, sub, ["capability_views.py", str(reg), "--check"])
              or _code(reg, sub, ["one_canvas.py", str(reg), str(reg / "views.html")]))
         if a is None:  # the map is drawn: its phases are done, closed here so the run's record times them
@@ -1403,9 +1438,13 @@ def main(argv):
     by_kit = "--by-kit" in argv
     test = "--test" in argv  # a test standing in for the person: its answers are kept as a test's
     argv = [a for a in argv if a not in ("--by-kit", "--test")]
+    if argv[:1] in (["-h"], ["--help"]):
+        print(__doc__)
+        return 0
     if len(argv) < 2:
         print(__doc__)
         return 2
+    argv[0] = str(pathlib.Path(argv[0]).resolve())  # helpers run from the kit's folder, so never a relative path
     event = None
     if "--event" in argv:
         i = argv.index("--event")
